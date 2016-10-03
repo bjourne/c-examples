@@ -10,9 +10,9 @@ def configure(ctx):
     ctx.env.append_unique('CFLAGS', base_flags + debug_flags)
 
 def build(ctx):
-    datatypes = ['common.c', 'vector.c']
+    datatypes = ['common.c', 'hashset.c', 'vector.c']
     datatypes = [path.join('datatypes', f) for f in datatypes]
     ctx.objects(source = datatypes, target = 'OBJS')
-    ctx.program(source = ['datatypes/tests/test-vector.c'],
-                use = 'OBJS',
-                target = 'test-vector')
+    for prog in ['test-hashset', 'test-vector']:
+        main = path.join('datatypes', 'tests', prog + '.c')
+        ctx.program(source = [main], use = 'OBJS', target = prog)
