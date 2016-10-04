@@ -10,4 +10,9 @@ typedef uintptr_t ptr;
 
 void error(char *fmt, ...);
 
+// Debug stuff
+
+#define PRINT_RUN(func) printf("=== %s\n", #func); timed_run(&func)
+void timed_run(void (*func)());
+
 #endif
