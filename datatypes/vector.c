@@ -36,14 +36,26 @@ void v_add(vector *v, ptr p) {
 
 ptr v_pop(vector *v) {
     if (v->used == 0) {
-        error("Stack underflow!");
+        error("Vector underflow!");
     }
     return v->array[--v->used];
 }
 
+ptr
+v_remove_at(vector *v, size_t i) {
+    if (i >= v->used) {
+        error("Index out of bounds!");
+    }
+    ptr el = v->array[i];
+    v->used--;
+    size_t n_copy = (v->used - i) * sizeof(ptr);
+    memmove(&v->array[i], &v->array[i + 1], n_copy);
+    return el;
+}
+
 ptr v_peek(vector *v) {
     if (v->used == 0) {
-        error("Stack underflow!");
+        error("Vector underflow!");
     }
     return v->array[v->used - 1];
 }

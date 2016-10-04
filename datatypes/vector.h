@@ -18,5 +18,6 @@ void v_add_all(vector *v, ptr *base, size_t n);
 void v_grow(vector *v, size_t req);
 
 ptr v_pop(vector *v);
+ptr v_remove_at(vector *v, size_t i);
 
 #endif
