@@ -5,7 +5,7 @@
 
 #define CMP(a, b) ((a) >= (b))
 
-void hp_insert(vector *v, ptr p) {
+void hp_add(vector *v, ptr p) {
     if (v->used >= v->size) {
         v_grow(v, 0);
     }

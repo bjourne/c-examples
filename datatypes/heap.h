@@ -3,7 +3,7 @@
 
 #include "vector.h"
 
-void hp_insert(vector *v, ptr p);
+void hp_add(vector *v, ptr p);
 ptr hp_pop(vector *v);
 
 #endif
