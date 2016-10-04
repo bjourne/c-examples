@@ -3,14 +3,8 @@
 #include <time.h>
 #include "../bstree.h"
 
-size_t rand_n(size_t n) {
-    return rand() % n;
-}
-
-int main(int argc, char *argv[]) {
-
-    srand(time(NULL));
-
+void
+test_add_remove() {
     bstree *bst1 = bst_add(NULL, 123);
     bst1 = bst_remove(bst1, 123);
     assert(bst1 == NULL);
@@ -57,8 +51,23 @@ int main(int argc, char *argv[]) {
     assert(bst_find(bst4, 80)->data == 80);
 
     bst4 = bst_remove(bst4, 50);
-    bst_print_inorder(bst4);
     bst_free(bst4);
+}
 
+void
+test_callstack_overflow() {
+    bstree *bst = NULL;
+    size_t count = 100000;
+    for (int i = 0; i < count; i++) {
+        bst = bst_add(bst, i);
+    }
+    assert(bst_size(bst) == count);
+    bst_free(bst);
+}
+
+int
+main(int argc, char *argv[]) {
+    PRINT_RUN(test_add_remove);
+    PRINT_RUN(test_callstack_overflow);
     return 0;
 }

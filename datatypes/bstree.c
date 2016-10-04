@@ -21,16 +21,19 @@ bst_free(bstree *bst) {
 
 bstree *
 bst_add(bstree *bst, ptr data) {
-    if (!bst) {
-        return bst_init(data);
+    bstree **addr = &bst;
+    while (*addr) {
+        ptr this_data = (*addr)->data;
+        if (data < this_data) {
+            addr = &(*addr)->left;
+        } else {
+            addr = &(*addr)->right;
+        }
     }
-    ptr this_data = bst->data;
-    if (data < this_data) {
-        bst->left = bst_add(bst->left, data);
-    } else {
-        bst->right = bst_add(bst->right, data);
-    }
-    return bst;
+    *addr = bst_init(data);
+    if (bst)
+        return bst;
+    return *addr;
 }
 
 void
