@@ -29,3 +29,8 @@ timed_run(void (*func)()) {
     double secs = (double)(end - start) / 1000 / 1000 / 1000;
     printf("-> %.3f seconds\n", secs);
 }
+
+size_t
+rand_n(size_t n) {
+    return rand() % n;
+}

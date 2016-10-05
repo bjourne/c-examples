@@ -3,10 +3,6 @@
 #include <time.h>
 #include "../hashset.h"
 
-size_t rand_n(size_t n) {
-    return rand() % n;
-}
-
 int main(int argc, char *argv[]) {
 
     srand(time(NULL));

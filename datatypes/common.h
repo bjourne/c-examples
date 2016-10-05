@@ -11,8 +11,11 @@ typedef uintptr_t ptr;
 
 void error(char *fmt, ...);
 
+size_t rand_n(size_t n);
+
 // Debug stuff
 #define PRINT_RUN(func) printf("=== %s\n", #func); timed_run(&func)
+
 void timed_run(void (*func)());
 
 // Bit munching

@@ -50,10 +50,6 @@ test_small_alloc() {
     free((void *)region);
 }
 
-size_t rand_n(size_t n) {
-    return rand() % n;
-}
-
 void
 test_random_allocs() {
     size_t size = 10 * 1024;
