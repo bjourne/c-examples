@@ -1,6 +1,7 @@
 #ifndef QUICKFIT_H
 #define QUICKFIT_H
 
+#include <stdbool.h>
 #include "datatypes/vector.h"
 
 /* It's shorter to type AT(foo) than *(ptr *)foo */
@@ -28,5 +29,6 @@ void qf_free(quick_fit *qf);
 ptr qf_allot_block(quick_fit *qf, size_t size);
 void qf_free_block(quick_fit *qf, ptr p);
 void qf_print(quick_fit *qf);
+size_t qf_largest_free_block(quick_fit *qf);
 
 #endif

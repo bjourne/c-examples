@@ -122,3 +122,18 @@ qf_print(quick_fit *qf) {
         printf("@%p: %4lu bytes\n", (void *)p, AT(p));
     }
 }
+
+size_t
+qf_largest_free_block(quick_fit *qf) {
+    vector *large_blocks = qf->large_blocks;
+    if (large_blocks->used) {
+        return AT(v_peek(large_blocks));
+    }
+    for (int i = QF_N_BUCKETS - 1; i >= 0; i--) {
+        vector *small_blocks = qf->buckets[i];
+        if (small_blocks->used) {
+            return AT(v_peek(small_blocks));
+        }
+    }
+    return 0;
+}

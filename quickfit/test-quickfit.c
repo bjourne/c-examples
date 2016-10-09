@@ -66,9 +66,33 @@ test_random_allocs() {
     free((void *)region);
 }
 
+void test_largest_free_block() {
+
+    assert(QF_LARGE_BLOCK_SIZE(128) == 1024);
+
+    size_t size = 1024;
+    ptr region = (ptr)malloc(size);
+    quick_fit *qf = qf_init(region, size);
+
+    assert(qf_largest_free_block(qf) == 1024);
+
+    qf_allot_block(qf, 128);
+    assert(qf->large_blocks->used == 0);
+
+    assert(qf_largest_free_block(qf) == 128);
+
+    for (int i = 0; i < 7; i++) {
+        assert(qf_allot_block(qf, 128));
+    }
+    assert(qf_largest_free_block(qf) == 0);
+    qf_free(qf);
+    free((void *)region);
+}
+
 int
 main(int argc, char *argv[]) {
     srand(1234);
+    PRINT_RUN(test_largest_free_block);
     PRINT_RUN(test_basic);
     PRINT_RUN(test_small_alloc);
     PRINT_RUN(test_random_allocs);
