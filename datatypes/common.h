@@ -13,6 +13,10 @@ void error(char *fmt, ...);
 
 size_t rand_n(size_t n);
 
+// Basic logic
+#define MAX(a, b) ((a > b) ? (a) : (b))
+#define MIN(a, b) ((a > b) ? (b) : (a))
+
 // Debug stuff
 #define PRINT_RUN(func) printf("=== %s\n", #func); timed_run(&func)
 

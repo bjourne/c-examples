@@ -12,7 +12,7 @@ vector *v_init(size_t size) {
 
 void v_grow(vector *v, size_t req) {
     size_t s1 = v->size + v->size / 2;
-    size_t new_size = s1 > req ? s1 : req;
+    size_t new_size = MAX(s1, req);
     v->array = realloc(v->array, NPTRS(new_size));
     v->size = new_size;
 }
