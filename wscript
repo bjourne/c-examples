@@ -22,3 +22,7 @@ def build(ctx):
     ctx.program(source = ['quickfit/test-quickfit.c'],
                 target = 'test-quickfit',
                 includes = ['.'], use = ['QF_OBJS', 'DT_OBJS'])
+
+    ctx.program(source = ['memperf/memperf.c'],
+                target = 'run-memperf',
+                includes = ['.'], use = ['DT_OBJS'])
