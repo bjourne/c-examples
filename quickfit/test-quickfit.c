@@ -66,7 +66,8 @@ test_random_allocs() {
     free((void *)region);
 }
 
-void test_largest_free_block() {
+void
+test_largest_free_block() {
 
     assert(QF_LARGE_BLOCK_SIZE(128) == 1024);
 
@@ -89,12 +90,70 @@ void test_largest_free_block() {
     free((void *)region);
 }
 
+void
+test_can_allot_p() {
+    size_t size = 4096;
+    ptr region = (ptr)malloc(size);
+    quick_fit *qf = qf_init(region, size);
+
+    assert(!qf_can_allot_p(qf, 4097));
+    assert(qf_can_allot_p(qf, 4096));
+
+    qf_allot_block(qf, 1024);
+    qf_allot_block(qf, 1024);
+    qf_allot_block(qf, 1024);
+
+    // This is an interesting effect of bucket seeding.
+    assert(qf_can_allot_p(qf, 1024));
+    assert(!qf_allot_block(qf, 480));
+    assert(!qf_can_allot_p(qf, 480));
+
+    qf_free(qf);
+    free((void *)region);
+}
+
+void
+test_can_allot_p_random() {
+    size_t size = 4096;
+    ptr region = (ptr)malloc(size);
+    quick_fit *qf = qf_init(region, size);
+
+    for (int i = 0; i < 1000; i++) {
+        size_t s = rand_n(1000) + 10;
+        if (qf_can_allot_p(qf, s)) {
+            assert(qf_allot_block(qf, s));
+        } else {
+            qf_clear(qf);
+        }
+    }
+    qf_free(qf);
+    free((void *)region);
+}
+
+void
+test_bad_sizes() {
+    size_t size = 4096;
+    ptr region = (ptr)malloc(size);
+    quick_fit *qf = qf_init(region, size);
+
+    qf_allot_block(qf, 17);
+
+    assert(qf->free_space == 4064);
+    assert(qf_largest_free_block(qf) == 3072);
+
+    qf_free(qf);
+    free((void *)region);
+}
+
 int
 main(int argc, char *argv[]) {
-    srand(1234);
+    srand(time(NULL));
+    PRINT_RUN(test_bad_sizes);
     PRINT_RUN(test_largest_free_block);
     PRINT_RUN(test_basic);
     PRINT_RUN(test_small_alloc);
     PRINT_RUN(test_random_allocs);
+    PRINT_RUN(test_can_allot_p);
+    PRINT_RUN(test_can_allot_p_random);
     return 0;
 }

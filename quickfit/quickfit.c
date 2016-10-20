@@ -15,18 +15,27 @@ qf_add_block(quick_fit *qf, ptr p, size_t size) {
     }
 }
 
+void
+qf_clear(quick_fit *qf) {
+    qf->large_blocks->used = 0;
+    qf->n_blocks = 0;
+    qf->free_space = 0;
+    for (int i = 0; i < QF_N_BUCKETS; i++) {
+        qf->buckets[i]->used = 0;
+    }
+    qf_add_block(qf, qf->start, qf->size);
+}
+
 quick_fit *
 qf_init(ptr start, size_t size) {
     quick_fit *qf = (quick_fit *)malloc(sizeof(quick_fit));
     qf->large_blocks = v_init(32);
-    qf->start = start;
-    qf->size = size;
-    qf->n_blocks = 0;
-    qf->free_space = 0;
     for (int i = 0; i < QF_N_BUCKETS; i++) {
         qf->buckets[i] = v_init(32);
     }
-    qf_add_block(qf, start, size);
+    qf->start = start;
+    qf->size = size;
+    qf_clear(qf);
     return qf;
 }
 
@@ -136,4 +145,10 @@ qf_largest_free_block(quick_fit *qf) {
         }
     }
     return 0;
+}
+
+bool
+qf_can_allot_p(quick_fit *qf, size_t size) {
+    size_t small = ALIGN(size, QF_DATA_ALIGNMENT);
+    return qf_largest_free_block(qf) >= QF_LARGE_BLOCK_SIZE(small);
 }
