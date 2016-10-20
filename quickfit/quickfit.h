@@ -4,9 +4,6 @@
 #include <stdbool.h>
 #include "datatypes/vector.h"
 
-// It's shorter to type AT(foo) than *(ptr *)foo
-#define AT(p) (*(ptr *)p)
-
 #define QF_N_BUCKETS 32
 #define QF_DATA_ALIGNMENT 16
 #define QF_PAGE_SIZE 1024
