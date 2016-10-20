@@ -14,17 +14,16 @@ typedef struct {
     size_t size;
     size_t used;
     allot_link *allots;
-    vector *roots;
     vector *mark_stack;
 } mark_sweep_gc;
 
 // Init, free
-mark_sweep_gc *ms_init(size_t max_used, vector *roots);
+mark_sweep_gc *ms_init(size_t max_used);
 void ms_free(mark_sweep_gc* ms);
 
 // Allocation
 bool ms_can_allot_p(mark_sweep_gc *me, size_t n_bytes);
-void ms_collect(mark_sweep_gc *me);
+void ms_collect(mark_sweep_gc *me, vector *roots);
 ptr ms_do_allot(mark_sweep_gc *me, size_t n_bytes, uint type);
 
 // To facilitate barriers and refcounting.

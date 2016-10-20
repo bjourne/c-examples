@@ -8,26 +8,25 @@
 #define LINK_SIZE sizeof(allot_link)
 
 mark_sweep_gc *
-ms_init(size_t max_used, vector *roots) {
-    mark_sweep_gc *ms = malloc(sizeof(mark_sweep_gc));
-    ms->size = max_used;
-    ms->used = 0;
-    ms->allots = NULL;
-    ms->roots = roots;
-    ms->mark_stack = v_init(16);
-    return ms;
+ms_init(size_t max_used) {
+    mark_sweep_gc *me = malloc(sizeof(mark_sweep_gc));
+    me->size = max_used;
+    me->used = 0;
+    me->allots = NULL;
+    me->mark_stack = v_init(16);
+    return me;
 }
 
 void
-ms_free(mark_sweep_gc* ms) {
-    allot_link *at = ms->allots;
+ms_free(mark_sweep_gc* me) {
+    allot_link *at = me->allots;
     while (at) {
         allot_link *next = at->next;
         free(at);
         at = next;
     }
-    v_free(ms->mark_stack);
-    free(ms);
+    v_free(me->mark_stack);
+    free(me);
 }
 
 static inline void
@@ -40,13 +39,13 @@ mark_step(vector *v, ptr p) {
 }
 
 void
-ms_collect(mark_sweep_gc *ms) {
+ms_collect(mark_sweep_gc *me, vector *roots) {
     // Initally, the white set contains all objects, the black and
     // grey sets are empty.
-    vector *v = ms->mark_stack;
+    vector *v = me->mark_stack;
     // First all root object are added to the gray set.
-    for (size_t i = 0; i < ms->roots->used; i++) {
-        ptr p = ms->roots->array[i];
+    for (size_t i = 0; i < roots->used; i++) {
+        ptr p = roots->array[i];
         if (p) {
             mark_step(v, p);
         }
@@ -64,12 +63,12 @@ ms_collect(mark_sweep_gc *ms) {
     // (condemned) objects.
 
     // Sweep phase
-    allot_link **scan = &ms->allots;
+    allot_link **scan = &me->allots;
     while (*scan) {
         allot_link *at = *scan;
         ptr p = (ptr)at + LINK_SIZE;
         if (!P_GET_MARK(p)) {
-            ms->used -= p_size(p);
+            me->used -= p_size(p);
             *scan = at->next;
             free(at);
         } else {

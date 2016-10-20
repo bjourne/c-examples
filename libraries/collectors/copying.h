@@ -13,16 +13,15 @@ typedef struct {
 typedef struct {
     space *active;
     space *inactive;
-    vector *roots;
 } copying_gc;
 
 // Init, free
-copying_gc *cg_init(ptr size, vector *roots);
+copying_gc *cg_init(size_t size);
 void cg_free(copying_gc *me);
 
 // Allocation
 bool cg_can_allot_p(copying_gc *me, size_t n_bytes);
-void cg_collect(copying_gc *me);
+void cg_collect(copying_gc *me, vector *roots);
 ptr cg_do_allot(copying_gc *me, size_t n_bytes, uint type);
 
 // To facilitate barriers and refcounting.

@@ -12,7 +12,7 @@ vm *
 vm_init(size_t max_used) {
     vm *v = malloc(sizeof(vm));
     v->roots = v_init(16);
-    v->mem_man = cg_init(max_used, v->roots);
+    v->mem_man = cg_init(max_used);
     return v;
 }
 
@@ -67,7 +67,7 @@ vm_allot(vm *v, size_t n_ptrs, uint type) {
     size_t n_bytes = NPTRS(n_ptrs);
     copying_gc* ms = v->mem_man;
     if (!cg_can_allot_p(ms, n_bytes)) {
-        cg_collect(ms);
+        cg_collect(ms, v->roots);
         if (!cg_can_allot_p(ms, n_bytes)) {
             error("Can't allocate %lu bytes!\n", n_bytes);
         }

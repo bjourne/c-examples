@@ -64,9 +64,9 @@ void s_copy_slots(space *target, ptr *base, ptr *end) {
 }
 
 void
-cg_collect_optimized(copying_gc *me) {
+cg_collect_optimized(copying_gc *me, vector *roots) {
     space *target = me->inactive;
-    s_copy_slots(target, me->roots->array, me->roots->array + me->roots->used);
+    s_copy_slots(target, roots->array, roots->array + roots->used);
     ptr p = target->start;
     while (p < target->here) {
         size_t t = P_GET_TYPE(p);

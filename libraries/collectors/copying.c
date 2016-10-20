@@ -70,19 +70,18 @@ void s_copy_slots(space *s, ptr *base, size_t n_slots) {
 }
 
 copying_gc *
-cg_init(ptr size, vector *roots) {
+cg_init(size_t size) {
     assert(size % 2 == 0);
     copying_gc *cg = malloc(sizeof(copying_gc));
     cg->active = s_init(size / 2);
     cg->inactive = s_init(size / 2);
-    cg->roots = roots;
     return cg;
 }
 
 void
-cg_collect(copying_gc *cg) {
+cg_collect(copying_gc *cg, vector *roots) {
     space *target = cg->inactive;
-    s_copy_slots(target, cg->roots->array, cg->roots->used);
+    s_copy_slots(target, roots->array, roots->used);
     ptr p = target->start;
     while (p < target->here) {
         size_t n_slots = p_slot_count(p);

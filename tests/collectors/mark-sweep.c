@@ -39,14 +39,14 @@ test_cg_collect() {
     assert(P_GET_TYPE(p) == TYPE_INT);
     assert(cg_space_used(v->mem_man) == NPTRS(2));
     vm_remove(v);
-    cg_collect(v->mem_man);
+    cg_collect(v->mem_man, v->roots);
     assert(cg_space_used(v->mem_man) == 0);
 
     vm_add(v, vm_boxed_int_init(v, 30));
     vm_add(v, vm_boxed_int_init(v, 25));
     assert(cg_space_used(v->mem_man) == NPTRS(4));
     vm_remove(v);
-    cg_collect(v->mem_man);
+    cg_collect(v->mem_man, v->roots);
     assert(cg_space_used(v->mem_man) == NPTRS(2));
 
     vm_add(v, vm_array_init(v, 10, 0));
@@ -64,7 +64,7 @@ void test_ms_dump() {
     vm_add(v, vm_array_init(v, 10, 0));
 
     vm_add(v, vm_boxed_int_init(v, 20));
-    cg_collect(v->mem_man);
+    cg_collect(v->mem_man, v->roots);
     vm_remove(v);
     vm_free(v);
 }
@@ -77,10 +77,10 @@ test_stack_overflow() {
     for (int i = 0; i < n_loops; i++) {
         vm_set(v, 0, vm_wrapper_init(v, vm_get(v, 0)));
     }
-    cg_collect(v->mem_man);
+    cg_collect(v->mem_man, v->roots);
     assert(cg_space_used(v->mem_man) == (n_loops + 1) * NPTRS(2));
     vm_remove(v);
-    cg_collect(v->mem_man);
+    cg_collect(v->mem_man, v->roots);
     assert(cg_space_used(v->mem_man) == 0);
     vm_free(v);
 }
@@ -89,9 +89,9 @@ void
 test_mark_stack_overflow() {
     vm *v = vm_init(2048);
     vm_add(v, vm_array_init(v, 20, vm_boxed_int_init(v, 20)));
-    cg_collect(v->mem_man);
+    cg_collect(v->mem_man, v->roots);
     vm_add(v, vm_array_init(v, 40, 0));
-    cg_collect(v->mem_man);
+    cg_collect(v->mem_man, v->roots);
     vm_free(v);
 }
 
@@ -124,7 +124,7 @@ test_random_stuff() {
     }
     vm_set(v, 0, 0);
     vm_tree_dump(v);
-    cg_collect(v->mem_man);
+    cg_collect(v->mem_man, v->roots);
     vm_tree_dump(v);
     vm_free(v);
 }
@@ -141,7 +141,7 @@ test_torture() {
         ptr p = random_object(v);
         vm_set_slot(v, rand_arr, 1 + rand_n(n_els), p);
     }
-    cg_collect_optimized(v->mem_man);
+    cg_collect_optimized(v->mem_man, v->roots);
     vm_free(v);
 }
 
