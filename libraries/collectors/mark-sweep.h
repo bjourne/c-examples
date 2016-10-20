@@ -25,7 +25,7 @@ void ms_free(mark_sweep_gc *ms);
 // Allocation
 bool ms_can_allot_p(mark_sweep_gc *me, size_t n_bytes);
 void ms_collect(mark_sweep_gc *me, vector *roots);
-ptr ms_do_allot(mark_sweep_gc *me, size_t n_bytes, uint type);
+ptr ms_do_allot(mark_sweep_gc *me, size_t n_bytes);
 
 // To facilitate barriers and refcounting.
 void ms_set_ptr(mark_sweep_gc *me, ptr *from, ptr to);

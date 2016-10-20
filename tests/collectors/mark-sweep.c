@@ -2,9 +2,10 @@
 #include <stdlib.h>
 #include <time.h>
 #include "collectors/vm.h"
-#include "collectors/mark-sweep.h"
 #include "collectors/copying.h"
 #include "collectors/copying-opt.h"
+#include "collectors/mark-sweep.h"
+#include "collectors/ref-counting.h"
 
 gc_dispatch *dispatch = NULL;
 
@@ -152,18 +153,21 @@ test_torture() {
 
 int
 main(int argc, char *argv[]) {
+
     srand(time(NULL));
-    gc_dispatch *dispatches[3] = {
+    gc_dispatch *dispatches[4] = {
+        rc_get_dispatch_table(),
         ms_get_dispatch_table(),
         cg_get_dispatch_table(),
         cg_get_dispatch_table_optimized()
     };
-    char *names[3] = {
+    char *names[4] = {
+        "Reference Counting",
         "Mark & Sweep",
         "Copying",
         "Optimized Copying"
     };
-    for (size_t n = 0; n < 2; n++) {
+    for (size_t n = 0; n < 4; n++) {
         printf("== Running the %s Collector ==\n", names[n]);
         dispatch = dispatches[n];
         PRINT_RUN(test_vm);

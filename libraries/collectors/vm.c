@@ -78,7 +78,9 @@ vm_allot(vm *me, size_t n_ptrs, uint type) {
             error("Can't allocate %lu bytes!\n", n_bytes);
         }
     }
-    return me->dispatch->do_allot(ms, n_bytes, type);
+    ptr p = me->dispatch->do_allot(ms, n_bytes);
+    P_INIT(p, type);
+    return p;
 }
 
 

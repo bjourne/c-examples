@@ -84,16 +84,14 @@ ms_can_allot_p(mark_sweep_gc *ms, size_t n_bytes) {
 }
 
 ptr
-ms_do_allot(mark_sweep_gc *ms, size_t n_bytes, uint type) {
+ms_do_allot(mark_sweep_gc *ms, size_t n_bytes) {
     // Malloc and record address.
     size_t n_bytes_req = n_bytes + LINK_SIZE;
     allot_link* link = malloc(n_bytes_req);
     link->next = ms->allots;
     ms->allots = link;
     ms->used += n_bytes;
-    ptr p = (ptr)link + LINK_SIZE;
-    AT(p) = type << 1;
-    return p;
+    return (ptr)link + LINK_SIZE;
 }
 
 size_t

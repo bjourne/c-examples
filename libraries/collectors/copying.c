@@ -102,10 +102,8 @@ cg_can_allot_p(copying_gc *cg, size_t n_bytes) {
 }
 
 ptr
-cg_do_allot(copying_gc *cg, size_t n_bytes, uint type) {
-    ptr p = s_allot(cg->active, n_bytes);
-    AT(p) = type << 1;
-    return p;
+cg_do_allot(copying_gc *cg, size_t n_bytes) {
+    return s_allot(cg->active, n_bytes);
 }
 
 void

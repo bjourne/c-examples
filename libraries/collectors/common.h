@@ -6,9 +6,19 @@
 #include "datatypes/common.h"
 #include "datatypes/vector.h"
 
-// Object header: | 59: unused | 4: type | 1: mark
-#define P_GET_MARK(p) (AT(p) & 1)
-#define P_GET_TYPE(p) AT(p) >> 1
+// Object header:
+//   28: unused 4: color 27: ref count/unused 4: type 1: mark/forward
+
+#define P_GET_MARK(p)   (AT(p) & 1)
+
+#define P_GET_TYPE(p)   ((AT(p) >> 1) & 0xf)
+#define P_INIT(p, t)    AT(p) = t << 1
+
+#define P_GET_RC(p)     ((AT(p) >> 5) & 0x7ffffff)
+#define P_SET_RC(p, n)  AT(p) = (AT(p) & ~(0x7ffffff << 5)) | ((n) << 5)
+
+#define P_DEC_RC(p)     P_SET_RC(p, P_GET_RC(p) - 1)
+#define P_INC_RC(p)     P_SET_RC(p, P_GET_RC(p) + 1)
 
 // Object types
 #define TYPE_INT 1
@@ -40,7 +50,7 @@ typedef void (*gc_func_free)(void *me);
 
 typedef bool (*gc_func_can_allot_p)(void *me, size_t n_bytes);
 typedef void (*gc_func_collect)(void *me, vector *roots);
-typedef ptr (*gc_func_do_allot)(void *me, size_t n_bytes, uint type);
+typedef ptr (*gc_func_do_allot)(void *me, size_t n_bytes);
 
 typedef void (*gc_func_set_ptr)(void *me, ptr *from, ptr to);
 typedef void (*gc_func_set_new_ptr)(void *me, ptr *from, ptr to);
