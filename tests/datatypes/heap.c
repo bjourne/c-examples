@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <time.h>
-#include "../heap.h"
+#include "datatypes/heap.h"
 
 int main(int argc, char *argv[]) {
 

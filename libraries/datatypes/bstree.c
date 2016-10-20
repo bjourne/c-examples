@@ -48,7 +48,7 @@ bst_print_inorder(bstree *bst) {
 bstree *
 bst_find(bstree *bst, ptr data) {
     if (!bst)
-        return bst;
+        return NULL;
     ptr this_data = bst->data;
     if (data < this_data) {
         return bst_find(bst->left, data);

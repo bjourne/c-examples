@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <time.h>
-#include "../bstree.h"
+#include "datatypes/bstree.h"
 
 void
 test_add_remove() {
@@ -57,7 +57,7 @@ test_add_remove() {
 void
 test_callstack_overflow() {
     bstree *bst = NULL;
-    size_t count = 100000;
+    size_t count = 10000;
     for (int i = 0; i < count; i++) {
         bst = bst_add(bst, i);
     }

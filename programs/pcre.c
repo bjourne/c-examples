@@ -4,7 +4,8 @@
 
 #define PRINT_OPT(o, x)    printf("%-25s: %s\n", #x, (o & x) ? "yes" : "no");
 
-int main(int argc, char *argv[]) {
+int
+main(int argc, char *argv[]) {
     const char *err_str;
     int err_ofs, opts;
 

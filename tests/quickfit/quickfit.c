@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <time.h>
-#include "quickfit.h"
+#include "quickfit/quickfit.h"
 
 void
 test_basic() {

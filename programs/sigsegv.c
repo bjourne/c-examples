@@ -1,6 +1,7 @@
 // This example shows you how to trap and resume after seg faults.
 //
 // gcc -o sigsegv sigsegv.c
+#include <assert.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -16,6 +17,7 @@ handler(int signal, siginfo_t* siginfo, void* uap) {
 
     // Jump past the bad memory write.
     *rip = *rip + 7;
+    assert(rsp);
 }
 
 static void
@@ -24,8 +26,7 @@ dobad(uintptr_t *addr) {
     printf("I'm a survivor!\n");
 }
 
-int
-main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
     struct sigaction act;
     memset(&act, 0, sizeof(struct sigaction));
     sigemptyset(&act.sa_mask);

@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <time.h>
-#include "../hashset.h"
+#include "datatypes/hashset.h"
 
 int main(int argc, char *argv[]) {
 

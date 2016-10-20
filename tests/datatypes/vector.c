@@ -1,5 +1,5 @@
 #include <assert.h>
-#include "../vector.h"
+#include "datatypes/vector.h"
 
 void
 test_basic() {
