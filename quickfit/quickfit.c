@@ -96,7 +96,7 @@ qf_find_small_block(quick_fit *qf, size_t bucket, size_t req_size) {
     }
     qf->n_blocks--;
     qf->free_space -= req_size;
-    ptr small_p = v_pop(v);
+    ptr small_p = v_remove(v);
     return small_p;
 }
 

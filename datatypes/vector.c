@@ -34,7 +34,7 @@ void v_add(vector *v, ptr p) {
     v->array[v->used - 1] = p;
 }
 
-ptr v_pop(vector *v) {
+ptr v_remove(vector *v) {
     if (v->used == 0) {
         error("Vector underflow!");
     }

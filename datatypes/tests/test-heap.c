@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
     }
 
     while (v->used) {
-        printf("el %lu\n", hp_pop(v));
+        printf("el %lu\n", hp_remove(v));
     }
     v_free(v);
     return 0;

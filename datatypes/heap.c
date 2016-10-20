@@ -19,8 +19,8 @@ void hp_add(vector *v, ptr p) {
     v->array[i] = p;
 }
 
-ptr hp_pop(vector *v) {
-    ptr temp = v_pop(v);
+ptr hp_remove(vector *v) {
+    ptr temp = v_remove(v);
     ptr max = v->array[0];
     size_t i, swap, other;
     for (i = 0; 1; i = swap) {
