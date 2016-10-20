@@ -18,6 +18,7 @@ typedef struct {
     vector *mark_stack;
 } mark_sweep_gc;
 
+// Init, free
 mark_sweep_gc *ms_init(size_t max_used, vector *roots);
 void ms_free(mark_sweep_gc* ms);
 

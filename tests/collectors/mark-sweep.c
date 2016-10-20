@@ -32,28 +32,28 @@ test_vm() {
 }
 
 void
-test_ms_collect() {
+test_cg_collect() {
     vm *v = vm_init(400);
     ptr p = vm_add(v, vm_boxed_int_init(v, 29));
     assert(P_GET_TYPE(p) == TYPE_INT);
-    assert(ms_space_used(v->mem_man) == NPTRS(2));
+    assert(cg_space_used(v->mem_man) == NPTRS(2));
     vm_remove(v);
-    ms_collect(v->mem_man);
-    assert(ms_space_used(v->mem_man) == 0);
+    cg_collect(v->mem_man);
+    assert(cg_space_used(v->mem_man) == 0);
 
     vm_add(v, vm_boxed_int_init(v, 30));
     vm_add(v, vm_boxed_int_init(v, 25));
-    assert(ms_space_used(v->mem_man) == NPTRS(4));
+    assert(cg_space_used(v->mem_man) == NPTRS(4));
     vm_remove(v);
-    ms_collect(v->mem_man);
-    assert(ms_space_used(v->mem_man) == NPTRS(2));
+    cg_collect(v->mem_man);
+    assert(cg_space_used(v->mem_man) == NPTRS(2));
 
     vm_add(v, vm_array_init(v, 10, 0));
-    assert(ms_space_used(v->mem_man) == NPTRS(2 + 12 + 2));
+    assert(cg_space_used(v->mem_man) == NPTRS(2 + 12 + 2));
     vm_remove(v);
     vm_remove(v);
 #if defined(REF_COUNTING_NORMAL) || defined(REF_COUNTING_CYCLES)
-    assert(ms_space_used(v->mem_man) == 0);
+    assert(cg_space_used(v->mem_man) == 0);
 #endif
     vm_free(v);
 }
@@ -63,7 +63,7 @@ void test_ms_dump() {
     vm_add(v, vm_array_init(v, 10, 0));
 
     vm_add(v, vm_boxed_int_init(v, 20));
-    ms_collect(v->mem_man);
+    cg_collect(v->mem_man);
     vm_remove(v);
     vm_free(v);
 }
@@ -76,11 +76,11 @@ test_stack_overflow() {
     for (int i = 0; i < n_loops; i++) {
         vm_set(v, 0, vm_wrapper_init(v, vm_get(v, 0)));
     }
-    ms_collect(v->mem_man);
-    assert(ms_space_used(v->mem_man) == (n_loops + 1) * NPTRS(2));
+    cg_collect(v->mem_man);
+    assert(cg_space_used(v->mem_man) == (n_loops + 1) * NPTRS(2));
     vm_remove(v);
-    ms_collect(v->mem_man);
-    assert(ms_space_used(v->mem_man) == 0);
+    cg_collect(v->mem_man);
+    assert(cg_space_used(v->mem_man) == 0);
     vm_free(v);
 }
 
@@ -88,9 +88,9 @@ void
 test_mark_stack_overflow() {
     vm *v = vm_init(2048);
     vm_add(v, vm_array_init(v, 20, vm_boxed_int_init(v, 20)));
-    ms_collect(v->mem_man);
+    cg_collect(v->mem_man);
     vm_add(v, vm_array_init(v, 40, 0));
-    ms_collect(v->mem_man);
+    cg_collect(v->mem_man);
     vm_free(v);
 }
 
@@ -123,7 +123,7 @@ test_random_stuff() {
     }
     vm_set(v, 0, 0);
     vm_tree_dump(v);
-    ms_collect(v->mem_man);
+    cg_collect(v->mem_man);
     vm_tree_dump(v);
     vm_free(v);
 }
@@ -140,7 +140,7 @@ test_torture() {
         ptr p = random_object(v);
         vm_set_slot(v, rand_arr, 1 + rand_n(n_els), p);
     }
-    ms_collect(v->mem_man);
+    cg_collect(v->mem_man);
     vm_free(v);
 }
 
@@ -148,7 +148,7 @@ int
 main(int argc, char *argv[]) {
     srand(time(NULL));
     PRINT_RUN(test_vm);
-    PRINT_RUN(test_ms_collect);
+    PRINT_RUN(test_cg_collect);
     PRINT_RUN(test_ms_dump);
     PRINT_RUN(test_stack_overflow);
     PRINT_RUN(test_mark_stack_overflow);

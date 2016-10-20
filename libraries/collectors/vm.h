@@ -1,11 +1,13 @@
 #ifndef COLLECTORS_VM_H
 #define COLLECTORS_VM_H
 
+#include "datatypes/vector.h"
 #include "collectors/common.h"
-#include "collectors/mark-sweep.h"
+//#include "collectors/mark-sweep.h"
+#include "collectors/copying.h"
 
 typedef struct {
-    mark_sweep_gc* mem_man;
+    copying_gc* mem_man;
     vector *roots;
 } vm;
 

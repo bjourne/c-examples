@@ -4,7 +4,7 @@ ptr
 vm_remove(vm *v) {
     ptr p = v_remove(v->roots);
     ptr *ptr = &v->roots->array[v->roots->used];
-    ms_set_ptr(v->mem_man, ptr, 0);
+    cg_set_ptr(v->mem_man, ptr, 0);
     return p;
 }
 
@@ -12,7 +12,7 @@ vm *
 vm_init(size_t max_used) {
     vm *v = malloc(sizeof(vm));
     v->roots = v_init(16);
-    v->mem_man = ms_init(max_used, v->roots);
+    v->mem_man = cg_init(max_used, v->roots);
     return v;
 }
 
@@ -22,7 +22,7 @@ vm_free(vm *v) {
         vm_remove(v);
     }
     v_free(v->roots);
-    ms_free(v->mem_man);
+    cg_free(v->mem_man);
     free(v);
 }
 
@@ -30,7 +30,7 @@ ptr
 vm_add(vm *v, ptr p) {
     v_add(v->roots, 0);
     ptr *ptr = &v->roots->array[v->roots->used - 1];
-    ms_set_new_ptr(v->mem_man, ptr, p);
+    cg_set_new_ptr(v->mem_man, ptr, p);
     return p;
 }
 
@@ -49,7 +49,7 @@ vm_set(vm *v, size_t i, ptr p) {
     if (i >= vm_size(v)) {
         error("Out of bounds %lu!", i);
     }
-    ms_set_ptr(v->mem_man, &v->roots->array[i], p);
+    cg_set_ptr(v->mem_man, &v->roots->array[i], p);
 }
 
 ptr
@@ -59,20 +59,20 @@ vm_get(vm *v, size_t i) {
 
 void
 vm_set_slot(vm *v, ptr p_from, size_t i, ptr p) {
-    ms_set_ptr(v->mem_man, SLOT_P(p_from, i), p);
+    cg_set_ptr(v->mem_man, SLOT_P(p_from, i), p);
 }
 
 ptr
 vm_allot(vm *v, size_t n_ptrs, uint type) {
     size_t n_bytes = NPTRS(n_ptrs);
-    mark_sweep_gc* ms = v->mem_man;
-    if (!ms_can_allot_p(ms, n_bytes)) {
-        ms_collect(ms);
-        if (!ms_can_allot_p(ms, n_bytes)) {
+    copying_gc* ms = v->mem_man;
+    if (!cg_can_allot_p(ms, n_bytes)) {
+        cg_collect(ms);
+        if (!cg_can_allot_p(ms, n_bytes)) {
             error("Can't allocate %lu bytes!\n", n_bytes);
         }
     }
-    return ms_do_allot(ms, n_bytes, type);
+    return cg_do_allot(ms, n_bytes, type);
 }
 
 
@@ -100,13 +100,13 @@ vm_array_init(vm *v, size_t n, ptr value) {
 
     vm_add(v, vm_boxed_int_init(v, n));
     ptr item = vm_allot(v, 2 + n, TYPE_ARRAY);
-    ms_set_new_ptr(v->mem_man, SLOT_P(item, 0), vm_last(v));
+    cg_set_new_ptr(v->mem_man, SLOT_P(item, 0), vm_last(v));
     vm_remove(v);
 
     value = vm_last(v);
     ptr *base = SLOT_P(item, 1);
     for (size_t i = 0; i < n; i++) {
-        ms_set_new_ptr(v->mem_man, base + i, value);
+        cg_set_new_ptr(v->mem_man, base + i, value);
     }
     vm_remove(v);
     return item;
@@ -117,7 +117,7 @@ vm_wrapper_init(vm *v, ptr value) {
     vm_add(v, value);
     ptr item = vm_allot(v, 2, TYPE_WRAPPER);
 
-    ms_set_new_ptr(v->mem_man, SLOT_P(item, 0), vm_last(v));
+    cg_set_new_ptr(v->mem_man, SLOT_P(item, 0), vm_last(v));
     vm_remove(v);
     return item;
 }
