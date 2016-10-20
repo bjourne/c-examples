@@ -3,4 +3,7 @@
 
 void cg_collect_optimized(copying_gc *me, vector* roots);
 
+// Interface support
+gc_dispatch *cg_get_dispatch_table_optimized();
+
 #endif

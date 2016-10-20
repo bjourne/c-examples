@@ -110,3 +110,20 @@ void
 ms_set_new_ptr(mark_sweep_gc *ms, ptr *from, ptr to) {
     *from = to;
 }
+
+static gc_dispatch
+table = {
+    (gc_func_init)ms_init,
+    (gc_func_free)ms_free,
+    (gc_func_can_allot_p)ms_can_allot_p,
+    (gc_func_collect)ms_collect,
+    (gc_func_do_allot)ms_do_allot,
+    (gc_func_set_ptr)ms_set_ptr,
+    (gc_func_set_ptr)ms_set_new_ptr,
+    (gc_func_space_used)ms_space_used
+};
+
+gc_dispatch *
+ms_get_dispatch_table() {
+    return &table;
+}

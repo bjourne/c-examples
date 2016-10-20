@@ -1,8 +1,10 @@
 #ifndef COLLECTORS_COMMON_H
 #define COLLECTORS_COMMON_H
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include "datatypes/common.h"
+#include "datatypes/vector.h"
 
 // Object header: | 59: unused | 4: type | 1: mark
 #define P_GET_MARK(p) (AT(p) & 1)
@@ -30,5 +32,34 @@
 size_t p_size(ptr p);
 size_t p_slot_count(ptr p);
 void p_print_slots(size_t ind, ptr *base, size_t n);
+
+
+// This is the protocol that any collector must implement.
+typedef void *(*gc_func_init)(size_t max_used);
+typedef void (*gc_func_free)(void *me);
+
+typedef bool (*gc_func_can_allot_p)(void *me, size_t n_bytes);
+typedef void (*gc_func_collect)(void *me, vector *roots);
+typedef ptr (*gc_func_do_allot)(void *me, size_t n_bytes, uint type);
+
+typedef void (*gc_func_set_ptr)(void *me, ptr *from, ptr to);
+typedef void (*gc_func_set_new_ptr)(void *me, ptr *from, ptr to);
+
+typedef size_t (*gc_func_space_used)(void *me);
+
+typedef struct {
+    gc_func_init init;
+    gc_func_free free;
+
+    gc_func_can_allot_p can_allot_p;
+    gc_func_collect collect;
+    gc_func_do_allot do_allot;
+
+    gc_func_set_ptr set_ptr;
+    gc_func_set_new_ptr set_new_ptr;
+
+    gc_func_space_used space_used;
+} gc_dispatch;
+
 
 #endif

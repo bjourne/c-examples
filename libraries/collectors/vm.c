@@ -1,19 +1,20 @@
 #include "collectors/vm.h"
 
 ptr
-vm_remove(vm *v) {
-    ptr p = v_remove(v->roots);
-    ptr *ptr = &v->roots->array[v->roots->used];
-    cg_set_ptr(v->mem_man, ptr, 0);
+vm_remove(vm *me) {
+    ptr p = v_remove(me->roots);
+    ptr *ptr = &me->roots->array[me->roots->used];
+    me->dispatch->set_ptr(me->mem_man, ptr, 0);
     return p;
 }
 
 vm *
-vm_init(size_t max_used) {
-    vm *v = malloc(sizeof(vm));
-    v->roots = v_init(16);
-    v->mem_man = cg_init(max_used);
-    return v;
+vm_init(gc_dispatch *dispatch, size_t max_used) {
+    vm *me = malloc(sizeof(vm));
+    me->dispatch = dispatch;
+    me->roots = v_init(16);
+    me->mem_man = dispatch->init(max_used);
+    return me;
 }
 
 void
@@ -22,7 +23,7 @@ vm_free(vm *v) {
         vm_remove(v);
     }
     v_free(v->roots);
-    cg_free(v->mem_man);
+    v->dispatch->free(v->mem_man);
     free(v);
 }
 
@@ -30,7 +31,7 @@ ptr
 vm_add(vm *v, ptr p) {
     v_add(v->roots, 0);
     ptr *ptr = &v->roots->array[v->roots->used - 1];
-    cg_set_new_ptr(v->mem_man, ptr, p);
+    v->dispatch->set_new_ptr(v->mem_man, ptr, p);
     return p;
 }
 
@@ -45,11 +46,11 @@ vm_size(vm *v) {
 }
 
 void
-vm_set(vm *v, size_t i, ptr p) {
-    if (i >= vm_size(v)) {
+vm_set(vm *me, size_t i, ptr p) {
+    if (i >= vm_size(me)) {
         error("Out of bounds %lu!", i);
     }
-    cg_set_ptr(v->mem_man, &v->roots->array[i], p);
+    me->dispatch->set_ptr(me->mem_man, &me->roots->array[i], p);
 }
 
 ptr
@@ -58,21 +59,26 @@ vm_get(vm *v, size_t i) {
 }
 
 void
-vm_set_slot(vm *v, ptr p_from, size_t i, ptr p) {
-    cg_set_ptr(v->mem_man, SLOT_P(p_from, i), p);
+vm_collect(vm *me) {
+    me->dispatch->collect(me->mem_man, me->roots);
+}
+
+void
+vm_set_slot(vm *me, ptr p_from, size_t i, ptr p) {
+    me->dispatch->set_ptr(me->mem_man, SLOT_P(p_from, i), p);
 }
 
 ptr
-vm_allot(vm *v, size_t n_ptrs, uint type) {
+vm_allot(vm *me, size_t n_ptrs, uint type) {
     size_t n_bytes = NPTRS(n_ptrs);
-    copying_gc* ms = v->mem_man;
-    if (!cg_can_allot_p(ms, n_bytes)) {
-        cg_collect(ms, v->roots);
-        if (!cg_can_allot_p(ms, n_bytes)) {
+    void* ms = me->mem_man;
+    if (!me->dispatch->can_allot_p(ms, n_bytes)) {
+        vm_collect(me);
+        if (!me->dispatch->can_allot_p(ms, n_bytes)) {
             error("Can't allocate %lu bytes!\n", n_bytes);
         }
     }
-    return cg_do_allot(ms, n_bytes, type);
+    return me->dispatch->do_allot(ms, n_bytes, type);
 }
 
 
@@ -90,39 +96,44 @@ vm_boxed_float_init(vm *v, double value) {
     return item;
 }
 
-/* Pointers are pushed onto the root stack because we don't want the
-   collectors to sweep those objects while we are using them. The
-   copying collector might change object addresses and the reference
-   counter might free objects without any references. */
+// Pointers are pushed onto the root stack because we don't want the
+// collectors to sweep those objects while we are using them. The
+// copying collector might change object addresses and the reference
+// counter might free objects without any references.
 ptr
-vm_array_init(vm *v, size_t n, ptr value) {
-    vm_add(v, value);
+vm_array_init(vm *me, size_t n, ptr value) {
+    vm_add(me, value);
 
-    vm_add(v, vm_boxed_int_init(v, n));
-    ptr item = vm_allot(v, 2 + n, TYPE_ARRAY);
-    cg_set_new_ptr(v->mem_man, SLOT_P(item, 0), vm_last(v));
-    vm_remove(v);
+    vm_add(me, vm_boxed_int_init(me, n));
+    ptr item = vm_allot(me, 2 + n, TYPE_ARRAY);
+    me->dispatch->set_new_ptr(me->mem_man, SLOT_P(item, 0), vm_last(me));
+    vm_remove(me);
 
-    value = vm_last(v);
+    value = vm_last(me);
     ptr *base = SLOT_P(item, 1);
     for (size_t i = 0; i < n; i++) {
-        cg_set_new_ptr(v->mem_man, base + i, value);
+        me->dispatch->set_new_ptr(me->mem_man, base + i, value);
     }
-    vm_remove(v);
+    vm_remove(me);
     return item;
 }
 
 ptr
-vm_wrapper_init(vm *v, ptr value) {
-    vm_add(v, value);
-    ptr item = vm_allot(v, 2, TYPE_WRAPPER);
+vm_wrapper_init(vm *me, ptr value) {
+    vm_add(me, value);
+    ptr item = vm_allot(me, 2, TYPE_WRAPPER);
 
-    cg_set_new_ptr(v->mem_man, SLOT_P(item, 0), vm_last(v));
-    vm_remove(v);
+    me->dispatch->set_new_ptr(me->mem_man, SLOT_P(item, 0), vm_last(me));
+    vm_remove(me);
     return item;
 }
 
 void
-vm_tree_dump(vm *v) {
-    p_print_slots(0, v->roots->array, v->roots->used);
+vm_tree_dump(vm *me) {
+    p_print_slots(0, me->roots->array, me->roots->used);
+}
+
+size_t
+vm_space_used(vm *me) {
+    return me->dispatch->space_used(me->mem_man);
 }

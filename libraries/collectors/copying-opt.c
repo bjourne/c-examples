@@ -99,3 +99,20 @@ cg_collect_optimized(copying_gc *me, vector *roots) {
     me->active = me->inactive;
     me->inactive = tmp;
 }
+
+static gc_dispatch
+table = {
+    (gc_func_init)cg_init,
+    (gc_func_free)cg_free,
+    (gc_func_can_allot_p)cg_can_allot_p,
+    (gc_func_collect)cg_collect_optimized,
+    (gc_func_do_allot)cg_do_allot,
+    (gc_func_set_ptr)cg_set_ptr,
+    (gc_func_set_ptr)cg_set_new_ptr,
+    (gc_func_space_used)cg_space_used
+};
+
+gc_dispatch *
+cg_get_dispatch_table_optimized() {
+    return &table;
+}

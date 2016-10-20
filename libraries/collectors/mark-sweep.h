@@ -2,6 +2,7 @@
 #define MARK_SWEEP_H
 
 #include <stdbool.h>
+#include "collectors/common.h"
 #include "datatypes/vector.h"
 
 // Object header: | 59: unused | 4: type | 1: mark
@@ -19,7 +20,7 @@ typedef struct {
 
 // Init, free
 mark_sweep_gc *ms_init(size_t max_used);
-void ms_free(mark_sweep_gc* ms);
+void ms_free(mark_sweep_gc *ms);
 
 // Allocation
 bool ms_can_allot_p(mark_sweep_gc *me, size_t n_bytes);
@@ -32,6 +33,9 @@ void ms_set_new_ptr(mark_sweep_gc *me, ptr *from, ptr to);
 
 // Stats
 size_t ms_space_used(mark_sweep_gc *me);
+
+// Interface support
+gc_dispatch *ms_get_dispatch_table();
 
 
 #endif

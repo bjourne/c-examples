@@ -31,4 +31,7 @@ void cg_set_new_ptr(copying_gc *me, ptr *from, ptr to);
 // Stats
 size_t cg_space_used(copying_gc *me);
 
+// Interface support
+gc_dispatch *cg_get_dispatch_table();
+
 #endif
