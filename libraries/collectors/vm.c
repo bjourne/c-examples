@@ -111,3 +111,18 @@ vm_array_init(vm *v, size_t n, ptr value) {
     vm_remove(v);
     return item;
 }
+
+ptr
+vm_wrapper_init(vm *v, ptr value) {
+    vm_add(v, value);
+    ptr item = vm_allot(v, 2, TYPE_WRAPPER);
+
+    ms_set_new_ptr(v->mem_man, SLOT_P(item, 0), vm_last(v));
+    vm_remove(v);
+    return item;
+}
+
+void
+vm_tree_dump(vm *v) {
+    p_print_slots(0, v->roots->array, v->roots->used);
+}
