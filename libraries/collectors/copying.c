@@ -42,14 +42,14 @@ ptr s_allot(space *s, size_t n_bytes) {
     return p;
 }
 
-/* The pointer is copied to the space. Then a forwarding pointer is
-   set up from the old location. */
+// The pointer is copied to the space. Then a forwarding pointer is
+// set up from the old location.
 static
 ptr s_copy_pointer(space *s, ptr p) {
     if (p == 0)
         return p;
-    /* Check if it has already been forwarded. If so, return its
-       existing forwarding address instead of copying anew. */
+    // Check if it has already been forwarded. If so, return its
+    // existing forwarding address instead of copying anew.
     ptr header = AT(p);
     if ((header & 1) == 1) {
         return header & ~1;
@@ -71,6 +71,7 @@ void s_copy_slots(space *s, ptr *base, size_t n_slots) {
 
 copying_gc *
 cg_init(ptr size, vector *roots) {
+    assert(size % 2 == 0);
     copying_gc *cg = malloc(sizeof(copying_gc));
     cg->active = s_init(size / 2);
     cg->inactive = s_init(size / 2);

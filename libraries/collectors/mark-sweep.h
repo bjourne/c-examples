@@ -23,16 +23,16 @@ mark_sweep_gc *ms_init(size_t max_used, vector *roots);
 void ms_free(mark_sweep_gc* ms);
 
 // Allocation
-bool ms_can_allot_p(mark_sweep_gc *ms, size_t n_bytes);
-void ms_collect(mark_sweep_gc *ms);
-ptr ms_do_allot(mark_sweep_gc *ms, size_t n_bytes, uint type);
+bool ms_can_allot_p(mark_sweep_gc *me, size_t n_bytes);
+void ms_collect(mark_sweep_gc *me);
+ptr ms_do_allot(mark_sweep_gc *me, size_t n_bytes, uint type);
 
 // To facilitate barriers and refcounting.
-void ms_set_ptr(mark_sweep_gc *ms, ptr *from, ptr to);
-void ms_set_new_ptr(mark_sweep_gc *ms, ptr *from, ptr to);
+void ms_set_ptr(mark_sweep_gc *me, ptr *from, ptr to);
+void ms_set_new_ptr(mark_sweep_gc *me, ptr *from, ptr to);
 
 // Stats
-size_t ms_space_used(mark_sweep_gc *ms);
+size_t ms_space_used(mark_sweep_gc *me);
 
 
 #endif

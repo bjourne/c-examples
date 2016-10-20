@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "collectors/vm.h"
+#include "collectors/copying-opt.h"
 
 ptr random_object(vm* v) {
     if (rand_n(2)) {
@@ -140,7 +141,7 @@ test_torture() {
         ptr p = random_object(v);
         vm_set_slot(v, rand_arr, 1 + rand_n(n_els), p);
     }
-    cg_collect(v->mem_man);
+    cg_collect_optimized(v->mem_man);
     vm_free(v);
 }
 
