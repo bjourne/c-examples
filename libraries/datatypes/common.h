@@ -1,5 +1,5 @@
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef DATATYPES_COMMON_H
+#define DATATYPES_COMMON_H
 
 #include <stdint.h>
 #include <stdio.h>

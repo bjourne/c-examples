@@ -25,9 +25,11 @@ def build_tests(ctx, path, use):
 def build(ctx):
     build_library(ctx, 'libraries/datatypes', 'DT_OBJS')
     build_library(ctx, 'libraries/quickfit', 'QF_OBJS')
+    build_library(ctx, 'libraries/collectors', 'GC_OBJS')
 
     build_tests(ctx, 'tests/datatypes', ['DT_OBJS'])
     build_tests(ctx, 'tests/quickfit', ['DT_OBJS', 'QF_OBJS'])
+    build_tests(ctx, 'tests/collectors', ['GC_OBJS', 'DT_OBJS'])
 
     for prog in ctx.path.ant_glob('programs/*.c'):
         from_path = prog.path_from(ctx.path)
