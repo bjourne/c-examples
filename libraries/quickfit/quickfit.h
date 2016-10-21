@@ -11,7 +11,6 @@
 #define QF_LARGE_BLOCK_SIZE(small_size) \
     ((QF_PAGE_SIZE + small_size - 1) / small_size) * small_size
 
-
 typedef struct {
     vector* buckets[QF_N_BUCKETS];
     // Need a better datastructure here

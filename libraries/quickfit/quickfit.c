@@ -1,6 +1,6 @@
 // A QuickFit memory allocator based on Factor.
 #include <limits.h>
-#include "quickfit.h"
+#include "quickfit/quickfit.h"
 
 static void
 qf_add_block(quick_fit *qf, ptr p, size_t size) {
@@ -110,18 +110,18 @@ qf_find_free_block(quick_fit *qf, size_t size) {
 }
 
 ptr
-qf_allot_block(quick_fit *qf, size_t size) {
+qf_allot_block(quick_fit *me, size_t size) {
     size = ALIGN(size, QF_DATA_ALIGNMENT);
-    ptr p = qf_find_free_block(qf, size);
+    ptr p = qf_find_free_block(me, size);
     if (p) {
-        qf_split_block(qf, p, size);
+        qf_split_block(me, p, size);
     }
     return p;
 }
 
 void
-qf_free_block(quick_fit *qf, ptr p) {
-    qf_add_block(qf, p, AT(p));
+qf_free_block(quick_fit *me, ptr p) {
+    qf_add_block(me, p, AT(p));
 }
 
 void
@@ -148,7 +148,10 @@ qf_largest_free_block(quick_fit *qf) {
 }
 
 bool
-qf_can_allot_p(quick_fit *qf, size_t size) {
+qf_can_allot_p(quick_fit *me, size_t size) {
     size_t small = ALIGN(size, QF_DATA_ALIGNMENT);
-    return qf_largest_free_block(qf) >= QF_LARGE_BLOCK_SIZE(small);
+    int bucket = small / QF_DATA_ALIGNMENT;
+    if (bucket < QF_N_BUCKETS && me->buckets[bucket]->used > 0)
+        return true;
+    return qf_largest_free_block(me) >= QF_LARGE_BLOCK_SIZE(small);
 }
