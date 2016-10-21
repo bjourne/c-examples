@@ -32,5 +32,9 @@ typedef struct {
 hashset *hs_init();
 void hs_free(hashset *hs);
 bool hs_add(hashset *hs, size_t item);
+void hs_remove_at(hashset *hs, size_t i);
+bool hs_remove(hashset *hs, size_t item);
+bool hs_in_p(hashset *hs, size_t item);
+void hs_clear(hashset *hs);
 
 #endif

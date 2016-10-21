@@ -41,7 +41,8 @@ void hs_free(hashset *hs)
     free(hs);
 }
 
-void hs_clear(hashset *hs) {
+void
+hs_clear(hashset *hs) {
     memset(hs->array, 0, sizeof(size_t) * hs->capacity);
     hs->n_used = 0;
     hs->n_items = 0;
@@ -89,19 +90,22 @@ void maybe_rehash(hashset *hs)
     }
 }
 
-bool hs_add(hashset *hs, size_t item)
+bool
+hs_add(hashset *hs, size_t item)
 {
     bool rv = hs_add_member(hs, item);
     maybe_rehash(hs);
     return rv;
 }
 
-void hs_remove_at(hashset *hs, size_t i) {
+void
+hs_remove_at(hashset *hs, size_t i) {
     hs->array[i] = 1;
     hs->n_items--;
 }
 
-bool hs_remove(hashset *hs, size_t item)
+bool
+hs_remove(hashset *hs, size_t item)
 {
     size_t i = HS_FIRST_KEY(hs, item);
     size_t *a = hs->array;
@@ -115,7 +119,8 @@ bool hs_remove(hashset *hs, size_t item)
     return false;
 }
 
-bool hs_in_p(hashset *hs, size_t item)
+bool
+hs_in_p(hashset *hs, size_t item)
 {
     size_t i = HS_FIRST_KEY(hs, item);
     while (hs->array[i] != 0) {
