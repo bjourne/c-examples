@@ -7,24 +7,44 @@
 #include "datatypes/vector.h"
 
 // Object header:
-//   28: unused 4: color 27: ref count/unused 4: type 1: mark/forward
+//
+//      24: ref count/unused 3: color 4: type 1: mark/forward
+//
+// I know that 24 bits isn't enough for the ref count, but this way
+// the same object header can be used for all collectors.
+#define P_GET_MARK(p)       (AT(p) & 1)
 
-#define P_GET_MARK(p)   (AT(p) & 1)
+#define P_GET_TYPE(p)       ((AT(p) >> 1) & 0xf)
+#define P_INIT(p, t)        AT(p) = t << 1
 
-#define P_GET_TYPE(p)   ((AT(p) >> 1) & 0xf)
-#define P_INIT(p, t)    AT(p) = t << 1
+#define P_GET_RC(p)         ((AT(p) >> 8) & 0xffffff)
+#define P_SET_RC(p, n)      AT(p) = (AT(p) & 0xff) | ((n) << 8)
 
-#define P_GET_RC(p)     ((AT(p) >> 5) & 0x7ffffff)
-#define P_SET_RC(p, n)  AT(p) = (AT(p) & ~(0x7ffffff << 5)) | ((n) << 5)
+#define P_DEC_RC(p)         P_SET_RC(p, P_GET_RC(p) - 1)
+#define P_INC_RC(p)         P_SET_RC(p, P_GET_RC(p) + 1)
 
-#define P_DEC_RC(p)     P_SET_RC(p, P_GET_RC(p) - 1)
-#define P_INC_RC(p)     P_SET_RC(p, P_GET_RC(p) + 1)
+#define P_SET_COL(p, c)     AT(p) = (AT(p) & 0xffffff1f) | ((c) << 5)
+#define P_GET_COL(p)        ((AT(p) >> 5) & 0x3)
+
+#define TYPE_CONTAINER_P(t) (t == TYPE_ARRAY || t == TYPE_WRAPPER)
 
 // Object types
 #define TYPE_INT 1
 #define TYPE_FLOAT 2
 #define TYPE_WRAPPER 3
 #define TYPE_ARRAY 4
+
+// Object colors, used for ref counting cycles
+
+// Cant be in a cycle.
+#define COL_BLACK   0
+// Candidate.
+#define COL_PURPLE  1
+// Possibly the root of a garbage cycle.
+#define COL_GRAY 2
+// Looks like garbage...
+#define COL_WHITE 3
+
 
 // Utility macros
 #define P_FOR_EACH_CHILD(p, body)                               \

@@ -6,6 +6,7 @@
 #include "collectors/copying-opt.h"
 #include "collectors/mark-sweep.h"
 #include "collectors/ref-counting.h"
+#include "collectors/ref-counting-cycles.h"
 
 gc_dispatch *dispatch = NULL;
 
@@ -34,6 +35,74 @@ test_vm() {
     assert(vm_size(v) == 1);
     assert(vm_remove(v) == 0);
     assert(vm_size(v) == 0);
+    vm_free(v);
+}
+
+void
+test_ref_counts() {
+    if (!(dispatch == rc_get_dispatch_table() ||
+          dispatch == rcc_get_dispatch_table()))
+        return;
+    vm *v = vm_init(dispatch, 200);
+    ptr bi = vm_boxed_int_init(v, 99);
+    vm_add(v, bi);
+    assert(P_GET_RC(bi) == 1);
+    vm_remove(v);
+    assert(vm_space_used(v) == 0);
+
+    ptr w = vm_add(v, vm_wrapper_init(v, vm_boxed_int_init(v, 3)));
+    assert(P_GET_RC(*SLOT_P(w, 0)) == 1);
+    assert(vm_space_used(v) == NPTRS(4));
+    vm_remove(v);
+    vm_collect(v);
+    assert(vm_space_used(v) == 0);
+
+    vm_add(v, vm_array_init(v, 10, 0));
+    assert(vm_space_used(v) == NPTRS(14));
+    vm_remove(v);
+    vm_collect(v);
+    assert(vm_space_used(v) == 0);
+
+    ptr a = vm_add(v, vm_array_init(v, 10, vm_boxed_int_init(v, 3)));
+    assert(P_GET_RC(*SLOT_P(a, 3)) == 10);
+    assert(vm_space_used(v) == NPTRS(16));
+    vm_remove(v);
+    vm_collect(v);
+    assert(vm_space_used(v) == 0);
+
+    vm_add(v, vm_wrapper_init(v, vm_boxed_int_init(v, 3)));
+    assert(vm_space_used(v) == NPTRS(4));
+    vm_set(v, 0, vm_wrapper_init(v, vm_boxed_int_init(v, 3)));
+    vm_collect(v);
+    assert(vm_space_used(v) == NPTRS(4));
+
+    vm_free(v);
+}
+
+void
+test_ref_count_colors() {
+    if (dispatch != rcc_get_dispatch_table()) {
+        return;
+    }
+    vm *v = vm_init(dispatch, 200);
+    ptr bi = vm_boxed_int_init(v, 99);
+    P_SET_COL(bi, COL_PURPLE);
+    vm_add(v, bi);
+    assert(P_GET_RC(bi) == 1);
+    assert(P_GET_COL(bi) == COL_BLACK);
+    vm_remove(v);
+    assert(vm_space_used(v) == 0);
+
+    vm_add(v, vm_boxed_int_init(v, 30));
+    vm_add(v, vm_wrapper_init(v, vm_get(v, 0)));
+
+    assert(P_GET_RC(vm_get(v, 0)) == 2);
+
+    vm_remove(v);
+    assert(P_GET_RC(vm_get(v, 0)) == 1);
+    assert(P_GET_COL(vm_get(v, 0)) == COL_BLACK);
+
+    vm_remove(v);
     vm_free(v);
 }
 
@@ -155,22 +224,26 @@ int
 main(int argc, char *argv[]) {
 
     srand(time(NULL));
-    gc_dispatch *dispatches[4] = {
+    gc_dispatch *dispatches[5] = {
         rc_get_dispatch_table(),
+        rcc_get_dispatch_table(),
         ms_get_dispatch_table(),
         cg_get_dispatch_table(),
         cg_get_dispatch_table_optimized()
     };
-    char *names[4] = {
+    char *names[5] = {
         "Reference Counting",
+        "Cycle-collecting Reference Counting",
         "Mark & Sweep",
         "Copying",
         "Optimized Copying"
     };
-    for (size_t n = 0; n < 4; n++) {
-        printf("== Running the %s Collector ==\n", names[n]);
+    for (size_t n = 0; n < 5; n++) {
+        printf("== Running the %s Collector ==\n\n", names[n]);
         dispatch = dispatches[n];
         PRINT_RUN(test_vm);
+        PRINT_RUN(test_ref_counts);
+        PRINT_RUN(test_ref_count_colors);
         PRINT_RUN(test_collect);
         PRINT_RUN(test_dump);
         PRINT_RUN(test_stack_overflow);

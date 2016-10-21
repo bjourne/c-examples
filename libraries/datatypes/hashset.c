@@ -79,7 +79,6 @@ void maybe_rehash(hashset *hs)
     if (hs->n_used >= max_used) {
         size_t *old_array = hs->array;
         hs->capacity *= 2;
-        printf("rehashing to %lu\n", hs->capacity);
         hs->mask = hs->capacity - 1;
         hs->array = calloc(hs->capacity, sizeof(size_t));
         hs->n_items = hs->n_used = 0;

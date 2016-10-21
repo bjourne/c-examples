@@ -21,7 +21,7 @@ size_t rand_n(size_t n);
 #define MIN(a, b) ((a > b) ? (b) : (a))
 
 // Debug stuff
-#define PRINT_RUN_INT(title, func) printf("=== %s\n", title); timed_run(&func)
+#define PRINT_RUN_INT(title, func) printf("=== %s\n", title); timed_run(&func); printf("\n")
 #define PRINT_RUN(func) PRINT_RUN_INT(#func, func)
 
 void timed_run(void (*func)());
