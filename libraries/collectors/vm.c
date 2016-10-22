@@ -9,11 +9,11 @@ vm_remove(vm *me) {
 }
 
 vm *
-vm_init(gc_dispatch *dispatch, size_t max_used) {
+vm_init(gc_dispatch *dispatch, size_t size) {
     vm *me = malloc(sizeof(vm));
     me->dispatch = dispatch;
     me->roots = v_init(16);
-    me->mem_man = dispatch->init(max_used);
+    me->mem_man = dispatch->init(size);
     return me;
 }
 
@@ -70,15 +70,16 @@ vm_set_slot(vm *me, ptr p_from, size_t i, ptr p) {
 
 ptr
 vm_allot(vm *me, size_t n_ptrs, uint type) {
-    size_t n_bytes = NPTRS(n_ptrs);
+    size_t size = NPTRS(n_ptrs);
     void* ms = me->mem_man;
-    if (!me->dispatch->can_allot_p(ms, n_bytes)) {
+    if (!me->dispatch->can_allot_p(ms, size)) {
         vm_collect(me);
-        if (!me->dispatch->can_allot_p(ms, n_bytes)) {
-            error("Can't allocate %lu bytes!\n", n_bytes);
+        if (!me->dispatch->can_allot_p(ms, size)) {
+            error("Can't allocate %lu bytes! Space used %lu\n",
+                  size, vm_space_used(me));
         }
     }
-    ptr p = me->dispatch->do_allot(ms, n_bytes);
+    ptr p = me->dispatch->do_allot(ms, size);
     P_INIT(p, type);
     return p;
 }
