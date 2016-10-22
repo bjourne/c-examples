@@ -2,6 +2,27 @@
 #include <time.h>
 #include "quickfit/quickfit.h"
 
+size_t
+qf_largest_free_block(quick_fit *qf) {
+    vector *large_blocks = qf->large_blocks;
+    size_t best_size = 0;
+    for (int i = 0; i < large_blocks->used; i++) {
+        ptr el = large_blocks->array[i];
+        size_t el_size = AT(el);
+        best_size = MAX(el_size, best_size);
+    }
+    if (best_size > 0) {
+        return best_size;
+    }
+    for (int i = QF_N_BUCKETS - 1; i >= 0; i--) {
+        vector *small_blocks = qf->buckets[i];
+        if (small_blocks->used) {
+            return AT(v_peek(small_blocks));
+        }
+    }
+    return 0;
+}
+
 void
 test_basic() {
     size_t size = 10 * 1024;

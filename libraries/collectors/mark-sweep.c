@@ -99,7 +99,6 @@ ms_do_allot(mark_sweep_gc *me, size_t size) {
 
 size_t
 ms_space_used(mark_sweep_gc *ms) {
-
     return ms->used;
 }
 
