@@ -29,4 +29,7 @@ void timed_run(void (*func)());
 // Bit munching
 #define ALIGN(a, b) ((a + (b - 1)) & ~(b - 1))
 
+// Timing
+size_t nano_count();
+
 #endif
