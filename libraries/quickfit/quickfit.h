@@ -15,8 +15,6 @@ typedef struct {
     vector* buckets[QF_N_BUCKETS];
     // Need a better datastructure here
     vector* large_blocks;
-    ptr start;
-    size_t size;
     size_t n_blocks;
     size_t free_space;
 } quick_fit;
@@ -27,7 +25,7 @@ void qf_free(quick_fit *qf);
 void qf_clear(quick_fit *qf);
 ptr qf_allot_block(quick_fit *qf, size_t size);
 void qf_free_block(quick_fit *qf, ptr p);
-void qf_print(quick_fit *qf);
+void qf_print(quick_fit *qf, ptr start, size_t size);
 size_t qf_largest_free_block(quick_fit *qf);
 bool qf_can_allot_p(quick_fit *qf, size_t size);
 

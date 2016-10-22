@@ -60,7 +60,7 @@ test_random_allocs() {
         qf_allot_block(qf, (rand_n(20) + 1) * 16);
     }
 
-    qf_print(qf);
+    qf_print(qf, region, size);
 
     qf_free(qf);
     free((void *)region);

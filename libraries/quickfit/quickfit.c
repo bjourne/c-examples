@@ -32,10 +32,8 @@ qf_init(ptr start, size_t size) {
     for (int i = 0; i < QF_N_BUCKETS; i++) {
         qf->buckets[i] = v_init(32);
     }
-    qf->start = start;
-    qf->size = size;
     qf_clear(qf);
-    qf_add_block(qf, qf->start, qf->size);
+    qf_add_block(qf, start, size);
     return qf;
 }
 
@@ -125,9 +123,9 @@ qf_free_block(quick_fit *me, ptr p) {
 }
 
 void
-qf_print(quick_fit *qf) {
-    ptr end = qf->start + qf->size;
-    for (ptr p = qf->start; p < end; p += AT(p)) {
+qf_print(quick_fit *qf, ptr start, size_t size) {
+    ptr end = start + size;
+    for (ptr p = start; p < end; p += AT(p)) {
         printf("@%p: %4lu bytes\n", (void *)p, AT(p));
     }
 }
