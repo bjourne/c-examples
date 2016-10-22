@@ -99,12 +99,12 @@ qf_find_small_block(quick_fit *qf, size_t bucket, size_t req_size) {
 }
 
 static ptr
-qf_find_free_block(quick_fit *qf, size_t size) {
+qf_find_free_block(quick_fit *me, size_t size) {
     int bucket = size / QF_DATA_ALIGNMENT;
     if (bucket < QF_N_BUCKETS) {
-        return qf_find_small_block(qf, bucket, size);
+        return qf_find_small_block(me, bucket, size);
     }
-    return qf_find_large_block(qf, size);
+    return qf_find_large_block(me, size);
 }
 
 ptr

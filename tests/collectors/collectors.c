@@ -29,7 +29,7 @@ ptr random_object(vm* v) {
 
 void
 test_vm() {
-    vm *v = vm_init(dispatch, 200);
+    vm *v = vm_init(dispatch, 4096);
     assert(vm_size(v) == 0);
     vm_add(v, 0);
     assert(vm_size(v) == 1);
@@ -108,7 +108,7 @@ test_ref_count_colors() {
 
 void
 test_collect() {
-    vm *v = vm_init(dispatch, 400);
+    vm *v = vm_init(dispatch, 4096);
     ptr p = vm_add(v, vm_boxed_int_init(v, 29));
     assert(P_GET_TYPE(p) == TYPE_INT);
     assert(vm_space_used(v) == NPTRS(2));
@@ -127,15 +127,16 @@ test_collect() {
     assert(vm_space_used(v) == NPTRS(2 + 12 + 2));
     vm_remove(v);
     vm_remove(v);
-#if defined(REF_COUNTING_NORMAL) || defined(REF_COUNTING_CYCLES)
-    assert(vm_space_used(v) == 0);
-#endif
+    if (dispatch == rcc_get_dispatch_table() ||
+        dispatch == rc_get_dispatch_table()) {
+        assert(vm_space_used(v) == 0);
+    }
     vm_free(v);
 }
 
 void
 test_dump() {
-    vm *v = vm_init(dispatch, 400);
+    vm *v = vm_init(dispatch, 4096);
     vm_add(v, vm_array_init(v, 10, 0));
 
     vm_add(v, vm_boxed_int_init(v, 20));
@@ -162,7 +163,7 @@ test_stack_overflow() {
 
 void
 test_mark_stack_overflow() {
-    vm *v = vm_init(dispatch, 2048);
+    vm *v = vm_init(dispatch, 9192);
     vm_add(v, vm_array_init(v, 20, vm_boxed_int_init(v, 20)));
     vm_collect(v);
     vm_add(v, vm_array_init(v, 40, 0));
@@ -172,9 +173,10 @@ test_mark_stack_overflow() {
 
 void
 test_random_stuff() {
-    vm *v = vm_init(dispatch, 2048);
+    vm *v = vm_init(dispatch, 32 * 1024);
 
     ptr bf = vm_boxed_float_init(v, 2.731);
+    assert(bf);
     vm_add(v, bf);
     vm_add(v, vm_boxed_int_init(v, 33));
 
@@ -194,7 +196,7 @@ test_random_stuff() {
     vm_set_slot(v, vm_get(v, 1), 1, vm_boxed_int_init(v, 99));
     vm_set_slot(v, vm_get(v, 1), 2, vm_get(v, 0));
 
-    for (size_t n = 0; n < 3000; n++) {
+    for (size_t n = 0; n < 400000; n++) {
         vm_set(v, n % 4, vm_array_init(v, 7, 0));
     }
     vm_set(v, 0, 0);
@@ -206,7 +208,7 @@ test_random_stuff() {
 
 void
 test_torture() {
-    vm *v = vm_init(dispatch, 1 << 27);
+    vm *v = vm_init(dispatch, 200 * 1024 * 1024);
     for (size_t i = 0; i < 100; i++) {
         vm_add(v, vm_array_init(v, 500, 0));
     }
@@ -220,36 +222,40 @@ test_torture() {
     vm_free(v);
 }
 
+void
+test_collector(char *name, gc_dispatch *this_dispatch) {
+    printf("== Running the %s Collector ==\n\n", name);
+    dispatch = this_dispatch;
+    PRINT_RUN(test_vm);
+    PRINT_RUN(test_ref_counts);
+    PRINT_RUN(test_ref_count_colors);
+    PRINT_RUN(test_collect);
+    PRINT_RUN(test_dump);
+    PRINT_RUN(test_stack_overflow);
+    PRINT_RUN(test_mark_stack_overflow);
+    PRINT_RUN(test_random_stuff);
+    PRINT_RUN(test_torture);
+}
+
 int
 main(int argc, char *argv[]) {
-
     srand(time(NULL));
     gc_dispatch *dispatches[5] = {
+        cg_get_dispatch_table(),
         rc_get_dispatch_table(),
         rcc_get_dispatch_table(),
         ms_get_dispatch_table(),
-        cg_get_dispatch_table(),
         cg_get_dispatch_table_optimized()
     };
     char *names[5] = {
+        "Copying",
         "Reference Counting",
         "Cycle-collecting Reference Counting",
         "Mark & Sweep",
-        "Copying",
         "Optimized Copying"
     };
     for (size_t n = 0; n < 5; n++) {
-        printf("== Running the %s Collector ==\n\n", names[n]);
-        dispatch = dispatches[n];
-        PRINT_RUN(test_vm);
-        PRINT_RUN(test_ref_counts);
-        PRINT_RUN(test_ref_count_colors);
-        PRINT_RUN(test_collect);
-        PRINT_RUN(test_dump);
-        PRINT_RUN(test_stack_overflow);
-        PRINT_RUN(test_mark_stack_overflow);
-        PRINT_RUN(test_random_stuff);
-        PRINT_RUN(test_torture);
+        test_collector(names[n], dispatches[n]);
     }
     return 0;
 }

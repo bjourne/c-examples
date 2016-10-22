@@ -2,30 +2,26 @@
 #define MARK_SWEEP_H
 
 #include <stdbool.h>
-#include "collectors/common.h"
+#include "quickfit/quickfit.h"
 #include "datatypes/vector.h"
-
-// Object header: | 59: unused | 4: type | 1: mark
-
-typedef struct _allot_link {
-    struct _allot_link *next;
-} allot_link;
+#include "collectors/common.h"
 
 typedef struct {
+    ptr start;
     size_t size;
     size_t used;
-    allot_link *allots;
     vector *mark_stack;
+    quick_fit *qf;
 } mark_sweep_gc;
 
 // Init, free
-mark_sweep_gc *ms_init(size_t max_used);
+mark_sweep_gc *ms_init(size_t size);
 void ms_free(mark_sweep_gc *ms);
 
 // Allocation
-bool ms_can_allot_p(mark_sweep_gc *me, size_t n_bytes);
+bool ms_can_allot_p(mark_sweep_gc *me, size_t size);
 void ms_collect(mark_sweep_gc *me, vector *roots);
-ptr ms_do_allot(mark_sweep_gc *me, size_t n_bytes);
+ptr ms_do_allot(mark_sweep_gc *me, size_t size);
 
 // To facilitate barriers and refcounting.
 void ms_set_ptr(mark_sweep_gc *me, ptr *from, ptr to);

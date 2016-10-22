@@ -29,7 +29,7 @@ def build(ctx):
 
     build_tests(ctx, 'tests/datatypes', ['DT_OBJS'])
     build_tests(ctx, 'tests/quickfit', ['DT_OBJS', 'QF_OBJS'])
-    build_tests(ctx, 'tests/collectors', ['GC_OBJS', 'DT_OBJS'])
+    build_tests(ctx, 'tests/collectors', ['GC_OBJS', 'DT_OBJS', 'QF_OBJS'])
 
     for prog in ctx.path.ant_glob('programs/*.c'):
         from_path = prog.path_from(ctx.path)

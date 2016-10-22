@@ -188,8 +188,6 @@ test_can_allot_p2() {
     assert(qf_can_allot_p(qf, 864));
     assert(864 / QF_DATA_ALIGNMENT >= QF_N_BUCKETS);
 
-    // 864
-
     qf_free(qf);
     free((void *)region);
 }
