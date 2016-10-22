@@ -23,7 +23,6 @@ qf_clear(quick_fit *qf) {
     for (int i = 0; i < QF_N_BUCKETS; i++) {
         qf->buckets[i]->used = 0;
     }
-    qf_add_block(qf, qf->start, qf->size);
 }
 
 quick_fit *
@@ -36,6 +35,7 @@ qf_init(ptr start, size_t size) {
     qf->start = start;
     qf->size = size;
     qf_clear(qf);
+    qf_add_block(qf, qf->start, qf->size);
     return qf;
 }
 

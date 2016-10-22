@@ -194,9 +194,24 @@ test_can_allot_p2() {
     free((void *)region);
 }
 
+void
+test_clear() {
+    size_t size = 4096;
+    ptr region = (ptr)malloc(size);
+    quick_fit *qf = qf_init(region, size);
+
+    assert(qf->large_blocks->used == 1);
+    qf_clear(qf);
+    assert(qf->large_blocks->used == 0);
+
+    qf_free(qf);
+    free((void *)region);
+}
+
 int
 main(int argc, char *argv[]) {
     srand(time(NULL));
+    PRINT_RUN(test_clear);
     PRINT_RUN(test_largest_free_block2);
     PRINT_RUN(test_fragmented_heap);
     PRINT_RUN(test_bad_sizes);
