@@ -160,9 +160,27 @@ test_fragmented_heap() {
     free((void *)region);
 }
 
+void
+test_largest_free_block2() {
+    size_t size = 4096;
+    ptr region = (ptr)malloc(size);
+    quick_fit *qf = qf_init(region, size);
+
+    qf_allot_block(qf, 1024);
+    assert(qf_largest_free_block(qf) == 3072);
+    ptr p = qf_allot_block(qf, 1024);
+    assert(p);
+    assert(qf_largest_free_block(qf) == 2048);
+    qf_free_block(qf, p);
+    assert(qf_largest_free_block(qf) == 2048);
+    qf_free(qf);
+    free((void *)region);
+}
+
 int
 main(int argc, char *argv[]) {
     srand(time(NULL));
+    PRINT_RUN(test_largest_free_block2);
     PRINT_RUN(test_fragmented_heap);
     PRINT_RUN(test_bad_sizes);
     PRINT_RUN(test_largest_free_block);
