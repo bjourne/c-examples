@@ -177,6 +177,23 @@ test_largest_free_block2() {
     free((void *)region);
 }
 
+void
+test_can_allot_p2() {
+    size_t size = 4096;
+    ptr region = (ptr)malloc(size);
+    quick_fit *qf = qf_init(region, size);
+
+    qf_allot_block(qf, 3232);
+    assert(qf_largest_free_block(qf) == 864);
+    assert(qf_can_allot_p(qf, 864));
+    assert(864 / QF_DATA_ALIGNMENT >= QF_N_BUCKETS);
+
+    // 864
+
+    qf_free(qf);
+    free((void *)region);
+}
+
 int
 main(int argc, char *argv[]) {
     srand(time(NULL));
@@ -188,6 +205,7 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_small_alloc);
     PRINT_RUN(test_random_allocs);
     PRINT_RUN(test_can_allot_p);
+    PRINT_RUN(test_can_allot_p2);
     PRINT_RUN(test_can_allot_p_random);
     return 0;
 }

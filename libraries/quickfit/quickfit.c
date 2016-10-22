@@ -157,7 +157,13 @@ bool
 qf_can_allot_p(quick_fit *me, size_t size) {
     size_t small = ALIGN(size, QF_DATA_ALIGNMENT);
     int bucket = small / QF_DATA_ALIGNMENT;
-    if (bucket < QF_N_BUCKETS && me->buckets[bucket]->used > 0)
-        return true;
-    return qf_largest_free_block(me) >= QF_LARGE_BLOCK_SIZE(small);
+    if (bucket < QF_N_BUCKETS) {
+        if (me->buckets[bucket]->used > 0) {
+            return true;
+        } else {
+            return qf_largest_free_block(me) >= QF_LARGE_BLOCK_SIZE(small);
+        }
+    } else {
+        return qf_largest_free_block(me) >= size;
+    }
 }
