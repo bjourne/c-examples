@@ -160,10 +160,13 @@ qf_can_allot_p(quick_fit *me, size_t size) {
     if (bucket < QF_N_BUCKETS) {
         if (me->buckets[bucket]->used > 0) {
             return true;
-        } else {
-            return qf_largest_free_block(me) >= QF_LARGE_BLOCK_SIZE(small);
         }
-    } else {
-        return qf_largest_free_block(me) >= size;
+        size = QF_LARGE_BLOCK_SIZE(small);
     }
+    for (int i = 0; i < me->large_blocks->used; i++) {
+        ptr p = me->large_blocks->array[i];
+        if (AT(p) >= size)
+            return true;
+    }
+    return false;
 }
