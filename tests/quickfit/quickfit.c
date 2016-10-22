@@ -20,7 +20,7 @@ test_basic() {
     assert(AT(p) == 1008);
     assert(qf->n_blocks == 1);
 
-    qf_free_block(qf, p);
+    qf_free_block(qf, p, AT(p));
     assert(qf->n_blocks == 2);
     assert(qf->large_blocks->used == 2);
 
@@ -171,7 +171,7 @@ test_largest_free_block2() {
     ptr p = qf_allot_block(qf, 1024);
     assert(p);
     assert(qf_largest_free_block(qf) == 2048);
-    qf_free_block(qf, p);
+    qf_free_block(qf, p, AT(p));
     assert(qf_largest_free_block(qf) == 2048);
     qf_free(qf);
     free((void *)region);

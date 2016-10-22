@@ -2,8 +2,8 @@
 #include <limits.h>
 #include "quickfit/quickfit.h"
 
-static void
-qf_add_block(quick_fit *qf, ptr p, size_t size) {
+void
+qf_free_block(quick_fit *qf, ptr p, size_t size) {
     AT(p) = size;
     qf->n_blocks++;
     qf->free_space += size;
@@ -33,7 +33,7 @@ qf_init(ptr start, size_t size) {
         qf->buckets[i] = v_init(32);
     }
     qf_clear(qf);
-    qf_add_block(qf, start, size);
+    qf_free_block(qf, start, size);
     return qf;
 }
 
@@ -73,7 +73,7 @@ qf_split_block(quick_fit *qf, ptr p, size_t req_size) {
     size_t block_size = AT(p);
     if (block_size > req_size) {
         ptr split = p + req_size;
-        qf_add_block(qf, split, block_size - req_size);
+        qf_free_block(qf, split, block_size - req_size);
         AT(p) = req_size;
     }
 }
@@ -89,7 +89,7 @@ qf_find_small_block(quick_fit *qf, size_t bucket, size_t req_size) {
         qf_split_block(qf, p, large_size);
         ptr end = p + large_size;
         for (; p < end; p += req_size) {
-            qf_add_block(qf, p, req_size);
+            qf_free_block(qf, p, req_size);
         }
     }
     qf->n_blocks--;
@@ -118,15 +118,10 @@ qf_allot_block(quick_fit *me, size_t size) {
 }
 
 void
-qf_free_block(quick_fit *me, ptr p) {
-    qf_add_block(me, p, AT(p));
-}
-
-void
 qf_print(quick_fit *qf, ptr start, size_t size) {
     ptr end = start + size;
-    for (ptr p = start; p < end; p += AT(p)) {
-        printf("@%p: %4lu bytes\n", (void *)p, AT(p));
+    for (ptr iter = start; iter < end; iter += AT(iter)) {
+        printf("@%5lu: %4lu\n", iter - start, AT(iter));
     }
 }
 
