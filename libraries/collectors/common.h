@@ -14,6 +14,7 @@
 // the same object header can be used for all collectors.
 #define P_GET_MARK(p)       (AT(p) & 1)
 #define P_UNMARK(p)         AT(p) &= ~1
+#define P_MARK(p)           AT(p) |= 1
 
 #define P_GET_TYPE(p)       ((AT(p) >> 1) & 0xf)
 #define P_INIT(p, t)        AT(p) = t << 1

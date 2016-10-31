@@ -30,7 +30,7 @@ static inline void
 mark_step(vector *v, ptr p) {
     // Mark the pointer and move it to the gray set.
     if (!P_GET_MARK(p)) {
-        AT(p) |= 1;
+        P_MARK(p);
         v_add(v, p);
     }
 }
