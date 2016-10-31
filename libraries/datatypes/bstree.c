@@ -2,11 +2,11 @@
 #include "bstree.h"
 
 static bstree *
-bst_init(ptr root) {
+bst_init(ptr data) {
     bstree *bst = (bstree *)malloc(sizeof(bstree));
     bst->left = NULL;
     bst->right = NULL;
-    bst->data = root;
+    bst->data = data;
     return bst;
 }
 
@@ -20,8 +20,8 @@ bst_free(bstree *bst) {
 }
 
 bstree *
-bst_add(bstree *bst, ptr data) {
-    bstree **addr = &bst;
+bst_add(bstree *me, ptr data) {
+    bstree **addr = &me;
     while (*addr) {
         ptr this_data = (*addr)->data;
         if (data < this_data) {
@@ -31,17 +31,23 @@ bst_add(bstree *bst, ptr data) {
         }
     }
     *addr = bst_init(data);
-    if (bst)
-        return bst;
-    return *addr;
+    return me;
 }
 
 void
-bst_print_inorder(bstree *bst) {
-    if (bst) {
-        bst_print_inorder(bst->left);
-        printf("%lu\n", bst->data);
-        bst_print_inorder(bst->right);
+bst_print(bstree *me, int indent, bool print_null) {
+    for (int i = 0; i < indent; i++) {
+        putchar(' ');
+    }
+    if (!me) {
+        if (print_null) {
+            printf("%*sNULL\n", indent, "");
+        }
+    } else {
+        printf("%*s%lu\n", indent, "", me->data);
+        indent += 2;
+        bst_print(me->left, indent, print_null);
+        bst_print(me->right, indent, print_null);
     }
 }
 

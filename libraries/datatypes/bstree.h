@@ -1,11 +1,12 @@
 #ifndef BSTREE_H
 #define BSTREE_H
 
+#include <stdbool.h>
 #include "common.h"
 
 typedef struct _bstree {
-    ptr data;
     struct _bstree *left, *right;
+    ptr data;
 } bstree;
 
 void bst_free(bstree *bst);
@@ -18,6 +19,6 @@ bstree *bst_min_node(bstree *bst);
 bstree *bst_max_node(bstree *bst);
 size_t bst_size(bstree *bst);
 
-void bst_print_inorder(bstree *bst);
+void bst_print(bstree *me, int indent, bool print_null);
 
 #endif

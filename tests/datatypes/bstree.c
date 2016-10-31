@@ -3,7 +3,7 @@
 #include <time.h>
 #include "datatypes/bstree.h"
 
-void
+static void
 test_add_remove() {
     bstree *bst1 = bst_add(NULL, 123);
     bst1 = bst_remove(bst1, 123);
@@ -54,7 +54,7 @@ test_add_remove() {
     bst_free(bst4);
 }
 
-void
+static void
 test_callstack_overflow() {
     bstree *bst = NULL;
     size_t count = 10000;
@@ -65,9 +65,20 @@ test_callstack_overflow() {
     bst_free(bst);
 }
 
+static void
+test_print_tree() {
+    bstree *bst = NULL;
+    for (int i = 0; i < 20; i++) {
+        bst = bst_add(bst, rand_n(50));
+    }
+    bst_print(bst, 0, false);
+    bst_free(bst);
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_add_remove);
     PRINT_RUN(test_callstack_overflow);
+    PRINT_RUN(test_print_tree);
     return 0;
 }
