@@ -1,13 +1,15 @@
+#include <assert.h>
 #include <stdio.h>
 #include "bstree.h"
 
 static bstree *
-bst_init(ptr data) {
-    bstree *bst = (bstree *)malloc(sizeof(bstree));
-    bst->left = NULL;
-    bst->right = NULL;
-    bst->data = data;
-    return bst;
+bst_init(bstree *parent, ptr data) {
+    bstree *me = (bstree *)malloc(sizeof(bstree));
+    me->parent = parent;
+    me->left = NULL;
+    me->right = NULL;
+    me->data = data;
+    return me;
 }
 
 void
@@ -22,47 +24,55 @@ bst_free(bstree *bst) {
 bstree *
 bst_add(bstree *me, ptr data) {
     bstree **addr = &me;
+    bstree *parent = NULL;
     while (*addr) {
         ptr this_data = (*addr)->data;
+        parent = *addr;
         if (data < this_data) {
             addr = &(*addr)->left;
         } else {
             addr = &(*addr)->right;
         }
     }
-    *addr = bst_init(data);
+    *addr = bst_init(parent, data);
     return me;
 }
 
+// This algorithm is a litte magic.
 bstree *
-bst_remove(bstree *me, ptr data) {
-    if (!me) {
-        return me;
-    }
-    if (data < me->data) {
-        me->left = bst_remove(me->left, data);
-    } else if (data > me->data) {
-        me->right = bst_remove(me->right, data);
+bst_remove(bstree *root, bstree *z) {
+    assert(root);
+    assert(z);
+    bstree *y;
+    if (!z->left || !z->right) {
+        // Node has only one child.
+        y = z;
     } else {
-        // Found node to delete
-        if (!me->left) {
-            bstree *right = me->right;
-            me->right = NULL;
-            free(me);
-            me = right;
-        } else if (!me->right) {
-            bstree *left = me->left;
-            me->left = NULL;
-            free(me);
-            me = left;
-        } else {
-            // It has two children. Copy inorder successors value.
-            bstree *inorder_succ = bst_min_node(me->right);
-            me->data = inorder_succ->data;
-            me->right = bst_remove(me->right, inorder_succ->data);
-        }
+        y = bst_min_node(z->right);
     }
-    return me;
+    bstree *x;
+    if (y->left) {
+        x = y->left;
+    } else {
+        x = y->right;
+    }
+    if (x) {
+        x->parent = y->parent;
+    }
+    if (!y->parent) {
+        root = x;
+    } else if (y == y->parent->left) {
+        y->parent->left = x;
+    } else {
+        y->parent->right = x;
+    }
+    if (y != z) {
+        ptr y_data = y->data;
+        y->data = z->data;
+        z->data = y_data;
+    }
+    free(y);
+    return root;
 }
 
 bstree *

@@ -5,53 +5,52 @@
 
 void
 test_add_remove() {
-    bstree *bst1 = bst_add(NULL, 123);
-    bst1 = bst_remove(bst1, 123);
-    assert(bst1 == NULL);
+    bstree *t = NULL;
+    t = bst_add(NULL, 123);
+    t = bst_remove(t, bst_find(t, 123));
+    assert(t == NULL);
 
-    bstree *bst2 = NULL;
-    bst2 = bst_add(bst2, 10);
-    bst2 = bst_add(bst2, 20);
-    bst2 = bst_remove(bst2, 20);
-    assert(bst2->left == NULL);
-    assert(bst2->right == NULL);
-    bst_free(bst2);
+    t = bst_add(t, 10);
+    t = bst_add(t, 20);
+    t = bst_remove(t, bst_find(t, 20));
+    assert(t->left == NULL);
+    assert(t->right == NULL);
+    bst_free(t);
 
-    bstree *bst3 = NULL;
-    bst_remove(bst3, 30);
+    t = NULL;
+    t = bst_add(t, 10);
+    t = bst_add(t, 20);
+    t = bst_add(t, 30);
 
-    bst3 = bst_add(bst3, 10);
-    bst3 = bst_add(bst3, 20);
-    bst3 = bst_add(bst3, 30);
+    assert(t->data == 10);
+    assert(t->right->data == 20);
+    assert(t->right->right->data == 30);
 
-    assert(bst3->data == 10);
-    assert(bst3->right->data == 20);
-    assert(bst3->right->right->data == 30);
+    t = bst_remove(t, bst_find(t, 20));
+    assert(t->right->data == 30);
+    t = bst_add(t, 2);
+    assert(t->left->data == 2);
+    assert(bst_min_node(t)->data == 2);
+    assert(bst_max_node(t)->data == 30);
 
-    bst3 = bst_remove(bst3, 20);
-    assert(bst3->right->data == 30);
-    bst3 = bst_add(bst3, 2);
-    assert(bst3->left->data == 2);
-    assert(bst_min_node(bst3)->data == 2);
-    assert(bst_max_node(bst3)->data == 30);
+    t = bst_remove(t, bst_find(t, 10));
+    assert(t->data == 30);
+    bst_free(t);
 
-    bst3 = bst_remove(bst3, 10);
-    assert(bst3->data == 30);
-    bst_free(bst3);
+    t = NULL;
+    t = bst_add(t, 50);
+    t = bst_add(t, 40);
+    t = bst_add(t, 70);
+    t = bst_add(t, 60);
+    t = bst_add(t, 80);
+    assert(bst_size(t) == 5);
 
+    assert(bst_find(t, 80)->data == 80);
+    assert(!bst_find(t, 999));
 
-    bstree *bst4 = NULL;
-    bst4 = bst_add(bst4, 50);
-    bst4 = bst_add(bst4, 40);
-    bst4 = bst_add(bst4, 70);
-    bst4 = bst_add(bst4, 60);
-    bst4 = bst_add(bst4, 80);
-    assert(bst_size(bst4) == 5);
-
-    assert(bst_find(bst4, 80)->data == 80);
-
-    bst4 = bst_remove(bst4, 50);
-    bst_free(bst4);
+    t = bst_remove(t, bst_find(t, 50));
+    assert(t->data == 60);
+    bst_free(t);
 }
 
 void
@@ -71,7 +70,7 @@ test_print_tree() {
     for (int i = 0; i < 20; i++) {
         bst = bst_add(bst, rand_n(50));
     }
-    bst_print(bst, 0, false);
+    bst_print(bst, 0, true);
     bst_free(bst);
 }
 
@@ -80,9 +79,7 @@ test_more_remove() {
     bstree *bst = NULL;
     bst = bst_add(bst, 222);
 
-    assert(bst_remove(bst, 9));
-
-    bst = bst_remove(bst, 222);
+    bst = bst_remove(bst, bst_find(bst, 222));
     assert(!bst);
     bst_free(bst);
 }
@@ -122,12 +119,77 @@ test_find_lower_bound() {
     bst_free(t);
 }
 
+void
+test_parents() {
+    bstree *t = bst_add(NULL, 1234);
+    assert(!t->parent);
+    t = bst_add(t, 22);
+    assert(t == t->left->parent);
+    t = bst_add(t, 10);
+    assert(t->left == t->left->left->parent);
+
+    bstree *n = bst_find(t, 10);
+    assert(n->data == 10);
+    bst_free(t);
+}
+
+void
+test_remove_nodes() {
+    bstree *t = NULL;
+
+    t = bst_add(t, 10);
+    t = bst_add(t, 20);
+
+    t = bst_remove(t, bst_find(t, 20));
+    assert(!t->right);
+
+    t = bst_add(t, 7);
+    t = bst_add(t, 5);
+    t = bst_remove(t, bst_find(t, 7));
+    assert(t->left->data == 5);
+    assert(t->data == 10);
+    t = bst_add(t, 20);
+    assert(t->right->data == 20);
+
+    t = bst_remove(t, bst_find(t, 10));
+    assert(t->data == 20);
+    assert(t->left->data == 5);
+
+    t = bst_remove(t, bst_find(t, 20));
+    assert(t->data == 5);
+    t = bst_remove(t, bst_find(t, 5));
+    assert(!t);
+
+    bst_free(t);
+}
+
+void
+test_add_remove_torture() {
+    bstree *t = NULL;
+    int value_range = 10000;
+    for (int i = 0; i < 1000000; i++) {
+        if (rand_n(2) == 0) {
+            bstree *v = bst_find(t, rand_n(value_range));
+            if (v) {
+                t = bst_remove(t, v);
+            }
+        } else {
+            t = bst_add(t, rand_n(value_range));
+        }
+    }
+    bst_free(t);
+}
+
 int
 main(int argc, char *argv[]) {
+    srand(time(NULL));
     PRINT_RUN(test_add_remove);
     PRINT_RUN(test_callstack_overflow);
     PRINT_RUN(test_print_tree);
     PRINT_RUN(test_more_remove);
     PRINT_RUN(test_find_lower_bound);
+    PRINT_RUN(test_parents);
+    PRINT_RUN(test_remove_nodes);
+    PRINT_RUN(test_add_remove_torture);
     return 0;
 }

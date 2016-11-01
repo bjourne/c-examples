@@ -5,7 +5,7 @@
 #include "common.h"
 
 typedef struct _bstree {
-    struct _bstree *left, *right;
+    struct _bstree *left, *right, *parent;
     ptr data;
 } bstree;
 
@@ -13,7 +13,9 @@ void bst_free(bstree *bst);
 
 // Tree mutation
 bstree *bst_add(bstree *me, ptr data);
-bstree *bst_remove(bstree *me, ptr data);
+
+// The node must exist in the tree.
+bstree *bst_remove(bstree *root, bstree *node);
 
 // Finding nodes
 bstree *bst_find(bstree *bst, ptr data);
