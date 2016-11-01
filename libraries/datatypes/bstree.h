@@ -20,8 +20,12 @@ bstree *bst_remove(bstree *root, bstree *node);
 // Finding nodes
 bstree *bst_find(bstree *bst, ptr data);
 bstree *bst_find_lower_bound(bstree *me, ptr data, bstree *best);
-bstree *bst_min_node(bstree *bst);
-bstree *bst_max_node(bstree *bst);
+
+// Tree must not be empty.
+bstree *bst_min_node(bstree *me);
+bstree *bst_max_node(bstree *me);
+
+bstree *bst_successor(bstree *root, bstree *node);
 
 // Info
 size_t bst_size(bstree *bst);

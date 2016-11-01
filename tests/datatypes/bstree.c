@@ -180,6 +180,41 @@ test_add_remove_torture() {
     bst_free(t);
 }
 
+void
+test_successor() {
+    bstree *t = NULL;
+    assert(!bst_successor(t, NULL));
+
+    t = bst_add(t, 20);
+    assert(bst_successor(t, NULL)->data == 20);
+    assert(!bst_successor(t, bst_find(t, 20)));
+
+    t = bst_add(t, 30);
+    assert(bst_successor(t, bst_find(t, 20))->data == 30);
+
+    t = bst_add(t, 10);
+
+    bstree *succ_1 = bst_successor(t, NULL);
+    assert(succ_1->data == 10);
+    bstree *succ_2 = bst_successor(t, succ_1);
+    assert(succ_2->data == 20);
+    bstree *succ_3 = bst_successor(t, succ_2);
+    assert(succ_3->data == 30);
+    bst_free(t);
+
+    t = NULL;
+    for (int i = 0; i < 10; i++) {
+        t = bst_add(t, rand_n(100));
+    }
+    bstree *iter = bst_successor(t, NULL);
+    int x = 0;
+    while (iter) {
+        iter = bst_successor(t, iter);
+        x++;
+    }
+    assert(x == 10);
+}
+
 int
 main(int argc, char *argv[]) {
     srand(time(NULL));
@@ -191,5 +226,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_parents);
     PRINT_RUN(test_remove_nodes);
     PRINT_RUN(test_add_remove_torture);
+    PRINT_RUN(test_successor);
     return 0;
 }

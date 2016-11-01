@@ -107,19 +107,40 @@ bst_find_lower_bound(bstree *me, ptr data, bstree *best) {
 }
 
 bstree *
-bst_min_node(bstree *bst) {
-    while (bst->left) {
-        bst = bst->left;
+bst_min_node(bstree *me) {
+    assert(me);
+    while (me->left) {
+        me = me->left;
     }
-    return bst;
+    return me;
 }
 
 bstree *
-bst_max_node(bstree *bst) {
-    while (bst->right) {
-        bst = bst->right;
+bst_max_node(bstree *me) {
+    assert(me);
+    while (me->right) {
+        me = me->right;
     }
-    return bst;
+    return me;
+}
+
+bstree *
+bst_successor(bstree *root, bstree *node) {
+    if (!root) {
+        return NULL;
+    }
+    if (!node) {
+        return bst_min_node(root);
+    }
+    if (node->right) {
+        return bst_min_node(node->right);
+    }
+    bstree *x = node->parent;
+    while (x && node == x->right) {
+        node = x;
+        x = node->parent;
+    }
+    return x;
 }
 
 size_t
