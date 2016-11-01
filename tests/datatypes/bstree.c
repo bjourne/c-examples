@@ -3,7 +3,7 @@
 #include <time.h>
 #include "datatypes/bstree.h"
 
-static void
+void
 test_add_remove() {
     bstree *bst1 = bst_add(NULL, 123);
     bst1 = bst_remove(bst1, 123);
@@ -54,7 +54,7 @@ test_add_remove() {
     bst_free(bst4);
 }
 
-static void
+void
 test_callstack_overflow() {
     bstree *bst = NULL;
     size_t count = 10000;
@@ -65,7 +65,7 @@ test_callstack_overflow() {
     bst_free(bst);
 }
 
-static void
+void
 test_print_tree() {
     bstree *bst = NULL;
     for (int i = 0; i < 20; i++) {
@@ -90,33 +90,34 @@ test_more_remove() {
 void
 test_find_lower_bound() {
     bstree *t = NULL;
-    assert(!bst_find_lower_bound(t, 99));
+    assert(!bst_find_lower_bound(t, 99, NULL));
 
     t = bst_add(t, 20);
-    assert(bst_find_lower_bound(t, 20)->data == 20);
-    assert(!bst_find_lower_bound(t, 30));
-    assert(bst_find_lower_bound(t, 15)->data == 20);
+    assert(bst_find_lower_bound(t, 20, NULL)->data == 20);
+    assert(!bst_find_lower_bound(t, 30, NULL));
+    assert(bst_find_lower_bound(t, 15, NULL)->data == 20);
 
     t = bst_add(t, 10);
-    assert(bst_find_lower_bound(t, 15)->data == 20);
-    assert(bst_find_lower_bound(t, 10)->data == 10);
-    assert(bst_find_lower_bound(t, 19)->data == 20);
+    assert(bst_find_lower_bound(t, 15, NULL)->data == 20);
+    assert(bst_find_lower_bound(t, 10, NULL)->data == 10);
+    assert(bst_find_lower_bound(t, 19, NULL)->data == 20);
 
     t = bst_add(t, 30);
-    assert(bst_find_lower_bound(t, 29)->data == 30);
+    assert(bst_find_lower_bound(t, 29, NULL)->data == 30);
     t = bst_add(t, 40);
-    assert(bst_find_lower_bound(t, 39)->data == 40);
-    assert(bst_find_lower_bound(t, 30)->data == 30);
+    assert(bst_find_lower_bound(t, 39, NULL)->data == 40);
+    assert(bst_find_lower_bound(t, 30, NULL)->data == 30);
 
     t = bst_add(t, 25);
-    assert(bst_find_lower_bound(t, 24)->data == 25);
-    assert(bst_find_lower_bound(t, 25)->data == 25);
-    assert(bst_find_lower_bound(t, 26)->data == 30);
+    assert(bst_find_lower_bound(t, 24, NULL)->data == 25);
+    assert(bst_find_lower_bound(t, 25, NULL)->data == 25);
+    assert(bst_find_lower_bound(t, 26, NULL)->data == 30);
     t = bst_add(t, 12);
-    assert(bst_find_lower_bound(t, 11)->data == 12);
+    assert(bst_find_lower_bound(t, 11, NULL)->data == 12);
 
     t = bst_add(t, 17);
-    assert(bst_find_lower_bound(t, 16)->data == 17);
+    assert(bst_find_lower_bound(t, 16, NULL)->data == 17);
+    assert(!bst_find_lower_bound(t, 100, NULL));
 
     bst_free(t);
 }

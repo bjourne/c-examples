@@ -35,39 +35,41 @@ bst_add(bstree *me, ptr data) {
 }
 
 bstree *
-bst_remove(bstree *bst, ptr data) {
-    if (!bst)
-        return bst;
-    if (data < bst->data) {
-        bst->left = bst_remove(bst->left, data);
-    } else if (data > bst->data) {
-        bst->right = bst_remove(bst->right, data);
+bst_remove(bstree *me, ptr data) {
+    if (!me) {
+        return me;
+    }
+    if (data < me->data) {
+        me->left = bst_remove(me->left, data);
+    } else if (data > me->data) {
+        me->right = bst_remove(me->right, data);
     } else {
         // Found node to delete
-        if (!bst->left) {
-            bstree *right = bst->right;
-            bst->right = NULL;
-            bst_free(bst);
-            bst = right;
-        } else if (!bst->right) {
-            bstree *left = bst->left;
-            bst->left = NULL;
-            bst_free(bst);
-            bst = left;
+        if (!me->left) {
+            bstree *right = me->right;
+            me->right = NULL;
+            free(me);
+            me = right;
+        } else if (!me->right) {
+            bstree *left = me->left;
+            me->left = NULL;
+            free(me);
+            me = left;
         } else {
             // It has two children. Copy inorder successors value.
-            bstree *inorder_succ = bst_min_node(bst->right);
-            bst->data = inorder_succ->data;
-            bst->right = bst_remove(bst->right, inorder_succ->data);
+            bstree *inorder_succ = bst_min_node(me->right);
+            me->data = inorder_succ->data;
+            me->right = bst_remove(me->right, inorder_succ->data);
         }
     }
-    return bst;
+    return me;
 }
 
 bstree *
 bst_find(bstree *me, ptr data) {
-    if (!me)
+    if (!me) {
         return NULL;
+    }
     ptr me_data = me->data;
     if (data < me_data) {
         return bst_find(me->left, data);
@@ -77,25 +79,21 @@ bst_find(bstree *me, ptr data) {
     return me;
 }
 
-static bstree *
-bst_find_lower_bound_internal(bstree *me, ptr data, bstree *best) {
-    if (!me)
+bstree *
+bst_find_lower_bound(bstree *me, ptr data, bstree *best) {
+    if (!me) {
         return best;
+    }
     ptr me_data = me->data;
     if (me_data >= data && (!best || me_data < best->data)) {
         best = me;
     }
     if (data < me_data) {
-        return bst_find_lower_bound_internal(me->left, data, best);
+        return bst_find_lower_bound(me->left, data, best);
     } else if (data > me_data) {
-        return bst_find_lower_bound_internal(me->right, data, best);
+        return bst_find_lower_bound(me->right, data, best);
     }
     return best;
-}
-
-bstree *
-bst_find_lower_bound(bstree *me, ptr data) {
-    return bst_find_lower_bound_internal(me, data, NULL);
 }
 
 bstree *
