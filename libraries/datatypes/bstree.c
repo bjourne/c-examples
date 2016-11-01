@@ -34,59 +34,6 @@ bst_add(bstree *me, ptr data) {
     return me;
 }
 
-void
-bst_print(bstree *me, int indent, bool print_null) {
-    for (int i = 0; i < indent; i++) {
-        putchar(' ');
-    }
-    if (!me) {
-        if (print_null) {
-            printf("%*sNULL\n", indent, "");
-        }
-    } else {
-        printf("%*s%lu\n", indent, "", me->data);
-        indent += 2;
-        bst_print(me->left, indent, print_null);
-        bst_print(me->right, indent, print_null);
-    }
-}
-
-bstree *
-bst_find(bstree *bst, ptr data) {
-    if (!bst)
-        return NULL;
-    ptr this_data = bst->data;
-    if (data < this_data) {
-        return bst_find(bst->left, data);
-    } else if (data > this_data) {
-        return bst_find(bst->right, data);
-    }
-    return bst;
-}
-
-size_t
-bst_size(bstree *bst) {
-    if (!bst)
-        return 0;
-    return 1 + bst_size(bst->left) + bst_size(bst->right);
-}
-
-bstree *
-bst_min_node(bstree *bst) {
-    while (bst->left) {
-        bst = bst->left;
-    }
-    return bst;
-}
-
-bstree *
-bst_max_node(bstree *bst) {
-    while (bst->right) {
-        bst = bst->right;
-    }
-    return bst;
-}
-
 bstree *
 bst_remove(bstree *bst, ptr data) {
     if (!bst)
@@ -115,4 +62,75 @@ bst_remove(bstree *bst, ptr data) {
         }
     }
     return bst;
+}
+
+bstree *
+bst_find(bstree *me, ptr data) {
+    if (!me)
+        return NULL;
+    ptr me_data = me->data;
+    if (data < me_data) {
+        return bst_find(me->left, data);
+    } else if (data > me_data) {
+        return bst_find(me->right, data);
+    }
+    return me;
+}
+
+static bstree *
+bst_find_lower_bound_internal(bstree *me, ptr data, bstree *best) {
+    if (!me)
+        return best;
+    ptr me_data = me->data;
+    if (me_data >= data && (!best || me_data < best->data)) {
+        best = me;
+    }
+    if (data < me_data) {
+        return bst_find_lower_bound_internal(me->left, data, best);
+    } else if (data > me_data) {
+        return bst_find_lower_bound_internal(me->right, data, best);
+    }
+    return best;
+}
+
+bstree *
+bst_find_lower_bound(bstree *me, ptr data) {
+    return bst_find_lower_bound_internal(me, data, NULL);
+}
+
+bstree *
+bst_min_node(bstree *bst) {
+    while (bst->left) {
+        bst = bst->left;
+    }
+    return bst;
+}
+
+bstree *
+bst_max_node(bstree *bst) {
+    while (bst->right) {
+        bst = bst->right;
+    }
+    return bst;
+}
+
+size_t
+bst_size(bstree *bst) {
+    if (!bst)
+        return 0;
+    return 1 + bst_size(bst->left) + bst_size(bst->right);
+}
+
+void
+bst_print(bstree *me, int indent, bool print_null) {
+    if (!me) {
+        if (print_null) {
+            printf("%*sNULL\n", indent, "");
+        }
+    } else {
+        printf("%*s%lu\n", indent, "", me->data);
+        indent += 2;
+        bst_print(me->left, indent, print_null);
+        bst_print(me->right, indent, print_null);
+    }
 }
