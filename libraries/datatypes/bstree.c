@@ -38,7 +38,7 @@ bst_add(bstree *me, ptr data) {
     return me;
 }
 
-// This algorithm is a litte magic.
+// This algorithm is a little magic.
 bstree *
 bst_remove(bstree *root, bstree *z) {
     assert(root);
@@ -77,14 +77,15 @@ bst_remove(bstree *root, bstree *z) {
 
 bstree *
 bst_find(bstree *me, ptr data) {
-    if (!me) {
-        return NULL;
-    }
-    ptr me_data = me->data;
-    if (data < me_data) {
-        return bst_find(me->left, data);
-    } else if (data > me_data) {
-        return bst_find(me->right, data);
+    while (me) {
+        ptr me_data = me->data;
+        if (data < me_data) {
+            me = me->left;
+        } else if (data > me_data) {
+            me = me->right;
+        } else {
+            return me;
+        }
     }
     return me;
 }
