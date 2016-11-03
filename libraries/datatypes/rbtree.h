@@ -10,9 +10,19 @@ typedef struct _rbtree {
     bool is_red;
 } rbtree;
 
-rbtree *rbt_add(rbtree *rbt, ptr data);
 void rbt_free(rbtree *me);
 
+// Tree mutation
+rbtree *rbt_add(rbtree *me, ptr data);
+rbtree *rbt_remove(rbtree *root, rbtree *node);
+rbtree *rbt_remove2(rbtree *root, rbtree *node);
+
+// Finding nodes
+rbtree *rbt_find(rbtree *me, ptr data);
+rbtree *rbt_find_lower_bound(rbtree *me, ptr data);
+
+// Dumping
 void rbt_print(rbtree *me, int indent, bool print_null);
+size_t rbt_black_height(rbtree *me);
 
 #endif
