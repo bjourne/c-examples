@@ -279,6 +279,22 @@ test_black_height() {
     rbt_free(t);
 }
 
+void
+test_duplicates_and_rotates() {
+    rbtree *t = add_items(NULL, 3, 5, 5, 7);
+    rbt_print(t, 0, true);
+
+    // Damn
+    rbtree *n1 = rbt_successor(t, NULL);
+    assert(n1->data == 5);
+    assert(!n1->right);
+    rbtree *n2 = rbt_successor(t, n1);
+    assert(n2->data == 5);
+    rbtree *n3 = rbt_successor(t, n2);
+    assert(n3->data == 7);
+    rbt_free(t);
+}
+
 int
 main(int argc, char *argv[]) {
     time_t seed = time(NULL);
@@ -295,5 +311,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_find);
     PRINT_RUN(test_remove);
     PRINT_RUN(test_torture);
+    PRINT_RUN(test_duplicates_and_rotates);
     return 0;
 }

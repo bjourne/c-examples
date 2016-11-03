@@ -300,3 +300,22 @@ rbt_black_height(rbtree *me) {
     size_t left_height = rbt_black_height(me->left);
     return (me->is_red ? 0 : 1) + left_height;
 }
+
+rbtree *
+rbt_successor(rbtree *root, rbtree *node) {
+    if (!root) {
+        return NULL;
+    }
+    if (!node) {
+        return rbt_min_node(root);
+    }
+    if (node->right) {
+        return rbt_min_node(node->right);
+    }
+    rbtree *x = node->parent;
+    while (x && node == x->right) {
+        node = x;
+        x = node->parent;
+    }
+    return x;
+}
