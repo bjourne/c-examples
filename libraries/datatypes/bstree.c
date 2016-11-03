@@ -92,17 +92,18 @@ bst_find(bstree *me, ptr data) {
 
 bstree *
 bst_find_lower_bound(bstree *me, ptr data, bstree *best) {
-    if (!me) {
-        return best;
-    }
-    ptr me_data = me->data;
-    if (me_data >= data && (!best || me_data < best->data)) {
-        best = me;
-    }
-    if (data < me_data) {
-        return bst_find_lower_bound(me->left, data, best);
-    } else if (data > me_data) {
-        return bst_find_lower_bound(me->right, data, best);
+    while (me) {
+        ptr me_data = me->data;
+        if (data < me_data) {
+            if (!best || me_data < best->data) {
+                best = me;
+            }
+            me = me->left;
+        } else if (data > me_data) {
+            me = me->right;
+        } else {
+            return me;
+        }
     }
     return best;
 }
