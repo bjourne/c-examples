@@ -28,6 +28,50 @@ remove_items(rbtree *t, size_t n, ...) {
 }
 
 void
+test_many_duplicates() {
+    rbtree *t = NULL;
+    rbtree *n = NULL;
+    t = rbt_add(t, 5);
+    t = rbt_add(t, 1);
+    t = rbt_add(t, 7);
+    t = rbt_add(t, 1);
+    t = rbt_add(t, 3);
+    t = rbt_add(t, 5);
+    t = rbt_add(t, 7);
+    t = rbt_add(t, 1);
+    t = rbt_add(t, 5);
+    t = rbt_add(t, 9);
+    rbt_print(t, 0, false);
+
+    assert(!rbt_find(t, 102));
+
+    // Find 3 ones
+    n = rbt_find(t, 1);
+    assert(n && n->data == 1);
+    t = rbt_remove(t, n);
+
+    n = rbt_find(t, 1);
+    assert(n && n->data == 1);
+    t = rbt_remove(t, n);
+
+    n = rbt_find(t, 1);
+    assert(n && n->data == 1);
+    t = rbt_remove(t, n);
+
+    assert(!rbt_find(t, 1));
+
+    rbt_free(t);
+}
+
+void
+test_black_height() {
+    assert(rbt_black_height(NULL) == 1);
+    rbtree *t = rbt_add(NULL, 20);
+    assert(rbt_black_height(t) == 2);
+    rbt_free(t);
+}
+
+void
 test_simple() {
     rbtree *t = rbt_add(NULL, 123);
     t = rbt_add(t, 22);
@@ -276,14 +320,6 @@ test_loop_scenario() {
 }
 
 void
-test_black_height() {
-    assert(rbt_black_height(NULL) == 1);
-    rbtree *t = rbt_add(NULL, 20);
-    assert(rbt_black_height(t) == 2);
-    rbt_free(t);
-}
-
-void
 test_duplicates_and_rotates() {
     rbtree *t = add_items(NULL, 3, 5, 5, 7);
     rbt_print(t, 0, true);
@@ -304,6 +340,7 @@ main(int argc, char *argv[]) {
     time_t seed = time(NULL);
     srand(seed);
     printf("seed %lu\n", seed);
+    PRINT_RUN(test_many_duplicates);
     PRINT_RUN(test_black_height);
     PRINT_RUN(test_loop_scenario);
     PRINT_RUN(test_simple);
