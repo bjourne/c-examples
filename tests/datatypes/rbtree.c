@@ -36,7 +36,7 @@ remove_items(rbtree *t, size_t n, ...) {
 rbtree *
 traverse(rbtree *t, const char *path) {
     for (size_t i = 0; i < strlen(path); i++) {
-        rbdir dir = path[i] == 'R' ? RB_RIGHT : RB_LEFT;
+        bstdir dir = path[i] == 'R' ? BST_RIGHT : BST_LEFT;
         t = t->childs[dir];
     }
     return t;
@@ -46,8 +46,8 @@ void
 test_max_min() {
     rbtree *t = NULL;
     t = add_items(t, 5, 10, 99, 30, 17, 29);
-    assert(rbt_iterate(t, NULL, RB_LEFT)->key == 10);
-    assert(rbt_iterate(t, NULL, RB_RIGHT)->key == 99);
+    assert(rbt_iterate(t, NULL, BST_LEFT)->key == 10);
+    assert(rbt_iterate(t, NULL, BST_RIGHT)->key == 99);
     rbt_free(t);
 }
 
@@ -102,18 +102,18 @@ test_simple() {
     t = rbt_add_key(t, 300);
 
     assert(!t->is_red);
-    assert(t->childs[RB_LEFT]->is_red);
-    assert(t->childs[RB_RIGHT]->is_red);
+    assert(t->childs[BST_LEFT]->is_red);
+    assert(t->childs[BST_RIGHT]->is_red);
 
     assert(t->parent == NULL);
-    assert(t->childs[RB_LEFT]->parent == t);
-    assert(t->childs[RB_RIGHT]->parent = t);
+    assert(t->childs[BST_LEFT]->parent == t);
+    assert(t->childs[BST_RIGHT]->parent = t);
 
     t = rbt_add_key(t, 1);
     assert(!t->is_red);
-    assert(!t->childs[RB_LEFT]->is_red);
-    assert(t->childs[RB_LEFT]->childs[RB_LEFT]->is_red);
-    assert(!t->childs[RB_RIGHT]->is_red);
+    assert(!t->childs[BST_LEFT]->is_red);
+    assert(t->childs[BST_LEFT]->childs[BST_LEFT]->is_red);
+    assert(!t->childs[BST_RIGHT]->is_red);
 
     rbt_free(t);
 }
@@ -166,8 +166,8 @@ test_rotate_left() {
     t = rbt_add_key(t, 20);
     assert(t->key == 10);
     assert(t->is_red == false);
-    assert(t->childs[RB_LEFT]->key == 0);
-    assert(t->childs[RB_RIGHT]->key == 20);
+    assert(t->childs[BST_LEFT]->key == 0);
+    assert(t->childs[BST_RIGHT]->key == 20);
     rbt_free(t);
 }
 
@@ -187,10 +187,10 @@ test_double_rotations() {
     t = rbt_add_key(t, 45);
     assert(t->key == 45);
     assert(!t->is_red);
-    assert(t->childs[RB_LEFT]->key == 40);
-    assert(t->childs[RB_LEFT]->is_red);
-    assert(t->childs[RB_RIGHT]->key == 50);
-    assert(t->childs[RB_RIGHT]->is_red);
+    assert(t->childs[BST_LEFT]->key == 40);
+    assert(t->childs[BST_LEFT]->is_red);
+    assert(t->childs[BST_RIGHT]->key == 50);
+    assert(t->childs[BST_RIGHT]->is_red);
     rbt_free(t);
 
     t = rbt_add_key(NULL, 50);
@@ -230,8 +230,8 @@ test_remove() {
     n = rbt_find(t, 10);
     assert(n->is_red);
     t = rbt_remove(t, n);
-    assert(!t->childs[RB_LEFT]->childs[RB_LEFT]);
-    assert(!t->childs[RB_LEFT]->childs[RB_RIGHT]);
+    assert(!t->childs[BST_LEFT]->childs[BST_LEFT]);
+    assert(!t->childs[BST_LEFT]->childs[BST_RIGHT]);
     rbt_free(t);
 
     t = add_items(NULL, 5, 30, 20, 40, 35, 50);
@@ -247,9 +247,9 @@ test_remove() {
     t = add_items(NULL, 8, 22, 6, 55, 3, 7, 23, 71, 24);
     t = rbt_remove(t, rbt_find(t, 71));
 
-    assert(t->childs[RB_RIGHT]->key == 24);
-    assert(t->childs[RB_RIGHT]->is_red);
-    assert(t->childs[RB_RIGHT]->childs[RB_RIGHT]->key == 55);
+    assert(t->childs[BST_RIGHT]->key == 24);
+    assert(t->childs[BST_RIGHT]->is_red);
+    assert(t->childs[BST_RIGHT]->childs[BST_RIGHT]->key == 55);
 
     rbt_free(t);
 
@@ -260,15 +260,15 @@ test_remove() {
 
     t = add_items(NULL, 8, 77, 35, 73, 23, 19, 34, 58, 63);
     t = rbt_remove(t, rbt_find(t, 23));
-    assert(t->childs[RB_LEFT]->key == 34);
+    assert(t->childs[BST_LEFT]->key == 34);
     assert(t->key == 35);
-    assert(t->childs[RB_LEFT]->childs[RB_LEFT]->is_red);
+    assert(t->childs[BST_LEFT]->childs[BST_LEFT]->is_red);
     rbt_free(t);
 
     t = add_items(NULL, 8, 7, 78, 68, 7, 3, 47, 10, 21);
     t = rbt_remove(t, rbt_find(t, 3));
-    assert(t->childs[RB_LEFT]->childs[RB_RIGHT]->is_red);
-    assert(t->childs[RB_LEFT]->childs[RB_RIGHT]->key == 7);
+    assert(t->childs[BST_LEFT]->childs[BST_RIGHT]->is_red);
+    assert(t->childs[BST_LEFT]->childs[BST_RIGHT]->key == 7);
     rbt_free(t);
 
     t = add_items(NULL, 8, 8, 69, 0, 74, 71, 76, 51, 74);
@@ -347,12 +347,12 @@ test_duplicates_and_rotates() {
     rbt_print(t, 0, true);
 
     // Damn
-    rbtree *n1 = rbt_iterate(t, NULL, RB_LEFT);
+    rbtree *n1 = rbt_iterate(t, NULL, BST_LEFT);
     assert(n1->key == 5);
-    assert(!n1->childs[RB_RIGHT]);
-    rbtree *n2 = rbt_iterate(t, n1, RB_LEFT);
+    assert(!traverse(n1, "R"));
+    rbtree *n2 = rbt_iterate(t, n1, BST_LEFT);
     assert(n2->key == 5);
-    rbtree *n3 = rbt_iterate(t, n2, RB_LEFT);
+    rbtree *n3 = rbt_iterate(t, n2, BST_LEFT);
     assert(n3->key == 7);
     rbt_free(t);
 }

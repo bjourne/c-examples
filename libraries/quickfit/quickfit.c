@@ -128,7 +128,7 @@ qf_can_allot_p(quick_fit *me, size_t size) {
         }
         size = QF_LARGE_BLOCK_SIZE(small);
     }
-    rbtree *node = rbt_iterate(me->large_blocks, NULL, RB_RIGHT);
+    rbtree *node = rbt_iterate(me->large_blocks, NULL, BST_RIGHT);
     if (node && node->key >= size) {
         return true;
     }

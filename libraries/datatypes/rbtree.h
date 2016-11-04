@@ -3,11 +3,7 @@
 
 #include <stdbool.h>
 #include "datatypes/common.h"
-
-typedef enum {
-    RB_LEFT = 0,
-    RB_RIGHT = 1
-} rbdir;
+#include "datatypes/trees.h"
 
 typedef struct _rbtree {
     struct _rbtree *parent;
@@ -26,7 +22,7 @@ rbtree *rbt_remove(rbtree *root, rbtree *node);
 // Finding nodes
 rbtree *rbt_find(rbtree *me, size_t key);
 rbtree *rbt_find_lower_bound(rbtree *me, size_t key);
-rbtree *rbt_iterate(rbtree *root, rbtree *node, rbdir dir);
+rbtree *rbt_iterate(rbtree *root, rbtree *node, bstdir dir);
 
 // Tree stats
 size_t rbt_size(rbtree *bst);

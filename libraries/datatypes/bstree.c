@@ -6,8 +6,8 @@ static bstree *
 bst_init(bstree *parent, size_t key, ptr value) {
     bstree *me = (bstree *)malloc(sizeof(bstree));
     me->parent = parent;
-    me->left = NULL;
-    me->right = NULL;
+    me->childs[BST_LEFT] = NULL;
+    me->childs[BST_RIGHT] = NULL;
     me->key = key;
     me->value = value;
     return me;
@@ -16,8 +16,8 @@ bst_init(bstree *parent, size_t key, ptr value) {
 void
 bst_free(bstree *bst) {
     if (bst) {
-        bst_free(bst->left);
-        bst_free(bst->right);
+        bst_free(bst->childs[BST_LEFT]);
+        bst_free(bst->childs[BST_RIGHT]);
         free(bst);
     }
 }
@@ -30,12 +30,20 @@ bst_add(bstree *me, size_t key, ptr value) {
         ptr this_key = (*addr)->key;
         parent = *addr;
         if (key < this_key) {
-            addr = &(*addr)->left;
+            addr = &(*addr)->childs[BST_LEFT];
         } else {
-            addr = &(*addr)->right;
+            addr = &(*addr)->childs[BST_RIGHT];
         }
     }
     *addr = bst_init(parent, key,value);
+    return me;
+}
+
+static bstree *
+bst_extreme_node(bstree *me, bstdir dir) {
+    while (me->childs[dir]) {
+        me = me->childs[dir];
+    }
     return me;
 }
 
@@ -45,27 +53,23 @@ bst_remove(bstree *root, bstree *z) {
     assert(root);
     assert(z);
     bstree *y;
-    if (!z->left || !z->right) {
+    if (!z->childs[BST_LEFT] || !z->childs[BST_RIGHT]) {
         // Node has only one child.
         y = z;
     } else {
-        y = bst_min_node(z->right);
+        y = bst_extreme_node(z->childs[BST_RIGHT], BST_LEFT);
     }
-    bstree *x;
-    if (y->left) {
-        x = y->left;
-    } else {
-        x = y->right;
+    bstree *x = y->childs[BST_RIGHT];
+    if (!x) {
+        x = y->childs[BST_LEFT];
     }
     if (x) {
         x->parent = y->parent;
     }
     if (!y->parent) {
         root = x;
-    } else if (y == y->parent->left) {
-        y->parent->left = x;
     } else {
-        y->parent->right = x;
+        y->parent->childs[BST_DIR_OF(y)] = x;
     }
     z->key = y->key;
     z->value = y->value;
@@ -78,9 +82,9 @@ bst_find(bstree *me, size_t key) {
     while (me) {
         ptr me_key = me->key;
         if (key < me_key) {
-            me = me->left;
+            me = me->childs[BST_LEFT];
         } else if (key > me_key) {
-            me = me->right;
+            me = me->childs[BST_RIGHT];
         } else {
             return me;
         }
@@ -99,9 +103,9 @@ bst_find_lower_bound(bstree *me, size_t key) {
                 best_key = me_key;
                 best = me;
             }
-            me = me->left;
+            me = me->childs[BST_LEFT];
         } else if (key > me_key) {
-            me = me->right;
+            me = me->childs[BST_RIGHT];
         } else {
             return me;
         }
@@ -110,38 +114,18 @@ bst_find_lower_bound(bstree *me, size_t key) {
 }
 
 bstree *
-bst_min_node(bstree *me) {
-    if (me) {
-        while (me->left) {
-            me = me->left;
-        }
-    }
-    return me;
-}
-
-bstree *
-bst_max_node(bstree *me) {
-    if (me) {
-        while (me->right) {
-            me = me->right;
-        }
-    }
-    return me;
-}
-
-bstree *
-bst_successor(bstree *root, bstree *node) {
+bst_iterate(bstree *root, bstree *node, bstdir dir) {
     if (!root) {
         return NULL;
     }
     if (!node) {
-        return bst_min_node(root);
+        return bst_extreme_node(root, dir);
     }
-    if (node->right) {
-        return bst_min_node(node->right);
+    if (node->childs[!dir]) {
+        return bst_extreme_node(node->childs[!dir], dir);
     }
     bstree *x = node->parent;
-    while (x && node == x->right) {
+    while (x && node == x->childs[!dir]) {
         node = x;
         x = node->parent;
     }
@@ -152,7 +136,7 @@ size_t
 bst_size(bstree *bst) {
     if (!bst)
         return 0;
-    return 1 + bst_size(bst->left) + bst_size(bst->right);
+    return 1 + bst_size(bst->childs[BST_LEFT]) + bst_size(bst->childs[BST_RIGHT]);
 }
 
 void
@@ -164,7 +148,7 @@ bst_print(bstree *me, int indent, bool print_null) {
     } else {
         printf("%*s%lu\n", indent, "", me->key);
         indent += 2;
-        bst_print(me->left, indent, print_null);
-        bst_print(me->right, indent, print_null);
+        bst_print(me->childs[BST_LEFT], indent, print_null);
+        bst_print(me->childs[BST_RIGHT], indent, print_null);
     }
 }

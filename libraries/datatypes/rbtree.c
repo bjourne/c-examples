@@ -5,8 +5,8 @@ static rbtree *
 rbt_init(rbtree *parent, size_t key, ptr value) {
     rbtree *me = (rbtree *)malloc(sizeof(rbtree));
     me->parent = parent;
-    me->childs[RB_LEFT] = NULL;
-    me->childs[RB_RIGHT] = NULL;
+    me->childs[BST_LEFT] = NULL;
+    me->childs[BST_RIGHT] = NULL;
     me->is_red = true;
     me->key = key;
     me->value = value;
@@ -16,21 +16,14 @@ rbt_init(rbtree *parent, size_t key, ptr value) {
 void
 rbt_free(rbtree *me) {
     if (me) {
-        rbt_free(me->childs[RB_LEFT]);
-        rbt_free(me->childs[RB_RIGHT]);
+        rbt_free(me->childs[BST_LEFT]);
+        rbt_free(me->childs[BST_RIGHT]);
         free(me);
     }
 }
 
-// Determines the direction of n in relation to p. n is allowed to be NULL.
-#define DIR_OF2(n, p)   ((n) == (p)->childs[RB_LEFT] ? RB_LEFT : RB_RIGHT)
-
-// Determines if n is a left or right child. n can't be root because
-// that node isn't a child.
-#define DIR_OF(n)       DIR_OF2(n, (n->parent))
-
 static rbtree *
-rbt_rotate(rbtree *root, rbtree *node, rbdir dir) {
+rbt_rotate(rbtree *root, rbtree *node, bstdir dir) {
     rbtree *opp_child = node->childs[!dir];
 
     // Turn right_child's left sub-tree into node's right sub-tree */
@@ -44,7 +37,7 @@ rbt_rotate(rbtree *root, rbtree *node, rbdir dir) {
     if (!node->parent) {
         root = opp_child;
     } else {
-        node->parent->childs[DIR_OF(node)] = opp_child;
+        node->parent->childs[BST_DIR_OF(node)] = opp_child;
     }
     opp_child->childs[dir] = node;
     node->parent = opp_child;
@@ -56,7 +49,7 @@ rbt_add_fixup(rbtree *root, rbtree *x) {
     while (x != root && x->parent->is_red) {
         // dir is the direction of x's parent in relation to x's
         // grandparent.
-        rbdir dir = DIR_OF(x->parent);
+        bstdir dir = BST_DIR_OF(x->parent);
         rbtree *y = x->parent->parent->childs[!dir];
         if (y && y->is_red) {
             // Simple recoloring case.
@@ -65,7 +58,7 @@ rbt_add_fixup(rbtree *root, rbtree *x) {
             x->parent->parent->is_red = true;
             x = x->parent->parent;
         } else {
-            if (DIR_OF(x) != dir) {
+            if (BST_DIR_OF(x) != dir) {
                 x = x->parent;
                 root = rbt_rotate(root, x, dir);
             }
@@ -87,9 +80,9 @@ rbt_add(rbtree *me, size_t key, ptr value) {
         ptr this_key = (*addr)->key;
         parent = *addr;
         if (key < this_key) {
-            addr = &(*addr)->childs[RB_LEFT];
+            addr = &(*addr)->childs[BST_LEFT];
         } else {
-            addr = &(*addr)->childs[RB_RIGHT];
+            addr = &(*addr)->childs[BST_RIGHT];
         }
     }
     *addr = rbt_init(parent, key, value);
@@ -101,9 +94,9 @@ rbt_find(rbtree *me, size_t key) {
     while (me) {
         ptr me_key = me->key;
         if (key < me_key) {
-            me = me->childs[RB_LEFT];
+            me = me->childs[BST_LEFT];
         } else if (key > me_key) {
-            me = me->childs[RB_RIGHT];
+            me = me->childs[BST_RIGHT];
         } else {
             return me;
         }
@@ -122,9 +115,9 @@ rbt_find_lower_bound(rbtree *me, size_t key) {
                 best_key = me_key;
                 best = me;
             }
-            me = me->childs[RB_LEFT];
+            me = me->childs[BST_LEFT];
         } else if (key > me_key) {
-            me = me->childs[RB_RIGHT];
+            me = me->childs[BST_RIGHT];
         } else {
             return me;
         }
@@ -133,7 +126,7 @@ rbt_find_lower_bound(rbtree *me, size_t key) {
 }
 
 static rbtree *
-rbt_extreme_node(rbtree *me, rbdir dir) {
+rbt_extreme_node(rbtree *me, bstdir dir) {
     while (me->childs[dir]) {
         me = me->childs[dir];
     }
@@ -141,7 +134,7 @@ rbt_extreme_node(rbtree *me, rbdir dir) {
 }
 
 #define IS_BLACK(n)     (!(n) || !(n)->is_red)
-#define BOTH_CHILDREN_BLACK(n)   (!(n) || (IS_BLACK((n)->childs[RB_LEFT]) && IS_BLACK((n)->childs[RB_RIGHT])))
+#define BOTH_CHILDREN_BLACK(n)   (!(n) || (IS_BLACK((n)->childs[BST_LEFT]) && IS_BLACK((n)->childs[BST_RIGHT])))
 
 // I can't claim to understand this algorithm. It is mostly
 // transliterated from
@@ -155,7 +148,7 @@ rbt_extreme_node(rbtree *me, rbdir dir) {
 static rbtree *
 rbt_remove_fixup(rbtree *root, rbtree *x, rbtree *x_parent) {
     while (x != root && IS_BLACK(x)) {
-        rbdir dir = DIR_OF2(x, x_parent);
+        bstdir dir = BST_DIR_OF2(x, x_parent);
         rbtree *w = x_parent->childs[!dir];
         if (w && w->is_red) {
             w->is_red = false;
@@ -191,20 +184,19 @@ rbt_remove_fixup(rbtree *root, rbtree *x, rbtree *x_parent) {
 
 rbtree *
 rbt_remove(rbtree *root, rbtree *z) {
+    assert(root);
     assert(z);
     // y is the successor sometimes.
     rbtree *y;
-    if (!z->childs[RB_LEFT] || !z->childs[RB_RIGHT]) {
+    if (!z->childs[BST_LEFT] || !z->childs[BST_RIGHT]) {
         y = z;
     } else {
         // It has two children. Copy inorder successors value.
-        y = rbt_extreme_node(z->childs[RB_RIGHT], RB_LEFT);
+        y = rbt_extreme_node(z->childs[BST_RIGHT], BST_LEFT);
     }
-    rbtree *x;
-    if (!y->childs[RB_LEFT]) {
-        x = y->childs[RB_RIGHT];
-    } else {
-        x = y->childs[RB_LEFT];
+    rbtree *x = y->childs[BST_RIGHT];
+    if (!x) {
+        x = y->childs[BST_LEFT];
     }
     if (x) {
         x->parent = y->parent;
@@ -212,12 +204,10 @@ rbt_remove(rbtree *root, rbtree *z) {
     if (!y->parent) {
         root = x;
     } else {
-        y->parent->childs[DIR_OF(y)] = x;
+        y->parent->childs[BST_DIR_OF(y)] = x;
     }
-    if (y != z) {
-        z->key = y->key;
-        z->value = y->value;
-    }
+    z->key = y->key;
+    z->value = y->value;
     if (!y->is_red) {
         root = rbt_remove_fixup(root, x, y->parent);
     }
@@ -234,8 +224,8 @@ rbt_print(rbtree *me, int indent, bool print_null) {
     } else {
         printf("%*s%lu %s\n", indent, "", me->key, me->is_red ? "R" : "B");
         indent += 2;
-        rbt_print(me->childs[RB_LEFT], indent, print_null);
-        rbt_print(me->childs[RB_RIGHT], indent, print_null);
+        rbt_print(me->childs[BST_LEFT], indent, print_null);
+        rbt_print(me->childs[BST_RIGHT], indent, print_null);
     }
 }
 
@@ -243,7 +233,7 @@ size_t
 rbt_size(rbtree *me) {
     if (!me)
         return 0;
-    return 1 + rbt_size(me->childs[RB_LEFT]) + rbt_size(me->childs[RB_RIGHT]);
+    return 1 + rbt_size(me->childs[BST_LEFT]) + rbt_size(me->childs[BST_RIGHT]);
 }
 
 size_t
@@ -251,12 +241,12 @@ rbt_black_height(rbtree *me) {
     if (!me) {
         return 1;
     }
-    size_t left_height = rbt_black_height(me->childs[RB_LEFT]);
+    size_t left_height = rbt_black_height(me->childs[BST_LEFT]);
     return (me->is_red ? 0 : 1) + left_height;
 }
 
 rbtree *
-rbt_iterate(rbtree *root, rbtree *node, rbdir dir) {
+rbt_iterate(rbtree *root, rbtree *node, bstdir dir) {
     if (!root) {
         return NULL;
     }
@@ -280,8 +270,8 @@ rbt_check_valid(rbtree *me) {
         return;
     }
     size_t left_height = 1;
-    rbtree *left = me->childs[RB_LEFT];
-    rbtree *right = me->childs[RB_RIGHT];
+    rbtree *left = me->childs[BST_LEFT];
+    rbtree *right = me->childs[BST_RIGHT];
     if (me->is_red) {
         assert(!left || !left->is_red);
         assert(!right || !right->is_red);

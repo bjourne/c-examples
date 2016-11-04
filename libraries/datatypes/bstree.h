@@ -2,10 +2,13 @@
 #define BSTREE_H
 
 #include <stdbool.h>
-#include "common.h"
+#include "datatypes/common.h"
+#include "datatypes/trees.h"
+
 
 typedef struct _bstree {
-    struct _bstree *parent, *left, *right;
+    struct _bstree *parent;
+    struct _bstree *childs[2];
     size_t key;
     ptr value;
 } bstree;
@@ -21,12 +24,7 @@ bstree *bst_remove(bstree *root, bstree *node);
 // Finding nodes
 bstree *bst_find(bstree *bst, size_t key);
 bstree *bst_find_lower_bound(bstree *me, size_t key);
-
-// If the tree is empty, NULL is returned.
-bstree *bst_min_node(bstree *me);
-bstree *bst_max_node(bstree *me);
-
-bstree *bst_successor(bstree *root, bstree *node);
+bstree *bst_iterate(bstree *me, bstree *node, bstdir dir);
 
 // Tree stats
 size_t bst_size(bstree *bst);

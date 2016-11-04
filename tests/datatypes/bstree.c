@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <time.h>
 #include "datatypes/bstree.h"
+#include "datatypes/vector.h"
 
 static bstree *
 bst_add_key(bstree *me, size_t key) {
@@ -10,8 +11,8 @@ bst_add_key(bstree *me, size_t key) {
 
 void
 test_max_min() {
-    assert(!bst_max_node(NULL));
-    assert(!bst_min_node(NULL));
+    assert(!bst_iterate(NULL, NULL, BST_RIGHT));
+    assert(!bst_iterate(NULL, NULL, BST_LEFT));
 }
 
 void
@@ -24,8 +25,8 @@ test_add_remove() {
     t = bst_add_key(t, 10);
     t = bst_add_key(t, 20);
     t = bst_remove(t, bst_find(t, 20));
-    assert(t->left == NULL);
-    assert(t->right == NULL);
+    assert(!t->childs[BST_LEFT]);
+    assert(!t->childs[BST_RIGHT]);
     bst_free(t);
 
     t = NULL;
@@ -34,15 +35,15 @@ test_add_remove() {
     t = bst_add_key(t, 30);
 
     assert(t->key == 10);
-    assert(t->right->key == 20);
-    assert(t->right->right->key == 30);
+    assert(t->childs[BST_RIGHT]->key == 20);
+    assert(t->childs[BST_RIGHT]->childs[BST_RIGHT]->key == 30);
 
     t = bst_remove(t, bst_find(t, 20));
-    assert(t->right->key == 30);
+    assert(t->childs[BST_RIGHT]->key == 30);
     t = bst_add_key(t, 2);
-    assert(t->left->key == 2);
-    assert(bst_min_node(t)->key == 2);
-    assert(bst_max_node(t)->key == 30);
+    assert(t->childs[BST_LEFT]->key == 2);
+    assert(bst_iterate(t, NULL, BST_LEFT)->key == 2);
+    assert(bst_iterate(t, NULL, BST_RIGHT)->key == 30);
 
     t = bst_remove(t, bst_find(t, 10));
     assert(t->key == 30);
@@ -135,9 +136,9 @@ test_parents() {
     bstree *t = bst_add_key(NULL, 1234);
     assert(!t->parent);
     t = bst_add_key(t, 22);
-    assert(t == t->left->parent);
+    assert(t == t->childs[BST_LEFT]->parent);
     t = bst_add_key(t, 10);
-    assert(t->left == t->left->left->parent);
+    assert(t->childs[BST_LEFT] == t->childs[BST_LEFT]->childs[BST_LEFT]->parent);
 
     bstree *n = bst_find(t, 10);
     assert(n->key == 10);
@@ -152,19 +153,19 @@ test_remove_nodes() {
     t = bst_add_key(t, 20);
 
     t = bst_remove(t, bst_find(t, 20));
-    assert(!t->right);
+    assert(!t->childs[BST_RIGHT]);
 
     t = bst_add_key(t, 7);
     t = bst_add_key(t, 5);
     t = bst_remove(t, bst_find(t, 7));
-    assert(t->left->key == 5);
+    assert(t->childs[BST_LEFT]->key == 5);
     assert(t->key == 10);
     t = bst_add_key(t, 20);
-    assert(t->right->key == 20);
+    assert(t->childs[BST_RIGHT]->key == 20);
 
     t = bst_remove(t, bst_find(t, 10));
     assert(t->key == 20);
-    assert(t->left->key == 5);
+    assert(t->childs[BST_LEFT]->key == 5);
 
     t = bst_remove(t, bst_find(t, 20));
     assert(t->key == 5);
@@ -194,22 +195,22 @@ test_add_remove_torture() {
 void
 test_successor() {
     bstree *t = NULL;
-    assert(!bst_successor(t, NULL));
+    assert(!bst_iterate(t, NULL, BST_LEFT));
 
     t = bst_add_key(t, 20);
-    assert(bst_successor(t, NULL)->key == 20);
-    assert(!bst_successor(t, bst_find(t, 20)));
+    assert(bst_iterate(t, NULL, BST_LEFT)->key == 20);
+    assert(!bst_iterate(t, bst_find(t, 20), BST_LEFT));
 
     t = bst_add_key(t, 30);
-    assert(bst_successor(t, bst_find(t, 20))->key == 30);
+    assert(bst_iterate(t, bst_find(t, 20), BST_LEFT)->key == 30);
 
     t = bst_add_key(t, 10);
 
-    bstree *succ_1 = bst_successor(t, NULL);
+    bstree *succ_1 = bst_iterate(t, NULL, BST_LEFT);
     assert(succ_1->key == 10);
-    bstree *succ_2 = bst_successor(t, succ_1);
+    bstree *succ_2 = bst_iterate(t, succ_1, BST_LEFT);
     assert(succ_2->key == 20);
-    bstree *succ_3 = bst_successor(t, succ_2);
+    bstree *succ_3 = bst_iterate(t, succ_2, BST_LEFT);
     assert(succ_3->key == 30);
     bst_free(t);
 
@@ -217,10 +218,10 @@ test_successor() {
     for (int i = 0; i < 10; i++) {
         t = bst_add_key(t, rand_n(100));
     }
-    bstree *iter = bst_successor(t, NULL);
+    bstree *iter = bst_iterate(t, NULL, BST_LEFT);
     int x = 0;
     while (iter) {
-        iter = bst_successor(t, iter);
+        iter = bst_iterate(t, iter, BST_LEFT);
         x++;
     }
     assert(x == 10);
@@ -246,13 +247,42 @@ test_successors_with_duplicates() {
     size_t count = 0;
     while (true) {
         count++;
-        iter = bst_successor(t, iter);
+        iter = bst_iterate(t, iter, BST_LEFT);
         if (!iter || iter->key != key) {
             break;
         }
         key = iter->key;
     }
     assert(count == 5);
+    bst_free(t);
+}
+
+void
+test_torture() {
+    vector *v = v_init(32);
+    bstree *t = NULL;
+    size_t range = 1000000;
+    size_t count = 10000000;
+    for (int i = 0; i < count; i++) {
+        size_t key = rand_n(range);
+        t = bst_add_key(t, key);
+        v_add(v, key);
+    }
+    for (int i = 0; i < count; i++) {
+        size_t key = v->array[i];
+        t = bst_remove(t, bst_find(t, key));
+    }
+    assert(!t);
+    bst_free(t);
+    v_free(v);
+}
+
+// This test is just so that the red-black tree can shine. :)
+void test_unbalancing_torture() {
+    bstree *t = NULL;
+    for (int i = 0; i < 100000; i++) {
+        t = bst_add_key(t, i);
+    }
     bst_free(t);
 }
 
@@ -270,5 +300,7 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_add_remove_torture);
     PRINT_RUN(test_successor);
     PRINT_RUN(test_successors_with_duplicates);
+    PRINT_RUN(test_torture);
+    PRINT_RUN(test_unbalancing_torture);
     return 0;
 }

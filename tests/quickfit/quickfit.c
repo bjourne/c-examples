@@ -4,7 +4,7 @@
 
 size_t
 qf_largest_free_block(quick_fit *qf) {
-    rbtree *node = rbt_iterate(qf->large_blocks, NULL, RB_RIGHT);
+    rbtree *node = rbt_iterate(qf->large_blocks, NULL, BST_RIGHT);
     if (node) {
         return node->key;
     }
