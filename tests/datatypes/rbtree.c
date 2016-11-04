@@ -278,24 +278,37 @@ test_remove() {
     rbt_free(t);
 }
 
+// 28.5
 void
 test_torture() {
     vector *v = v_init(32);
     rbtree *t = NULL;
-    size_t range = 1000000;
-    size_t count = 10000000;
-    for (int i = 0; i < count; i++) {
+    uint64_t range = 10 * 1000 * 1000 * 1000LL;
+    uint64_t count = 10 * 1000 * 1000;
+    for (size_t i = 0; i < count; i++) {
         size_t key = rand_n(range);
         t = rbt_add_key(t, key);
         v_add(v, key);
     }
-    for (int i = 0; i < count; i++) {
+    for (size_t i = 0; i < count; i++) {
         size_t key = v->array[i];
         t = rbt_remove(t, rbt_find(t, key));
     }
     assert(!t);
-    rbt_free(t);
     v_free(v);
+}
+
+// 12.6
+void
+test_torture_comp() {
+    rbtree *t = NULL;
+    uint64_t range = 10 * 1000 * 1000 * 1000LL;
+    uint64_t count = 10 * 1000 * 1000;
+    for (uint64_t i = 0; i < count; i++) {
+        uint64_t key = rand_n(range);
+        t = rbt_add_key(t, key);
+    }
+    rbt_free(t);
 }
 
 void
@@ -361,7 +374,6 @@ int
 main(int argc, char *argv[]) {
     time_t seed = time(NULL);
     srand(seed);
-    printf("seed %lu\n", seed);
     PRINT_RUN(test_max_min);
     PRINT_RUN(test_many_duplicates);
     PRINT_RUN(test_black_height);
@@ -376,5 +388,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_remove);
     PRINT_RUN(test_torture);
     PRINT_RUN(test_duplicates_and_rotates);
+    PRINT_RUN(test_torture_comp);
     return 0;
 }
