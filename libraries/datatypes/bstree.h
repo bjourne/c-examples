@@ -19,7 +19,7 @@ bstree *bst_remove(bstree *root, bstree *node);
 
 // Finding nodes
 bstree *bst_find(bstree *bst, ptr data);
-bstree *bst_find_lower_bound(bstree *me, ptr data, bstree *best);
+bstree *bst_find_lower_bound(bstree *me, ptr data);
 
 // Tree must not be empty.
 bstree *bst_min_node(bstree *me);

@@ -87,34 +87,34 @@ test_more_remove() {
 void
 test_find_lower_bound() {
     bstree *t = NULL;
-    assert(!bst_find_lower_bound(t, 99, NULL));
+    assert(!bst_find_lower_bound(t, 99));
 
     t = bst_add(t, 20);
-    assert(bst_find_lower_bound(t, 20, NULL)->data == 20);
-    assert(!bst_find_lower_bound(t, 30, NULL));
-    assert(bst_find_lower_bound(t, 15, NULL)->data == 20);
+    assert(bst_find_lower_bound(t, 20)->data == 20);
+    assert(!bst_find_lower_bound(t, 30));
+    assert(bst_find_lower_bound(t, 15)->data == 20);
 
     t = bst_add(t, 10);
-    assert(bst_find_lower_bound(t, 15, NULL)->data == 20);
-    assert(bst_find_lower_bound(t, 10, NULL)->data == 10);
-    assert(bst_find_lower_bound(t, 19, NULL)->data == 20);
+    assert(bst_find_lower_bound(t, 15)->data == 20);
+    assert(bst_find_lower_bound(t, 10)->data == 10);
+    assert(bst_find_lower_bound(t, 19)->data == 20);
 
     t = bst_add(t, 30);
-    assert(bst_find_lower_bound(t, 29, NULL)->data == 30);
+    assert(bst_find_lower_bound(t, 29)->data == 30);
     t = bst_add(t, 40);
-    assert(bst_find_lower_bound(t, 39, NULL)->data == 40);
-    assert(bst_find_lower_bound(t, 30, NULL)->data == 30);
+    assert(bst_find_lower_bound(t, 39)->data == 40);
+    assert(bst_find_lower_bound(t, 30)->data == 30);
 
     t = bst_add(t, 25);
-    assert(bst_find_lower_bound(t, 24, NULL)->data == 25);
-    assert(bst_find_lower_bound(t, 25, NULL)->data == 25);
-    assert(bst_find_lower_bound(t, 26, NULL)->data == 30);
+    assert(bst_find_lower_bound(t, 24)->data == 25);
+    assert(bst_find_lower_bound(t, 25)->data == 25);
+    assert(bst_find_lower_bound(t, 26)->data == 30);
     t = bst_add(t, 12);
-    assert(bst_find_lower_bound(t, 11, NULL)->data == 12);
+    assert(bst_find_lower_bound(t, 11)->data == 12);
 
     t = bst_add(t, 17);
-    assert(bst_find_lower_bound(t, 16, NULL)->data == 17);
-    assert(!bst_find_lower_bound(t, 100, NULL));
+    assert(bst_find_lower_bound(t, 16)->data == 17);
+    assert(!bst_find_lower_bound(t, 100));
 
     bst_free(t);
 }
@@ -215,6 +215,36 @@ test_successor() {
     assert(x == 10);
 }
 
+// Here we are trying to find all nodes with the same data.
+void
+test_successors_with_duplicates() {
+    bstree *t = NULL;
+    t = bst_add(t, 20);
+    t = bst_add(t, 30);
+    t = bst_add(t, 77);
+    t = bst_add(t, 30);
+    t = bst_add(t, 30);
+    t = bst_add(t, 30);
+    t = bst_add(t, 30);
+    t = bst_add(t, 99);
+    t = bst_remove(t, bst_find(t, 20));
+    bst_print(t, 0, true);
+
+    bstree *iter = bst_find(t, 30);
+    ptr data = iter->data;
+    size_t count = 0;
+    while (true) {
+        count++;
+        iter = bst_successor(t, iter);
+        if (!iter || iter->data != data) {
+            break;
+        }
+        data = iter->data;
+    }
+    assert(count == 5);
+    bst_free(t);
+}
+
 int
 main(int argc, char *argv[]) {
     srand(time(NULL));
@@ -227,5 +257,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_remove_nodes);
     PRINT_RUN(test_add_remove_torture);
     PRINT_RUN(test_successor);
+    PRINT_RUN(test_successors_with_duplicates);
     return 0;
 }

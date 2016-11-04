@@ -91,11 +91,14 @@ bst_find(bstree *me, ptr data) {
 }
 
 bstree *
-bst_find_lower_bound(bstree *me, ptr data, bstree *best) {
+bst_find_lower_bound(bstree *me, ptr data) {
+    bstree *best = NULL;
+    ptr best_data = UINTPTR_MAX;
     while (me) {
         ptr me_data = me->data;
         if (data < me_data) {
-            if (!best || me_data < best->data) {
+            if (me_data < best_data) {
+                best_data = me_data;
                 best = me;
             }
             me = me->left;
