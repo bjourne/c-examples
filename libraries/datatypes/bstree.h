@@ -5,7 +5,7 @@
 #include "common.h"
 
 typedef struct _bstree {
-    struct _bstree *left, *right, *parent;
+    struct _bstree *parent, *left, *right;
     size_t key;
     ptr value;
 } bstree;
@@ -28,7 +28,7 @@ bstree *bst_max_node(bstree *me);
 
 bstree *bst_successor(bstree *root, bstree *node);
 
-// Info
+// Tree stats
 size_t bst_size(bstree *bst);
 
 // Dumping

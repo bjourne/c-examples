@@ -29,6 +29,7 @@ rbtree *rbt_find_lower_bound(rbtree *me, size_t key);
 rbtree *rbt_iterate(rbtree *root, rbtree *node, rbdir dir);
 
 // Tree stats
+size_t rbt_size(rbtree *bst);
 size_t rbt_black_height(rbtree *me);
 
 // Dumping & Diagnostics

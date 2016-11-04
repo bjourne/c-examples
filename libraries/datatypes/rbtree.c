@@ -111,6 +111,27 @@ rbt_find(rbtree *me, size_t key) {
     return me;
 }
 
+rbtree *
+rbt_find_lower_bound(rbtree *me, size_t key) {
+    rbtree *best = NULL;
+    size_t best_key = UINTPTR_MAX;
+    while (me) {
+        ptr me_key = me->key;
+        if (key < me_key) {
+            if (me_key < best_key) {
+                best_key = me_key;
+                best = me;
+            }
+            me = me->childs[RB_LEFT];
+        } else if (key > me_key) {
+            me = me->childs[RB_RIGHT];
+        } else {
+            return me;
+        }
+    }
+    return best;
+}
+
 static rbtree *
 rbt_extreme_node(rbtree *me, rbdir dir) {
     while (me->childs[dir]) {
@@ -216,6 +237,13 @@ rbt_print(rbtree *me, int indent, bool print_null) {
         rbt_print(me->childs[RB_LEFT], indent, print_null);
         rbt_print(me->childs[RB_RIGHT], indent, print_null);
     }
+}
+
+size_t
+rbt_size(rbtree *me) {
+    if (!me)
+        return 0;
+    return 1 + rbt_size(me->childs[RB_LEFT]) + rbt_size(me->childs[RB_RIGHT]);
 }
 
 size_t
