@@ -4,20 +4,14 @@
 
 size_t
 qf_largest_free_block(quick_fit *qf) {
-    vector *large_blocks = qf->large_blocks;
-    size_t best_size = 0;
-    for (int i = 0; i < large_blocks->used; i++) {
-        ptr el = large_blocks->array[i];
-        size_t el_size = AT(el);
-        best_size = MAX(el_size, best_size);
-    }
-    if (best_size > 0) {
-        return best_size;
+    bstree *node = bst_max_node(qf->large_blocks);
+    if (node) {
+        return node->key;
     }
     for (int i = QF_N_BUCKETS - 1; i >= 0; i--) {
         vector *small_blocks = qf->buckets[i];
         if (small_blocks->used) {
-            return AT(v_peek(small_blocks));
+            return i * QF_DATA_ALIGNMENT;
         }
     }
     return 0;
@@ -34,7 +28,7 @@ test_basic() {
         assert(qf->buckets[i]->used == 0);
     }
     assert(qf->n_blocks == 1);
-    assert(qf->large_blocks->used == 1);
+    assert(bst_size(qf->large_blocks) == 1);
 
     ptr p = qf_allot_block(qf, 1000);
     assert(p);
@@ -43,8 +37,7 @@ test_basic() {
 
     qf_free_block(qf, p, AT(p));
     assert(qf->n_blocks == 2);
-    assert(qf->large_blocks->used == 2);
-
+    assert(bst_size(qf->large_blocks) == 2);
 
     assert(!qf_allot_block(qf, 20000));
     qf_free(qf);
@@ -59,7 +52,7 @@ test_small_alloc() {
 
     ptr p = qf_allot_block(qf, 16);
     assert(AT(p) == 16);
-    assert(qf->large_blocks->used == 1);
+    assert(bst_size(qf->large_blocks) == 1);
     assert(qf->buckets[1]->used == 63);
     for (size_t i = 0; i < 63; i++) {
         qf_allot_block(qf, 16);
@@ -99,8 +92,7 @@ test_largest_free_block() {
     assert(qf_largest_free_block(qf) == 1024);
 
     qf_allot_block(qf, 128);
-    assert(qf->large_blocks->used == 0);
-
+    assert(bst_size(qf->large_blocks) == 0);
     assert(qf_largest_free_block(qf) == 128);
 
     for (int i = 0; i < 7; i++) {
@@ -219,9 +211,9 @@ test_clear() {
     ptr region = (ptr)malloc(size);
     quick_fit *qf = qf_init(region, size);
 
-    assert(qf->large_blocks->used == 1);
+    assert(bst_size(qf->large_blocks) == 1);
     qf_clear(qf);
-    assert(qf->large_blocks->used == 0);
+    assert(bst_size(qf->large_blocks) == 0);
 
     qf_free(qf);
     free((void *)region);

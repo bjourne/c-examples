@@ -1,4 +1,5 @@
 // A QuickFit memory allocator based on Factor.
+#include <assert.h>
 #include <limits.h>
 #include "quickfit/quickfit.h"
 
@@ -11,13 +12,14 @@ qf_free_block(quick_fit *qf, ptr p, size_t size) {
     if (bucket < QF_N_BUCKETS) {
         v_add(qf->buckets[bucket], p);
     } else {
-        v_add(qf->large_blocks, p);
+        qf->large_blocks = bst_add(qf->large_blocks, AT(p), p);
     }
 }
 
 void
 qf_clear(quick_fit *qf) {
-    qf->large_blocks->used = 0;
+    bst_free(qf->large_blocks);
+    qf->large_blocks = NULL;
     qf->n_blocks = 0;
     qf->free_space = 0;
     for (int i = 0; i < QF_N_BUCKETS; i++) {
@@ -28,7 +30,7 @@ qf_clear(quick_fit *qf) {
 quick_fit *
 qf_init(ptr start, size_t size) {
     quick_fit *qf = (quick_fit *)malloc(sizeof(quick_fit));
-    qf->large_blocks = v_init(32);
+    qf->large_blocks = NULL;
     for (int i = 0; i < QF_N_BUCKETS; i++) {
         qf->buckets[i] = v_init(32);
     }
@@ -42,28 +44,19 @@ qf_free(quick_fit *qf) {
     for (int i = 0; i < QF_N_BUCKETS; i++) {
         v_free(qf->buckets[i]);
     }
-    v_free(qf->large_blocks);
+    bst_free(qf->large_blocks);
     free(qf);
 }
 
 static ptr
 qf_find_large_block(quick_fit *qf, size_t req_size) {
-    vector *v = qf->large_blocks;
-    size_t best_size = UINT_MAX;
-    int best_idx = 0;
-
-    for (int i = 0; i < v->used; i++) {
-        ptr el = v->array[i];
-        size_t el_size = AT(el);
-        if (el_size < best_size && el_size >= req_size) {
-            best_size = el_size;
-            best_idx = i;
-        }
-    }
-    if (best_size < UINT_MAX) {
+    bstree *node = bst_find_lower_bound(qf->large_blocks, req_size);
+    if (node) {
         qf->n_blocks--;
-        qf->free_space -= best_size;
-        return v_remove_at(v, best_idx);
+        qf->free_space -= node->key;
+        ptr p = node->value;
+        qf->large_blocks = bst_remove(qf->large_blocks, node);
+        return p;
     }
     return 0;
 }
@@ -80,6 +73,7 @@ qf_split_block(quick_fit *qf, ptr p, size_t req_size) {
 
 static ptr
 qf_find_small_block(quick_fit *qf, size_t bucket, size_t req_size) {
+    assert(req_size == bucket * QF_DATA_ALIGNMENT);
     vector *v = qf->buckets[bucket];
     if (v->used == 0) {
         size_t large_size = QF_LARGE_BLOCK_SIZE(req_size);
@@ -134,10 +128,9 @@ qf_can_allot_p(quick_fit *me, size_t size) {
         }
         size = QF_LARGE_BLOCK_SIZE(small);
     }
-    for (int i = 0; i < me->large_blocks->used; i++) {
-        ptr p = me->large_blocks->array[i];
-        if (AT(p) >= size)
-            return true;
+    bstree *node = bst_max_node(me->large_blocks);
+    if (node && node->key >= size) {
+        return true;
     }
     return false;
 }

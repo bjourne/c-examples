@@ -2,6 +2,7 @@
 #define QUICKFIT_H
 
 #include <stdbool.h>
+#include "datatypes/bstree.h"
 #include "datatypes/vector.h"
 
 #define QF_N_BUCKETS 32
@@ -13,8 +14,7 @@
 
 typedef struct {
     vector* buckets[QF_N_BUCKETS];
-    // Need a better datastructure here
-    vector* large_blocks;
+    bstree* large_blocks;
     size_t n_blocks;
     size_t free_space;
 } quick_fit;
