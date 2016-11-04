@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdarg.h>
+#include <string.h>
 #include <time.h>
 #include "datatypes/rbtree.h"
 #include "datatypes/vector.h"
@@ -23,6 +24,15 @@ remove_items(rbtree *t, size_t n, ...) {
         ptr el = va_arg(ap, ptr);
         rbtree *n = rbt_find(t, el);
         t = rbt_remove(t, n);
+    }
+    return t;
+}
+
+rbtree *
+traverse(rbtree *t, const char *path) {
+    for (size_t i = 0; i < strlen(path); i++) {
+        rbdir dir = path[i] == 'R' ? RB_RIGHT : RB_LEFT;
+        t = t->childs[dir];
     }
     return t;
 }
@@ -78,18 +88,18 @@ test_simple() {
     t = rbt_add(t, 300);
 
     assert(!t->is_red);
-    assert(t->left->is_red);
-    assert(t->right->is_red);
+    assert(t->childs[RB_LEFT]->is_red);
+    assert(t->childs[RB_RIGHT]->is_red);
 
     assert(t->parent == NULL);
-    assert(t->left->parent == t);
-    assert(t->right->parent = t);
+    assert(t->childs[RB_LEFT]->parent == t);
+    assert(t->childs[RB_RIGHT]->parent = t);
 
     t = rbt_add(t, 1);
     assert(!t->is_red);
-    assert(!t->left->is_red);
-    assert(t->left->left->is_red);
-    assert(!t->right->is_red);
+    assert(!t->childs[RB_LEFT]->is_red);
+    assert(t->childs[RB_LEFT]->childs[RB_LEFT]->is_red);
+    assert(!t->childs[RB_RIGHT]->is_red);
 
     rbt_free(t);
 }
@@ -101,33 +111,37 @@ test_simple_2() {
     t = rbt_add(t, 1);
 
     assert(t->data == 0);
-    assert(t->right->data == 1);
+    assert(traverse(t, "R")->data == 1);
 
     t = rbt_add(t, 2);
     assert(t->data == 1);
-    assert(t->left->data == 0);
-    assert(t->right->data == 2);
+    assert(traverse(t, "L")->data == 0);
+    assert(traverse(t, "R")->data == 2);
     t = rbt_add(t, 3);
-    assert(t->right->right->data == 3);
+
+    assert(!traverse(t, "L")->is_red);
+    assert(traverse(t, "RR")->is_red);
+
+    assert(traverse(t, "RR")->data == 3);
     t = rbt_add(t, 4);
-    assert(t->right->data == 3);
-    assert(t->right->left->data == 2);
-    assert(t->right->right->data == 4);
-    assert(t->right->left->is_red);
-    assert(t->right->right->is_red);
+    assert(traverse(t, "R")->data == 3);
+    assert(traverse(t, "RL")->data == 2);
+    assert(traverse(t, "RR")->data == 4);
+    assert(traverse(t, "RL")->is_red);
+    assert(traverse(t, "RR")->is_red);
     t = rbt_add(t, 5);
     t = rbt_add(t, 6);
-    assert(t->right->right->data == 5);
-    assert(t->right->right->right->data == 6);
+    assert(traverse(t, "RR")->data == 5);
+    assert(traverse(t, "RRR")->data == 6);
     t = rbt_add(t, 7);
     assert(t->data == 3);
-    assert(t->left->data == 1);
-    assert(t->left->left->data == 0);
-    assert(t->left->right->data == 2);
-    assert(t->right->data == 5);
-    assert(t->right->left->data == 4);
-    assert(t->right->right->data == 6);
-    assert(t->right->right->right->data == 7);
+    assert(traverse(t, "L")->data == 1);
+    assert(traverse(t, "LL")->data == 0);
+    assert(traverse(t, "LR")->data == 2);
+    assert(traverse(t, "R")->data == 5);
+    assert(traverse(t, "RL")->data == 4);
+    assert(traverse(t, "RR")->data == 6);
+    assert(traverse(t, "RRR")->data == 7);
     rbt_free(t);
 }
 
@@ -138,8 +152,8 @@ test_rotate_left() {
     t = rbt_add(t, 20);
     assert(t->data == 10);
     assert(t->is_red == false);
-    assert(t->left->data == 0);
-    assert(t->right->data == 20);
+    assert(t->childs[RB_LEFT]->data == 0);
+    assert(t->childs[RB_RIGHT]->data == 20);
     rbt_free(t);
 }
 
@@ -159,10 +173,10 @@ test_double_rotations() {
     t = rbt_add(t, 45);
     assert(t->data == 45);
     assert(!t->is_red);
-    assert(t->left->data == 40);
-    assert(t->left->is_red);
-    assert(t->right->data == 50);
-    assert(t->right->is_red);
+    assert(t->childs[RB_LEFT]->data == 40);
+    assert(t->childs[RB_LEFT]->is_red);
+    assert(t->childs[RB_RIGHT]->data == 50);
+    assert(t->childs[RB_RIGHT]->is_red);
     rbt_free(t);
 
     t = rbt_add(NULL, 50);
@@ -202,8 +216,8 @@ test_remove() {
     n = rbt_find(t, 10);
     assert(n->is_red);
     t = rbt_remove(t, n);
-    assert(!t->left->left);
-    assert(!t->left->right);
+    assert(!t->childs[RB_LEFT]->childs[RB_LEFT]);
+    assert(!t->childs[RB_LEFT]->childs[RB_RIGHT]);
     rbt_free(t);
 
     t = add_items(NULL, 5, 30, 20, 40, 35, 50);
@@ -219,9 +233,9 @@ test_remove() {
     t = add_items(NULL, 8, 22, 6, 55, 3, 7, 23, 71, 24);
     t = rbt_remove(t, rbt_find(t, 71));
 
-    assert(t->right->data == 24);
-    assert(t->right->is_red);
-    assert(t->right->right->data == 55);
+    assert(t->childs[RB_RIGHT]->data == 24);
+    assert(t->childs[RB_RIGHT]->is_red);
+    assert(t->childs[RB_RIGHT]->childs[RB_RIGHT]->data == 55);
 
     rbt_free(t);
 
@@ -232,15 +246,15 @@ test_remove() {
 
     t = add_items(NULL, 8, 77, 35, 73, 23, 19, 34, 58, 63);
     t = rbt_remove(t, rbt_find(t, 23));
-    assert(t->left->data == 34);
+    assert(t->childs[RB_LEFT]->data == 34);
     assert(t->data == 35);
-    assert(t->left->left->is_red);
+    assert(t->childs[RB_LEFT]->childs[RB_LEFT]->is_red);
     rbt_free(t);
 
     t = add_items(NULL, 8, 7, 78, 68, 7, 3, 47, 10, 21);
     t = rbt_remove(t, rbt_find(t, 3));
-    assert(t->left->right->is_red);
-    assert(t->left->right->data == 7);
+    assert(t->childs[RB_LEFT]->childs[RB_RIGHT]->is_red);
+    assert(t->childs[RB_LEFT]->childs[RB_RIGHT]->data == 7);
     rbt_free(t);
 
     t = add_items(NULL, 8, 8, 69, 0, 74, 71, 76, 51, 74);
@@ -254,24 +268,18 @@ void
 test_torture() {
     vector *v = v_init(32);
     rbtree *t = NULL;
-    size_t value_range = 100000;
-    for (int i = 0; i < 1000000; i++) {
-        if ((i % 10000) == 0) {
-            printf("at %d...\n", i);
-        }
-        if (rand_n(3) == 0 && v->used > 0) {
-            size_t i = rand_n(v->used);
-            ptr key = v->array[i];
-            rbtree *n = rbt_find(t, key);
-            t = rbt_remove(t, n);
-            v_remove_at(v, i);
-        } else {
-            ptr key = rand_n(value_range);
-            v_add(v, key);
-            t = rbt_add(t, key);
-        }
-        rbt_check_valid(t);
+    size_t range = 1000000;
+    size_t count = 10000000;
+    for (int i = 0; i < count; i++) {
+        size_t key = rand_n(range);
+        t = rbt_add(t, key);
+        v_add(v, key);
     }
+    for (int i = 0; i < count; i++) {
+        size_t key = v->array[i];
+        t = rbt_remove(t, rbt_find(t, key));
+    }
+    assert(!t);
     rbt_free(t);
     v_free(v);
 }
@@ -327,7 +335,7 @@ test_duplicates_and_rotates() {
     // Damn
     rbtree *n1 = rbt_successor(t, NULL);
     assert(n1->data == 5);
-    assert(!n1->right);
+    assert(!n1->childs[RB_RIGHT]);
     rbtree *n2 = rbt_successor(t, n1);
     assert(n2->data == 5);
     rbtree *n3 = rbt_successor(t, n2);
@@ -351,7 +359,7 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_print_tree);
     PRINT_RUN(test_find);
     PRINT_RUN(test_remove);
-    PRINT_RUN(test_torture);
+    //PRINT_RUN(test_torture);
     PRINT_RUN(test_duplicates_and_rotates);
     return 0;
 }

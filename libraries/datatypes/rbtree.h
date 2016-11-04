@@ -4,8 +4,14 @@
 #include <stdbool.h>
 #include "datatypes/common.h"
 
+typedef enum {
+    RB_LEFT = 0,
+    RB_RIGHT = 1
+} rbdir;
+
 typedef struct _rbtree {
-    struct _rbtree *left, *right, *parent;
+    struct _rbtree *parent;
+    struct _rbtree *childs[2];
     ptr data;
     bool is_red;
 } rbtree;
