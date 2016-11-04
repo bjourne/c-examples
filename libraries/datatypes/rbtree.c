@@ -77,13 +77,8 @@ rbt_add(rbtree *me, size_t key, ptr value) {
     rbtree **addr = &me;
     rbtree *parent = NULL;
     while (*addr) {
-        ptr this_key = (*addr)->key;
         parent = *addr;
-        if (key < this_key) {
-            addr = &(*addr)->childs[BST_LEFT];
-        } else {
-            addr = &(*addr)->childs[BST_RIGHT];
-        }
+        addr = &parent->childs[key >= parent->key];
     }
     *addr = rbt_init(parent, key, value);
     return rbt_add_fixup(me, *addr);
@@ -91,17 +86,17 @@ rbt_add(rbtree *me, size_t key, ptr value) {
 
 rbtree *
 rbt_find(rbtree *me, size_t key) {
-    while (me) {
-        ptr me_key = me->key;
-        if (key < me_key) {
-            me = me->childs[BST_LEFT];
-        } else if (key > me_key) {
-            me = me->childs[BST_RIGHT];
-        } else {
-            return me;
-        }
+    if (!me) {
+        return me;
     }
-    return me;
+    ptr me_key = me->key;
+    if (me_key == key) {
+        return me;
+    } else if (key < me_key) {
+        return rbt_find(me->childs[BST_LEFT], key);
+    } else {
+        return rbt_find(me->childs[BST_RIGHT], key);
+    }
 }
 
 rbtree *
