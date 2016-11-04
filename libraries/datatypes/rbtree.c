@@ -2,7 +2,7 @@
 #include "datatypes/rbtree.h"
 
 static rbtree *
-rbt_init(rbtree *parent, size_t key, ptr value) {
+rbt_init(rbtree *parent, ptr key, ptr value) {
     rbtree *me = (rbtree *)malloc(sizeof(rbtree));
     me->parent = parent;
     me->childs[BST_LEFT] = NULL;
@@ -72,7 +72,7 @@ rbt_add_fixup(rbtree *root, rbtree *x) {
 }
 
 rbtree *
-rbt_add(rbtree *me, size_t key, ptr value) {
+rbt_add(rbtree *me, ptr key, ptr value) {
     // Find insertion point.
     rbtree **addr = &me;
     rbtree *parent = NULL;
@@ -85,7 +85,7 @@ rbt_add(rbtree *me, size_t key, ptr value) {
 }
 
 rbtree *
-rbt_find(rbtree *me, size_t key) {
+rbt_find(rbtree *me, ptr key) {
     if (!me) {
         return me;
     }
@@ -100,9 +100,9 @@ rbt_find(rbtree *me, size_t key) {
 }
 
 rbtree *
-rbt_find_lower_bound(rbtree *me, size_t key) {
+rbt_find_lower_bound(rbtree *me, ptr key) {
     rbtree *best = NULL;
-    size_t best_key = UINTPTR_MAX;
+    ptr best_key = UINTPTR_MAX;
     while (me) {
         ptr me_key = me->key;
         if (key < me_key) {

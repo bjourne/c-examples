@@ -6,7 +6,7 @@
 #include "datatypes/vector.h"
 
 static rbtree *
-rbt_add_key(rbtree *me, size_t key) {
+rbt_add_key(rbtree *me, ptr key) {
     return rbt_add(me, key, key);
 }
 
@@ -46,6 +46,7 @@ void
 test_max_min() {
     rbtree *t = NULL;
     t = add_items(t, 5, 10, 99, 30, 17, 29);
+
     assert(rbt_iterate(t, NULL, BST_LEFT)->key == 10);
     assert(rbt_iterate(t, NULL, BST_RIGHT)->key == 99);
     rbt_free(t);
@@ -285,13 +286,13 @@ test_torture() {
     rbtree *t = NULL;
     uint64_t range = 10 * 1000 * 1000 * 1000LL;
     uint64_t count = 10 * 1000 * 1000;
-    for (size_t i = 0; i < count; i++) {
-        size_t key = rand_n(range);
+    for (uint64_t i = 0; i < count; i++) {
+        uint64_t key = rand_n(range);
         t = rbt_add_key(t, key);
         v_add(v, key);
     }
-    for (size_t i = 0; i < count; i++) {
-        size_t key = v->array[i];
+    for (uint64_t i = 0; i < count; i++) {
+        uint64_t key = v->array[i];
         t = rbt_remove(t, rbt_find(t, key));
     }
     assert(!t);
@@ -306,7 +307,7 @@ test_torture_comp() {
     uint64_t count = 10 * 1000 * 1000;
     for (uint64_t i = 0; i < count; i++) {
         uint64_t key = rand_n(range);
-        t = rbt_add_key(t, key);
+        t = rbt_add(t, key, key);
     }
     rbt_free(t);
 }
