@@ -38,6 +38,15 @@ traverse(rbtree *t, const char *path) {
 }
 
 void
+test_max_min() {
+    rbtree *t = NULL;
+    t = add_items(t, 5, 10, 99, 30, 17, 29);
+    assert(rbt_iterate(t, NULL, RB_LEFT)->data == 10);
+    assert(rbt_iterate(t, NULL, RB_RIGHT)->data == 99);
+    rbt_free(t);
+}
+
+void
 test_many_duplicates() {
     rbtree *t = NULL;
     rbtree *n = NULL;
@@ -333,12 +342,12 @@ test_duplicates_and_rotates() {
     rbt_print(t, 0, true);
 
     // Damn
-    rbtree *n1 = rbt_successor(t, NULL);
+    rbtree *n1 = rbt_iterate(t, NULL, RB_LEFT);
     assert(n1->data == 5);
     assert(!n1->childs[RB_RIGHT]);
-    rbtree *n2 = rbt_successor(t, n1);
+    rbtree *n2 = rbt_iterate(t, n1, RB_LEFT);
     assert(n2->data == 5);
-    rbtree *n3 = rbt_successor(t, n2);
+    rbtree *n3 = rbt_iterate(t, n2, RB_LEFT);
     assert(n3->data == 7);
     rbt_free(t);
 }
@@ -348,6 +357,7 @@ main(int argc, char *argv[]) {
     time_t seed = time(NULL);
     srand(seed);
     printf("seed %lu\n", seed);
+    PRINT_RUN(test_max_min);
     PRINT_RUN(test_many_duplicates);
     PRINT_RUN(test_black_height);
     PRINT_RUN(test_loop_scenario);

@@ -25,7 +25,7 @@ rbtree *rbt_remove(rbtree *root, rbtree *node);
 // Finding nodes
 rbtree *rbt_find(rbtree *me, ptr data);
 rbtree *rbt_find_lower_bound(rbtree *me, ptr data);
-rbtree *rbt_successor(rbtree *root, rbtree *node);
+rbtree *rbt_iterate(rbtree *root, rbtree *node, rbdir dir);
 
 // Tree stats
 size_t rbt_black_height(rbtree *me);

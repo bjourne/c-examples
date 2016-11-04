@@ -266,18 +266,18 @@ rbt_black_height(rbtree *me) {
 }
 
 rbtree *
-rbt_successor(rbtree *root, rbtree *node) {
+rbt_iterate(rbtree *root, rbtree *node, rbdir dir) {
     if (!root) {
         return NULL;
     }
     if (!node) {
-        return rbt_extreme_node(root, RB_LEFT);
+        return rbt_extreme_node(root, dir);
     }
-    if (node->childs[RB_RIGHT]) {
-        return rbt_extreme_node(node->childs[RB_RIGHT], RB_LEFT);
+    if (node->childs[!dir]) {
+        return rbt_extreme_node(node->childs[!dir], dir);
     }
     rbtree *x = node->parent;
-    while (x && node == x->childs[RB_RIGHT]) {
+    while (x && node == x->childs[!dir]) {
         node = x;
         x = node->parent;
     }
