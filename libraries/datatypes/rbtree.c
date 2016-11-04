@@ -21,7 +21,9 @@ rbt_free(rbtree *me) {
     }
 }
 
-#define DIR_OF(n, p)        ((n) == (p)->childs[RB_LEFT] ? RB_LEFT : RB_RIGHT)
+// Determines if n is a left or right child. n can't be root because
+// that node isn't a child.
+#define DIR_OF(n)      ((n) == (n)->parent->childs[RB_LEFT] ? RB_LEFT : RB_RIGHT)
 
 static rbtree *
 rbt_rotate(rbtree *root, rbtree *node, rbdir dir) {
@@ -38,7 +40,7 @@ rbt_rotate(rbtree *root, rbtree *node, rbdir dir) {
     if (!node->parent) {
         root = opp_child;
     } else {
-        node->parent->childs[DIR_OF(node, node->parent)] = opp_child;
+        node->parent->childs[DIR_OF(node)] = opp_child;
     }
     opp_child->childs[dir] = node;
     node->parent = opp_child;
@@ -50,7 +52,7 @@ rbt_add_fixup(rbtree *root, rbtree *x) {
     while (x != root && x->parent->is_red) {
         // dir is the direction of x's parent in relation to x's
         // grandparent.
-        rbdir dir = DIR_OF(x->parent, x->parent->parent);
+        rbdir dir = DIR_OF(x->parent);
         rbtree *y = x->parent->parent->childs[!dir];
         if (y && y->is_red) {
             // Simple recoloring case.
@@ -59,7 +61,7 @@ rbt_add_fixup(rbtree *root, rbtree *x) {
             x->parent->parent->is_red = true;
             x = x->parent->parent;
         } else {
-            if (DIR_OF(x, x->parent) != dir) {
+            if (DIR_OF(x) != dir) {
                 x = x->parent;
                 root = rbt_rotate(root, x, dir);
             }
@@ -122,6 +124,8 @@ rbt_extreme_node(rbtree *me, rbdir dir) {
 //
 // I should have used sentinel nodes for NULL. It would make the
 // algorithm much easier to read.
+//
+// Note that x can be NULL and then of course x_parent != x->parent.
 static rbtree *
 rbt_remove_fixup(rbtree *root, rbtree *x, rbtree *x_parent) {
     while (x != root && (!x || !x->is_red)) {
@@ -212,18 +216,13 @@ rbt_remove(rbtree *root, rbtree *z) {
     if (!y->parent) {
         root = x;
     } else {
-        if (y == y->parent->childs[RB_LEFT]) {
-            y->parent->childs[RB_LEFT] = x;
-        } else {
-            y->parent->childs[RB_RIGHT] = x;
-        }
+        y->parent->childs[DIR_OF(y)] = x;
     }
     if (y != z) {
         z->data = y->data;
     }
     if (!y->is_red) {
         root = rbt_remove_fixup(root, x, y->parent);
-
     }
     free(y);
     return root;
