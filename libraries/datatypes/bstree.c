@@ -27,15 +27,10 @@ bst_add(bstree *me, size_t key, ptr value) {
     bstree **addr = &me;
     bstree *parent = NULL;
     while (*addr) {
-        ptr this_key = (*addr)->key;
         parent = *addr;
-        if (key < this_key) {
-            addr = &(*addr)->childs[BST_LEFT];
-        } else {
-            addr = &(*addr)->childs[BST_RIGHT];
-        }
+        addr = &parent->childs[key >= parent->key];
     }
-    *addr = bst_init(parent, key,value);
+    *addr = bst_init(parent, key, value);
     return me;
 }
 
