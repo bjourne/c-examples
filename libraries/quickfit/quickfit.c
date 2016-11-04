@@ -12,13 +12,13 @@ qf_free_block(quick_fit *qf, ptr p, size_t size) {
     if (bucket < QF_N_BUCKETS) {
         v_add(qf->buckets[bucket], p);
     } else {
-        qf->large_blocks = bst_add(qf->large_blocks, AT(p), p);
+        qf->large_blocks = rbt_add(qf->large_blocks, AT(p), p);
     }
 }
 
 void
 qf_clear(quick_fit *qf) {
-    bst_free(qf->large_blocks);
+    rbt_free(qf->large_blocks);
     qf->large_blocks = NULL;
     qf->n_blocks = 0;
     qf->free_space = 0;
@@ -44,18 +44,18 @@ qf_free(quick_fit *qf) {
     for (int i = 0; i < QF_N_BUCKETS; i++) {
         v_free(qf->buckets[i]);
     }
-    bst_free(qf->large_blocks);
+    rbt_free(qf->large_blocks);
     free(qf);
 }
 
 static ptr
 qf_find_large_block(quick_fit *qf, size_t req_size) {
-    bstree *node = bst_find_lower_bound(qf->large_blocks, req_size);
+    rbtree *node = rbt_find_lower_bound(qf->large_blocks, req_size);
     if (node) {
         qf->n_blocks--;
         qf->free_space -= node->key;
         ptr p = node->value;
-        qf->large_blocks = bst_remove(qf->large_blocks, node);
+        qf->large_blocks = rbt_remove(qf->large_blocks, node);
         return p;
     }
     return 0;
@@ -111,7 +111,7 @@ qf_allot_block(quick_fit *me, size_t size) {
 }
 
 void
-qf_print(quick_fit *qf, ptr start, size_t size) {
+qf_print(quick_fit *me, ptr start, size_t size) {
     ptr end = start + size;
     for (ptr iter = start; iter < end; iter += AT(iter)) {
         printf("@%5lu: %4lu\n", iter - start, AT(iter));
@@ -128,7 +128,7 @@ qf_can_allot_p(quick_fit *me, size_t size) {
         }
         size = QF_LARGE_BLOCK_SIZE(small);
     }
-    bstree *node = bst_max_node(me->large_blocks);
+    rbtree *node = rbt_iterate(me->large_blocks, NULL, RB_RIGHT);
     if (node && node->key >= size) {
         return true;
     }
