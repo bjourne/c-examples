@@ -47,38 +47,29 @@ rbt_rotate(rbtree *root, rbtree *node, rbdir dir) {
     return root;
 }
 
-static rbtree *
-rbt_uncle(rbtree *node) {
-    rbtree *p = node->parent;
-    rbtree *gp = p->parent;
-    return p == gp->childs[RB_LEFT] ? gp->childs[RB_RIGHT] : gp->childs[RB_LEFT];
-}
+#define DIR_OF(n, p)        (n) == (p)->childs[RB_LEFT] ? RB_LEFT : RB_RIGHT
 
 static rbtree *
-rbt_add_fixup(rbtree *root, rbtree *node) {
-    if (node != root && node->parent->is_red) {
-        rbtree *uncle = rbt_uncle(node);
-        if (uncle && uncle->is_red) {
-            node->parent->is_red = false;
-            uncle->is_red = false;
-            node->parent->parent->is_red = true;
-            return rbt_add_fixup(root, node->parent->parent);
-        } else if (node->parent == node->parent->parent->childs[RB_LEFT]) {
-            if (node == node->parent->childs[RB_RIGHT]) {
-                node = node->parent;
-                root = rbt_rotate(root, node, RB_LEFT);
+rbt_add_fixup(rbtree *root, rbtree *x) {
+    while (x != root && x->parent->is_red) {
+        // dir is the direction of x's parent in relation to x's
+        // grandparent.
+        rbdir dir = DIR_OF(x->parent, x->parent->parent);
+        rbtree *y = x->parent->parent->childs[!dir];
+        if (y && y->is_red) {
+            // Simple recoloring case.
+            x->parent->is_red = false;
+            y->is_red = false;
+            x->parent->parent->is_red = true;
+            x = x->parent->parent;
+        } else {
+            if (DIR_OF(x, x->parent) != dir) {
+                x = x->parent;
+                root = rbt_rotate(root, x, dir);
             }
-            node->parent->is_red = false;
-            node->parent->parent->is_red = true;
-            root = rbt_rotate(root, node->parent->parent, RB_RIGHT);
-        } else if (node->parent == node->parent->parent->childs[RB_RIGHT]) {
-            if (node == node->parent->childs[RB_LEFT]) {
-                node = node->parent;
-                root = rbt_rotate(root, node, RB_RIGHT);
-            }
-            node->parent->is_red = false;
-            node->parent->parent->is_red = true;
-            root = rbt_rotate(root, node->parent->parent, RB_LEFT);
+            x->parent->is_red = false;
+            x->parent->parent->is_red = true;
+            root = rbt_rotate(root, x->parent->parent, !dir);
         }
     }
     root->is_red = false;
