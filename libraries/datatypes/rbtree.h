@@ -21,8 +21,11 @@ rbtree *rbt_find(rbtree *me, ptr data);
 rbtree *rbt_find_lower_bound(rbtree *me, ptr data);
 rbtree *rbt_successor(rbtree *root, rbtree *node);
 
-// Dumping
-void rbt_print(rbtree *me, int indent, bool print_null);
+// Tree stats
 size_t rbt_black_height(rbtree *me);
+
+// Dumping & Diagnostics
+void rbt_print(rbtree *me, int indent, bool print_null);
+void rbt_check_valid(rbtree *me);
 
 #endif

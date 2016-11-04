@@ -211,7 +211,10 @@ test_torture() {
     vector *v = v_init(32);
     rbtree *t = NULL;
     size_t value_range = 100000;
-    for (int i = 0; i < 100000; i++) {
+    for (int i = 0; i < 1000000; i++) {
+        if ((i % 10000) == 0) {
+            printf("at %d...\n", i);
+        }
         if (rand_n(3) == 0 && v->used > 0) {
             size_t i = rand_n(v->used);
             ptr key = v->array[i];
@@ -223,6 +226,7 @@ test_torture() {
             v_add(v, key);
             t = rbt_add(t, key);
         }
+        rbt_check_valid(t);
     }
     rbt_free(t);
     v_free(v);

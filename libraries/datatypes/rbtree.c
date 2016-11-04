@@ -266,7 +266,6 @@ rbt_remove(rbtree *root, rbtree *z) {
             y->parent->right = x;
         }
     }
-
     if (y != z) {
         z->data = y->data;
     }
@@ -318,4 +317,29 @@ rbt_successor(rbtree *root, rbtree *node) {
         x = node->parent;
     }
     return x;
+}
+
+void
+rbt_check_valid(rbtree *me) {
+    if (!me) {
+        return;
+    }
+    size_t left_height = 1;
+    rbtree *left = me->left;
+    rbtree *right = me->right;
+    bool is_red = me->is_red;
+    if (left) {
+        assert((is_red && !left->is_red) || !is_red);
+        assert(left->data <= me->data);
+        rbt_check_valid(left);
+        left_height = rbt_black_height(left);
+    }
+    size_t right_height = 1;
+    if (me->right) {
+        assert((is_red && !right->is_red) || !is_red);
+        assert(right->data >= me->data);
+        rbt_check_valid(right);
+        right_height = rbt_black_height(right);
+    }
+    assert(left_height == right_height);
 }
