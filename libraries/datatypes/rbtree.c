@@ -21,7 +21,7 @@ rbt_free(rbtree *me) {
     }
 }
 
-rbtree *
+static rbtree *
 rbt_rotate_left(rbtree *root, rbtree *node) {
     rbtree *right_child = node->right;
 
@@ -47,7 +47,7 @@ rbt_rotate_left(rbtree *root, rbtree *node) {
     return root;
 }
 
-rbtree *
+static rbtree *
 rbt_rotate_right(rbtree *root, rbtree *node) {
     rbtree *left_child = node->left;
 
@@ -62,7 +62,7 @@ rbt_rotate_right(rbtree *root, rbtree *node) {
     if (!node->parent) {
         root = left_child;
     } else {
-        if (node == (node->parent)->right) {
+        if (node == node->parent->right) {
             node->parent->right = left_child;
         } else {
             node->parent->left = left_child;
