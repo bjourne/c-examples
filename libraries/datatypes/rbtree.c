@@ -2,13 +2,14 @@
 #include "datatypes/rbtree.h"
 
 static rbtree *
-rbt_init(rbtree *parent, ptr data) {
+rbt_init(rbtree *parent, size_t key, ptr value) {
     rbtree *me = (rbtree *)malloc(sizeof(rbtree));
     me->parent = parent;
     me->childs[RB_LEFT] = NULL;
     me->childs[RB_RIGHT] = NULL;
-    me->data = data;
     me->is_red = true;
+    me->key = key;
+    me->value = value;
     return me;
 }
 
@@ -78,33 +79,34 @@ rbt_add_fixup(rbtree *root, rbtree *x) {
 }
 
 rbtree *
-rbt_add(rbtree *me, ptr data) {
+rbt_add(rbtree *me, size_t key, ptr value) {
     // Find insertion point.
     rbtree **addr = &me;
     rbtree *parent = NULL;
     while (*addr) {
-        ptr this_data = (*addr)->data;
+        ptr this_key = (*addr)->key;
         parent = *addr;
-        if (data < this_data) {
+        if (key < this_key) {
             addr = &(*addr)->childs[RB_LEFT];
         } else {
             addr = &(*addr)->childs[RB_RIGHT];
         }
     }
-    *addr = rbt_init(parent, data);
+    *addr = rbt_init(parent, key, value);
     return rbt_add_fixup(me, *addr);
 }
 
 rbtree *
-rbt_find(rbtree *me, ptr data) {
-    if (!me) {
-        return NULL;
-    }
-    ptr me_data = me->data;
-    if (data < me_data) {
-        return rbt_find(me->childs[RB_LEFT], data);
-    } else if (data > me_data) {
-        return rbt_find(me->childs[RB_RIGHT], data);
+rbt_find(rbtree *me, size_t key) {
+    while (me) {
+        ptr me_key = me->key;
+        if (key < me_key) {
+            me = me->childs[RB_LEFT];
+        } else if (key > me_key) {
+            me = me->childs[RB_RIGHT];
+        } else {
+            return me;
+        }
     }
     return me;
 }
@@ -192,7 +194,8 @@ rbt_remove(rbtree *root, rbtree *z) {
         y->parent->childs[DIR_OF(y)] = x;
     }
     if (y != z) {
-        z->data = y->data;
+        z->key = y->key;
+        z->value = y->value;
     }
     if (!y->is_red) {
         root = rbt_remove_fixup(root, x, y->parent);
@@ -208,7 +211,7 @@ rbt_print(rbtree *me, int indent, bool print_null) {
             printf("%*sNULL\n", indent, "");
         }
     } else {
-        printf("%*s%lu %s\n", indent, "", me->data, me->is_red ? "R" : "B");
+        printf("%*s%lu %s\n", indent, "", me->key, me->is_red ? "R" : "B");
         indent += 2;
         rbt_print(me->childs[RB_LEFT], indent, print_null);
         rbt_print(me->childs[RB_RIGHT], indent, print_null);
@@ -257,14 +260,14 @@ rbt_check_valid(rbtree *me) {
     }
     if (left) {
         assert(left->parent == me);
-        assert(left->data <= me->data);
+        assert(left->key <= me->key);
         rbt_check_valid(left);
         left_height = rbt_black_height(left);
     }
     size_t right_height = 1;
     if (right) {
         assert(right->parent == me);
-        assert(right->data >= me->data);
+        assert(right->key >= me->key);
         rbt_check_valid(right);
         right_height = rbt_black_height(right);
     }

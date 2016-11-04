@@ -12,19 +12,20 @@ typedef enum {
 typedef struct _rbtree {
     struct _rbtree *parent;
     struct _rbtree *childs[2];
-    ptr data;
     bool is_red;
+    size_t key;
+    ptr value;
 } rbtree;
 
 void rbt_free(rbtree *me);
 
 // Tree mutation
-rbtree *rbt_add(rbtree *me, ptr data);
+rbtree *rbt_add(rbtree *me, size_t key, ptr value);
 rbtree *rbt_remove(rbtree *root, rbtree *node);
 
 // Finding nodes
-rbtree *rbt_find(rbtree *me, ptr data);
-rbtree *rbt_find_lower_bound(rbtree *me, ptr data);
+rbtree *rbt_find(rbtree *me, size_t key);
+rbtree *rbt_find_lower_bound(rbtree *me, size_t key);
 rbtree *rbt_iterate(rbtree *root, rbtree *node, rbdir dir);
 
 // Tree stats

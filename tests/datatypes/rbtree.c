@@ -5,18 +5,23 @@
 #include "datatypes/rbtree.h"
 #include "datatypes/vector.h"
 
-rbtree *
+static rbtree *
+rbt_add_key(rbtree *me, size_t key) {
+    return rbt_add(me, key, key);
+}
+
+static rbtree *
 add_items(rbtree *t, size_t n, ...) {
     va_list ap;
     va_start(ap, n);
     for (size_t i = 0; i < n; i++) {
         ptr el = va_arg(ap, ptr);
-        t = rbt_add(t, el);
+        t = rbt_add_key(t, el);
     }
     return t;
 }
 
-rbtree *
+static rbtree *
 remove_items(rbtree *t, size_t n, ...) {
     va_list ap;
     va_start(ap, n);
@@ -41,8 +46,8 @@ void
 test_max_min() {
     rbtree *t = NULL;
     t = add_items(t, 5, 10, 99, 30, 17, 29);
-    assert(rbt_iterate(t, NULL, RB_LEFT)->data == 10);
-    assert(rbt_iterate(t, NULL, RB_RIGHT)->data == 99);
+    assert(rbt_iterate(t, NULL, RB_LEFT)->key == 10);
+    assert(rbt_iterate(t, NULL, RB_RIGHT)->key == 99);
     rbt_free(t);
 }
 
@@ -50,31 +55,31 @@ void
 test_many_duplicates() {
     rbtree *t = NULL;
     rbtree *n = NULL;
-    t = rbt_add(t, 5);
-    t = rbt_add(t, 1);
-    t = rbt_add(t, 7);
-    t = rbt_add(t, 1);
-    t = rbt_add(t, 3);
-    t = rbt_add(t, 5);
-    t = rbt_add(t, 7);
-    t = rbt_add(t, 1);
-    t = rbt_add(t, 5);
-    t = rbt_add(t, 9);
+    t = rbt_add_key(t, 5);
+    t = rbt_add_key(t, 1);
+    t = rbt_add_key(t, 7);
+    t = rbt_add_key(t, 1);
+    t = rbt_add_key(t, 3);
+    t = rbt_add_key(t, 5);
+    t = rbt_add_key(t, 7);
+    t = rbt_add_key(t, 1);
+    t = rbt_add_key(t, 5);
+    t = rbt_add_key(t, 9);
     rbt_print(t, 0, false);
 
     assert(!rbt_find(t, 102));
 
     // Find 3 ones
     n = rbt_find(t, 1);
-    assert(n && n->data == 1);
+    assert(n && n->key == 1);
     t = rbt_remove(t, n);
 
     n = rbt_find(t, 1);
-    assert(n && n->data == 1);
+    assert(n && n->key == 1);
     t = rbt_remove(t, n);
 
     n = rbt_find(t, 1);
-    assert(n && n->data == 1);
+    assert(n && n->key == 1);
     t = rbt_remove(t, n);
 
     assert(!rbt_find(t, 1));
@@ -85,16 +90,16 @@ test_many_duplicates() {
 void
 test_black_height() {
     assert(rbt_black_height(NULL) == 1);
-    rbtree *t = rbt_add(NULL, 20);
+    rbtree *t = rbt_add_key(NULL, 20);
     assert(rbt_black_height(t) == 2);
     rbt_free(t);
 }
 
 void
 test_simple() {
-    rbtree *t = rbt_add(NULL, 123);
-    t = rbt_add(t, 22);
-    t = rbt_add(t, 300);
+    rbtree *t = rbt_add_key(NULL, 123);
+    t = rbt_add_key(t, 22);
+    t = rbt_add_key(t, 300);
 
     assert(!t->is_red);
     assert(t->childs[RB_LEFT]->is_red);
@@ -104,7 +109,7 @@ test_simple() {
     assert(t->childs[RB_LEFT]->parent == t);
     assert(t->childs[RB_RIGHT]->parent = t);
 
-    t = rbt_add(t, 1);
+    t = rbt_add_key(t, 1);
     assert(!t->is_red);
     assert(!t->childs[RB_LEFT]->is_red);
     assert(t->childs[RB_LEFT]->childs[RB_LEFT]->is_red);
@@ -115,83 +120,83 @@ test_simple() {
 
 void
 test_simple_2() {
-    rbtree *t = rbt_add(NULL, 0);
-    assert(t->data == 0);
-    t = rbt_add(t, 1);
+    rbtree *t = rbt_add_key(NULL, 0);
+    assert(t->key == 0);
+    t = rbt_add_key(t, 1);
 
-    assert(t->data == 0);
-    assert(traverse(t, "R")->data == 1);
+    assert(t->key == 0);
+    assert(traverse(t, "R")->key == 1);
 
-    t = rbt_add(t, 2);
-    assert(t->data == 1);
-    assert(traverse(t, "L")->data == 0);
-    assert(traverse(t, "R")->data == 2);
-    t = rbt_add(t, 3);
+    t = rbt_add_key(t, 2);
+    assert(t->key == 1);
+    assert(traverse(t, "L")->key == 0);
+    assert(traverse(t, "R")->key == 2);
+    t = rbt_add_key(t, 3);
 
     assert(!traverse(t, "L")->is_red);
     assert(traverse(t, "RR")->is_red);
 
-    assert(traverse(t, "RR")->data == 3);
-    t = rbt_add(t, 4);
-    assert(traverse(t, "R")->data == 3);
-    assert(traverse(t, "RL")->data == 2);
-    assert(traverse(t, "RR")->data == 4);
+    assert(traverse(t, "RR")->key == 3);
+    t = rbt_add_key(t, 4);
+    assert(traverse(t, "R")->key == 3);
+    assert(traverse(t, "RL")->key == 2);
+    assert(traverse(t, "RR")->key == 4);
     assert(traverse(t, "RL")->is_red);
     assert(traverse(t, "RR")->is_red);
-    t = rbt_add(t, 5);
-    t = rbt_add(t, 6);
-    assert(traverse(t, "RR")->data == 5);
-    assert(traverse(t, "RRR")->data == 6);
-    t = rbt_add(t, 7);
-    assert(t->data == 3);
-    assert(traverse(t, "L")->data == 1);
-    assert(traverse(t, "LL")->data == 0);
-    assert(traverse(t, "LR")->data == 2);
-    assert(traverse(t, "R")->data == 5);
-    assert(traverse(t, "RL")->data == 4);
-    assert(traverse(t, "RR")->data == 6);
-    assert(traverse(t, "RRR")->data == 7);
+    t = rbt_add_key(t, 5);
+    t = rbt_add_key(t, 6);
+    assert(traverse(t, "RR")->key == 5);
+    assert(traverse(t, "RRR")->key == 6);
+    t = rbt_add_key(t, 7);
+    assert(t->key == 3);
+    assert(traverse(t, "L")->key == 1);
+    assert(traverse(t, "LL")->key == 0);
+    assert(traverse(t, "LR")->key == 2);
+    assert(traverse(t, "R")->key == 5);
+    assert(traverse(t, "RL")->key == 4);
+    assert(traverse(t, "RR")->key == 6);
+    assert(traverse(t, "RRR")->key == 7);
     rbt_free(t);
 }
 
 void
 test_rotate_left() {
-    rbtree *t = rbt_add(NULL, 0);
-    t = rbt_add(t, 10);
-    t = rbt_add(t, 20);
-    assert(t->data == 10);
+    rbtree *t = rbt_add_key(NULL, 0);
+    t = rbt_add_key(t, 10);
+    t = rbt_add_key(t, 20);
+    assert(t->key == 10);
     assert(t->is_red == false);
-    assert(t->childs[RB_LEFT]->data == 0);
-    assert(t->childs[RB_RIGHT]->data == 20);
+    assert(t->childs[RB_LEFT]->key == 0);
+    assert(t->childs[RB_RIGHT]->key == 20);
     rbt_free(t);
 }
 
 void
 test_rotate_right() {
-    rbtree *t = rbt_add(NULL, 100);
-    t = rbt_add(t, 90);
-    t = rbt_add(t, 80);
-    assert(t->data == 90);
+    rbtree *t = rbt_add_key(NULL, 100);
+    t = rbt_add_key(t, 90);
+    t = rbt_add_key(t, 80);
+    assert(t->key == 90);
     rbt_free(t);
 }
 
 void
 test_double_rotations() {
-    rbtree *t = rbt_add(NULL, 50);
-    t = rbt_add(t, 40);
-    t = rbt_add(t, 45);
-    assert(t->data == 45);
+    rbtree *t = rbt_add_key(NULL, 50);
+    t = rbt_add_key(t, 40);
+    t = rbt_add_key(t, 45);
+    assert(t->key == 45);
     assert(!t->is_red);
-    assert(t->childs[RB_LEFT]->data == 40);
+    assert(t->childs[RB_LEFT]->key == 40);
     assert(t->childs[RB_LEFT]->is_red);
-    assert(t->childs[RB_RIGHT]->data == 50);
+    assert(t->childs[RB_RIGHT]->key == 50);
     assert(t->childs[RB_RIGHT]->is_red);
     rbt_free(t);
 
-    t = rbt_add(NULL, 50);
-    t = rbt_add(t, 60);
-    t = rbt_add(t, 55);
-    assert(t->data == 55);
+    t = rbt_add_key(NULL, 50);
+    t = rbt_add_key(t, 60);
+    t = rbt_add_key(t, 55);
+    assert(t->key == 55);
     rbt_free(t);
 }
 
@@ -199,7 +204,7 @@ void
 test_print_tree() {
     rbtree *t = NULL;
     for (int i = 0; i < 10; i++) {
-        t = rbt_add(t, rand_n(10));
+        t = rbt_add_key(t, rand_n(10));
     }
     rbt_print(t, 0, false);
     rbt_free(t);
@@ -217,7 +222,7 @@ test_remove() {
     rbtree *t = NULL;
     rbtree *n = NULL;
 
-    t = rbt_add(t, 20);
+    t = rbt_add_key(t, 20);
     t = rbt_remove(t, rbt_find(t, 20));
     assert(!t);
 
@@ -231,45 +236,45 @@ test_remove() {
 
     t = add_items(NULL, 5, 30, 20, 40, 35, 50);
     t = rbt_remove(t, rbt_find(t, 20));
-    assert(t->data == 40);
+    assert(t->key == 40);
     rbt_free(t);
 
     t = add_items(NULL, 4, 30, 20, 40, 35);
     t = rbt_remove(t, rbt_find(t, 20));
-    assert(t->data == 35);
+    assert(t->key == 35);
     rbt_free(t);
 
     t = add_items(NULL, 8, 22, 6, 55, 3, 7, 23, 71, 24);
     t = rbt_remove(t, rbt_find(t, 71));
 
-    assert(t->childs[RB_RIGHT]->data == 24);
+    assert(t->childs[RB_RIGHT]->key == 24);
     assert(t->childs[RB_RIGHT]->is_red);
-    assert(t->childs[RB_RIGHT]->childs[RB_RIGHT]->data == 55);
+    assert(t->childs[RB_RIGHT]->childs[RB_RIGHT]->key == 55);
 
     rbt_free(t);
 
     t = add_items(NULL, 8, 74, 41, 76, 34, 62, 25, 63, 72);
     t = rbt_remove(t, rbt_find(t, 76));
-    assert(t->data == 41);
+    assert(t->key == 41);
     rbt_free(t);
 
     t = add_items(NULL, 8, 77, 35, 73, 23, 19, 34, 58, 63);
     t = rbt_remove(t, rbt_find(t, 23));
-    assert(t->childs[RB_LEFT]->data == 34);
-    assert(t->data == 35);
+    assert(t->childs[RB_LEFT]->key == 34);
+    assert(t->key == 35);
     assert(t->childs[RB_LEFT]->childs[RB_LEFT]->is_red);
     rbt_free(t);
 
     t = add_items(NULL, 8, 7, 78, 68, 7, 3, 47, 10, 21);
     t = rbt_remove(t, rbt_find(t, 3));
     assert(t->childs[RB_LEFT]->childs[RB_RIGHT]->is_red);
-    assert(t->childs[RB_LEFT]->childs[RB_RIGHT]->data == 7);
+    assert(t->childs[RB_LEFT]->childs[RB_RIGHT]->key == 7);
     rbt_free(t);
 
     t = add_items(NULL, 8, 8, 69, 0, 74, 71, 76, 51, 74);
-    assert(t->data == 8);
+    assert(t->key == 8);
     t = rbt_remove(t, rbt_find(t, 0));
-    assert(t->data == 71);
+    assert(t->key == 71);
     rbt_free(t);
 }
 
@@ -281,7 +286,7 @@ test_torture() {
     size_t count = 10000000;
     for (int i = 0; i < count; i++) {
         size_t key = rand_n(range);
-        t = rbt_add(t, key);
+        t = rbt_add_key(t, key);
         v_add(v, key);
     }
     for (int i = 0; i < count; i++) {
@@ -343,12 +348,12 @@ test_duplicates_and_rotates() {
 
     // Damn
     rbtree *n1 = rbt_iterate(t, NULL, RB_LEFT);
-    assert(n1->data == 5);
+    assert(n1->key == 5);
     assert(!n1->childs[RB_RIGHT]);
     rbtree *n2 = rbt_iterate(t, n1, RB_LEFT);
-    assert(n2->data == 5);
+    assert(n2->key == 5);
     rbtree *n3 = rbt_iterate(t, n2, RB_LEFT);
-    assert(n3->data == 7);
+    assert(n3->key == 7);
     rbt_free(t);
 }
 
@@ -369,7 +374,7 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_print_tree);
     PRINT_RUN(test_find);
     PRINT_RUN(test_remove);
-    //PRINT_RUN(test_torture);
+    PRINT_RUN(test_torture);
     PRINT_RUN(test_duplicates_and_rotates);
     return 0;
 }
