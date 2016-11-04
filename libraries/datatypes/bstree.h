@@ -6,20 +6,21 @@
 
 typedef struct _bstree {
     struct _bstree *left, *right, *parent;
-    ptr data;
+    size_t key;
+    ptr value;
 } bstree;
 
 void bst_free(bstree *bst);
 
 // Tree mutation
-bstree *bst_add(bstree *me, ptr data);
+bstree *bst_add(bstree *me, size_t key, ptr value);
 
 // The node must exist in the tree.
 bstree *bst_remove(bstree *root, bstree *node);
 
 // Finding nodes
-bstree *bst_find(bstree *bst, ptr data);
-bstree *bst_find_lower_bound(bstree *me, ptr data);
+bstree *bst_find(bstree *bst, size_t key);
+bstree *bst_find_lower_bound(bstree *me, size_t key);
 
 // Tree must not be empty.
 bstree *bst_min_node(bstree *me);
