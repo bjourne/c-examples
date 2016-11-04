@@ -21,9 +21,12 @@ rbt_free(rbtree *me) {
     }
 }
 
+// Determines the direction of n in relation to p. n is allowed to be NULL.
+#define DIR_OF2(n, p)   ((n) == (p)->childs[RB_LEFT] ? RB_LEFT : RB_RIGHT)
+
 // Determines if n is a left or right child. n can't be root because
 // that node isn't a child.
-#define DIR_OF(n)      ((n) == (n)->parent->childs[RB_LEFT] ? RB_LEFT : RB_RIGHT)
+#define DIR_OF(n)       DIR_OF2(n, (n->parent))
 
 static rbtree *
 rbt_rotate(rbtree *root, rbtree *node, rbdir dir) {
@@ -128,63 +131,33 @@ rbt_extreme_node(rbtree *me, rbdir dir) {
 // Note that x can be NULL and then of course x_parent != x->parent.
 static rbtree *
 rbt_remove_fixup(rbtree *root, rbtree *x, rbtree *x_parent) {
-    while (x != root && (!x || !x->is_red)) {
-        // w is x's sibling */
-        rbtree *w;
-        if (x == x_parent->childs[RB_LEFT]) {
-            w = x_parent->childs[RB_RIGHT];
-            if (w && w->is_red) {
-                w->is_red = false;
-                x_parent->is_red = true;
-                root = rbt_rotate(root, x_parent, RB_LEFT);
-                w = x_parent->childs[RB_RIGHT];
+    while (x != root && IS_BLACK(x)) {
+        rbdir dir = DIR_OF2(x, x_parent);
+        rbtree *w = x_parent->childs[!dir];
+        if (w && w->is_red) {
+            w->is_red = false;
+            x_parent->is_red = true;
+            root = rbt_rotate(root, x_parent, dir);
+            w = x_parent->childs[!dir];
+        }
+        if (BOTH_CHILDREN_BLACK(w)) {
+            if (w) {
+                w->is_red = true;
             }
-            if (BOTH_CHILDREN_BLACK(w)) {
-                if (w) {
-                    w->is_red = true;
-                }
-                x = x_parent;
-                x_parent = x->parent;
-            } else {
-                if (IS_BLACK(w->childs[RB_RIGHT])) {
-                    w->childs[RB_LEFT]->is_red = false;
-                    w->is_red = true;
-                    root = rbt_rotate(root, w, RB_RIGHT);
-                    w = x_parent->childs[RB_RIGHT];
-                }
-                w->is_red = x_parent->is_red;
-                x_parent->is_red = false;
-                w->childs[RB_RIGHT]->is_red = false;
-                root = rbt_rotate(root, x_parent, RB_LEFT);
-                x = root;
-            }
+            x = x_parent;
+            x_parent = x->parent;
         } else {
-            w = x_parent->childs[RB_LEFT];
-            if (w && w->is_red) {
-                w->is_red = false;
-                x_parent->is_red = true;
-                root = rbt_rotate(root, x_parent, RB_RIGHT);
-                w = x_parent->childs[RB_LEFT];
+            if (IS_BLACK(w->childs[!dir])) {
+                w->childs[dir]->is_red = false;
+                w->is_red = true;
+                root = rbt_rotate(root, w, !dir);
+                w = x_parent->childs[!dir];
             }
-            if (BOTH_CHILDREN_BLACK(w)) {
-                if (w) {
-                    w->is_red = true;
-                }
-                x = x_parent;
-                x_parent = x->parent;
-            } else {
-                if (IS_BLACK(w->childs[RB_LEFT])) {
-                    w->childs[RB_RIGHT]->is_red = false;
-                    w->is_red = true;
-                    root = rbt_rotate(root, w, RB_LEFT);
-                    w = x_parent->childs[RB_LEFT];
-                }
-                w->is_red = x_parent->is_red;
-                x_parent->is_red = false;
-                w->childs[RB_LEFT]->is_red = false;
-                root = rbt_rotate(root, x_parent, RB_RIGHT);
-                x = root;
-            }
+            w->is_red = x_parent->is_red;
+            x_parent->is_red = false;
+            w->childs[!dir]->is_red = false;
+            root = rbt_rotate(root, x_parent, dir);
+            x = root;
         }
     }
     if (x) {
@@ -278,16 +251,19 @@ rbt_check_valid(rbtree *me) {
     size_t left_height = 1;
     rbtree *left = me->childs[RB_LEFT];
     rbtree *right = me->childs[RB_RIGHT];
-    bool is_red = me->is_red;
+    if (me->is_red) {
+        assert(!left || !left->is_red);
+        assert(!right || !right->is_red);
+    }
     if (left) {
-        assert((is_red && !left->is_red) || !is_red);
+        assert(left->parent == me);
         assert(left->data <= me->data);
         rbt_check_valid(left);
         left_height = rbt_black_height(left);
     }
     size_t right_height = 1;
-    if (me->childs[RB_RIGHT]) {
-        assert((is_red && !right->is_red) || !is_red);
+    if (right) {
+        assert(right->parent == me);
         assert(right->data >= me->data);
         rbt_check_valid(right);
         right_height = rbt_black_height(right);
