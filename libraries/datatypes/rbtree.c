@@ -21,6 +21,8 @@ rbt_free(rbtree *me) {
     }
 }
 
+#define DIR_OF(n, p)        ((n) == (p)->childs[RB_LEFT] ? RB_LEFT : RB_RIGHT)
+
 static rbtree *
 rbt_rotate(rbtree *root, rbtree *node, rbdir dir) {
     rbtree *opp_child = node->childs[!dir];
@@ -36,18 +38,12 @@ rbt_rotate(rbtree *root, rbtree *node, rbdir dir) {
     if (!node->parent) {
         root = opp_child;
     } else {
-        if (node == node->parent->childs[dir]) {
-            node->parent->childs[dir] = opp_child;
-        } else {
-            node->parent->childs[!dir] = opp_child;
-        }
+        node->parent->childs[DIR_OF(node, node->parent)] = opp_child;
     }
     opp_child->childs[dir] = node;
     node->parent = opp_child;
     return root;
 }
-
-#define DIR_OF(n, p)        (n) == (p)->childs[RB_LEFT] ? RB_LEFT : RB_RIGHT
 
 static rbtree *
 rbt_add_fixup(rbtree *root, rbtree *x) {
