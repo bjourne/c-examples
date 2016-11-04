@@ -22,7 +22,7 @@ bstree *bst_remove(bstree *root, bstree *node);
 bstree *bst_find(bstree *bst, size_t key);
 bstree *bst_find_lower_bound(bstree *me, size_t key);
 
-// Tree must not be empty.
+// If the tree is empty, NULL is returned.
 bstree *bst_min_node(bstree *me);
 bstree *bst_max_node(bstree *me);
 

@@ -9,6 +9,12 @@ bst_add_key(bstree *me, size_t key) {
 }
 
 void
+test_max_min() {
+    assert(!bst_max_node(NULL));
+    assert(!bst_min_node(NULL));
+}
+
+void
 test_add_remove() {
     bstree *t = NULL;
     t = bst_add_key(NULL, 123);
@@ -253,6 +259,7 @@ test_successors_with_duplicates() {
 int
 main(int argc, char *argv[]) {
     srand(time(NULL));
+    PRINT_RUN(test_max_min);
     PRINT_RUN(test_add_remove);
     PRINT_RUN(test_callstack_overflow);
     PRINT_RUN(test_print_tree);

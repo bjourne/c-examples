@@ -67,13 +67,8 @@ bst_remove(bstree *root, bstree *z) {
     } else {
         y->parent->right = x;
     }
-    if (y != z) {
-        z->key = y->key;
-        z->value = y->value;
-        /* ptr y_data = y->data; */
-        /* y->data = z->data; */
-        /* z->data = y_data; */
-    }
+    z->key = y->key;
+    z->value = y->value;
     free(y);
     return root;
 }
@@ -116,18 +111,20 @@ bst_find_lower_bound(bstree *me, size_t key) {
 
 bstree *
 bst_min_node(bstree *me) {
-    assert(me);
-    while (me->left) {
-        me = me->left;
+    if (me) {
+        while (me->left) {
+            me = me->left;
+        }
     }
     return me;
 }
 
 bstree *
 bst_max_node(bstree *me) {
-    assert(me);
-    while (me->right) {
-        me = me->right;
+    if (me) {
+        while (me->right) {
+            me = me->right;
+        }
     }
     return me;
 }
