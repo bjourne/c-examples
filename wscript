@@ -1,13 +1,19 @@
 from os.path import splitext
 
 def options(ctx):
-    ctx.load('compiler_c')
+    ctx.load('compiler_c compiler_cxx')
 
 def configure(ctx):
-    ctx.load('compiler_c')
+    ctx.load('compiler_c compiler_cxx')
     base_flags = ['-Wall', '-Werror', '-fPIC']
+    speed_flags = ['-O3',
+                   '-fomit-frame-pointer',
+                   '-march=native',
+                   '-mtune=native']
     debug_flags = ['-O2', '-g']
-    ctx.env.append_unique('CFLAGS', base_flags + debug_flags)
+    extra_flags = speed_flags
+    ctx.env.append_unique('CFLAGS', base_flags + extra_flags)
+    ctx.env.append_unique('CXXFLAGS', base_flags + extra_flags)
     ctx.env.append_value('INCLUDES', ['libraries'])
     ctx.check(lib = 'pcre')
 
@@ -35,3 +41,6 @@ def build(ctx):
         from_path = prog.path_from(ctx.path)
         target = splitext(from_path)[0]
         ctx.program(source = [prog], target = target, use = ['PCRE', 'DT_OBJS'])
+
+    ctx.program(source = ['programs/multimap.cpp'],
+                target = 'programs/multimap', use = ['DT_OBJS'])
