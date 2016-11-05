@@ -23,36 +23,29 @@ rbt_free(rbtree *me) {
 }
 
 static rbtree *
-rbt_rotate(rbtree *root, rbtree *node, bstdir dir) {
-    rbtree *opp_child = node->childs[!dir];
-
-    // Turn right_child's left sub-tree into node's right sub-tree */
-    node->childs[!dir] = opp_child->childs[dir];
-    if (opp_child->childs[dir]) {
-        opp_child->childs[dir]->parent = node;
+rbt_rotate(rbtree *root, rbtree *x, const bstdir dir) {
+    rbtree *y = x->childs[!dir];
+    x->childs[!dir] = y->childs[dir];
+    if (y->childs[dir]) {
+        y->childs[dir]->parent = x;
     }
-
-    // opp_child's new parent was node's parent */
-    opp_child->parent = node->parent;
-    if (!node->parent) {
-        root = opp_child;
+    y->parent = x->parent;
+    if (x == root) {
+        root = y;
     } else {
-        node->parent->childs[BST_DIR_OF(node)] = opp_child;
+        x->parent->childs[BST_DIR_OF(x)] = y;
     }
-    opp_child->childs[dir] = node;
-    node->parent = opp_child;
+    y->childs[dir] = x;
+    x->parent = y;
     return root;
 }
 
 static rbtree *
 rbt_add_fixup(rbtree *root, rbtree *x) {
     while (x != root && x->parent->is_red) {
-        // dir is the direction of x's parent in relation to x's
-        // grandparent.
         bstdir dir = BST_DIR_OF(x->parent);
         rbtree *y = x->parent->parent->childs[!dir];
         if (y && y->is_red) {
-            // Simple recoloring case.
             x->parent->is_red = false;
             y->is_red = false;
             x->parent->parent->is_red = true;
