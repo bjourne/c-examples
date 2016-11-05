@@ -122,15 +122,13 @@ rbt_extreme_node(rbtree *me, bstdir dir) {
 }
 
 #define IS_BLACK(n)     (!(n) || !(n)->is_red)
-#define BOTH_CHILDREN_BLACK(n)   (!(n) || (IS_BLACK((n)->childs[BST_LEFT]) && IS_BLACK((n)->childs[BST_RIGHT])))
 
 // I can't claim to understand this algorithm. It is mostly
 // transliterated from
 // https://github.com/headius/redblack/blob/master/red_black_tree.py
 // and https://github.com/codekenq/Red-Black-Tree.git.
 //
-// I should have used sentinel nodes for NULL. It would make the
-// algorithm much easier to read.
+// I'm not using sentinel nodes. It appears to be faster that way.
 //
 // Note that x can be NULL and then of course x_parent != x->parent.
 static rbtree *
@@ -138,16 +136,16 @@ rbt_remove_fixup(rbtree *root, rbtree *x, rbtree *x_parent) {
     while (x != root && IS_BLACK(x)) {
         bstdir dir = BST_DIR_OF2(x, x_parent);
         rbtree *w = x_parent->childs[!dir];
-        if (w && w->is_red) {
+        assert(w);
+        if (w->is_red) {
             w->is_red = false;
             x_parent->is_red = true;
             root = rbt_rotate(root, x_parent, dir);
             w = x_parent->childs[!dir];
         }
-        if (BOTH_CHILDREN_BLACK(w)) {
-            if (w) {
-                w->is_red = true;
-            }
+        assert(w);
+        if (IS_BLACK(w->childs[BST_LEFT]) && IS_BLACK(w->childs[BST_RIGHT])) {
+            w->is_red = true;
             x = x_parent;
             x_parent = x->parent;
         } else {
@@ -161,7 +159,7 @@ rbt_remove_fixup(rbtree *root, rbtree *x, rbtree *x_parent) {
             x_parent->is_red = false;
             w->childs[!dir]->is_red = false;
             root = rbt_rotate(root, x_parent, dir);
-            x = root;
+            break;
         }
     }
     if (x) {
