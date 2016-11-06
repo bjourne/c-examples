@@ -278,11 +278,25 @@ test_torture() {
 }
 
 // This test is just so that the red-black tree can shine. :)
-void test_unbalancing_torture() {
+void
+test_unbalancing_torture() {
     bstree *t = NULL;
     for (int i = 0; i < 100000; i++) {
         t = bst_add_key(t, i);
     }
+    bst_free(t);
+}
+
+void
+test_negative_values() {
+    bstree *t = NULL;
+    t = bst_add_key(t, -5);
+    t = bst_add_key(t, -3);
+    t = bst_add_key(t, 0);
+    t = bst_add_key(t, 8);
+    bst_print(t, 0, false);
+    bstree *n = bst_iterate(t, NULL, BST_LEFT);
+    assert(n->key == -5);
     bst_free(t);
 }
 
@@ -302,5 +316,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_successors_with_duplicates);
     PRINT_RUN(test_torture);
     PRINT_RUN(test_unbalancing_torture);
+    PRINT_RUN(test_negative_values);
     return 0;
 }

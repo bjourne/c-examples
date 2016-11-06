@@ -6,7 +6,7 @@
 #include "datatypes/vector.h"
 
 static rbtree *
-rbt_add_key(rbtree *me, ptr key) {
+rbt_add_key(rbtree *me, bstkey key) {
     return rbt_add(me, key, key);
 }
 
@@ -15,7 +15,7 @@ add_items(rbtree *t, size_t n, ...) {
     va_list ap;
     va_start(ap, n);
     for (size_t i = 0; i < n; i++) {
-        ptr el = va_arg(ap, ptr);
+        bstkey el = va_arg(ap, bstkey);
         t = rbt_add_key(t, el);
     }
     return t;
@@ -26,7 +26,7 @@ remove_items(rbtree *t, size_t n, ...) {
     va_list ap;
     va_start(ap, n);
     for (size_t i = 0; i < n; i++) {
-        ptr el = va_arg(ap, ptr);
+        bstkey el = va_arg(ap, bstkey);
         rbtree *n = rbt_find(t, el);
         t = rbt_remove(t, n);
     }
@@ -287,12 +287,12 @@ test_torture() {
     uint64_t range = 10 * 1000 * 1000 * 1000LL;
     uint64_t count = 10 * 1000 * 1000;
     for (uint64_t i = 0; i < count; i++) {
-        uint64_t key = rand_n(range);
+        int key = rand_n(range);
         t = rbt_add_key(t, key);
         v_add(v, key);
     }
     for (uint64_t i = 0; i < count; i++) {
-        uint64_t key = v->array[i];
+        int key = v->array[i];
         t = rbt_remove(t, rbt_find(t, key));
     }
     assert(!t);
@@ -311,6 +311,33 @@ test_torture_comp() {
     }
     rbt_free(t);
 }
+
+void
+test_awful_torture() {
+    vector *v = v_init(32);
+    rbtree *t = NULL;
+    size_t range = 100 * 1000 * 1000;
+    size_t count = 500 * 1000;
+    for (size_t i = 0; i < count; i++) {
+        if ((i % 10000) == 0) {
+            printf("at %lu...\n", i);
+        }
+        if (rand_n(3) == 0 && v->used > 0) {
+            size_t i = rand_n(v->used);
+            ptr key = v->array[i];
+            rbtree *n = rbt_find(t, key);
+            t = rbt_remove(t, n);
+            v_remove_at(v, i);
+        } else {
+            ptr key = rand_n(range);
+            v_add(v, key);
+            t = rbt_add_key(t, key);
+        }
+    }
+    rbt_free(t);
+    v_free(v);
+}
+
 
 void
 test_loop_scenario() {
@@ -371,6 +398,14 @@ test_duplicates_and_rotates() {
     rbt_free(t);
 }
 
+void
+test_negative_values() {
+    rbtree *t = add_items(NULL, 4, -5, -3, 0, 8);
+    rbtree *n = rbt_iterate(t, NULL, BST_LEFT);
+    assert(n->key == -5);
+    rbt_free(t);
+}
+
 int
 main(int argc, char *argv[]) {
     time_t seed = time(NULL);
@@ -390,5 +425,7 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_torture);
     PRINT_RUN(test_duplicates_and_rotates);
     PRINT_RUN(test_torture_comp);
+    PRINT_RUN(test_awful_torture);
+    PRINT_RUN(test_negative_values);
     return 0;
 }

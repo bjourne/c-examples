@@ -8,20 +8,20 @@
 typedef struct _rbtree {
     struct _rbtree *parent;
     struct _rbtree *childs[2];
+    bstkey key;
     bool is_red;
-    ptr key;
     ptr value;
 } rbtree;
 
 void rbt_free(rbtree *me);
 
 // Tree mutation
-rbtree *rbt_add(rbtree *me, ptr key, ptr value);
+rbtree *rbt_add(rbtree *me, bstkey key, ptr value);
 rbtree *rbt_remove(rbtree *root, rbtree *node);
 
 // Finding nodes
-rbtree *rbt_find(rbtree *me, ptr key);
-rbtree *rbt_find_lower_bound(rbtree *me, ptr key);
+rbtree *rbt_find(rbtree *me, bstkey key);
+rbtree *rbt_find_lower_bound(rbtree *me, bstkey key);
 rbtree *rbt_iterate(rbtree *root, rbtree *node, bstdir dir);
 
 // Tree stats

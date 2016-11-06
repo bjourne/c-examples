@@ -3,7 +3,7 @@
 #include "bstree.h"
 
 static bstree *
-bst_init(bstree *parent, size_t key, ptr value) {
+bst_init(bstree *parent, bstkey key, ptr value) {
     bstree *me = (bstree *)malloc(sizeof(bstree));
     me->parent = parent;
     me->childs[BST_LEFT] = NULL;
@@ -23,7 +23,7 @@ bst_free(bstree *bst) {
 }
 
 bstree *
-bst_add(bstree *me, size_t key, ptr value) {
+bst_add(bstree *me, bstkey key, ptr value) {
     bstree **addr = &me;
     bstree *parent = NULL;
     while (*addr) {
@@ -73,9 +73,9 @@ bst_remove(bstree *root, bstree *z) {
 }
 
 bstree *
-bst_find(bstree *me, size_t key) {
+bst_find(bstree *me, bstkey key) {
     while (me) {
-        ptr me_key = me->key;
+        bstkey me_key = me->key;
         if (key < me_key) {
             me = me->childs[BST_LEFT];
         } else if (key > me_key) {
@@ -88,11 +88,11 @@ bst_find(bstree *me, size_t key) {
 }
 
 bstree *
-bst_find_lower_bound(bstree *me, size_t key) {
+bst_find_lower_bound(bstree *me, bstkey key) {
     bstree *best = NULL;
-    size_t best_key = UINTPTR_MAX;
+    size_t best_key = BST_KEY_MAX;
     while (me) {
-        ptr me_key = me->key;
+        bstkey me_key = me->key;
         if (key < me_key) {
             if (me_key < best_key) {
                 best_key = me_key;
@@ -141,7 +141,7 @@ bst_print(bstree *me, int indent, bool print_null) {
             printf("%*sNULL\n", indent, "");
         }
     } else {
-        printf("%*s%lu\n", indent, "", me->key);
+        printf("%*s%d\n", indent, "", me->key);
         indent += 2;
         bst_print(me->childs[BST_LEFT], indent, print_null);
         bst_print(me->childs[BST_RIGHT], indent, print_null);
