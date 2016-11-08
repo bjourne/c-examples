@@ -11,10 +11,9 @@ extern "C" {
 void
 test_torture_comp() {
     std::multimap<int, ptr> map;
-    uint64_t range = 10 * 1000 * 1000 * 1000LL;
     uint64_t count = 10 * 1000 * 1000;
     for (uint64_t i = 0; i < count; i++) {
-        int key = rand_n(range);
+        int key = rand();
         map.insert(std::make_pair(key, key));
     }
 }
@@ -23,18 +22,15 @@ test_torture_comp() {
 void
 test_torture() {
     vector *v = v_init(32);
-
     std::multimap<int, ptr> map;
-
-    uint64_t range = 10 * 1000 * 1000 * 1000LL;
     uint64_t count = 10 * 1000 * 1000;
     for (uint64_t i = 0; i < count; i++) {
-        int key = rand() % range;
+        int key = rand();
         map.insert(std::make_pair(key, key));
         v_add(v, key);
     }
     for (uint64_t i = 0; i < count; i++) {
-        int key = v->array[i];
+        int key = (int)v->array[i];
         map.erase(key);
     }
     v_free(v);
@@ -44,8 +40,7 @@ test_torture() {
 
 int
 main(int argc, char *argv[]) {
-    time_t seed = time(NULL);
-    srand(seed);
+    rand_init(0);
     PRINT_RUN(test_torture);
     PRINT_RUN(test_torture_comp);
 }

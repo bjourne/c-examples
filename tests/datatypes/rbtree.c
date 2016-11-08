@@ -1,7 +1,6 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <string.h>
-#include <time.h>
 #include "datatypes/rbtree.h"
 #include "datatypes/vector.h"
 
@@ -284,15 +283,15 @@ void
 test_torture() {
     vector *v = v_init(32);
     rbtree *t = NULL;
-    uint64_t range = 10 * 1000 * 1000 * 1000LL;
+    int range = INT_MAX;
     uint64_t count = 10 * 1000 * 1000;
     for (uint64_t i = 0; i < count; i++) {
-        int key = rand_n(range);
+        bstkey key = rand();
         t = rbt_add_key(t, key);
         v_add(v, key);
     }
     for (uint64_t i = 0; i < count; i++) {
-        int key = v->array[i];
+        bstkey key = (bstkey)v->array[i];
         t = rbt_remove(t, rbt_find(t, key));
     }
     assert(!t);
@@ -303,10 +302,9 @@ test_torture() {
 void
 test_torture_comp() {
     rbtree *t = NULL;
-    uint64_t range = 10 * 1000 * 1000 * 1000LL;
     uint64_t count = 10 * 1000 * 1000;
     for (uint64_t i = 0; i < count; i++) {
-        uint64_t key = rand_n(range);
+        bstkey key = rand();
         t = rbt_add(t, key, key);
     }
     rbt_free(t);
@@ -316,20 +314,19 @@ void
 test_awful_torture() {
     vector *v = v_init(32);
     rbtree *t = NULL;
-    size_t range = 100 * 1000 * 1000;
-    size_t count = 500 * 1000;
-    for (size_t i = 0; i < count; i++) {
+    int count = 500 * 1000;
+    for (int i = 0; i < count; i++) {
         if ((i % 10000) == 0) {
             printf("at %lu...\n", i);
         }
         if (rand_n(3) == 0 && v->used > 0) {
-            size_t i = rand_n(v->used);
-            ptr key = v->array[i];
+            int i = rand_n((int)v->used);
+            bstkey key = (bstkey)v->array[i];
             rbtree *n = rbt_find(t, key);
             t = rbt_remove(t, n);
             v_remove_at(v, i);
         } else {
-            ptr key = rand_n(range);
+            bstkey key = rand();
             v_add(v, key);
             t = rbt_add_key(t, key);
         }
@@ -408,8 +405,7 @@ test_negative_values() {
 
 int
 main(int argc, char *argv[]) {
-    time_t seed = time(NULL);
-    srand(seed);
+    rand_init(0);
     PRINT_RUN(test_max_min);
     PRINT_RUN(test_many_duplicates);
     PRINT_RUN(test_black_height);

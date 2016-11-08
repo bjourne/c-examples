@@ -30,7 +30,7 @@ void vm_set_slot(vm *v, ptr p_from, size_t i, ptr p);
 // Object allocation
 ptr vm_boxed_int_init(vm *v, int value);
 ptr vm_boxed_float_init(vm *v, double value);
-ptr vm_array_init(vm *v, size_t n, ptr value);
+ptr vm_array_init(vm *v, int n, ptr value);
 ptr vm_wrapper_init(vm *v, ptr value);
 
 // Stats

@@ -1,11 +1,10 @@
 #include <assert.h>
 #include <stdio.h>
-#include <time.h>
 #include "datatypes/bstree.h"
 #include "datatypes/vector.h"
 
 static bstree *
-bst_add_key(bstree *me, size_t key) {
+bst_add_key(bstree *me, bstkey key) {
     return bst_add(me, key, key);
 }
 
@@ -261,15 +260,15 @@ void
 test_torture() {
     vector *v = v_init(32);
     bstree *t = NULL;
-    size_t range = 1000000;
-    size_t count = 10000000;
+    int range = 1000000;
+    int count = 10000000;
     for (int i = 0; i < count; i++) {
-        size_t key = rand_n(range);
+        bstkey key = rand_n(range);
         t = bst_add_key(t, key);
         v_add(v, key);
     }
     for (int i = 0; i < count; i++) {
-        size_t key = v->array[i];
+        bstkey key = (bstkey)v->array[i];
         t = bst_remove(t, bst_find(t, key));
     }
     assert(!t);
@@ -302,7 +301,7 @@ test_negative_values() {
 
 int
 main(int argc, char *argv[]) {
-    srand(time(NULL));
+    rand_init(0);
     PRINT_RUN(test_max_min);
     PRINT_RUN(test_add_remove);
     PRINT_RUN(test_callstack_overflow);

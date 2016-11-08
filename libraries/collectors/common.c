@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <stdlib.h>
 #include "collectors/common.h"
 
@@ -36,16 +37,16 @@ p_slot_count(ptr p) {
 }
 
 static
-void p_print(size_t ind, size_t i, ptr p);
+void p_print(int ind, size_t i, ptr p);
 
-void p_print_slots(size_t ind, ptr *base, size_t n) {
+void p_print_slots(int ind, ptr *base, size_t n) {
     for (size_t i = 0; i < n; i++) {
         p_print(ind + 2, i, base[i]);
     }
 }
 
-static
-char *type_name(uint t) {
+static char *
+type_name(unsigned int t) {
     switch (t) {
     case TYPE_INT: return "int";
     case TYPE_FLOAT: return "float";
@@ -56,18 +57,18 @@ char *type_name(uint t) {
 }
 
 static
-void p_print(size_t ind, size_t n, ptr p) {
-    for (size_t x = 0; x < ind; x++) { putchar(' '); }
+void p_print(int ind, size_t n, ptr p) {
+    for (int x = 0; x < ind; x++) { putchar(' '); }
     if (p == 0) {
-        printf("%2ld: null\n", n);
+        printf("%2" PRId64 ": null\n", n);
         return;
     }
-    uint t = P_GET_TYPE(p);
-    printf("%2ld: %s @ 0x%lx: ", n, type_name(t), p);
+    unsigned int t = P_GET_TYPE(p);
+    printf("%2" PRId64 ": %s @ 0x%" PRIx64 ": ", n, type_name(t), p);
     if (t == TYPE_FLOAT) {
-        printf("%.3f", *(double *)SLOT_P(p, 0));
+        printf("%.3f", (double)*SLOT_P(p, 0));
     } else if (t == TYPE_INT) {
-        printf("%ld", *SLOT_P(p, 0));
+        printf("%d", (int)*SLOT_P(p, 0));
     }
     putchar('\n');
     size_t n_slots = p_slot_count(p);

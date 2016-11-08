@@ -63,7 +63,7 @@
 
 size_t p_size(ptr p);
 size_t p_slot_count(ptr p);
-void p_print_slots(size_t ind, ptr *base, size_t n);
+void p_print_slots(int ind, ptr *base, size_t n);
 
 
 // This is the protocol that any collector must implement.

@@ -18,18 +18,22 @@ ptr s_allot(space *s, size_t n_bytes) {
     return p;
 }
 
-__attribute__ ((noinline))
+//__attribute__ ((noinline)) <- why did I want this?
 void fast_memcpy(ptr *dst, ptr* src, size_t n) {
     if (n == 16) {
         *dst++ = *src++;
         *dst++ = *src++;
     } else {
+        #if _WIN32
+        memcpy(dst, src, n);
+        #else
         size_t n_ptrs = n / sizeof(ptr);
         asm volatile("cld\n\t"
                      "rep ; movsq"
                      : "=D" (dst), "=S" (src)
                      : "c" (n_ptrs), "D" (dst), "S" (src)
                      : "memory");
+        #endif
     }
 }
 

@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <time.h>
 #include "datatypes/onesie.h"
 
 void
@@ -43,7 +42,7 @@ test_allot_free(){
 
 int
 main(int argc, char *argv[]) {
-    srand(time(NULL));
+    rand_init(0);
     PRINT_RUN(test_init_free);
     PRINT_RUN(test_can_allot_p);
     PRINT_RUN(test_allot_free);

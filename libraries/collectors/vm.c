@@ -68,8 +68,8 @@ vm_set_slot(vm *me, ptr p_from, size_t i, ptr p) {
     me->dispatch->set_ptr(me->mem_man, SLOT_P(p_from, i), p);
 }
 
-ptr
-vm_allot(vm *me, size_t n_ptrs, uint type) {
+static ptr
+vm_allot(vm *me, size_t n_ptrs, unsigned int type) {
     size_t size = NPTRS(n_ptrs);
     void* ms = me->mem_man;
     if (!me->dispatch->can_allot_p(ms, size)) {
@@ -104,7 +104,7 @@ vm_boxed_float_init(vm *v, double value) {
 // copying collector might change object addresses and the reference
 // counter might free objects without any references.
 ptr
-vm_array_init(vm *me, size_t n, ptr value) {
+vm_array_init(vm *me, int n, ptr value) {
     vm_add(me, value);
 
     vm_add(me, vm_boxed_int_init(me, n));

@@ -1,6 +1,5 @@
 #include <assert.h>
 #include <stdlib.h>
-#include <time.h>
 #include "collectors/vm.h"
 #include "collectors/copying.h"
 #include "collectors/copying-opt.h"
@@ -212,9 +211,10 @@ test_torture() {
     for (size_t i = 0; i < 100; i++) {
         vm_add(v, vm_array_init(v, 500, 0));
     }
+    int n_roots = (int)vm_size(v);
     for (size_t i = 0; i < 400000; i++) {
-        ptr rand_arr = vm_get(v, rand_n(vm_size(v)));
-        size_t n_els = *SLOT_P(*SLOT_P(rand_arr, 0), 0);
+        ptr rand_arr = vm_get(v, n_roots);
+        int n_els = (int)*SLOT_P(*SLOT_P(rand_arr, 0), 0);
         ptr p = random_object(v);
         vm_set_slot(v, rand_arr, 1 + rand_n(n_els), p);
     }
@@ -239,7 +239,7 @@ test_collector(char *name, gc_dispatch *this_dispatch) {
 
 int
 main(int argc, char *argv[]) {
-    srand(time(NULL));
+    rand_init(0);
     gc_dispatch *dispatches[5] = {
         cg_get_dispatch_table(),
         rc_get_dispatch_table(),

@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <time.h>
 #include "quickfit/quickfit.h"
 
 size_t
@@ -221,7 +220,7 @@ test_clear() {
 
 int
 main(int argc, char *argv[]) {
-    srand(time(NULL));
+    rand_init(0);
     PRINT_RUN(test_clear);
     PRINT_RUN(test_largest_free_block2);
     PRINT_RUN(test_fragmented_heap);

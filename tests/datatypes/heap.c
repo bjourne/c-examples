@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <time.h>
 #include "datatypes/heap.h"
@@ -12,7 +13,7 @@ int main(int argc, char *argv[]) {
     }
 
     while (v->used) {
-        printf("el %lu\n", hp_remove(v));
+        printf("el %" PRIu64 "\n", hp_remove(v));
     }
     v_free(v);
     return 0;

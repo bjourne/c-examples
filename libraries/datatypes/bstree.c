@@ -90,7 +90,7 @@ bst_find(bstree *me, bstkey key) {
 bstree *
 bst_find_lower_bound(bstree *me, bstkey key) {
     bstree *best = NULL;
-    size_t best_key = BST_KEY_MAX;
+    bstkey best_key = BST_KEY_MAX;
     while (me) {
         bstkey me_key = me->key;
         if (key < me_key) {

@@ -11,7 +11,8 @@ typedef uintptr_t ptr;
 
 void error(char *fmt, ...);
 
-size_t rand_n(size_t n);
+int rand_n(int n);
+void rand_init(unsigned int seed);
 
 // It's shorter to type AT(foo) than *(ptr *)foo
 #define AT(p) (*(ptr *)(p))

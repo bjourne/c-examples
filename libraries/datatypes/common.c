@@ -1,7 +1,11 @@
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 void
 error(char *fmt, ...) {
@@ -14,11 +18,43 @@ error(char *fmt, ...) {
 
 size_t
 nano_count() {
-  struct timespec t;
-  int ret = clock_gettime(CLOCK_MONOTONIC, &t);
-  if (ret != 0)
-    error("clock_gettime failed", 0);
-  return (size_t)t.tv_sec * 1000000000 + t.tv_nsec;
+#ifdef _WIN32
+    static double scale_factor;
+
+    static uint64_t hi = 0;
+    static uint64_t lo = 0;
+
+    LARGE_INTEGER count;
+    BOOL ret = QueryPerformanceCounter(&count);
+    if (ret == 0) {
+        error("QueryPerformanceCounter failed");
+    }
+
+    if (scale_factor == 0.0) {
+        LARGE_INTEGER frequency;
+        BOOL ret = QueryPerformanceFrequency(&frequency);
+        if (ret == 0) {
+            error("QueryPerformanceFrequency failed");
+        }
+        scale_factor = (1000000000.0 / frequency.QuadPart);
+  }
+#ifdef _M_AMD64
+    hi = count.HighPart;
+#else
+    if (lo > count.LowPart) {
+        hi++;
+    }
+#endif
+    lo = count.LowPart;
+    return (uint64_t)(((hi << 32) | lo) * scale_factor);
+#else
+    struct timespec t;
+    int ret = clock_gettime(CLOCK_MONOTONIC, &t);
+    if (ret != 0) {
+        error("clock_gettime failed");
+    }
+    return (size_t)t.tv_sec * 1000000000 + t.tv_nsec;
+#endif
 }
 
 void
@@ -30,7 +66,15 @@ timed_run(void (*func)()) {
     printf("-> %.3f seconds\n", secs);
 }
 
-size_t
-rand_n(size_t n) {
+int
+rand_n(int n) {
     return rand() % n;
+}
+
+void
+rand_init(unsigned int seed) {
+    if (!seed) {
+        seed = (unsigned int)time(NULL);
+    }
+    srand(seed);
 }

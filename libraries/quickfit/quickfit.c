@@ -1,5 +1,6 @@
 // A QuickFit memory allocator based on Factor.
 #include <assert.h>
+#include <inttypes.h>
 #include <limits.h>
 #include "quickfit/quickfit.h"
 
@@ -8,11 +9,11 @@ qf_free_block(quick_fit *qf, ptr p, size_t size) {
     AT(p) = size;
     qf->n_blocks++;
     qf->free_space += size;
-    int bucket = size / QF_DATA_ALIGNMENT;
+    size_t bucket = size / QF_DATA_ALIGNMENT;
     if (bucket < QF_N_BUCKETS) {
         v_add(qf->buckets[bucket], p);
     } else {
-        qf->large_blocks = rbt_add(qf->large_blocks, AT(p), p);
+        qf->large_blocks = rbt_add(qf->large_blocks, (bstkey)AT(p), p);
     }
 }
 
@@ -50,7 +51,7 @@ qf_free(quick_fit *qf) {
 
 static ptr
 qf_find_large_block(quick_fit *qf, size_t req_size) {
-    rbtree *node = rbt_find_lower_bound(qf->large_blocks, req_size);
+    rbtree *node = rbt_find_lower_bound(qf->large_blocks, (bstkey)req_size);
     if (node) {
         qf->n_blocks--;
         qf->free_space -= node->key;
@@ -93,7 +94,7 @@ qf_find_small_block(quick_fit *qf, size_t bucket, size_t req_size) {
 
 static ptr
 qf_find_free_block(quick_fit *me, size_t size) {
-    int bucket = size / QF_DATA_ALIGNMENT;
+    size_t bucket = size / QF_DATA_ALIGNMENT;
     if (bucket < QF_N_BUCKETS) {
         return qf_find_small_block(me, bucket, size);
     }
@@ -114,14 +115,14 @@ void
 qf_print(quick_fit *me, ptr start, size_t size) {
     ptr end = start + size;
     for (ptr iter = start; iter < end; iter += AT(iter)) {
-        printf("@%5lu: %4lu\n", iter - start, AT(iter));
+        printf("@%5" PRIu64 ": %4" PRIu64 "\n", iter - start, AT(iter));
     }
 }
 
 bool
 qf_can_allot_p(quick_fit *me, size_t size) {
     size_t small = ALIGN(size, QF_DATA_ALIGNMENT);
-    int bucket = small / QF_DATA_ALIGNMENT;
+    size_t bucket = small / QF_DATA_ALIGNMENT;
     if (bucket < QF_N_BUCKETS) {
         if (me->buckets[bucket]->used > 0) {
             return true;
