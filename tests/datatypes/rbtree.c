@@ -41,7 +41,7 @@ traverse(rbtree *t, const char *path) {
     return t;
 }
 
-void
+static void
 test_max_min() {
     rbtree *t = NULL;
     t = add_items(t, 5, 10, 99, 30, 17, 29);
@@ -51,7 +51,7 @@ test_max_min() {
     rbt_free(t);
 }
 
-void
+static void
 test_many_duplicates() {
     rbtree *t = NULL;
     rbtree *n = NULL;
@@ -87,7 +87,7 @@ test_many_duplicates() {
     rbt_free(t);
 }
 
-void
+static void
 test_black_height() {
     assert(rbt_black_height(NULL) == 1);
     rbtree *t = rbt_add_key(NULL, 20);
@@ -95,7 +95,7 @@ test_black_height() {
     rbt_free(t);
 }
 
-void
+static void
 test_simple() {
     rbtree *t = rbt_add_key(NULL, 123);
     t = rbt_add_key(t, 22);
@@ -118,7 +118,7 @@ test_simple() {
     rbt_free(t);
 }
 
-void
+static void
 test_simple_2() {
     rbtree *t = rbt_add_key(NULL, 0);
     assert(t->key == 0);
@@ -159,7 +159,7 @@ test_simple_2() {
     rbt_free(t);
 }
 
-void
+static void
 test_rotate_left() {
     rbtree *t = rbt_add_key(NULL, 0);
     t = rbt_add_key(t, 10);
@@ -171,7 +171,7 @@ test_rotate_left() {
     rbt_free(t);
 }
 
-void
+static void
 test_rotate_right() {
     rbtree *t = rbt_add_key(NULL, 100);
     t = rbt_add_key(t, 90);
@@ -180,7 +180,7 @@ test_rotate_right() {
     rbt_free(t);
 }
 
-void
+static void
 test_double_rotations() {
     rbtree *t = rbt_add_key(NULL, 50);
     t = rbt_add_key(t, 40);
@@ -200,7 +200,7 @@ test_double_rotations() {
     rbt_free(t);
 }
 
-void
+static void
 test_print_tree() {
     rbtree *t = NULL;
     for (int i = 0; i < 10; i++) {
@@ -210,14 +210,14 @@ test_print_tree() {
     rbt_free(t);
 }
 
-void
+static void
 test_find() {
     rbtree *t = NULL;
     assert(!rbt_find(t, 99));
     rbt_free(t);
 }
 
-void
+static void
 test_remove() {
     rbtree *t = NULL;
     rbtree *n = NULL;
@@ -278,12 +278,11 @@ test_remove() {
     rbt_free(t);
 }
 
-// 28.5
-void
+// on = 21.59, malloc = 22.18
+static void
 test_torture() {
     vector *v = v_init(32);
     rbtree *t = NULL;
-    int range = INT_MAX;
     uint64_t count = 10 * 1000 * 1000;
     for (uint64_t i = 0; i < count; i++) {
         bstkey key = rand();
@@ -299,7 +298,7 @@ test_torture() {
 }
 
 // 12.6
-void
+static void
 test_torture_comp() {
     rbtree *t = NULL;
     uint64_t count = 10 * 1000 * 1000;
@@ -310,15 +309,13 @@ test_torture_comp() {
     rbt_free(t);
 }
 
-void
+// on = 4.94, malloc = 5.05
+static void
 test_awful_torture() {
     vector *v = v_init(32);
     rbtree *t = NULL;
     int count = 500 * 1000;
     for (int i = 0; i < count; i++) {
-        if ((i % 10000) == 0) {
-            printf("at %lu...\n", i);
-        }
         if (rand_n(3) == 0 && v->used > 0) {
             int i = rand_n((int)v->used);
             bstkey key = (bstkey)v->array[i];
@@ -335,8 +332,7 @@ test_awful_torture() {
     v_free(v);
 }
 
-
-void
+static void
 test_loop_scenario() {
     rbtree *t = add_items(NULL, 9,
                           271, 952, 36, 893, 437, 232, 905, 2, 816);
@@ -379,7 +375,7 @@ test_loop_scenario() {
     rbt_free(t);
 }
 
-void
+static void
 test_duplicates_and_rotates() {
     rbtree *t = add_items(NULL, 3, 5, 5, 7);
     rbt_print(t, 0, true);
@@ -395,7 +391,7 @@ test_duplicates_and_rotates() {
     rbt_free(t);
 }
 
-void
+static void
 test_negative_values() {
     rbtree *t = add_items(NULL, 4, -5, -3, 0, 8);
     rbtree *n = rbt_iterate(t, NULL, BST_LEFT);
