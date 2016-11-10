@@ -69,7 +69,7 @@ vm_set_slot(vm *me, ptr p_from, size_t i, ptr p) {
 }
 
 static ptr
-vm_allot(vm *me, size_t n_ptrs, unsigned int type) {
+vm_allot(vm *me, size_t n_ptrs, int type) {
     size_t size = NPTRS(n_ptrs);
     void* ms = me->mem_man;
     if (!me->dispatch->can_allot_p(ms, size)) {
@@ -79,12 +79,7 @@ vm_allot(vm *me, size_t n_ptrs, unsigned int type) {
                   size, vm_space_used(me));
         }
     }
-    ptr p = me->dispatch->do_allot(ms, size);
-    // Header initialization should go back into the do_allot methods.
-    P_SET_TYPE(p, type);
-    P_UNMARK(p);
-    P_SET_RC(p, 0);
-    return p;
+    return me->dispatch->do_allot(ms, type, size);
 }
 
 

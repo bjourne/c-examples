@@ -25,13 +25,10 @@ test_collect_2() {
     mark_sweep_gc *ms = ms_init(4096);
 
     vector *roots = v_init(16);
-    ptr p = ms_do_allot(ms, 4080);
+    ptr p = ms_do_allot(ms, TYPE_INT, 4080);
     assert(p);
     assert(ms->qf->n_blocks == 1);
-
-
     v_add(roots, p);
-    P_SET_TYPE(p, TYPE_INT);
 
     ms_collect(ms, roots);
 
@@ -48,20 +45,18 @@ test_collect_3() {
     mark_sweep_gc *ms = ms_init(4096);
     vector *roots = v_init(16);
 
-    ptr p = ms_do_allot(ms, 16);
-    P_SET_TYPE(p, TYPE_INT);
+    ptr p = ms_do_allot(ms, TYPE_INT, 16);
     ptr rel_addr = p - ms->start;
     assert(rel_addr == 1008);
     v_add(roots, p);
 
-    p = ms_do_allot(ms, 176);
-    P_SET_TYPE(p, TYPE_INT);
+    p = ms_do_allot(ms, TYPE_INT, 176);
     v_add(roots, p);
     assert(ms->used == 176 + 16);
 
     ms_collect(ms, roots);
 
-    p = ms_do_allot(ms, 16);
+    p = ms_do_allot(ms, TYPE_INT, 16);
     v_add(roots, p);
 
     qf_print(ms->qf, ms->start, ms->size);

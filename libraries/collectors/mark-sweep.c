@@ -91,11 +91,12 @@ ms_can_allot_p(mark_sweep_gc *me, size_t size) {
 }
 
 ptr
-ms_do_allot(mark_sweep_gc *me, size_t size) {
+ms_do_allot(mark_sweep_gc *me, int type, size_t size) {
     // Malloc and record address.
-    ptr mem = qf_allot_block(me->qf, size);
+    ptr p = qf_allot_block(me->qf, size);
     me->used += size;
-    return (ptr)mem;
+    P_SET_TYPE(p, type);
+    return p;
 }
 
 size_t

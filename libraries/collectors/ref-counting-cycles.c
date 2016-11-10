@@ -188,10 +188,12 @@ rcc_can_allot_p(ref_counting_cycles_gc *me, size_t n_bytes) {
     return (me->used + n_bytes) <= me->size;
 }
 
-ptr
-rcc_do_allot(ref_counting_cycles_gc *me, size_t n_bytes) {
+static ptr
+rcc_do_allot(ref_counting_cycles_gc *me, int type, size_t n_bytes) {
     me->used += n_bytes;
-    return (ptr)malloc(n_bytes);
+    ptr p = (ptr)malloc(n_bytes);
+    AT(p) = type << 1;
+    return p;
 }
 
 static inline void

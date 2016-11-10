@@ -8,7 +8,6 @@
 #include "collectors/copying.h"
 
 // This is the performance optimized version of copying.c
-
 static
 ptr s_allot(space *s, size_t n_bytes) {
     assert(s->start <= s->here);

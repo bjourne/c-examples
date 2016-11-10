@@ -9,7 +9,6 @@ typedef struct {
     vector *decrefs;
 } ref_counting_gc;
 
-ptr rc_do_allot(ref_counting_gc *me, size_t n_bytes);
 gc_dispatch *rc_get_dispatch_table();
 
 

@@ -73,7 +73,7 @@ typedef void (*gc_func_free)(void *me);
 
 typedef bool (*gc_func_can_allot_p)(void *me, size_t n_bytes);
 typedef void (*gc_func_collect)(void *me, vector *roots);
-typedef ptr (*gc_func_do_allot)(void *me, size_t n_bytes);
+typedef ptr (*gc_func_do_allot)(void *me, int type, size_t n_bytes);
 
 typedef void (*gc_func_set_ptr)(void *me, ptr *from, ptr to);
 typedef void (*gc_func_set_new_ptr)(void *me, ptr *from, ptr to);
