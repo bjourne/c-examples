@@ -6,14 +6,14 @@
 
 void
 qf_free_block(quick_fit *qf, ptr p, size_t size) {
-    AT(p) = size;
+    QF_SET_BLOCK_SIZE(p, size);
     qf->n_blocks++;
     qf->free_space += size;
     size_t bucket = size / QF_DATA_ALIGNMENT;
     if (bucket < QF_N_BUCKETS) {
         v_add(qf->buckets[bucket], p);
     } else {
-        qf->large_blocks = rbt_add(qf->large_blocks, (bstkey)AT(p), p);
+        qf->large_blocks = rbt_add(qf->large_blocks, (bstkey)size, p);
     }
 }
 
@@ -64,11 +64,11 @@ qf_find_large_block(quick_fit *qf, size_t req_size) {
 
 static void
 qf_split_block(quick_fit *qf, ptr p, size_t req_size) {
-    size_t block_size = AT(p);
+    size_t block_size = QF_GET_BLOCK_SIZE(p);
     if (block_size > req_size) {
         ptr split = p + req_size;
         qf_free_block(qf, split, block_size - req_size);
-        AT(p) = req_size;
+        QF_SET_BLOCK_SIZE(p, req_size);
     }
 }
 
@@ -114,8 +114,11 @@ qf_allot_block(quick_fit *me, size_t size) {
 void
 qf_print(quick_fit *me, ptr start, size_t size) {
     ptr end = start + size;
-    for (ptr iter = start; iter < end; iter += AT(iter)) {
-        printf("@%5" PRIu64 ": %4" PRIu64 "\n", iter - start, AT(iter));
+    ptr iter = start;
+    while (iter < end) {
+        size_t size = QF_GET_BLOCK_SIZE(iter);
+        printf("@%5" PRIu64 ": %4" PRIu64 "\n", iter - start, size);
+        iter += size;
     }
 }
 

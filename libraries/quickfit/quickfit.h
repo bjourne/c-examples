@@ -12,6 +12,9 @@
 #define QF_LARGE_BLOCK_SIZE(small_size) \
     ((QF_PAGE_SIZE + small_size - 1) / small_size) * small_size
 
+#define QF_GET_BLOCK_SIZE(p)        AT(p)
+#define QF_SET_BLOCK_SIZE(p, n)     AT(p) = (n);
+
 typedef struct {
     vector* buckets[QF_N_BUCKETS];
     rbtree* large_blocks;

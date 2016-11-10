@@ -30,11 +30,10 @@ test_basic() {
     assert(rbt_size(qf->large_blocks) == 1);
 
     ptr p = qf_allot_block(qf, 1000);
-    assert(p);
-    assert(AT(p) == 1008);
+    assert(QF_GET_BLOCK_SIZE(p) == 1008);
     assert(qf->n_blocks == 1);
 
-    qf_free_block(qf, p, AT(p));
+    qf_free_block(qf, p, QF_GET_BLOCK_SIZE(p));
     assert(qf->n_blocks == 2);
     assert(rbt_size(qf->large_blocks) == 2);
 
@@ -50,7 +49,7 @@ test_small_alloc() {
     quick_fit *qf = qf_init(region, size);
 
     ptr p = qf_allot_block(qf, 16);
-    assert(AT(p) == 16);
+    assert(QF_GET_BLOCK_SIZE(p) == 16);
     assert(rbt_size(qf->large_blocks) == 1);
     assert(qf->buckets[1]->used == 63);
     for (size_t i = 0; i < 63; i++) {
@@ -183,7 +182,7 @@ test_largest_free_block2() {
     ptr p = qf_allot_block(qf, 1024);
     assert(p);
     assert(qf_largest_free_block(qf) == 2048);
-    qf_free_block(qf, p, AT(p));
+    qf_free_block(qf, p, QF_GET_BLOCK_SIZE(p));
     assert(qf_largest_free_block(qf) == 2048);
     qf_free(qf);
     free((void *)region);
