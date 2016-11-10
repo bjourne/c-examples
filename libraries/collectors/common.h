@@ -17,25 +17,25 @@
 #define P_UNMARK(p)         AT(p) &= ~1
 #define P_MARK(p)           AT(p) |= 1
 
-#define P_GET_TYPE(p)       BF_GET(AT(p), 1, 4) // ((AT(p) >> 1) & 0xf)
-#define P_INIT(p, t)        AT(p) = t << 1
+#define P_GET_TYPE(p)       P_GET(p, 1, 4)
+#define P_SET_TYPE(p, t)    AT(p) = BF_MERGE(AT(p), t, 1, 4)
 
 #define P_GET_RC(p)         BF_GET(AT(p), 8, 24)
-#define P_SET_RC(p, n)      AT(p) = BF_SET(AT(p), n, 8, 24))
+#define P_SET_RC(p, n)      AT(p) = BF_MERGE(AT(p), n, 8, 24)
 
 #define P_DEC_RC(p)         AT(p) = AT(p) - (1L << 8)
 #define P_INC_RC(p)         AT(p) = AT(p) + (1L << 8)
 
 #define P_GET_COL(p)        BF_GET(AT(p), 5, 3)
-#define P_SET_COL(p, c)     AT(p) = BF_SET(AT(p), c, 5, 3)
+#define P_SET_COL(p, c)     AT(p) = BF_MERGE(AT(p), c, 5, 3)
 
 #define TYPE_CONTAINER_P(t) (t == TYPE_ARRAY || t == TYPE_WRAPPER)
 
 // Object types
-#define TYPE_INT 1
-#define TYPE_FLOAT 2
-#define TYPE_WRAPPER 3
-#define TYPE_ARRAY 4
+#define TYPE_INT        1
+#define TYPE_FLOAT      2
+#define TYPE_WRAPPER    3
+#define TYPE_ARRAY      4
 
 // Object colors, used for ref counting cycles
 

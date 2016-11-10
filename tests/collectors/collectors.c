@@ -88,7 +88,7 @@ test_ref_count_colors() {
         return;
     }
     ptr p = 0xffffffff;
-    P_INIT(&p, TYPE_ARRAY);
+    P_SET_TYPE(&p, TYPE_ARRAY);
     P_SET_COL(&p, COL_PURPLE);
 
     assert(P_GET_COL(&p) == COL_PURPLE);
@@ -253,14 +253,14 @@ test_collector(char *name, gc_dispatch *this_dispatch) {
 int
 main(int argc, char *argv[]) {
     rand_init(0);
-    gc_dispatch *dispatches[5] = {
+    gc_dispatch *dispatches[] = {
         cg_get_dispatch_table(),
         rc_get_dispatch_table(),
         rcc_get_dispatch_table(),
         ms_get_dispatch_table(),
         cg_get_dispatch_table_optimized()
     };
-    char *names[5] = {
+    char *names[] = {
         "Copying",
         "Reference Counting",
         "Cycle-collecting Reference Counting",

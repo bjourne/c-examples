@@ -8,15 +8,15 @@ test_collect_1() {
 
     mark_sweep_gc *ms = (mark_sweep_gc *)v->mem_man;
     assert(ms->qf->n_blocks == 1);
-    assert(AT(ms->start) == 4096);
+    assert(QF_GET_BLOCK_SIZE(ms->start) == 4096);
 
     ptr p = vm_add(v, vm_boxed_int_init(v, 20));
-    ptr rel_block_addr = p - sizeof(ptr) - ms->start;
-    assert(rel_block_addr == QF_LARGE_BLOCK_SIZE(32) - 32);
+    ptr rel_block_addr = p - ms->start;
+    assert(rel_block_addr == QF_LARGE_BLOCK_SIZE(16) - 16);
 
     ms_collect(ms, v->roots);
     assert(ms->used == 16);
-    assert(ms->qf->free_space == 4064);
+    assert(ms->qf->free_space == 4080);
     vm_free(v);
 }
 
@@ -27,11 +27,11 @@ test_collect_2() {
     vector *roots = v_init(16);
     ptr p = ms_do_allot(ms, 4080);
     assert(p);
-    assert(ms->qf->n_blocks == 0);
+    assert(ms->qf->n_blocks == 1);
 
 
     v_add(roots, p);
-    P_INIT(p, TYPE_INT);
+    P_SET_TYPE(p, TYPE_INT);
 
     ms_collect(ms, roots);
 
@@ -49,13 +49,13 @@ test_collect_3() {
     vector *roots = v_init(16);
 
     ptr p = ms_do_allot(ms, 16);
-    P_INIT(p, TYPE_INT);
-    ptr rel_addr = p - sizeof(ptr) - ms->start;
-    assert(rel_addr == 992);
+    P_SET_TYPE(p, TYPE_INT);
+    ptr rel_addr = p - ms->start;
+    assert(rel_addr == 1008);
     v_add(roots, p);
 
     p = ms_do_allot(ms, 176);
-    P_INIT(p, TYPE_INT);
+    P_SET_TYPE(p, TYPE_INT);
     v_add(roots, p);
     assert(ms->used == 176 + 16);
 

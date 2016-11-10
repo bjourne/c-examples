@@ -80,7 +80,10 @@ vm_allot(vm *me, size_t n_ptrs, unsigned int type) {
         }
     }
     ptr p = me->dispatch->do_allot(ms, size);
-    P_INIT(p, type);
+    // Header initialization should go back into the do_allot methods.
+    P_SET_TYPE(p, type);
+    P_UNMARK(p);
+    P_SET_RC(p, 0);
     return p;
 }
 

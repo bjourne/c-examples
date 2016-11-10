@@ -68,8 +68,8 @@ ms_collect(mark_sweep_gc *me, vector *roots) {
     // We should use state bits instead.
     while (iter != end) {
         // Find next unmarked blocks.
-        while (P_GET_MARK(iter + sizeof(ptr))) {
-            P_UNMARK(iter + sizeof(ptr));
+        while (P_GET_MARK(iter)) {
+            P_UNMARK(iter);
             iter += QF_GET_BLOCK_SIZE(iter);
             if (iter == end) {
                 return;
@@ -77,7 +77,7 @@ ms_collect(mark_sweep_gc *me, vector *roots) {
         }
         // Found an unmarked block.
         ptr free_start = iter;
-        while (iter != end && !P_GET_MARK(iter + sizeof(ptr))) {
+        while (iter != end && !P_GET_MARK(iter)) {
             iter += QF_GET_BLOCK_SIZE(iter);
         }
         size_t free_size = iter - free_start;
@@ -87,15 +87,15 @@ ms_collect(mark_sweep_gc *me, vector *roots) {
 
 bool
 ms_can_allot_p(mark_sweep_gc *me, size_t size) {
-    return qf_can_allot_p(me->qf, size + sizeof(ptr));
+    return qf_can_allot_p(me->qf, size);
 }
 
 ptr
 ms_do_allot(mark_sweep_gc *me, size_t size) {
     // Malloc and record address.
-    ptr mem = qf_allot_block(me->qf, size + sizeof(ptr));
+    ptr mem = qf_allot_block(me->qf, size);
     me->used += size;
-    return (ptr)mem + sizeof(ptr);
+    return (ptr)mem;
 }
 
 size_t
