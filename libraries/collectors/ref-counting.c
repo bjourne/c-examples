@@ -32,7 +32,7 @@ rc_space_used(ref_counting_gc *me) {
     return me->used;
 }
 
-static ptr
+ptr
 rc_do_allot(ref_counting_gc *me, int type, size_t n_bytes) {
     me->used += n_bytes;
     ptr p = (ptr)malloc(n_bytes);

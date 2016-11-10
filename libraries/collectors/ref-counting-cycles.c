@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "datatypes/hashset.h"
 #include "collectors/common.h"
+#include "collectors/ref-counting.h"
 #include "collectors/ref-counting-cycles.h"
 
 ref_counting_cycles_gc *
@@ -18,11 +19,6 @@ rcc_init(size_t max_used) {
     me->decrefs = v_init(16);
     me->candidates = hs_init();
     return me;
-}
-
-size_t
-rcc_space_used(ref_counting_cycles_gc *me) {
-    return me->used;
 }
 
 static void
@@ -137,14 +133,12 @@ rcc_collect_candidates(ref_counting_cycles_gc *me) {
 
 void
 rcc_collect(ref_counting_cycles_gc *me) {
-    //START_TIMING;
     rcc_mark_candidates(me);
     hashset *c = me->candidates;
     HS_FOR_EACH_ITEM(c, { rcc_scan_candidate(me, p); });
     rcc_collect_candidates(me);
     assert(c->n_items == 0);
     hs_clear(c);
-    //END_TIMING;
 }
 
 static void
@@ -181,19 +175,6 @@ rcc_decref(ref_counting_cycles_gc *me, ptr p) {
             rcc_candidate(me, p);
         }
     }
-}
-
-bool
-rcc_can_allot_p(ref_counting_cycles_gc *me, size_t n_bytes) {
-    return (me->used + n_bytes) <= me->size;
-}
-
-static ptr
-rcc_do_allot(ref_counting_cycles_gc *me, int type, size_t n_bytes) {
-    me->used += n_bytes;
-    ptr p = (ptr)malloc(n_bytes);
-    AT(p) = type << 1;
-    return p;
 }
 
 static inline void
@@ -234,12 +215,12 @@ static gc_dispatch
 table = {
     (gc_func_init)rcc_init,
     (gc_func_free)rcc_free,
-    (gc_func_can_allot_p)rcc_can_allot_p,
+    (gc_func_can_allot_p)rc_can_allot_p,
     (gc_func_collect)rcc_collect,
-    (gc_func_do_allot)rcc_do_allot,
+    (gc_func_do_allot)rc_do_allot,
     (gc_func_set_ptr)rcc_set_ptr,
     (gc_func_set_ptr)rcc_set_new_ptr,
-    (gc_func_space_used)rcc_space_used
+    (gc_func_space_used)rc_space_used
 };
 
 gc_dispatch *
