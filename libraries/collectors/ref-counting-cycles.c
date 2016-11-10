@@ -9,22 +9,16 @@
 #include "collectors/ref-counting-cycles.h"
 
 static ref_counting_cycles_gc *
-rcc_init(ptr start, size_t max_used) {
+rcc_init(ptr start, size_t size) {
     ref_counting_cycles_gc *me = malloc(sizeof(ref_counting_cycles_gc));
-    me->size = max_used;
-    me->used = 0;
+    me->size = size;
+    me->qf = qf_init(start, size);
     me->blacks = v_init(16);
     me->grays = v_init(16);
     me->whites = v_init(16);
     me->decrefs = v_init(16);
     me->candidates = hs_init();
     return me;
-}
-
-static void
-rcc_free_p(ref_counting_cycles_gc *me, ptr p, size_t n_bytes) {
-    me->used -= n_bytes;
-    free((ptr *)p);
 }
 
 static void
@@ -61,7 +55,7 @@ rcc_mark_candidates(ref_counting_cycles_gc *me) {
         } else {
             hs_remove_at(c, _i);
             if (P_GET_COL(p) == COL_BLACK && P_GET_RC(p) == 0) {
-                rcc_free_p(me, p, p_size(p));
+                qf_free_block(me->qf, p, QF_GET_BLOCK_SIZE(p));
             }
         }
     });
@@ -116,9 +110,8 @@ rcc_collect_white(ref_counting_cycles_gc *me, ptr p) {
     hashset *c = me->candidates;
     if (P_GET_COL(p) == COL_WHITE && !hs_in_p(c, p)) {
         P_SET_COL(p, COL_BLACK);
-        size_t n_bytes = p_size(p);
         P_FOR_EACH_CHILD(p, { rcc_collect_white(me, p_child); });
-        rcc_free_p(me, p, n_bytes);
+        qf_free_block(me->qf, p, QF_GET_BLOCK_SIZE(p));
     }
 }
 
@@ -159,7 +152,7 @@ rcc_release(ref_counting_cycles_gc *me, ptr p) {
     // collection cycle. I don't understand why you shouldn't just
     // free the pointer immediately.
     hs_remove(me->candidates, p);
-    rcc_free_p(me, p, p_size(p));
+    qf_free_block(me->qf, p, QF_GET_BLOCK_SIZE(p));
 }
 
 static void
@@ -188,6 +181,7 @@ rcc_addref(ref_counting_cycles_gc *me, ptr p) {
 void
 rcc_free(ref_counting_cycles_gc *me) {
     rcc_collect(me);
+    qf_free(me->qf);
     v_free(me->blacks);
     v_free(me->grays);
     v_free(me->whites);

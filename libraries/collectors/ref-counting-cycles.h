@@ -6,7 +6,7 @@
 
 typedef struct {
     size_t size;
-    size_t used;
+    quick_fit *qf;
     vector *blacks;
     vector *grays;
     vector *whites;

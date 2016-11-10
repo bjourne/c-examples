@@ -46,7 +46,7 @@ test_ref_counts() {
     if (!(dispatch == rc_get_dispatch_table() ||
           dispatch == rcc_get_dispatch_table()))
         return;
-    vm *v = vm_init(dispatch, 200);
+    vm *v = vm_init(dispatch, 4096);
     ptr bi = vm_boxed_int_init(v, 99);
     vm_add(v, bi);
     assert(P_GET_RC(bi) == 1);
@@ -94,7 +94,7 @@ test_ref_count_colors() {
     assert(P_GET_COL(&p) == COL_PURPLE);
     assert(P_GET_TYPE(&p) == TYPE_ARRAY);
 
-    vm *v = vm_init(dispatch, 200);
+    vm *v = vm_init(dispatch, 4096);
     ptr bi = vm_boxed_int_init(v, 99);
     P_SET_COL(bi, COL_PURPLE);
     assert(P_GET_COL(bi) == COL_PURPLE);

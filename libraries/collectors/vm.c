@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "collectors/vm.h"
 
 ptr
@@ -10,6 +11,7 @@ vm_remove(vm *me) {
 
 vm *
 vm_init(gc_dispatch *gc_dispatch, size_t size) {
+    assert(size >= 4096);
     vm *me = malloc(sizeof(vm));
     me->roots = v_init(16);
     me->memory = (ptr)malloc(size);
