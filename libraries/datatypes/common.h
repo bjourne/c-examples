@@ -21,6 +21,9 @@ void rand_init(unsigned int seed);
 #define MAX(a, b) ((a > b) ? (a) : (b))
 #define MIN(a, b) ((a > b) ? (b) : (a))
 
+// Utility
+#define ARRAY_SIZE(a)       (sizeof((a))/sizeof((a)[0]))
+
 // Debug stuff
 #define PRINT_RUN_INT(title, func) printf("=== %s\n", title); timed_run(&func); printf("\n")
 #define PRINT_RUN(func) PRINT_RUN_INT(#func, func)

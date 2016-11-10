@@ -267,7 +267,7 @@ main(int argc, char *argv[]) {
         "Mark & Sweep",
         "Optimized Copying"
     };
-    for (size_t n = 0; n < 5; n++) {
+    for (size_t n = 0; n < ARRAY_SIZE(names); n++) {
         test_collector(names[n], dispatches[n]);
     }
     return 0;
