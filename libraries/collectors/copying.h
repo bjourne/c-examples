@@ -16,7 +16,7 @@ typedef struct {
 } copying_gc;
 
 // Init, free
-copying_gc *cg_init(size_t size);
+copying_gc *cg_init(ptr start, size_t size);
 void cg_free(copying_gc *me);
 
 // Allocation

@@ -14,7 +14,6 @@ typedef struct {
     hashset *candidates;
 } ref_counting_cycles_gc;
 
-ref_counting_cycles_gc *rcc_init(size_t max_used);
 gc_dispatch *rcc_get_dispatch_table();
 
 

@@ -5,36 +5,38 @@
 #include "collectors/common.h"
 
 typedef struct {
-    gc_dispatch *dispatch;
     vector *roots;
-    void* mem_man;
+    ptr memory;
+    size_t size;
+    gc_dispatch *gc_dispatch;
+    void* gc_obj;
 } vm;
 
-vm *vm_init(gc_dispatch *dispatch, size_t max_used);
-void vm_free(vm *v);
+vm *vm_init(gc_dispatch *gc_dispatch, size_t max_used);
+void vm_free(vm *me);
 
 // Roots interface
-ptr vm_add(vm *v, ptr p);
-ptr vm_remove(vm *v);
-ptr vm_last(vm *v);
-size_t vm_size(vm *v);
-void vm_set(vm *v, size_t i, ptr p);
-ptr vm_get(vm *v, size_t i);
+ptr vm_add(vm *me, ptr p);
+ptr vm_remove(vm *me);
+ptr vm_last(vm *me);
+size_t vm_size(vm *me);
+void vm_set(vm *me, size_t i, ptr p);
+ptr vm_get(vm *me, size_t i);
 
 // Force collection
 void vm_collect(vm *me);
 
 // Barriers & ref counting
-void vm_set_slot(vm *v, ptr p_from, size_t i, ptr p);
+void vm_set_slot(vm *me, ptr p_from, size_t i, ptr p);
 
 // Object allocation
-ptr vm_boxed_int_init(vm *v, int value);
-ptr vm_boxed_float_init(vm *v, double value);
-ptr vm_array_init(vm *v, int n, ptr value);
-ptr vm_wrapper_init(vm *v, ptr value);
+ptr vm_boxed_int_init(vm *me, int value);
+ptr vm_boxed_float_init(vm *me, double value);
+ptr vm_array_init(vm *me, int n, ptr value);
+ptr vm_wrapper_init(vm *me, ptr value);
 
 // Stats
-void vm_tree_dump(vm *v);
-size_t vm_space_used(vm *v);
+void vm_tree_dump(vm *me);
+size_t vm_space_used(vm *me);
 
 #endif

@@ -68,7 +68,7 @@ void p_print_slots(int ind, ptr *base, size_t n);
 
 
 // This is the protocol that any collector must implement.
-typedef void *(*gc_func_init)(size_t max_used);
+typedef void *(*gc_func_init)(ptr start, size_t size);
 typedef void (*gc_func_free)(void *me);
 
 typedef bool (*gc_func_can_allot_p)(void *me, size_t n_bytes);

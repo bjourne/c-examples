@@ -18,18 +18,16 @@
 #include "datatypes/vector.h"
 
 static
-space *s_init(size_t size) {
+space *s_init(ptr start, size_t size) {
     space *s = malloc(sizeof(space));
-    ptr mem = (ptr)malloc(size);
-    s->start = mem;
-    s->end = mem + size;
+    s->start = start;
     s->here = s->start;
+    s->end = start + size;
     return s;
 }
 
 static
 void s_free(space *s) {
-    free((void *)s->start);
     free(s);
 }
 
@@ -70,11 +68,11 @@ void s_copy_slots(space *s, ptr *base, size_t n_slots) {
 }
 
 copying_gc *
-cg_init(size_t size) {
+cg_init(ptr start, size_t size) {
     assert(size % 2 == 0);
     copying_gc *cg = malloc(sizeof(copying_gc));
-    cg->active = s_init(size / 2);
-    cg->inactive = s_init(size / 2);
+    cg->active = s_init(start, size / 2);
+    cg->inactive = s_init(start + size / 2, size / 2);
     return cg;
 }
 

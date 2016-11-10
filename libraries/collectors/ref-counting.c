@@ -4,7 +4,7 @@
 #include "collectors/ref-counting.h"
 
 ref_counting_gc *
-rc_init(size_t max_used) {
+rc_init(ptr start, size_t max_used) {
     ref_counting_gc *me = malloc(sizeof(ref_counting_gc));
     me->size = max_used;
     me->used = 0;

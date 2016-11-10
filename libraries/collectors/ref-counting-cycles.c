@@ -8,8 +8,8 @@
 #include "collectors/ref-counting.h"
 #include "collectors/ref-counting-cycles.h"
 
-ref_counting_cycles_gc *
-rcc_init(size_t max_used) {
+static ref_counting_cycles_gc *
+rcc_init(ptr start, size_t max_used) {
     ref_counting_cycles_gc *me = malloc(sizeof(ref_counting_cycles_gc));
     me->size = max_used;
     me->used = 0;

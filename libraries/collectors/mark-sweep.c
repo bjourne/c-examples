@@ -7,12 +7,10 @@
 #include "collectors/mark-sweep.h"
 
 mark_sweep_gc *
-ms_init(size_t size) {
+ms_init(ptr start, size_t size) {
     mark_sweep_gc *me = malloc(sizeof(mark_sweep_gc));
-    me->used = 0;
     me->mark_stack = v_init(16);
-    me->start = (ptr)malloc(size);
-    memset((void *)me->start, 0, size);
+    me->start = start;
     me->size = size;
     me->qf = qf_init(me->start, size);
     return me;
@@ -22,7 +20,6 @@ void
 ms_free(mark_sweep_gc* me) {
     v_free(me->mark_stack);
     qf_free(me->qf);
-    free((void *)me->start);
     free(me);
 }
 
@@ -47,12 +44,10 @@ ms_collect(mark_sweep_gc *me, vector *roots) {
             mark_step(v, p);
         }
     }
-    me->used = 0;
     while (v->used) {
         // Think of removing the object from the mark stack as moving
         // it from the gray to the black set.
         ptr p = v_remove(v);
-        me->used += p_size(p);
         P_FOR_EACH_CHILD(p, {
             mark_step(v, p_child);
         });
@@ -92,16 +87,15 @@ ms_can_allot_p(mark_sweep_gc *me, size_t size) {
 
 ptr
 ms_do_allot(mark_sweep_gc *me, int type, size_t size) {
-    // Malloc and record address.
+    // Allot and record address.
     ptr p = qf_allot_block(me->qf, size);
-    me->used += size;
     P_SET_TYPE(p, type);
     return p;
 }
 
 size_t
-ms_space_used(mark_sweep_gc *ms) {
-    return ms->used;
+ms_space_used(mark_sweep_gc *me) {
+    return me->size - me->qf->free_space;
 }
 
 void

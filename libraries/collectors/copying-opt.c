@@ -8,8 +8,8 @@
 #include "collectors/copying.h"
 
 // This is the performance optimized version of copying.c
-static
-ptr s_allot(space *s, size_t n_bytes) {
+static ptr
+s_allot(space *s, size_t n_bytes) {
     assert(s->start <= s->here);
     assert(s->here <= s->end);
     ptr p = s->here;
@@ -17,8 +17,8 @@ ptr s_allot(space *s, size_t n_bytes) {
     return p;
 }
 
-//__attribute__ ((noinline)) <- why did I want this?
-void fast_memcpy(ptr *dst, ptr* src, size_t n) {
+void
+fast_memcpy(ptr *dst, ptr* src, size_t n) {
     if (n == 16) {
         *dst++ = *src++;
         *dst++ = *src++;

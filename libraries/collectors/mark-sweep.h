@@ -9,13 +9,12 @@
 typedef struct {
     ptr start;
     size_t size;
-    size_t used;
     vector *mark_stack;
     quick_fit *qf;
 } mark_sweep_gc;
 
 // Init, free
-mark_sweep_gc *ms_init(size_t size);
+mark_sweep_gc *ms_init(ptr start, size_t size);
 void ms_free(mark_sweep_gc *ms);
 
 // Allocation

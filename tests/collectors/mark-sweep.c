@@ -6,7 +6,7 @@ void
 test_collect_1() {
     vm *v = vm_init(ms_get_dispatch_table(), 4096);
 
-    mark_sweep_gc *ms = (mark_sweep_gc *)v->mem_man;
+    mark_sweep_gc *ms = (mark_sweep_gc *)v->gc_obj;
     assert(ms->qf->n_blocks == 1);
     assert(QF_GET_BLOCK_SIZE(ms->start) == 4096);
 
@@ -15,17 +15,19 @@ test_collect_1() {
     assert(rel_block_addr == QF_LARGE_BLOCK_SIZE(16) - 16);
 
     ms_collect(ms, v->roots);
-    assert(ms->used == 16);
+    assert(ms_space_used(ms) == 16);
     assert(ms->qf->free_space == 4080);
     vm_free(v);
 }
 
 void
 test_collect_2() {
-    mark_sweep_gc *ms = ms_init(4096);
+    ptr mem = (ptr)malloc(4096);
+    mark_sweep_gc *ms = ms_init(mem, 4096);
 
     vector *roots = v_init(16);
     ptr p = ms_do_allot(ms, TYPE_INT, 4080);
+    assert(ms_space_used(ms) == 4080);
     assert(p);
     assert(ms->qf->n_blocks == 1);
     v_add(roots, p);
@@ -34,15 +36,17 @@ test_collect_2() {
 
     // Blocks must be unmarked
     assert(!P_GET_MARK(p));
-    assert(ms->used == 16);
+    assert(ms_space_used(ms) == 4080);
 
     v_free(roots);
     ms_free(ms);
+    free((void*)mem);
 }
 
 void
 test_collect_3() {
-    mark_sweep_gc *ms = ms_init(4096);
+    ptr mem = (ptr)malloc(4096);
+    mark_sweep_gc *ms = ms_init(mem, 4096);
     vector *roots = v_init(16);
 
     ptr p = ms_do_allot(ms, TYPE_INT, 16);
@@ -52,7 +56,7 @@ test_collect_3() {
 
     p = ms_do_allot(ms, TYPE_INT, 176);
     v_add(roots, p);
-    assert(ms->used == 176 + 16);
+    assert(ms_space_used(ms) == 176 + 16);
 
     ms_collect(ms, roots);
 
@@ -62,8 +66,22 @@ test_collect_3() {
     qf_print(ms->qf, ms->start, ms->size);
 
     assert(!ms_can_allot_p(ms, 336));
+
     v_free(roots);
     ms_free(ms);
+    free((void*)mem);
+}
+
+void
+test_do_allot() {
+    ptr mem = (ptr)malloc(4096);
+    mark_sweep_gc *ms = ms_init(mem, 4096);
+
+    ms_do_allot(ms, TYPE_INT, 176);
+    assert(QF_GET_BLOCK_SIZE(mem) == 176);
+
+    ms_free(ms);
+    free((void*)mem);
 }
 
 int
@@ -71,4 +89,5 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_collect_1);
     PRINT_RUN(test_collect_2);
     PRINT_RUN(test_collect_3);
+    PRINT_RUN(test_do_allot);
 }
