@@ -15,8 +15,8 @@
 
 // The header format is setup so that it is compatible with the one
 // described in collectors/common.h.
-#define QF_GET_BLOCK_SIZE(p)        BF_GET(AT(p), 8, 24)
-#define QF_SET_BLOCK_SIZE(p, n)     AT(p) = BF_SET(AT(p), n, 8, 24)
+#define QF_GET_BLOCK_SIZE(p)        (AT(p) >> 32L)
+#define QF_SET_BLOCK_SIZE(p, n)     AT(p) = (n << 32L)
 
 typedef struct {
     vector* buckets[QF_N_BUCKETS];

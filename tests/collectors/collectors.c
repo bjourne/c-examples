@@ -87,9 +87,17 @@ test_ref_count_colors() {
     if (dispatch != rcc_get_dispatch_table()) {
         return;
     }
+    ptr p = 0xffffffff;
+    P_INIT(&p, TYPE_ARRAY);
+    P_SET_COL(&p, COL_PURPLE);
+
+    assert(P_GET_COL(&p) == COL_PURPLE);
+    assert(P_GET_TYPE(&p) == TYPE_ARRAY);
+
     vm *v = vm_init(dispatch, 200);
     ptr bi = vm_boxed_int_init(v, 99);
     P_SET_COL(bi, COL_PURPLE);
+    assert(P_GET_COL(bi) == COL_PURPLE);
     vm_add(v, bi);
     assert(P_GET_RC(bi) == 1);
     assert(P_GET_COL(bi) == COL_BLACK);

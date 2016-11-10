@@ -65,11 +65,12 @@ ms_collect(mark_sweep_gc *me, vector *roots) {
     ptr end = me->start + me->size;
     ptr iter = me->start;
 
+    // We should use state bits instead.
     while (iter != end) {
         // Find next unmarked blocks.
         while (P_GET_MARK(iter + sizeof(ptr))) {
             P_UNMARK(iter + sizeof(ptr));
-            iter += AT(iter);
+            iter += QF_GET_BLOCK_SIZE(iter);
             if (iter == end) {
                 return;
             }
@@ -77,7 +78,7 @@ ms_collect(mark_sweep_gc *me, vector *roots) {
         // Found an unmarked block.
         ptr free_start = iter;
         while (iter != end && !P_GET_MARK(iter + sizeof(ptr))) {
-            iter += AT(iter);
+            iter += QF_GET_BLOCK_SIZE(iter);
         }
         size_t free_size = iter - free_start;
         qf_free_block(me->qf, free_start, free_size);
