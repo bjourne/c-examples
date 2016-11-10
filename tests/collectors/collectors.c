@@ -39,6 +39,10 @@ test_vm() {
 
 void
 test_ref_counts() {
+    ptr p = 0;
+    P_INC_RC((ptr)&p);
+    assert(P_GET_RC((ptr)&p) == 1);
+
     if (!(dispatch == rc_get_dispatch_table() ||
           dispatch == rcc_get_dispatch_table()))
         return;
