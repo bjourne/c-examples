@@ -66,7 +66,7 @@ void p_print(int ind, size_t n, ptr p) {
     unsigned int t = P_GET_TYPE(p);
     printf("%2" PRId64 ": %s @ 0x%" PRIx64 ": ", n, type_name(t), p);
     if (t == TYPE_FLOAT) {
-        printf("%.3f", (double)*SLOT_P(p, 0));
+        printf("%.3f", *(double*)SLOT_P(p, 0));
     } else if (t == TYPE_INT) {
         printf("%d", (int)*SLOT_P(p, 0));
     }
