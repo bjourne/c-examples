@@ -15,7 +15,7 @@ p_size(ptr p) {
         return NPTRS(2 + n_els);
     }
     default:
-        error("Unknown type!\n");
+        error("Unknown type in p_size!\n");
         return 0;
     }
 }
@@ -31,7 +31,7 @@ p_slot_count(ptr p) {
         return 1 + n_els;
     }
     default:
-        error("Unknown type!\n");
+        error("Unknown type in p_slot_count!\n");
         return 0;
     }
 }
