@@ -18,16 +18,16 @@
 #define P_MARK(p)           AT(p) |= 1
 
 #define P_GET_TYPE(p)       P_GET(p, 1, 4)
-#define P_SET_TYPE(p, t)    AT(p) = BF_MERGE(AT(p), t, 1, 4)
+#define P_SET_TYPE(p, t)    P_SET(p, t, 1, 4)
 
-#define P_GET_RC(p)         BF_GET(AT(p), 8, 24)
-#define P_SET_RC(p, n)      AT(p) = BF_MERGE(AT(p), n, 8, 24)
+#define P_GET_RC(p)         P_GET(p, 8, 24)
+#define P_SET_RC(p, n)      P_SET(p, n, 8, 24)
 
 #define P_DEC_RC(p)         AT(p) = AT(p) - (1L << 8)
 #define P_INC_RC(p)         AT(p) = AT(p) + (1L << 8)
 
-#define P_GET_COL(p)        BF_GET(AT(p), 5, 3)
-#define P_SET_COL(p, c)     AT(p) = BF_MERGE(AT(p), c, 5, 3)
+#define P_GET_COL(p)        P_GET(p, 5, 3)
+#define P_SET_COL(p, c)     P_SET(p, c, 5, 3)
 
 #define TYPE_CONTAINER_P(t) (t == TYPE_ARRAY || t == TYPE_WRAPPER)
 

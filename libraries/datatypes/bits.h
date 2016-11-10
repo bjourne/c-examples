@@ -12,7 +12,6 @@
 #define BF_GET(x, start, len)       (((x) >> (start)) & BF_LIT_BITS(len))
 #define BF_MERGE(x, n, start, len)  (((x) & ~BF_MASK(start, len)) | ((n) << (start)))
 
-
 #define P_GET(p, start, len)        BF_GET(AT(p), start, len)
 #define P_SET(p, n, start, len)     AT(p) = BF_MERGE(AT(p), n, start, len)
 
