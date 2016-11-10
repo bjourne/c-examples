@@ -2,6 +2,7 @@
 #define QUICKFIT_H
 
 #include <stdbool.h>
+#include "datatypes/bits.h"
 #include "datatypes/rbtree.h"
 #include "datatypes/vector.h"
 
@@ -12,8 +13,10 @@
 #define QF_LARGE_BLOCK_SIZE(small_size) \
     ((QF_PAGE_SIZE + small_size - 1) / small_size) * small_size
 
-#define QF_GET_BLOCK_SIZE(p)        AT(p)
-#define QF_SET_BLOCK_SIZE(p, n)     AT(p) = (n);
+// The header format is setup so that it is compatible with the one
+// described in collectors/common.h.
+#define QF_GET_BLOCK_SIZE(p)        BF_GET(AT(p), 8, 24)
+#define QF_SET_BLOCK_SIZE(p, n)     AT(p) = BF_SET(AT(p), n, 8, 24)
 
 typedef struct {
     vector* buckets[QF_N_BUCKETS];
