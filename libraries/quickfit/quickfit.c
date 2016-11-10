@@ -31,6 +31,8 @@ qf_clear(quick_fit *qf) {
 quick_fit *
 qf_init(ptr start, size_t size) {
     quick_fit *qf = (quick_fit *)malloc(sizeof(quick_fit));
+    qf->start = start;
+    qf->size = size;
     qf->large_blocks = NULL;
     for (int i = 0; i < QF_N_BUCKETS; i++) {
         qf->buckets[i] = v_init(32);
@@ -112,14 +114,20 @@ qf_allot_block(quick_fit *me, size_t size) {
 }
 
 void
-qf_print(quick_fit *me, ptr start, size_t size) {
-    ptr end = start + size;
-    ptr iter = start;
+qf_print(quick_fit *me) {
+    ptr end = me->start + me->size;
+    ptr iter = me->start;
     while (iter < end) {
         size_t size = QF_GET_BLOCK_SIZE(iter);
-        printf("@%5" PRIu64 ": %4" PRIu64 "\n", iter - start, size);
+        ptr rel_addr = iter - me->start;
+        printf("@%5" PRIu64 ": %4" PRIu64 "\n", rel_addr, size);
         iter += size;
     }
+}
+
+size_t
+qf_space_used(quick_fit *me) {
+    return me->size - me->free_space;
 }
 
 bool

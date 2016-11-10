@@ -11,7 +11,6 @@
 static ref_counting_cycles_gc *
 rcc_init(ptr start, size_t size) {
     ref_counting_cycles_gc *me = malloc(sizeof(ref_counting_cycles_gc));
-    me->size = size;
     me->qf = qf_init(start, size);
     me->blacks = v_init(16);
     me->grays = v_init(16);

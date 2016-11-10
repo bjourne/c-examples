@@ -10,9 +10,7 @@ mark_sweep_gc *
 ms_init(ptr start, size_t size) {
     mark_sweep_gc *me = malloc(sizeof(mark_sweep_gc));
     me->mark_stack = v_init(16);
-    me->start = start;
-    me->size = size;
-    me->qf = qf_init(me->start, size);
+    me->qf = qf_init(start, size);
     return me;
 }
 
@@ -57,9 +55,8 @@ ms_collect(mark_sweep_gc *me, vector *roots) {
     // the whole heap has been divided into black (marked) and white
     // (condemned) objects.
     qf_clear(me->qf);
-    ptr end = me->start + me->size;
-    ptr iter = me->start;
-
+    ptr iter = me->qf->start;
+    ptr end = iter + me->qf->size;
     // We should use state bits instead.
     while (iter != end) {
         // Find next unmarked blocks.
@@ -95,7 +92,7 @@ ms_do_allot(mark_sweep_gc *me, int type, size_t size) {
 
 size_t
 ms_space_used(mark_sweep_gc *me) {
-    return me->size - me->qf->free_space;
+    return qf_space_used(me->qf);
 }
 
 void

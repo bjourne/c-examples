@@ -23,6 +23,8 @@ typedef struct {
     rbtree* large_blocks;
     size_t n_blocks;
     size_t free_space;
+    ptr start;
+    size_t size;
 } quick_fit;
 
 quick_fit *qf_init(ptr start, size_t size);
@@ -31,7 +33,8 @@ void qf_free(quick_fit *qf);
 void qf_clear(quick_fit *qf);
 ptr qf_allot_block(quick_fit *qf, size_t size);
 void qf_free_block(quick_fit *qf, ptr p, size_t size);
-void qf_print(quick_fit *qf, ptr start, size_t size);
+void qf_print(quick_fit *qf);
 bool qf_can_allot_p(quick_fit *qf, size_t size);
+size_t qf_space_used(quick_fit *qf);
 
 #endif

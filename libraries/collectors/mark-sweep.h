@@ -7,8 +7,6 @@
 #include "collectors/common.h"
 
 typedef struct {
-    ptr start;
-    size_t size;
     vector *mark_stack;
     quick_fit *qf;
 } mark_sweep_gc;

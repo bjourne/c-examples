@@ -5,7 +5,6 @@
 #include "datatypes/vector.h"
 
 typedef struct {
-    size_t size;
     quick_fit *qf;
     vector *blacks;
     vector *grays;

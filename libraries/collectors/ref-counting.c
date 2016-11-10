@@ -10,7 +10,6 @@
 ref_counting_gc *
 rc_init(ptr start, size_t size) {
     ref_counting_gc *me = malloc(sizeof(ref_counting_gc));
-    me->size = size;
     me->qf = qf_init(start, size);
     me->decrefs = v_init(16);
     return me;
@@ -34,7 +33,7 @@ rc_collect(ref_counting_gc *me, vector *roots) {
 
 size_t
 rc_space_used(ref_counting_gc *me) {
-    return me->size - me->qf->free_space;
+    return qf_space_used(me->qf);
 }
 
 ptr

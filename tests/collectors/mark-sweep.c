@@ -8,10 +8,10 @@ test_collect_1() {
 
     mark_sweep_gc *ms = (mark_sweep_gc *)v->gc_obj;
     assert(ms->qf->n_blocks == 1);
-    assert(QF_GET_BLOCK_SIZE(ms->start) == 4096);
+    assert(QF_GET_BLOCK_SIZE(ms->qf->start) == 4096);
 
     ptr p = vm_add(v, vm_boxed_int_init(v, 20));
-    ptr rel_block_addr = p - ms->start;
+    ptr rel_block_addr = p - ms->qf->start;
     assert(rel_block_addr == QF_LARGE_BLOCK_SIZE(16) - 16);
 
     ms_collect(ms, v->roots);
@@ -50,7 +50,7 @@ test_collect_3() {
     vector *roots = v_init(16);
 
     ptr p = ms_do_allot(ms, TYPE_INT, 16);
-    ptr rel_addr = p - ms->start;
+    ptr rel_addr = p - ms->qf->start;
     assert(rel_addr == 1008);
     v_add(roots, p);
 
@@ -63,7 +63,7 @@ test_collect_3() {
     p = ms_do_allot(ms, TYPE_INT, 16);
     v_add(roots, p);
 
-    qf_print(ms->qf, ms->start, ms->size);
+    qf_print(ms->qf);
 
     assert(!ms_can_allot_p(ms, 336));
 

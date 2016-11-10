@@ -7,10 +7,8 @@
 #include "collectors/common.h"
 
 typedef struct {
-    size_t size;
     quick_fit *qf;
     vector *decrefs;
-
 } ref_counting_gc;
 
 gc_dispatch *rc_get_dispatch_table();
