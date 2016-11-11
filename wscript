@@ -16,7 +16,7 @@ def configure(ctx):
                        '-march=native',
                        '-mtune=native']
         debug_flags = ['-O2', '-g']
-    extra_flags = speed_flags
+    extra_flags = debug_flags
     ctx.env.append_unique('CFLAGS', base_flags + extra_flags)
     ctx.env.append_unique('CXXFLAGS', base_flags + extra_flags)
     ctx.env.append_value('INCLUDES', ['libraries'])
@@ -51,5 +51,6 @@ def build(ctx):
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
     build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
     if ctx.env.DEST_OS != 'win32':
+        build_program(ctx, 'capstack.c', ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
         build_program(ctx, 'sigsegv.c', [])
         build_program(ctx, 'pcre.c', ['PCRE'])
