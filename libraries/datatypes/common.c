@@ -38,7 +38,7 @@ nano_count() {
         }
         scale_factor = (1000000000.0 / frequency.QuadPart);
   }
-#ifdef _M_AMD64
+#ifdef CPU_64
     hi = count.HighPart;
 #else
     if (lo > count.LowPart) {

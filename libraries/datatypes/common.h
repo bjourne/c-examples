@@ -14,6 +14,13 @@ void error(char *fmt, ...);
 int rand_n(int n);
 void rand_init(unsigned int seed);
 
+// Platform detection
+#if defined(__amd64__) || defined(__x86_64__) || defined(_M_AMD64)
+#define CPU_64
+#else
+#define CPU_32
+#endif
+
 // It's shorter to type AT(foo) than *(ptr *)foo
 #define AT(p) (*(ptr *)(p))
 
