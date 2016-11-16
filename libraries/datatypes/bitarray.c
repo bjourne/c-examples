@@ -77,10 +77,13 @@ ba_next_unset_bit(bitarray *me, int addr) {
     int bit_idx = addr & WORD_MASK;
 
     for (int i = word_idx; i < me->n_words; i++) {
-        ptr p = AT(me->bits + i * sizeof(ptr)) >> bit_idx;
-        if (~p) {
+        ptr p = AT(me->bits + i * sizeof(ptr));
+        // Cast it to a signed type so that the shifted in bits are
+        // set.
+        ptr pattern = (intptr_t)p >> bit_idx;
+        if (~pattern) {
             int base_bits = i * WORD_BITS;
-            int ofs_bits = rightmost_clear_bit(p);
+            int ofs_bits = rightmost_clear_bit(pattern);
             return base_bits + ofs_bits + bit_idx;
         }
         bit_idx = 0;
@@ -94,10 +97,11 @@ ba_next_set_bit(bitarray *me, int addr) {
     int bit_idx = addr & WORD_MASK;
 
     for (int i = word_idx; i < me->n_words; i++) {
-        ptr p = AT(me->bits + i * sizeof(ptr)) >> bit_idx;
-        if (p) {
+        ptr p = AT(me->bits + i * sizeof(ptr));
+        ptr pattern = p >> bit_idx;
+        if (pattern) {
             int base_bits = i * WORD_BITS;
-            int ofs_bits = rightmost_set_bit(p);
+            int ofs_bits = rightmost_set_bit(pattern);
             return base_bits + ofs_bits + bit_idx;
         }
     }

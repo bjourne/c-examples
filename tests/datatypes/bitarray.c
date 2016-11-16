@@ -98,6 +98,9 @@ test_next_unset_bit() {
     ba_set_bit_range(ba, 0, 1024);
     assert(ba_next_unset_bit(ba, 0) == -1);
 
+    ba_set_bit(ba, 20);
+    assert(ba_next_unset_bit(ba, 20) == -1);
+
     ba_free(ba);
 }
 
