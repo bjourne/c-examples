@@ -26,7 +26,7 @@ ba_get_bit(bitarray *me, int addr) {
     int word_idx = addr / WORD_BITS;
     int bit_idx = addr & WORD_MASK;
     ptr p = me->bits + word_idx * sizeof(ptr);
-    return AT(p) & (1L << bit_idx);
+    return AT(p) & (1i64 << bit_idx);
 }
 
 void
@@ -34,7 +34,7 @@ ba_set_bit(bitarray *me, int addr) {
     int word_idx = addr / WORD_BITS;
     int bit_idx = addr & WORD_MASK;
     ptr p = me->bits + word_idx * sizeof(ptr);
-    AT(p) |= 1L << bit_idx;
+    AT(p) |= 1i64 << bit_idx;
 }
 
 void
@@ -44,8 +44,8 @@ ba_set_bit_range(bitarray *me, int addr, int n) {
     int word_end_idx = (addr + n) / WORD_BITS;
     int bit_end_idx = (addr + n) & WORD_MASK;
 
-    ptr start_mask = (1L << bit_start_idx) - 1L;
-    ptr end_mask = (1L << bit_end_idx) - 1L;
+    ptr start_mask = (1i64 << bit_start_idx) - 1L;
+    ptr end_mask = (1i64 << bit_end_idx) - 1L;
 
     ptr p = me->bits + word_start_idx * sizeof(ptr);
     if (word_start_idx == word_end_idx) {

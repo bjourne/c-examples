@@ -7,42 +7,34 @@
 // How this works, I don't know!
 inline ptr
 bw_log2(ptr x) {
-  ptr n;
+    ptr n;
 #if defined(CPU_32)
-
-#if defined(_MSC_VER)
-  _BitScanReverse((unsigned long*)&n, x);
-#else
-  asm("bsr %1, %0;" : "=r"(n) : "r"(x));
-#endif
+    #if defined(_MSC_VER)
+    _BitScanReverse((unsigned long*)&n, x);
+    #else
+    asm("bsr %1, %0;" : "=r"(n) : "r"(x));
+    #endif
 
 #elif defined(CPU_64)
 
-#if defined(_MSC_VER)
-  n = 0;
-  _BitScanReverse64((unsigned long*)&n, x);
-#else
-  asm("bsr %1, %0;" : "=r"(n) : "r"(x));
-#endif
-
-#if defined(__GNUC__)
-  n = (63 - __builtin_clzll(x));
-#else
-#error Unsupported compiler
-#endif
-
+    #if defined(_MSC_VER)
+    n = 0;
+    _BitScanReverse64((unsigned long*)&n, x);
+    #else
+    asm("bsr %1, %0;" : "=r"(n) : "r"(x));
+    #endif
 #endif
   return n;
 }
 
-inline ptr
+inline int
 rightmost_clear_bit(ptr x) {
-    return bw_log2(~x & (x + 1));
+    return (int)bw_log2(~x & (x + 1));
 }
 
-inline ptr
+inline int
 rightmost_set_bit(ptr x) {
-    return bw_log2(x & (~x + 1));
+    return (int)bw_log2(x & (~x + 1));
 }
 
 typedef struct {

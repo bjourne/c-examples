@@ -63,6 +63,8 @@ test_set_range() {
     }
     ba_clear(ba);
     ba_set_bit_range(ba, 10, 112);
+    assert(AT(ba->bits) == 0xfffffffffffffc00);
+    assert(AT(ba->bits + sizeof(ptr)) == 0x3ffffffffffffff);
     for (int i = 0; i < 112; i++) {
         assert(ba_get_bit(ba, 10 + i));
     }
