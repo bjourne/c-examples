@@ -1,5 +1,6 @@
 // To determine if my rbtree is faster than std::multimap
 #include <assert.h>
+#include <inttypes.h>
 #include <iostream>
 #include <map>
 #include <vector>
@@ -46,7 +47,7 @@ test_torture_2() {
         int key = rand();
         map.insert(std::make_pair(key, key));
     }
-    printf("%lu elements in set\n", map.size());
+    printf("%" PRIu64 " elements in set\n", map.size());
 }
 
 void
@@ -62,7 +63,7 @@ test_torture_3() {
     for (uint64_t i = 0; i < count; i++) {
         map.erase(v[i]);
     }
-    printf("%lu elements in set\n", map.size());
+    printf("%" PRIu64 " elements in set\n", map.size());
 }
 
 int
