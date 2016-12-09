@@ -41,8 +41,9 @@ ba_set_bit(bitarray *me, int addr) {
 void
 ba_set_bit_range(bitarray *me, int addr, int n) {
     int word_start_idx = addr / BA_WORD_BITS;
-    int bit_start_idx = addr & WORD_MASK;
     int word_end_idx = (addr + n) / BA_WORD_BITS;
+
+    int bit_start_idx = addr & WORD_MASK;
     int bit_end_idx = (addr + n) & WORD_MASK;
 
     ptr start_mask = (1i64 << bit_start_idx) - 1L;
@@ -52,10 +53,9 @@ ba_set_bit_range(bitarray *me, int addr, int n) {
     if (word_start_idx == word_end_idx) {
         AT(p) |= (ptr)(start_mask ^ end_mask);
     } else {
-
         AT(p) |= ~start_mask;
         p += sizeof(ptr);
-        ptr end = p + (word_end_idx - 1) * sizeof(ptr);
+        ptr end = me->bits + word_end_idx * sizeof(ptr);
         while (p < end) {
             AT(p) = -1;
             p += sizeof(ptr);
@@ -107,4 +107,14 @@ ba_next_set_bit(bitarray *me, int addr) {
         }
     }
     return -1;
+}
+
+int
+ba_bitsum(bitarray *me) {
+    int sum = 0;
+    for (int i = 0; i < me->n_words; i++) {
+        ptr count = __builtin_popcountl(AT(me->bits + i * sizeof(ptr)));
+        sum += count;
+    }
+    return sum;
 }
