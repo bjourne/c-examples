@@ -4,6 +4,7 @@
 #include "collectors/copying.h"
 #include "collectors/copying-opt.h"
 #include "collectors/mark-sweep.h"
+#include "collectors/mark-sweep-bits.h"
 #include "collectors/ref-counting.h"
 #include "collectors/ref-counting-cycles.h"
 
@@ -174,7 +175,8 @@ test_stack_overflow() {
 
 void
 test_mark_stack_overflow() {
-    vm *v = vm_init(dispatch, 9192);
+    vm *v = vm_init(dispatch, 1024 * 10);
+
     vm_add(v, vm_array_init(v, 20, vm_boxed_int_init(v, 20)));
     vm_collect(v);
     vm_add(v, vm_array_init(v, 40, 0));
@@ -211,9 +213,9 @@ test_random_stuff() {
         vm_set(v, n % 4, vm_array_init(v, 7, 0));
     }
     vm_set(v, 0, 0);
-    vm_tree_dump(v);
+    //vm_tree_dump(v);
     vm_collect(v);
-    vm_tree_dump(v);
+    //vm_tree_dump(v);
     vm_free(v);
 }
 
@@ -258,6 +260,7 @@ main(int argc, char *argv[]) {
         rc_get_dispatch_table(),
         rcc_get_dispatch_table(),
         ms_get_dispatch_table(),
+        msb_get_dispatch_table(),
         cg_get_dispatch_table_optimized()
     };
     char *names[] = {
@@ -265,6 +268,7 @@ main(int argc, char *argv[]) {
         "Reference Counting",
         "Cycle-collecting Reference Counting",
         "Mark & Sweep",
+        "Mark & Sweep (separate mark bits)",
         "Optimized Copying"
     };
     for (size_t n = 0; n < ARRAY_SIZE(names); n++) {

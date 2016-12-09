@@ -2,8 +2,8 @@
 #define MARK_SWEEP_H
 
 #include <stdbool.h>
-#include "quickfit/quickfit.h"
 #include "datatypes/vector.h"
+#include "quickfit/quickfit.h"
 #include "collectors/common.h"
 
 typedef struct {

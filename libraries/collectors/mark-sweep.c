@@ -46,20 +46,19 @@ ms_collect(mark_sweep_gc *me, vector *roots) {
         // Think of removing the object from the mark stack as moving
         // it from the gray to the black set.
         ptr p = v_remove(v);
-        P_FOR_EACH_CHILD(p, {
-            mark_step(v, p_child);
-        });
+        P_FOR_EACH_CHILD(p, { mark_step(v, p_child); });
     }
 
     // When control has reached this point, the gray set is empty and
     // the whole heap has been divided into black (marked) and white
     // (condemned) objects.
     qf_clear(me->qf);
+
     ptr iter = me->qf->start;
     ptr end = iter + me->qf->size;
-    // We should use state bits instead.
+
     while (iter != end) {
-        // Find next unmarked blocks.
+        // Find next unmarked block.
         while (P_GET_MARK(iter)) {
             P_UNMARK(iter);
             iter += QF_GET_BLOCK_SIZE(iter);
