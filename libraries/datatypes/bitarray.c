@@ -12,6 +12,10 @@ ba_clear(bitarray *me) {
 
 bitarray *
 ba_init(int n_bits) {
+    if (n_bits % BA_WORD_BITS != 0) {
+        error("ba_init: %d not a multiple of %d", n_bits, BA_WORD_BITS);
+    }
+
     bitarray *me = (bitarray *)malloc(sizeof(bitarray));
     me->n_bits = n_bits;
     me->n_words = (n_bits + BA_WORD_BITS - 1) / BA_WORD_BITS;

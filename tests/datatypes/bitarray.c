@@ -11,11 +11,11 @@ test_twiddling() {
 
 void
 test_basic() {
-    bitarray *ba = ba_init(13);
+    bitarray *ba = ba_init(64);
     assert(ba->n_words == 1);
     ba_free(ba);
 
-    ba = ba_init(100);
+    ba = ba_init(128);
     assert(ba->n_words == 2);
     ba_free(ba);
 }
@@ -118,6 +118,13 @@ test_next_set_bit() {
     ba_set_bit_range(ba, 100, 20);
     assert(ba_next_set_bit(ba, 10) == 100);
 
+    ba_free(ba);
+
+    ba = ba_init(64);
+    ba_clear(ba);
+    assert(ba_next_set_bit(ba, 0) == -1);
+    ba_set_bit_range(ba, 0, 64);
+    assert(ba_next_unset_bit(ba, 0) == -1);
     ba_free(ba);
 }
 
