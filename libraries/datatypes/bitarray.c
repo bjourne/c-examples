@@ -105,6 +105,7 @@ ba_next_set_bit(bitarray *me, int addr) {
             int ofs_bits = rightmost_set_bit(pattern);
             return base_bits + ofs_bits + bit_idx;
         }
+        bit_idx = 0;
     }
     return -1;
 }
