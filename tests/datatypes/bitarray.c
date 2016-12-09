@@ -98,18 +98,19 @@ test_next_unset_bit() {
 
     assert(ba_next_unset_bit(ba, 0) == 0);
     ba_set_bit_range(ba, 0, 1024);
-    assert(ba_next_unset_bit(ba, 0) == -1);
+    assert(ba_next_unset_bit(ba, 0) == 1024);
 
     ba_set_bit(ba, 20);
-    assert(ba_next_unset_bit(ba, 20) == -1);
+    assert(ba_next_unset_bit(ba, 20) == 1024);
 
     ba_free(ba);
 }
 
 void
 test_next_set_bit() {
-    bitarray *ba = ba_init(1024);
-    assert(ba_next_set_bit(ba, 0) == -1);
+    bitarray *ba = NULL;
+    ba = ba_init(1024);
+    assert(ba_next_set_bit(ba, 0) == 1024);
     ba_set_bit(ba, 0);
     assert(ba_next_set_bit(ba, 0) == 0);
     assert(ba_next_unset_bit(ba, 0) == 1);
@@ -122,9 +123,66 @@ test_next_set_bit() {
 
     ba = ba_init(64);
     ba_clear(ba);
-    assert(ba_next_set_bit(ba, 0) == -1);
+    assert(ba_next_set_bit(ba, 0) == 64);
     ba_set_bit_range(ba, 0, 64);
-    assert(ba_next_unset_bit(ba, 0) == -1);
+    assert(ba_next_unset_bit(ba, 0) == 64);
+    ba_free(ba);
+
+    ba = ba_init(640);
+    ba_set_bit(ba, 400);
+    int v = ba_next_set_bit(ba, 350);
+
+    assert(v == 400);
+    ba_free(ba);
+}
+
+void
+test_bitsum() {
+    bitarray *ba = ba_init(640);
+
+    ba_clear(ba);
+    assert(ba_bitsum(ba) == 0);
+    ba_set_bit(ba, 12);
+    assert(ba_bitsum(ba) == 1);
+
+    ba_clear(ba);
+    ba_set_bit_range(ba, 0, 11);
+    assert(ba_bitsum(ba) == 11);
+
+    ba_clear(ba);
+    ba_set_bit_range(ba, 40, 11);
+    assert(ba_bitsum(ba) == 11);
+
+    ba_clear(ba);
+    ba_set_bit_range(ba, 127, 1);
+    assert(ba_bitsum(ba) == 1);
+    ba_clear(ba);
+
+    ba_set_bit_range(ba, 119, 11);
+    ba_set_bit_range(ba, 62, 1);
+    ba_set_bit_range(ba, 63, 1);
+    assert(ba_bitsum(ba) == 13);
+
+    ba_clear(ba);
+    ba_set_bit_range(ba, 100, 250);
+    assert(ba_bitsum(ba) == 250);
+    assert(ba_next_unset_bit(ba, 0) == 0);
+    assert(ba_next_set_bit(ba, 0) == 100);
+    assert(ba_next_unset_bit(ba, 100) == 350);
+
+    ba_set_bit_range(ba, 400, 1);
+    assert(ba_get_bit(ba, 400));
+    assert(ba_bitsum(ba) == 251);
+    assert(!ba_get_bit(ba, 350));
+    assert(ba_next_set_bit(ba, 370) == 400);
+
+    int count = 0;
+    BA_EACH_UNSET_RANGE(ba, {
+        assert(addr >= 0);
+        assert(size > 0);
+        count++;
+    });
+    assert(count == 3);
     ba_free(ba);
 }
 
@@ -136,5 +194,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_set_range);
     PRINT_RUN(test_next_unset_bit);
     PRINT_RUN(test_next_set_bit);
+    PRINT_RUN(test_bitsum);
     return 0;
 }

@@ -3,7 +3,7 @@
 
 #define WORD_MASK   (BA_WORD_BITS - 1)
 
-#define WORD_IDX(i)     (i / BA_WORD_BITS)
+#define WORD_IDX(i) (i / BA_WORD_BITS)
 
 void
 ba_clear(bitarray *me) {
@@ -17,6 +17,7 @@ ba_init(int n_bits) {
     }
     bitarray *me = (bitarray *)malloc(sizeof(bitarray));
     me->n_words = n_bits / BA_WORD_BITS;
+    me->n_bits = n_bits;
     me->bits = (ptr)malloc(me->n_words * sizeof(ptr));
     ba_clear(me);
     return me;
@@ -27,7 +28,7 @@ ba_get_bit(bitarray *me, int addr) {
     int word_idx = addr / BA_WORD_BITS;
     int bit_idx = addr & WORD_MASK;
     ptr p = me->bits + word_idx * sizeof(ptr);
-    return AT(p) & (1i64 << bit_idx);
+    return AT(p) & (1L << bit_idx);
 }
 
 void
@@ -35,7 +36,7 @@ ba_set_bit(bitarray *me, int addr) {
     int word_idx = addr / BA_WORD_BITS;
     int bit_idx = addr & WORD_MASK;
     ptr p = me->bits + word_idx * sizeof(ptr);
-    AT(p) |= 1i64 << bit_idx;
+    AT(p) |= 1L << bit_idx;
 }
 
 void
@@ -46,8 +47,8 @@ ba_set_bit_range(bitarray *me, int addr, int n) {
     int bit_start_idx = addr & WORD_MASK;
     int bit_end_idx = (addr + n) & WORD_MASK;
 
-    ptr start_mask = (1i64 << bit_start_idx) - 1L;
-    ptr end_mask = (1i64 << bit_end_idx) - 1L;
+    ptr start_mask = (1L << bit_start_idx) - 1L;
+    ptr end_mask = (1L << bit_end_idx) - 1L;
 
     ptr p = me->bits + word_start_idx * sizeof(ptr);
     if (word_start_idx == word_end_idx) {
@@ -89,7 +90,7 @@ ba_next_unset_bit(bitarray *me, int addr) {
         }
         bit_idx = 0;
     }
-    return -1;
+    return me->n_bits;
 }
 
 int
@@ -107,7 +108,7 @@ ba_next_set_bit(bitarray *me, int addr) {
         }
         bit_idx = 0;
     }
-    return -1;
+    return me->n_bits;
 }
 
 int
