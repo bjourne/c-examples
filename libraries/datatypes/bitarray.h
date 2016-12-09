@@ -41,7 +41,6 @@ rightmost_set_bit(ptr x) {
 
 typedef struct {
     ptr bits;
-    int n_bits;
     int n_words;
 } bitarray;
 
