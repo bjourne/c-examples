@@ -1,10 +1,9 @@
 #include <string.h>
 #include "bitarray.h"
 
-#define WORD_BITS   (8 * sizeof(ptr))
-#define WORD_MASK   (WORD_BITS - 1)
+#define WORD_MASK   (BA_WORD_BITS - 1)
 
-#define WORD_IDX(i)     (i / WORD_BITS)
+#define WORD_IDX(i)     (i / BA_WORD_BITS)
 
 void
 ba_clear(bitarray *me) {
@@ -15,7 +14,7 @@ bitarray *
 ba_init(int n_bits) {
     bitarray *me = (bitarray *)malloc(sizeof(bitarray));
     me->n_bits = n_bits;
-    me->n_words = (n_bits + WORD_BITS - 1) / WORD_BITS;
+    me->n_words = (n_bits + BA_WORD_BITS - 1) / BA_WORD_BITS;
     me->bits = (ptr)malloc(me->n_words * sizeof(ptr));
     ba_clear(me);
     return me;
@@ -23,7 +22,7 @@ ba_init(int n_bits) {
 
 bool
 ba_get_bit(bitarray *me, int addr) {
-    int word_idx = addr / WORD_BITS;
+    int word_idx = addr / BA_WORD_BITS;
     int bit_idx = addr & WORD_MASK;
     ptr p = me->bits + word_idx * sizeof(ptr);
     return AT(p) & (1i64 << bit_idx);
@@ -31,7 +30,7 @@ ba_get_bit(bitarray *me, int addr) {
 
 void
 ba_set_bit(bitarray *me, int addr) {
-    int word_idx = addr / WORD_BITS;
+    int word_idx = addr / BA_WORD_BITS;
     int bit_idx = addr & WORD_MASK;
     ptr p = me->bits + word_idx * sizeof(ptr);
     AT(p) |= 1i64 << bit_idx;
@@ -39,9 +38,9 @@ ba_set_bit(bitarray *me, int addr) {
 
 void
 ba_set_bit_range(bitarray *me, int addr, int n) {
-    int word_start_idx = addr / WORD_BITS;
+    int word_start_idx = addr / BA_WORD_BITS;
     int bit_start_idx = addr & WORD_MASK;
-    int word_end_idx = (addr + n) / WORD_BITS;
+    int word_end_idx = (addr + n) / BA_WORD_BITS;
     int bit_end_idx = (addr + n) & WORD_MASK;
 
     ptr start_mask = (1i64 << bit_start_idx) - 1L;
@@ -73,7 +72,7 @@ ba_free(bitarray *me) {
 
 int
 ba_next_unset_bit(bitarray *me, int addr) {
-    int word_idx = addr / WORD_BITS;
+    int word_idx = addr / BA_WORD_BITS;
     int bit_idx = addr & WORD_MASK;
 
     for (int i = word_idx; i < me->n_words; i++) {
@@ -82,7 +81,7 @@ ba_next_unset_bit(bitarray *me, int addr) {
         // set.
         ptr pattern = (intptr_t)p >> bit_idx;
         if (~pattern) {
-            int base_bits = i * WORD_BITS;
+            int base_bits = i * BA_WORD_BITS;
             int ofs_bits = rightmost_clear_bit(pattern);
             return base_bits + ofs_bits + bit_idx;
         }
@@ -93,14 +92,14 @@ ba_next_unset_bit(bitarray *me, int addr) {
 
 int
 ba_next_set_bit(bitarray *me, int addr) {
-    int word_idx = addr / WORD_BITS;
+    int word_idx = addr / BA_WORD_BITS;
     int bit_idx = addr & WORD_MASK;
 
     for (int i = word_idx; i < me->n_words; i++) {
         ptr p = AT(me->bits + i * sizeof(ptr));
         ptr pattern = p >> bit_idx;
         if (pattern) {
-            int base_bits = i * WORD_BITS;
+            int base_bits = i * BA_WORD_BITS;
             int ofs_bits = rightmost_set_bit(pattern);
             return base_bits + ofs_bits + bit_idx;
         }

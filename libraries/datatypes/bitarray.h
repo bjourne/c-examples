@@ -37,15 +37,13 @@ rightmost_set_bit(ptr x) {
     return (int)bw_log2(x & (~x + 1));
 }
 
+#define BA_WORD_BITS   (8 * sizeof(ptr))
+
 typedef struct {
     ptr bits;
     int n_bits;
     int n_words;
 } bitarray;
-
-
-
-
 
 bitarray *ba_init(int n_bits);
 void ba_free(bitarray *me);
