@@ -9,11 +9,13 @@ extern "C" {
 #include "datatypes/vector.h"
 }
 
+#define THE_COUNT 1000
+
 // 13.8
 void
 test_torture_comp() {
     std::multimap<int, ptr> map;
-    uint64_t count = 10 * 1000 * 1000;
+    uint64_t count = THE_COUNT;
     for (uint64_t i = 0; i < count; i++) {
         int key = rand();
         map.insert(std::make_pair(key, key));
@@ -25,7 +27,7 @@ void
 test_torture() {
     vector *v = v_init(32);
     std::multimap<int, ptr> map;
-    uint64_t count = 10 * 1000 * 1000;
+    uint64_t count = THE_COUNT;
     for (uint64_t i = 0; i < count; i++) {
         int key = rand();
         map.insert(std::make_pair(key, key));
@@ -42,7 +44,7 @@ test_torture() {
 void
 test_torture_2() {
     std::map<int, ptr> map;
-    uint64_t count = 10 * 1000 * 1000;
+    uint64_t count = THE_COUNT;
     for (uint64_t i = 0; i < count; i++) {
         int key = rand();
         map.insert(std::make_pair(key, key));
@@ -54,7 +56,7 @@ void
 test_torture_3() {
     std::map<int, ptr> map;
     std::vector<int> v;
-    uint64_t count = 10 * 1000 * 1000;
+    uint64_t count = THE_COUNT;
     for (uint64_t i = 0; i < count; i++) {
         int key = rand();
         map.insert(std::make_pair(key, key));
