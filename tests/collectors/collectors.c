@@ -221,19 +221,37 @@ test_random_stuff() {
 
 void
 test_torture() {
-    vm *v = vm_init(dispatch, 200 * 1024 * 1024);
+    vm *v = vm_init(dispatch, 800 * 1024 * 1024);
     for (int i = 0; i < 100; i++) {
         vm_add(v, vm_array_init(v, 500, 0));
     }
     int n_roots = (int)vm_size(v);
     assert(n_roots == 100);
-    for (int i = 0; i < 4000000; i++) {
+    for (int i = 0; i < 40000000; i++) {
         ptr rand_arr = vm_get(v, rand_n(n_roots));
         int n_els = (int)*SLOT_P(*SLOT_P(rand_arr, 0), 0);
         ptr p = random_object(v);
         vm_set_slot(v, rand_arr, 1 + rand_n(n_els), p);
     }
     vm_collect(v);
+    printf("%lu collections, max pause %lu ms\n", v->n_collections, v->max_pause / 1000 / 1000);
+    vm_free(v);
+}
+
+void
+test_torture2() {
+    vm *v = vm_init(dispatch, 1024 * 1024 * 1024);
+    vm_add(v, vm_wrapper_init(v, 0));
+    size_t n_loops = 25 * 1024 * 1024;
+    for (int i = 0; i < n_loops; i++) {
+        vm_set(v, 0, vm_wrapper_init(v, vm_get(v, 0)));
+    }
+
+    vm_collect(v);
+    vm_set(v, 0, 0);
+    vm_collect(v);
+    printf("%lu collections, max pause %lu ms\n", v->n_collections, v->max_pause / 1000 / 1000);
+
     vm_free(v);
 }
 
@@ -250,6 +268,7 @@ test_collector(char *name, gc_dispatch *this_dispatch) {
     PRINT_RUN(test_mark_stack_overflow);
     PRINT_RUN(test_random_stuff);
     PRINT_RUN(test_torture);
+    PRINT_RUN(test_torture2);
 }
 
 int
