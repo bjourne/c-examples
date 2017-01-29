@@ -4,14 +4,15 @@
 #include <stdbool.h>
 #include "datatypes/common.h"
 
-// The grand-daddy of trees. The big whoop. The big fish in the pond.
+// The grand-daddy of trees, the motherload, the big whoop in the
+// pond.
 
 #define B_ORDER     8
 
 typedef struct _bnode {
     struct _bnode *childs[B_ORDER + 1];
     int keys[B_ORDER];
-    ptr values[B_ORDER];
+    ptr vals[B_ORDER];
     size_t count;
 } bnode;
 
