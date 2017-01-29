@@ -47,5 +47,7 @@ main(int argc, char *argv[]) {
     PRINT_OPT(opts, PCRE_UTF16);
     PRINT_OPT(opts, PCRE_UTF32);
     PRINT_OPT(opts, PCRE_UTF8);
+
+    pcre_free(c);
     return 0;
 }
