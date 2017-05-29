@@ -28,6 +28,8 @@ void rand_init(unsigned int seed);
 #define MAX(a, b) ((a > b) ? (a) : (b))
 #define MIN(a, b) ((a > b) ? (b) : (a))
 
+#define CLAMP(a, lo, hi) MIN(MAX(a, lo), hi)
+
 // Utility
 #define ARRAY_SIZE(a)       (sizeof((a))/sizeof((a)[0]))
 
