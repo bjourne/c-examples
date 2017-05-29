@@ -22,6 +22,7 @@ def configure(ctx):
     ctx.env.append_value('INCLUDES', ['libraries'])
     if ctx.env.DEST_OS != 'win32':
         ctx.check(lib = 'pcre')
+    ctx.check(lib = 'm')
 
 def build_library(ctx, path, target):
     objs = ctx.path.ant_glob('%s/*.c' % path)
@@ -54,3 +55,4 @@ def build(ctx):
         build_program(ctx, 'capstack.c', ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
         build_program(ctx, 'sigsegv.c', [])
         build_program(ctx, 'pcre.c', ['PCRE'])
+    build_program(ctx, 'raytrace.c', ['DT_OBJS', 'M'])
