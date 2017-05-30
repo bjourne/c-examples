@@ -5,6 +5,17 @@
 #include <stdbool.h>
 
 #define LINALG_EPSILON 1e-8
+#define LINALG_APPROX_EQ(x, y) (fabs(x - y) < LINALG_EPSILON)
+
+inline float
+to_rad(const float deg) {
+    return deg * M_PI / 180;
+}
+
+inline float
+to_deg(const float rad) {
+    return rad * (180.0f / M_PI);
+}
 
 // A simple linear algebra library for C.
 typedef struct _vec3 {
@@ -56,14 +67,14 @@ v3_approx_eq(vec3 l, vec3 r) {
         fabs(l.z - r.z) < LINALG_EPSILON;
 }
 
-inline float
-to_rad(const float deg) {
-    return deg * M_PI / 180;
-}
+typedef struct _mat4 {
+    float d[4][4];
+} mat4;
 
-inline float
-to_deg(const float rad) {
-    return rad * (180.0f / M_PI);
-}
+// Most matrix functions doesn't need to be inline.
+mat4 m4_identity();
+void m4_print(mat4 m, int n_dec);
+mat4 m4_inverse(mat4 m);
+bool m4_approx_eq(mat4 l, mat4 r);
 
 #endif
