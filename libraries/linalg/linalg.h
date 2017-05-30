@@ -52,7 +52,7 @@ v3_normalize(vec3 in) {
     vec3 out = in;
     float norm = in.x * in.x + in.y * in.y + in.z * in.z;
     if (norm > 0) {
-        float factor = 1.0f / sqrt(norm);
+        float factor = 1 / sqrtf(norm);
         out.x *= factor;
         out.y *= factor;
         out.z *= factor;
@@ -88,9 +88,6 @@ m4_mul_v3p(mat4 m, vec3 v) {
     float b = x * m.d[0][1] + y * m.d[1][1] + z * m.d[2][1] + m.d[3][1];
     float c = x * m.d[0][2] + y * m.d[1][2] + z * m.d[2][2] + m.d[3][2];
     float w = x * m.d[0][3] + y * m.d[1][3] + z * m.d[2][3] + m.d[3][3];
-
-    printf("a = %.2f, b = %.2f\n", a, b);
-
     return (vec3){a / w, b / w, c / w};
 }
 
