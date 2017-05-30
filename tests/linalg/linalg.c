@@ -77,6 +77,37 @@ test_mat_mul() {
     assert(v3_approx_eq(v2, (vec3){0.70833331, 0.80555558, 0.90277779}));
 }
 
+void
+test_ray_tri_intersect() {
+    vec3 orig = {
+        24.492475509643554688,
+        24.006366729736328125,
+        22.174991607666015625
+    };
+    vec3 dir = {
+        -0.582438647747039795,
+        -0.430847525596618652,
+        -0.689300775527954102
+    };
+    vec3 v0 = {
+        2.079962015151977539,
+        8.324080467224121094,
+        -4.233458995819091797
+    };
+    vec3 v1 = {
+        1.942253947257995605,
+        8.138879776000976562,
+        -3.293735027313232422
+    };
+    vec3 v2 = {
+        2.189547061920166016,
+        7.210639953613281250,
+        -4.343578815460205078
+    };
+    float t, u, v;
+    assert(ray_tri_intersect(orig, dir, v0, v1, v2, &t, &u, &v));
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_sub);
@@ -85,5 +116,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_normalize);
     PRINT_RUN(test_inverse);
     PRINT_RUN(test_mat_mul);
+    PRINT_RUN(test_ray_tri_intersect);
     return 0;
 }

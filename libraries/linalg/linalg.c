@@ -133,7 +133,6 @@ m4_approx_eq(mat4 l, mat4 r) {
     for (int y = 0; y < 4; y++) {
         for (int x = 0; x < 4; x++) {
             if (!LINALG_APPROX_EQ(l.d[y][x], r.d[y][x])) {
-                printf("diff %d %d\n", y, x);
                 return false;
             }
         }
@@ -143,3 +142,31 @@ m4_approx_eq(mat4 l, mat4 r) {
 
 extern inline vec3 m4_mul_v3p(mat4 m, vec3 v);
 extern inline vec3 m4_mul_v3d(mat4 m, vec3 v);
+
+bool
+ray_tri_intersect(vec3 orig, vec3 dir,
+                  vec3 v0, vec3 v1, vec3 v2,
+                  float *t, float *u, float *v) {
+    vec3 v0v1 = v3_sub(v1, v0);
+    vec3 v0v2 = v3_sub(v2, v0);
+    vec3 pvec = v3_cross(dir, v0v2);
+    float det = v3_dot(v0v1, pvec);
+
+    if (fabs(det) < LINALG_EPSILON) {
+        return false;
+    }
+    float inv_det = 1 / det;
+    vec3 tvec = v3_sub(orig, v0);
+
+    *u = v3_dot(tvec, pvec) * inv_det;
+    if (*u < 0 || *u > 1) {
+        return false;
+    }
+    vec3 qvec = v3_cross(tvec, v0v1);
+    *v = v3_dot(dir, qvec) * inv_det;
+    if (*v < 0 || *u + *v > 1) {
+        return false;
+    }
+    *t = v3_dot(v0v2, qvec) * inv_det;
+    return true;
+}

@@ -100,5 +100,11 @@ m4_mul_v3d(mat4 m, vec3 v) {
     return (vec3){a, b, c};
 }
 
+// Intersection checking
+bool
+ray_tri_intersect(vec3 orig, vec3 dir,
+                  vec3 v0, vec3 v1, vec3 v2,
+                  float *t, float *u, float *v);
+
 
 #endif
