@@ -2,6 +2,9 @@
 #define LINALG_H
 
 #include <math.h>
+#include <stdbool.h>
+
+#define LINALG_EPSILON 1e-8
 
 // A simple linear algebra library for C.
 typedef struct _vec3 {
@@ -46,7 +49,12 @@ v3_normalize(vec3 in) {
     return out;
 }
 
-
+inline bool
+v3_approx_eq(vec3 l, vec3 r) {
+    return fabs(l.x - r.x) < LINALG_EPSILON &&
+        fabs(l.y - r.y) < LINALG_EPSILON &&
+        fabs(l.z - r.z) < LINALG_EPSILON;
+}
 
 inline float
 to_rad(const float deg) {
@@ -57,6 +65,5 @@ inline float
 to_deg(const float rad) {
     return rad * (180.0f / M_PI);
 }
-
 
 #endif

@@ -25,10 +25,18 @@ test_dot() {
     assert(v3_dot(v1, v2) == 30);
 }
 
+void
+test_normalize() {
+    vec3 v1 = v3_normalize((vec3){30, -20, 8});
+    vec3 v2 = {0.81229556, -0.54153037, 0.21661215};
+    assert(v3_approx_eq(v1, v2));
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_sub);
     PRINT_RUN(test_cross);
     PRINT_RUN(test_dot);
+    PRINT_RUN(test_normalize);
     return 0;
 }
