@@ -5,10 +5,20 @@ The project consists of the following parts
 
 ## Libraries
 
-Currently three libraries I have developed while writing garbage
-collectors. They are located in the `libraries` directory:
+Currently four libraries I have developed while writing garbage
+collectors and other projects. They are located in the `libraries`
+directory:
 
  * `datatypes` - Standard datatypes for C programming like `vector`
    and `hashset`.
  * `collectors` - An object model and a bunch of garbage collectors.
  * `quickfit` - A memory allocator based on the Quick Fit algorithm.
+ * `linalg` - Trival linear algebra (3D) library.
+
+## Tests
+
+Test suites for the various libraries.
+
+## Programs
+
+Demo programs of all kinds.
