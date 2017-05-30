@@ -5,6 +5,10 @@
 
 #define WORD_IDX(i) (i / BA_WORD_BITS)
 
+extern inline int rightmost_clear_bit(ptr x);
+extern inline int rightmost_set_bit(ptr x);
+extern inline ptr bw_log2(ptr x);
+
 void
 ba_clear(bitarray *me) {
     memset((void *)me->bits, 0, me->n_words * sizeof(ptr));

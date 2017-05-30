@@ -15,7 +15,7 @@ def configure(ctx):
                        '-fomit-frame-pointer',
                        '-march=native',
                        '-mtune=native']
-        debug_flags = ['-O2', '-g']
+        debug_flags = ['-O0', '-g']
     extra_flags = debug_flags
     ctx.env.append_unique('CFLAGS',
                           base_flags + extra_flags)
