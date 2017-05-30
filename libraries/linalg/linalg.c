@@ -12,6 +12,24 @@ extern inline bool v3_approx_eq(vec3 l, vec3 r);
 extern inline float to_rad(const float deg);
 extern inline float to_deg(const float rad);
 
+static void
+print_float(float f, int n_dec) {
+    char buf[256];
+    sprintf(buf, "%%.%df", n_dec);
+    printf(buf, f);
+}
+
+void
+v3_print(vec3 v, int n_dec) {
+    printf("[");
+    print_float(v.x, n_dec);
+    printf(", ");
+    print_float(v.y, n_dec);
+    printf(", ");
+    print_float(v.z, n_dec);
+    printf("]");
+}
+
 mat4
 m4_identity() {
     return (mat4){
@@ -22,13 +40,6 @@ m4_identity() {
             {0, 0, 0, 1.0f}
         }
     };
-}
-
-static void
-print_float(float f, int n_dec) {
-    char buf[256];
-    sprintf(buf, "%%.%df", n_dec);
-    printf(buf, f);
 }
 
 void
@@ -130,4 +141,5 @@ m4_approx_eq(mat4 l, mat4 r) {
     return true;
 }
 
-extern inline vec3 m4_mul_v3(mat4 m, vec3 v);
+extern inline vec3 m4_mul_v3p(mat4 m, vec3 v);
+extern inline vec3 m4_mul_v3d(mat4 m, vec3 v);

@@ -62,6 +62,21 @@ test_inverse() {
     assert(m4_approx_eq(m4, m5));
 }
 
+void
+test_mat_mul() {
+    mat4 m1 = {
+        {
+            {1, 2, 3, 4},
+            {5, 6, 7, 8},
+            {9, 10, 11, 12},
+            {13, 14, 15, 16}
+        }
+    };
+    vec3 v1 = {1, 2, 3};
+    vec3 v2 = m4_mul_v3p(m1, v1);
+    assert(v3_approx_eq(v2, (vec3){0.70833331, 0.80555558, 0.90277779}));
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_sub);
@@ -69,5 +84,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_dot);
     PRINT_RUN(test_normalize);
     PRINT_RUN(test_inverse);
+    PRINT_RUN(test_mat_mul);
     return 0;
 }

@@ -45,8 +45,6 @@ vec3_array_read(FILE *f, int n) {
     return arr;
 }
 
-static const float k_epsilon = 1e-8;
-
 bool
 ray_tri_intersect(vec3 orig, vec3 dir,
                   vec3 v0, vec3 v1, vec3 v2,
@@ -56,7 +54,7 @@ ray_tri_intersect(vec3 orig, vec3 dir,
     vec3 pvec = v3_cross(dir, v0v2);
     float det = v3_dot(v0v1, pvec);
 
-    if (fabs(det) < k_epsilon) {
+    if (fabs(det) < LINALG_EPSILON) {
         return false;
     }
     float inv_det = 1 / det;
@@ -347,9 +345,19 @@ cast_ray(vec3 orig, vec3 dir, triangle_mesh *tm) {
 
 void
 render(triangle_mesh *tm, vec3 *fbuf, float fov, int width, int height) {
+    mat4 tmp = {
+        {
+            {0.707107, -0.331295, 0.624695, 0},
+            {0, 0.883452, 0.468521, 0},
+            {-0.707107, -0.331295, 0.624695, 0},
+            {-1.63871, -5.747777, -40.400412, 1}
+        }
+    };
+    mat4 cam_to_world = m4_inverse(tmp);
+    vec3 orig = m4_mul_v3p(cam_to_world, (vec3){0});
     float scale = tan(to_rad(fov * 0.5));
     float image_aspect_ratio = (float)width / (float)height;
-    vec3 orig = {24.49, 24.01, 22.17};
+
     for (int y = 0; y < height; y++) {
         printf("[%03d/%03d]\n", y, height);
         for (int x = 0; x < width; x++) {
@@ -358,6 +366,7 @@ render(triangle_mesh *tm, vec3 *fbuf, float fov, int width, int height) {
             float ray_y = (1 - 2 * (y + 0.5) / (float)height)
                 * scale;
             vec3 dir = {ray_x, ray_y, -1};
+            dir = m4_mul_v3d(cam_to_world, dir);
             dir = v3_normalize(dir);
             *fbuf = cast_ray(orig, dir, tm);
             fbuf++;
@@ -367,7 +376,8 @@ render(triangle_mesh *tm, vec3 *fbuf, float fov, int width, int height) {
 
 void
 usage() {
-    printf("usage: raytrace mesh-file width height image\n");
+    printf("usage: raytrace mesh-file "
+           "width[0-2048] height[0-2048] image\n");
     exit(1);
 }
 

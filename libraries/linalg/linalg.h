@@ -67,6 +67,9 @@ v3_approx_eq(vec3 l, vec3 r) {
         fabs(l.z - r.z) < LINALG_EPSILON;
 }
 
+void
+v3_print(vec3 v, int n_dec);
+
 typedef struct _mat4 {
     float d[4][4];
 } mat4;
@@ -79,13 +82,26 @@ bool m4_approx_eq(mat4 l, mat4 r);
 
 // But some do
 inline vec3
-m4_mul_v3(mat4 m, vec3 v) {
+m4_mul_v3p(mat4 m, vec3 v) {
     float x = v.x, y = v.y, z = v.z;
     float a = x * m.d[0][0] + y * m.d[1][0] + z * m.d[2][0] + m.d[3][0];
     float b = x * m.d[0][1] + y * m.d[1][1] + z * m.d[2][1] + m.d[3][1];
     float c = x * m.d[0][2] + y * m.d[1][2] + z * m.d[2][2] + m.d[3][2];
     float w = x * m.d[0][3] + y * m.d[1][3] + z * m.d[2][3] + m.d[3][3];
+
+    printf("a = %.2f, b = %.2f\n", a, b);
+
     return (vec3){a / w, b / w, c / w};
 }
+
+inline vec3
+m4_mul_v3d(mat4 m, vec3 v) {
+    float x = v.x, y = v.y, z = v.z;
+    float a = x * m.d[0][0] + y * m.d[1][0] + z * m.d[2][0];
+    float b = x * m.d[0][1] + y * m.d[1][1] + z * m.d[2][1];
+    float c = x * m.d[0][2] + y * m.d[1][2] + z * m.d[2][2];
+    return (vec3){a, b, c};
+}
+
 
 #endif
