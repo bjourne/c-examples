@@ -17,7 +17,8 @@ def configure(ctx):
                        '-mtune=native']
         debug_flags = ['-O2', '-g']
     extra_flags = debug_flags
-    ctx.env.append_unique('CFLAGS', base_flags + extra_flags)
+    ctx.env.append_unique('CFLAGS',
+                          base_flags + extra_flags)
     ctx.env.append_unique('CXXFLAGS', base_flags + extra_flags)
     ctx.env.append_value('INCLUDES', ['libraries'])
     if ctx.env.DEST_OS != 'win32':
@@ -44,10 +45,12 @@ def build(ctx):
     build_library(ctx, 'libraries/datatypes', 'DT_OBJS')
     build_library(ctx, 'libraries/quickfit', 'QF_OBJS')
     build_library(ctx, 'libraries/collectors', 'GC_OBJS')
+    build_library(ctx, 'libraries/linalg', 'LINALG_OBJS')
 
     build_tests(ctx, 'tests/datatypes', ['DT_OBJS'])
     build_tests(ctx, 'tests/quickfit', ['DT_OBJS', 'QF_OBJS'])
     build_tests(ctx, 'tests/collectors', ['GC_OBJS', 'DT_OBJS', 'QF_OBJS'])
+    build_tests(ctx, 'tests/linalg', ['LINALG_OBJS', 'DT_OBJS'])
 
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
     build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
