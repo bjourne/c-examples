@@ -6,11 +6,7 @@
 #include <stdlib.h>
 
 #include "datatypes/common.h"
-
-float
-deg_to_rad(const float deg) {
-    return deg * M_PI / 180;
-}
+#include "linalg/linalg.h"
 
 bool
 read_int(FILE *f, int *value) {
@@ -22,30 +18,6 @@ bool
 read_float(FILE *f, float *value) {
     int ret = fscanf(f, "%f", value);
     return ret == 1;
-}
-
-typedef struct _vec3 {
-    float x, y, z;
-} vec3;
-
-vec3
-vec3_sub(vec3 l, vec3 r) {
-    return (vec3){l.x - r.x, l.y - r.y, l.z - r.z};
-}
-
-vec3
-vec3_cross(vec3 l, vec3 r) {
-    vec3 ret = {
-        l.y * r.z - l.z * r.y,
-        l.z * r.x - l.x * r.z,
-        l.x * r.y - l.y * r.x
-    };
-    return ret;
-}
-
-float
-vec3_dot(vec3 l, vec3 r) {
-    return l.x * r.x + l.y * r.y + l.z * r.z;
 }
 
 bool
@@ -60,19 +32,6 @@ vec3_read(vec3 *vec, FILE *f) {
         return false;
     }
     return true;
-}
-
-vec3
-vec3_normalize(vec3 in) {
-    vec3 out = in;
-    float norm = in.x * in.x + in.y * in.y + in.z * in.z;
-    if (norm > 0) {
-        float factor = 1.0f / sqrt(norm);
-        out.x *= factor;
-        out.y *= factor;
-        out.z *= factor;
-    }
-    return out;
 }
 
 vec3 *
@@ -92,26 +51,26 @@ bool
 ray_tri_intersect(vec3 orig, vec3 dir,
                   vec3 v0, vec3 v1, vec3 v2,
                   float *t, float *u, float *v) {
-    vec3 v0v1 = vec3_sub(v1, v0);
-    vec3 v0v2 = vec3_sub(v2, v1);
-    vec3 pvec = vec3_cross(dir, v0v2);
-    float det = vec3_dot(v0v1, pvec);
+    vec3 v0v1 = v3_sub(v1, v0);
+    vec3 v0v2 = v3_sub(v2, v1);
+    vec3 pvec = v3_cross(dir, v0v2);
+    float det = v3_dot(v0v1, pvec);
 
     if (fabs(det) < k_epsilon) {
         return false;
     }
     float inv_det = 1 / det;
-    vec3 tvec = vec3_sub(orig, v0);
-    *u = vec3_dot(tvec, pvec) * inv_det;
+    vec3 tvec = v3_sub(orig, v0);
+    *u = v3_dot(tvec, pvec) * inv_det;
     if (*u < 0 || *u > 1) {
         return false;
     }
-    vec3 qvec = vec3_cross(tvec, v0v1);
-    *v = vec3_dot(dir, qvec) * inv_det;
+    vec3 qvec = v3_cross(tvec, v0v1);
+    *v = v3_dot(dir, qvec) * inv_det;
     if (*v < 0 || *u + *v > 1) {
         return false;
     }
-    *t = vec3_dot(v0v2, qvec) * inv_det;
+    *t = v3_dot(v0v2, qvec) * inv_det;
     return true;
 }
 
@@ -363,7 +322,6 @@ tm_intersect(triangle_mesh *me, vec3 orig, vec3 dir) {
         if (ray_tri_intersect(orig, dir,
                               v0, v1, v2,
                               &t, &u, &v)) {
-            printf("%.2f\n", t);
             return true;
         }
     }
@@ -389,17 +347,18 @@ cast_ray(vec3 orig, vec3 dir, triangle_mesh *tm) {
 
 void
 render(triangle_mesh *tm, vec3 *fbuf, float fov, int width, int height) {
-    float scale = tan(deg_to_rad(fov * 0.5));
+    float scale = tan(to_rad(fov * 0.5));
     float image_aspect_ratio = (float)width / (float)height;
     vec3 orig = {24.49, 24.01, 22.17};
     for (int y = 0; y < height; y++) {
+        printf("[%03d/%03d]\n", y, height);
         for (int x = 0; x < width; x++) {
             float ray_x = (2 * (x + 0.5) / (float)width - 1)
                 * image_aspect_ratio * scale;
             float ray_y = (1 - 2 * (y + 0.5) / (float)height)
                 * scale;
             vec3 dir = {ray_x, ray_y, -1};
-            dir = vec3_normalize(dir);
+            dir = v3_normalize(dir);
             *fbuf = cast_ray(orig, dir, tm);
             fbuf++;
         }
