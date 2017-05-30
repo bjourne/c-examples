@@ -129,3 +129,5 @@ m4_approx_eq(mat4 l, mat4 r) {
     }
     return true;
 }
+
+extern inline vec3 m4_mul_v3(mat4 m, vec3 v);
