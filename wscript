@@ -26,10 +26,12 @@ def configure(ctx):
     ctx.check(lib = 'm')
 
 def build_library(ctx, path, target):
+    path = 'libraries/%s' % path
     objs = ctx.path.ant_glob('%s/*.c' % path)
     ctx.objects(source = objs, target = target)
 
 def build_tests(ctx, path, use):
+    path = 'tests/%s' % path
     tests = ctx.path.ant_glob('%s/*.c' % path)
     for test in tests:
         from_path = test.path_from(ctx.path)
@@ -42,16 +44,15 @@ def build_program(ctx, filename, use):
     ctx.program(source = source, target = target, use = use)
 
 def build(ctx):
-    build_library(ctx, 'libraries/datatypes', 'DT_OBJS')
-    build_library(ctx, 'libraries/quickfit', 'QF_OBJS')
-    build_library(ctx, 'libraries/collectors', 'GC_OBJS')
-    build_library(ctx, 'libraries/linalg', 'LINALG_OBJS')
+    build_library(ctx, 'datatypes', 'DT_OBJS')
+    build_library(ctx, 'quickfit', 'QF_OBJS')
+    build_library(ctx, 'collectors', 'GC_OBJS')
+    build_library(ctx, 'linalg', 'LINALG_OBJS')
 
-    build_tests(ctx, 'tests/datatypes', ['DT_OBJS'])
-    build_tests(ctx, 'tests/quickfit', ['DT_OBJS', 'QF_OBJS'])
-    build_tests(ctx, 'tests/collectors',
-                ['GC_OBJS', 'DT_OBJS', 'QF_OBJS'])
-    build_tests(ctx, 'tests/linalg', ['LINALG_OBJS', 'DT_OBJS', 'M'])
+    build_tests(ctx, 'datatypes', ['DT_OBJS'])
+    build_tests(ctx, 'quickfit', ['DT_OBJS', 'QF_OBJS'])
+    build_tests(ctx, 'collectors', ['GC_OBJS', 'DT_OBJS', 'QF_OBJS'])
+    build_tests(ctx, 'linalg', ['LINALG_OBJS', 'DT_OBJS', 'M'])
 
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
     build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
