@@ -1,9 +1,14 @@
 // This is a raytracer written in C.
 // This code is verrrry much based on: www.scratchapixel.com
+#include <assert.h>
+#include <float.h>
+#include <limits.h>
 #include <math.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "datatypes/common.h"
 #include "linalg/linalg.h"
@@ -46,33 +51,6 @@ vec3_array_read(FILE *f, int n) {
 }
 
 bool
-ray_tri_intersect(vec3 orig, vec3 dir,
-                  vec3 v0, vec3 v1, vec3 v2,
-                  float *t, float *u, float *v) {
-    vec3 v0v1 = v3_sub(v1, v0);
-    vec3 v0v2 = v3_sub(v2, v1);
-    vec3 pvec = v3_cross(dir, v0v2);
-    float det = v3_dot(v0v1, pvec);
-
-    if (fabs(det) < LINALG_EPSILON) {
-        return false;
-    }
-    float inv_det = 1 / det;
-    vec3 tvec = v3_sub(orig, v0);
-    *u = v3_dot(tvec, pvec) * inv_det;
-    if (*u < 0 || *u > 1) {
-        return false;
-    }
-    vec3 qvec = v3_cross(tvec, v0v1);
-    *v = v3_dot(dir, qvec) * inv_det;
-    if (*v < 0 || *u + *v > 1) {
-        return false;
-    }
-    *t = v3_dot(v0v2, qvec) * inv_det;
-    return true;
-}
-
-bool
 vec3_array_to_ppm(vec3 *arr, const char *filename,
                   int width, int height) {
     FILE *f = fopen(filename, "wb");
@@ -83,9 +61,9 @@ vec3_array_to_ppm(vec3 *arr, const char *filename,
         return false;
     }
     for (int i = 0; i < width * height; i++) {
-        int r = 255 * CLAMP(0, 1, arr[i].x);
-        int g = 255 * CLAMP(0, 1, arr[i].y);
-        int b = 255 * CLAMP(0, 1, arr[i].z);
+        int r = CLAMP(255.0f * arr[i].x, 0, 255);
+        int g = CLAMP(255.0f * arr[i].y, 0, 255);
+        int b = CLAMP(255.0f * arr[i].z, 0, 255);
         if (fprintf(f, "%c%c%c", r, g, b) <= 0) {
             return false;
         }
@@ -120,9 +98,6 @@ vec2_array_read(FILE *f, int n) {
     }
     return arr;
 }
-
-
-
 
 bool
 read_int_array(FILE *f, int n, int *ptr) {
@@ -284,7 +259,9 @@ tm_from_file(const char *filename) {
     if (coords) {
         free(coords);
     }
-    fclose(f);
+    if (f) {
+        fclose(f);
+    }
     return tm;
 }
 
@@ -309,42 +286,74 @@ tm_print(triangle_mesh *me) {
     }
 }
 
+typedef struct _ray_intersection {
+    float dist;
+    int tri_idx;
+} ray_intersection;
+
 bool
-tm_intersect(triangle_mesh *me, vec3 orig, vec3 dir) {
+tm_intersect(triangle_mesh *me, vec3 orig, vec3 dir,
+             ray_intersection *ri) {
+    float nearest = FLT_MAX;
     int *at_idx = me->indices;
     for (int i = 0; i < me->n_tris; i++) {
         vec3 v0 = me->positions[*at_idx++];
         vec3 v1 = me->positions[*at_idx++];
         vec3 v2 = me->positions[*at_idx++];
-        float t, u, v;
+        float u, v, t;
         if (ray_tri_intersect(orig, dir,
                               v0, v1, v2,
-                              &t, &u, &v)) {
-            return true;
+                              &t, &u, &v) && t < nearest) {
+            nearest = t;
+            ri->dist = t;
+            ri->tri_idx = i;
         }
     }
-    return false;
+    return nearest < FLT_MAX;
 }
 
-bool
-trace(vec3 orig, vec3 dir, triangle_mesh *tm) {
-    if (tm_intersect(tm, orig, dir)) {
-        return true;
+typedef struct _raytrace_settings {
+    mat4 view;
+    float fov;
+    int width;
+    int height;
+    char *mesh_file;
+    char *image_file;
+    vec3 bg_col;
+} raytrace_settings;
+
+raytrace_settings *
+rt_from_args(int argc, char *argv[]) {
+    if (argc != 9) {
+        return NULL;
     }
-    return false;
-}
-
-vec3
-cast_ray(vec3 orig, vec3 dir, triangle_mesh *tm) {
-    vec3 col = {0};
-    if (trace(orig, dir, tm)) {
-        col.x = 1.0;
+    int width = atoi(argv[3]);
+    int height = atoi(argv[4]);
+    if (width <= 0 || width > 2048 ||
+        height <= 0 || height > 2048) {
+        return NULL;
     }
-    return col;
-}
+    double fov_d = atof(argv[5]);
+    if (fov_d <= 0.0 || fov_d >= 100.0) {
+        return NULL;
+    }
 
-void
-render(triangle_mesh *tm, vec3 *fbuf, float fov, int width, int height) {
+    double r = atof(argv[6]);
+    double g = atof(argv[7]);
+    double b = atof(argv[8]);
+    if (r < 0 || r > 1 || g < 0 || g > 1 || b < 0 || b > 1) {
+        return NULL;
+    }
+    raytrace_settings *me = (raytrace_settings *)
+        malloc(sizeof(raytrace_settings));
+    me->width = width;
+    me->height = height;
+    me->mesh_file = strdup(argv[1]);
+    me->image_file = strdup(argv[2]);
+    me->fov = fov_d;
+    me->bg_col.x = r;
+    me->bg_col.y = g;
+    me->bg_col.z = b;
     mat4 tmp = {
         {
             {0.707107, -0.331295, 0.624695, 0},
@@ -353,22 +362,64 @@ render(triangle_mesh *tm, vec3 *fbuf, float fov, int width, int height) {
             {-1.63871, -5.747777, -40.400412, 1}
         }
     };
-    mat4 cam_to_world = m4_inverse(tmp);
-    vec3 orig = m4_mul_v3p(cam_to_world, (vec3){0});
-    float scale = tan(to_rad(fov * 0.5));
-    float image_aspect_ratio = (float)width / (float)height;
+    me->view = m4_inverse(tmp);
+    return me;
+}
 
-    for (int y = 0; y < height; y++) {
-        printf("[%03d/%03d]\n", y, height);
-        for (int x = 0; x < width; x++) {
-            float ray_x = (2 * (x + 0.5) / (float)width - 1)
-                * image_aspect_ratio * scale;
-            float ray_y = (1 - 2 * (y + 0.5) / (float)height)
-                * scale;
-            vec3 dir = {ray_x, ray_y, -1};
-            dir = m4_mul_v3d(cam_to_world, dir);
-            dir = v3_normalize(dir);
-            *fbuf = cast_ray(orig, dir, tm);
+void
+rt_free(raytrace_settings *me) {
+    free(me->mesh_file);
+    free(me->image_file);
+    free(me);
+}
+
+vec3
+rt_ray_direction(raytrace_settings *rt, int x, int y,
+                 float aspect_ratio, float scale) {
+    float ray_x = (2 * (x + 0.5) / (float)rt->width - 1)
+        * aspect_ratio * scale;
+    float ray_y = (1 - 2 * (y + 0.5) / (float)rt->height)
+        * scale;
+    vec3 dir = {ray_x, ray_y, -1};
+    dir = m4_mul_v3d(rt->view, dir);
+    dir = v3_normalize(dir);
+    return dir;
+}
+
+vec3
+shade_intersection(ray_intersection *ri, triangle_mesh *tm) {
+    int i0 = tm->indices[3*ri->tri_idx];
+    int i1 = tm->indices[3*ri->tri_idx + 1];
+    int i2 = tm->indices[3*ri->tri_idx + 2];
+    vec3 p0 = tm->positions[i0];
+    vec3 p1 = tm->positions[i1];
+    vec3 p2 = tm->positions[i2];
+    vec3 e1 = v3_sub(p1, p0);
+    vec3 e2 = v3_sub(p2, p0);
+    vec3 n = v3_normalize(v3_cross(e1, e2));
+    return n;
+}
+
+vec3
+cast_ray(vec3 orig, vec3 dir, vec3 bg_col, triangle_mesh *tm) {
+    ray_intersection ri;
+    if (tm_intersect(tm, orig, dir, &ri)) {
+        return shade_intersection(&ri, tm);
+    }
+    return bg_col;
+}
+
+void
+render(raytrace_settings *rt, triangle_mesh *tm, vec3 *fbuf) {
+    int w = rt->width;
+    int h = rt->height;
+    vec3 orig = m4_mul_v3p(rt->view, (vec3){0});
+    float scale = tan(to_rad(rt->fov * 0.5));
+    float aspect_ratio = (float)w / (float)h;
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            vec3 dir = rt_ray_direction(rt, x, y, aspect_ratio, scale);
+            *fbuf = cast_ray(orig, dir, rt->bg_col, tm);
             fbuf++;
         }
     }
@@ -376,36 +427,33 @@ render(triangle_mesh *tm, vec3 *fbuf, float fov, int width, int height) {
 
 void
 usage() {
-    printf("usage: raytrace mesh-file "
-           "width[0-2048] height[0-2048] image\n");
+    printf("usage: raytrace mesh-file image "
+           "width[0-2048] height[0-2048] fov[0-100] "
+           "bg_r[0-1] bg_g[0-1] bg_b[0-1]\n");
     exit(1);
 }
 
 int
 main(int argc, char *argv[]) {
-    if (argc != 5) {
+    raytrace_settings *rt = rt_from_args(argc, argv);
+    if (!rt) {
         usage();
     }
-    int width = atoi(argv[2]);
-    int height = atoi(argv[3]);
-    if (width <= 0 || width > 2048 ||
-        height <= 0 || height > 2048) {
-        usage();
-    }
-    char *inf = argv[1];
-    char *outf = argv[4];
-    triangle_mesh *tm = tm_from_file(inf);
+
+    triangle_mesh *tm = tm_from_file(rt->mesh_file);
     if (!tm) {
-        error("Failed to read mesh from file %s.\n", inf);
+        error("Failed to read mesh from file '%s'.\n", rt->mesh_file);
     }
-    vec3 *fbuf = (vec3 *)malloc(width * height * sizeof(vec3));
-    render(tm, fbuf, 50.0393, width, height);
-    if (!vec3_array_to_ppm(fbuf, outf, width, height)) {
-        error("Failed to save to '%s'.", outf);
+
+    int w = rt->width;
+    int h = rt->height;
+    vec3 *fbuf = (vec3 *)malloc(w * h * sizeof(vec3));
+    render(rt, tm, fbuf);
+    if (!vec3_array_to_ppm(fbuf, rt->image_file, w, h)) {
+        error("Failed to save to '%s'.", rt->image_file);
     }
     free(fbuf);
-
-
     tm_free(tm);
+    rt_free(rt);
     return 0;
 }
