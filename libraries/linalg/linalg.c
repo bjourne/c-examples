@@ -16,6 +16,8 @@ extern inline float to_deg(const float rad);
 extern inline bool approx_eq2(float x, float y, float epsilon);
 extern inline bool approx_eq(float x, float y);
 
+extern inline vec3 v3_scale(vec3 v, float f);
+
 static void
 print_float(float f, int n_dec) {
     char buf[256];
@@ -188,6 +190,7 @@ m4_approx_eq(mat4 l, mat4 r) {
 
 extern inline vec3 m4_mul_v3p(mat4 m, vec3 v);
 extern inline vec3 m4_mul_v3d(mat4 m, vec3 v);
+extern inline mat4 m4_mul_m4(mat4 l, mat4 r);
 
 bool
 ray_tri_intersect(vec3 orig, vec3 dir,

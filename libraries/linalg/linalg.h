@@ -83,6 +83,11 @@ v3_approx_eq(vec3 l, vec3 r) {
         fabs(l.z - r.z) < LINALG_EPSILON;
 }
 
+inline vec3
+v3_scale(vec3 v, float f) {
+    return (vec3){v.x * f, v.y * f, v.z * f};
+}
+
 typedef struct _mat4 {
     float d[4][4];
 } mat4;
@@ -114,6 +119,20 @@ m4_mul_v3d(mat4 m, vec3 v) {
     float b = x * m.d[0][1] + y * m.d[1][1] + z * m.d[2][1];
     float c = x * m.d[0][2] + y * m.d[1][2] + z * m.d[2][2];
     return (vec3){a, b, c};
+}
+
+inline mat4
+m4_mul_m4(mat4 l, mat4 r) {
+    mat4 ret;
+    for(int i = 0; i < 4; i++){
+        for(int j = 0; j < 4; j++){
+            ret.d[i][j]=0;
+            for(int k = 0; k < 4;k++){
+                ret.d[i][j] += l.d[i][k] * l.d[k][j];
+            }
+        }
+    }
+    return ret;
 }
 
 // Intersection checking
