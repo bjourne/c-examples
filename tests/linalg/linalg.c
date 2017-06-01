@@ -118,6 +118,18 @@ test_look_at() {
     assert(approx_eq2(view.d[3][3], 1.0, 1e-7));
 }
 
+void
+test_perspective() {
+    mat4 persp = m4_perspective(to_rad(70.0f),
+                                500.0f/400.0f,
+                                0.1f, 1000.0f);
+    assert(approx_eq(persp.d[0][0], 1.142518401));
+    assert(persp.d[0][1] == 0.0f);
+    assert(persp.d[0][2] == 0.0f);
+    assert(persp.d[0][3] == 0.0f);
+    assert(persp.d[3][3] == 0.0f);
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_sub);
@@ -128,5 +140,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_mat_mul);
     PRINT_RUN(test_ray_tri_intersect);
     PRINT_RUN(test_look_at);
+    PRINT_RUN(test_perspective);
     return 0;
 }

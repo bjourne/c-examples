@@ -92,6 +92,7 @@ mat4 m4_identity();
 void m4_print(mat4 m, int n_dec);
 mat4 m4_inverse(mat4 m);
 mat4 m4_look_at(vec3 position, vec3 at, vec3 up);
+mat4 m4_perspective(float rad, float ar, float near, float far);
 bool m4_approx_eq(mat4 l, mat4 r);
 bool m4_approx_eq2(mat4 l, mat4 r, float epsilon);
 

@@ -156,6 +156,18 @@ m4_look_at(vec3 eye, vec3 center, vec3 up) {
     return ret;
 }
 
+mat4
+m4_perspective(float rad, float ar, float near, float far) {
+    float tan_half = tan(rad / 2.0f);
+    mat4 res = {0};
+    res.d[0][0] = 1.0f / (ar * tan_half);
+    res.d[1][1] = 1.0f / tan_half;
+    res.d[2][3] = -1.0f;
+    res.d[2][2] = -(far + near) / (far - near);
+    res.d[3][2] = -(2.0f * far * near)/(far - near);
+    return res;
+}
+
 bool
 m4_approx_eq2(mat4 l, mat4 r, float epsilon) {
     for (int y = 0; y < 4; y++) {
