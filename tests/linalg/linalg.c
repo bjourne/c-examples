@@ -37,10 +37,10 @@ test_inverse() {
     mat4 m1 = m4_identity();
     mat4 m2 = m4_inverse(m1);
 
-    assert(LINALG_APPROX_EQ(m2.d[0][0], 1.0f) &&
-           LINALG_APPROX_EQ(m2.d[1][1], 1.0f) &&
-           LINALG_APPROX_EQ(m2.d[2][2], 1.0f) &&
-           LINALG_APPROX_EQ(m2.d[3][3], 1.0f));
+    assert(approx_eq(m2.d[0][0], 1.0f) &&
+           approx_eq(m2.d[1][1], 1.0f) &&
+           approx_eq(m2.d[2][2], 1.0f) &&
+           approx_eq(m2.d[3][3], 1.0f));
 
     mat4 m3 = {
         {
@@ -59,7 +59,7 @@ test_inverse() {
             {24.49247551, 24.00636673,  22.17499161, 1}
         }
     };
-    assert(m4_approx_eq(m4, m5));
+    assert(m4_approx_eq2(m4, m5, 1e-5));
 }
 
 void
@@ -108,6 +108,16 @@ test_ray_tri_intersect() {
     assert(ray_tri_intersect(orig, dir, v0, v1, v2, &t, &u, &v));
 }
 
+void
+test_look_at() {
+    vec3 eye = {1.0f, 2.0f, 3.0f};
+    vec3 center = {4.0f, 5.0f, 6.0f};
+    vec3 up = {7.0f, 8.0f, 9.0f};
+    mat4 view = m4_look_at(eye, center, up);
+    assert(approx_eq2(view.d[0][0], 0.408248276f, 1e-7));
+    assert(approx_eq2(view.d[3][3], 1.0, 1e-7));
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_sub);
@@ -117,5 +127,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_inverse);
     PRINT_RUN(test_mat_mul);
     PRINT_RUN(test_ray_tri_intersect);
+    PRINT_RUN(test_look_at);
     return 0;
 }

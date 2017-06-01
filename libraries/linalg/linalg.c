@@ -3,6 +3,7 @@
 
 extern inline vec3 v3_add(vec3 l, vec3 r);
 extern inline vec3 v3_sub(vec3 l, vec3 r);
+
 extern inline vec3 v3_cross(vec3 l, vec3 r);
 extern inline float v3_dot(vec3 l, vec3 r);
 extern inline vec3 v3_normalize(vec3 in);
@@ -11,6 +12,9 @@ extern inline bool v3_approx_eq(vec3 l, vec3 r);
 
 extern inline float to_rad(const float deg);
 extern inline float to_deg(const float rad);
+
+extern inline bool approx_eq2(float x, float y, float epsilon);
+extern inline bool approx_eq(float x, float y);
 
 static void
 print_float(float f, int n_dec) {
@@ -128,16 +132,46 @@ m4_inverse(mat4 t) {
     return s;
 }
 
+mat4
+m4_look_at(vec3 eye, vec3 center, vec3 up) {
+    vec3 f = v3_normalize(v3_sub(center, eye));
+    vec3 cf = v3_cross(f, up);
+    vec3 s = v3_normalize(cf);
+
+    vec3 u = v3_cross(s, f);
+    mat4 ret;
+    ret.d[0][0] = s.x;
+    ret.d[1][0] = s.y;
+    ret.d[2][0] = s.z;
+    ret.d[0][1] = u.x;
+    ret.d[1][1] = u.y;
+    ret.d[2][1] = u.z;
+    ret.d[0][2] = -f.x;
+    ret.d[1][2] = -f.y;
+    ret.d[2][2] = -f.z;
+    ret.d[3][0] = -v3_dot(s, eye);
+    ret.d[3][1] = -v3_dot(u, eye);
+    ret.d[3][2] =  v3_dot(f, eye);
+    ret.d[3][3] = 1.0f;
+    return ret;
+}
+
 bool
-m4_approx_eq(mat4 l, mat4 r) {
+m4_approx_eq2(mat4 l, mat4 r, float epsilon) {
     for (int y = 0; y < 4; y++) {
         for (int x = 0; x < 4; x++) {
-            if (!LINALG_APPROX_EQ(l.d[y][x], r.d[y][x])) {
+            if (!approx_eq2(l.d[y][x], r.d[y][x], epsilon)) {
                 return false;
             }
         }
     }
     return true;
+}
+
+
+bool
+m4_approx_eq(mat4 l, mat4 r) {
+    return m4_approx_eq2(l, r, LINALG_EPSILON);
 }
 
 extern inline vec3 m4_mul_v3p(mat4 m, vec3 v);

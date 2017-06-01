@@ -5,7 +5,16 @@
 #include <stdbool.h>
 
 #define LINALG_EPSILON 1e-8
-#define LINALG_APPROX_EQ(x, y) (fabs(x - y) < LINALG_EPSILON)
+
+inline bool
+approx_eq2(float x, float y, float epsilon) {
+    return fabs(x - y) < epsilon;
+}
+
+inline bool
+approx_eq(float x, float y) {
+    return approx_eq2(x, y, LINALG_EPSILON);
+}
 
 inline float
 to_rad(const float deg) {
@@ -22,6 +31,9 @@ typedef struct _vec3 {
     float x, y, z;
 } vec3;
 
+void
+v3_print(vec3 v, int n_dec);
+
 inline vec3
 v3_sub(vec3 l, vec3 r) {
     return (vec3){l.x - r.x, l.y - r.y, l.z - r.z};
@@ -32,6 +44,10 @@ v3_add(vec3 l, vec3 r) {
     return (vec3){l.x + r.x, l.y + r.y, l.z + r.z};
 }
 
+// I've noticed that when compiling with gcc 5.4.0 and the
+// -march=native option, this function can return slightly different
+// numbers depending on how it is inlined. Either it is a compiler
+// bug, or a machine optimization.
 inline vec3
 v3_cross(vec3 l, vec3 r) {
     vec3 ret = {
@@ -67,9 +83,6 @@ v3_approx_eq(vec3 l, vec3 r) {
         fabs(l.z - r.z) < LINALG_EPSILON;
 }
 
-void
-v3_print(vec3 v, int n_dec);
-
 typedef struct _mat4 {
     float d[4][4];
 } mat4;
@@ -78,7 +91,9 @@ typedef struct _mat4 {
 mat4 m4_identity();
 void m4_print(mat4 m, int n_dec);
 mat4 m4_inverse(mat4 m);
+mat4 m4_look_at(vec3 position, vec3 at, vec3 up);
 bool m4_approx_eq(mat4 l, mat4 r);
+bool m4_approx_eq2(mat4 l, mat4 r, float epsilon);
 
 // But some do
 inline vec3
