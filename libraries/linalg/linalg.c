@@ -4,6 +4,10 @@
 extern inline vec3 v3_add(vec3 l, vec3 r);
 extern inline vec3 v3_sub(vec3 l, vec3 r);
 
+inline vec2 v2_add(vec2 l, vec2 r);
+
+inline vec3 v3_neg(vec3 v);
+
 extern inline vec3 v3_cross(vec3 l, vec3 r);
 extern inline float v3_dot(vec3 l, vec3 r);
 extern inline vec3 v3_normalize(vec3 in);
@@ -17,6 +21,8 @@ extern inline bool approx_eq2(float x, float y, float epsilon);
 extern inline bool approx_eq(float x, float y);
 
 extern inline vec3 v3_scale(vec3 v, float f);
+
+inline vec2 v2_scale(vec2 v, float f);
 
 static void
 print_float(float f, int n_dec) {

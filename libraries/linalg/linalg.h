@@ -4,6 +4,8 @@
 #include <math.h>
 #include <stdbool.h>
 
+// A simple linear algebra library for C.
+
 #define LINALG_EPSILON 1e-8
 
 inline bool
@@ -26,7 +28,15 @@ to_deg(const float rad) {
     return rad * (180.0f / M_PI);
 }
 
-// A simple linear algebra library for C.
+typedef struct _vec2 {
+    float x, y;
+} vec2;
+
+inline vec2
+v2_scale(vec2 v, float f) {
+    return (vec2){v.x * f, v.y * f};
+}
+
 typedef struct _vec3 {
     float x, y, z;
 } vec3;
@@ -42,6 +52,16 @@ v3_sub(vec3 l, vec3 r) {
 inline vec3
 v3_add(vec3 l, vec3 r) {
     return (vec3){l.x + r.x, l.y + r.y, l.z + r.z};
+}
+
+inline vec2
+v2_add(vec2 l, vec2 r) {
+    return (vec2){l.x + r.x, l.y + r.y};
+}
+
+inline vec3
+v3_neg(vec3 v) {
+    return (vec3){-v.x, -v.y, -v.z};
 }
 
 // I've noticed that when compiling with gcc 5.4.0 and the
