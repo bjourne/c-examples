@@ -72,11 +72,6 @@ vec3_array_to_ppm(vec3 *arr, const char *filename,
     return true;
 }
 
-typedef struct _vec2 {
-    float x;
-    float y;
-} vec2;
-
 bool
 vec2_read(vec2 *vec, FILE *f) {
     if (!read_float(f, &vec->x)) {
@@ -287,9 +282,35 @@ tm_print(triangle_mesh *me) {
 }
 
 typedef struct _ray_intersection {
-    float dist;
+    float t;
+    vec2 uv;
     int tri_idx;
 } ray_intersection;
+
+void
+tm_get_surface_props(triangle_mesh *me, ray_intersection *ri,
+                     vec3 *normal, vec2 *tex_coords) {
+    int t0 = 3 * ri->tri_idx;
+    int t1 = 3 * ri->tri_idx + 1;
+    int t2 = 3 * ri->tri_idx + 2;
+
+    // Texture coordinates
+    vec2 st0 = me->coords[t0];
+    vec2 st1 = me->coords[t1];
+    vec2 st2 = me->coords[t2];
+    vec2 st0_scaled = v2_scale(st0, 1 - ri->uv.x - ri->uv.y);
+    vec2 st1_scaled = v2_scale(st1, ri->uv.x);
+    vec2 st2_scaled = v2_scale(st2, ri->uv.y);
+    *tex_coords = v2_add(v2_add(st0_scaled, st1_scaled), st2_scaled);
+
+    vec3 n0 = me->normals[t0];
+    vec3 n1 = me->normals[t1];
+    vec3 n2 = me->normals[t2];
+    vec3 n0_scaled = v3_scale(n0, 1 - ri->uv.x - ri->uv.y);
+    vec3 n1_scaled = v3_scale(n1, ri->uv.x);
+    vec3 n2_scaled = v3_scale(n2, ri->uv.y);
+    *normal = v3_add(v3_add(n0_scaled, n1_scaled), n2_scaled);
+}
 
 bool
 tm_intersect(triangle_mesh *me, vec3 orig, vec3 dir,
@@ -305,7 +326,9 @@ tm_intersect(triangle_mesh *me, vec3 orig, vec3 dir,
                               v0, v1, v2,
                               &t, &u, &v) && t < nearest) {
             nearest = t;
-            ri->dist = t;
+            ri->t = t;
+            ri->uv.x = u;
+            ri->uv.y = v;
             ri->tri_idx = i;
         }
     }
@@ -376,6 +399,7 @@ rt_free(raytrace_settings *me) {
 vec3
 rt_ray_direction(raytrace_settings *rt, int x, int y,
                  float aspect_ratio, float scale) {
+
     float ray_x = (2 * (x + 0.5) / (float)rt->width - 1)
         * aspect_ratio * scale;
     float ray_y = (1 - 2 * (y + 0.5) / (float)rt->height)
@@ -386,25 +410,27 @@ rt_ray_direction(raytrace_settings *rt, int x, int y,
     return dir;
 }
 
-vec3
-shade_intersection(ray_intersection *ri, triangle_mesh *tm) {
-    int i0 = tm->indices[3*ri->tri_idx];
-    int i1 = tm->indices[3*ri->tri_idx + 1];
-    int i2 = tm->indices[3*ri->tri_idx + 2];
-    vec3 p0 = tm->positions[i0];
-    vec3 p1 = tm->positions[i1];
-    vec3 p2 = tm->positions[i2];
-    vec3 e1 = v3_sub(p1, p0);
-    vec3 e2 = v3_sub(p2, p0);
-    vec3 n = v3_normalize(v3_cross(e1, e2));
-    return n;
+static vec3
+shade_intersection(vec3 orig, vec3 dir, ray_intersection *ri,
+                   triangle_mesh *tm) {
+    vec3 normal;
+    vec2 coords;
+    tm_get_surface_props(tm, ri, &normal, &coords);
+    float n_dot_view = MAX(0.0f, v3_dot(normal, v3_neg(dir)));
+    int m = 10;
+    float checker = (fmod(coords.x * m, 1.0) > 0.5) ^
+        (fmod(coords.y * m, 1.0) < 0.5);
+    float c = 0.3 * (1 - checker) + 0.7 * checker;
+    return (vec3){c * n_dot_view,
+            c * n_dot_view,
+            c * n_dot_view};
 }
 
 vec3
 cast_ray(vec3 orig, vec3 dir, vec3 bg_col, triangle_mesh *tm) {
     ray_intersection ri;
     if (tm_intersect(tm, orig, dir, &ri)) {
-        return shade_intersection(&ri, tm);
+        return shade_intersection(orig, dir, &ri, tm);
     }
     return bg_col;
 }
@@ -413,7 +439,7 @@ void
 render(raytrace_settings *rt, triangle_mesh *tm, vec3 *fbuf) {
     int w = rt->width;
     int h = rt->height;
-    vec3 orig = m4_mul_v3p(rt->view, (vec3){0});
+    vec3 orig = m4_mul_v3p(rt->view, (vec3){0, 0, -20});
     float scale = tan(to_rad(rt->fov * 0.5));
     float aspect_ratio = (float)w / (float)h;
     for (int y = 0; y < h; y++) {
