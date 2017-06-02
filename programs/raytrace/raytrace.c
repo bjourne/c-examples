@@ -10,9 +10,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define ISECT_MT
+// #define ISECT_PRECOMP12
+
+#define FANCY_SHADING
+// #define PLAIN_SHADING
+
 #include "datatypes/common.h"
 #include "linalg/linalg.h"
 #include "triangle_mesh.h"
+#include "intersection.h"
 
 bool
 vec3_array_to_ppm(vec3 *arr, const char *filename,
@@ -77,9 +84,18 @@ tm_intersect(triangle_mesh *me, vec3 orig, vec3 dir,
         vec3 v1 = me->positions[*at_idx++];
         vec3 v2 = me->positions[*at_idx++];
         float u, v, t;
-        if (ray_tri_intersect(orig, dir,
-                              v0, v1, v2,
-                              &t, &u, &v) && t < nearest) {
+
+#if defined(ISECT_MT)
+        bool isect = moeller_trumbore_isect(orig, dir,
+                                            v0, v1, v2,
+                                            &t, &u, &v);
+#elif defined(ISECT_PRECOMP12)
+        float *trans = &me->precomp12[i*12];
+        bool isect = precomp12_isect(orig, dir,
+                                     v0, v1, v2,
+                                     &t, &u, &v, trans);
+#endif
+        if (isect && t < nearest) {
             nearest = t;
             ri->t = t;
             ri->uv.x = u;
@@ -91,6 +107,8 @@ tm_intersect(triangle_mesh *me, vec3 orig, vec3 dir,
 }
 
 typedef struct _raytrace_settings {
+    // Camera position
+    vec3 position;
     mat4 view;
     float fov;
     int width;
@@ -132,6 +150,7 @@ rt_from_args(int argc, char *argv[]) {
     me->bg_col.x = r;
     me->bg_col.y = g;
     me->bg_col.z = b;
+    me->position = (vec3){0, 0, -20};
     mat4 tmp = {
         {
             {0.707107, -0.331295, 0.624695, 0},
@@ -168,6 +187,7 @@ rt_ray_direction(raytrace_settings *rt, int x, int y,
 static vec3
 shade_intersection(vec3 orig, vec3 dir, ray_intersection *ri,
                    triangle_mesh *tm) {
+    #ifdef FANCY_SHADING
     vec3 normal;
     vec2 coords;
     tm_get_surface_props(tm, ri, &normal, &coords);
@@ -176,9 +196,10 @@ shade_intersection(vec3 orig, vec3 dir, ray_intersection *ri,
     float checker = (fmod(coords.x * m, 1.0) > 0.5) ^
         (fmod(coords.y * m, 1.0) < 0.5);
     float c = 0.3 * (1 - checker) + 0.7 * checker;
-    return (vec3){c * n_dot_view,
-            c * n_dot_view,
-            c * n_dot_view};
+    return v3_from_scalar(c * n_dot_view);
+    #else
+    return (vec3){1.0, 1.0, 1.0};
+    #endif
 }
 
 vec3
@@ -194,7 +215,7 @@ void
 render(raytrace_settings *rt, triangle_mesh *tm, vec3 *fbuf) {
     int w = rt->width;
     int h = rt->height;
-    vec3 orig = m4_mul_v3p(rt->view, (vec3){0, 0, -20});
+    vec3 orig = m4_mul_v3p(rt->view, rt->position);
     float scale = tan(to_rad(rt->fov * 0.5));
     float aspect_ratio = (float)w / (float)h;
     for (int y = 0; y < h; y++) {
@@ -220,12 +241,10 @@ main(int argc, char *argv[]) {
     if (!rt) {
         usage();
     }
-
     triangle_mesh *tm = tm_from_file(rt->mesh_file);
     if (!tm) {
         error("Failed to read mesh from file '%s'.\n", rt->mesh_file);
     }
-
     int w = rt->width;
     int h = rt->height;
     vec3 *fbuf = (vec3 *)malloc(w * h * sizeof(vec3));

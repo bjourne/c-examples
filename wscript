@@ -63,7 +63,6 @@ def build(ctx):
         build_program(ctx, 'pcre.c', ['PCRE'])
     # Raytracer
     source = ctx.path.ant_glob('programs/raytrace/*.c')
-    target = 'raytrace'
     ctx.program(source = source,
-                target = target,
+                target = 'rt',
                 use = ['DT_OBJS', 'M', 'LINALG_OBJS'])
