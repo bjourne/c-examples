@@ -23,6 +23,7 @@ extern inline bool approx_eq(float x, float y);
 extern inline vec3 v3_scale(vec3 v, float f);
 
 inline vec2 v2_scale(vec2 v, float f);
+inline vec3 v3_from_scalar(float s);
 
 static void
 print_float(float f, int n_dec) {

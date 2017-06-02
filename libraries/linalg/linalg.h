@@ -108,6 +108,11 @@ v3_scale(vec3 v, float f) {
     return (vec3){v.x * f, v.y * f, v.z * f};
 }
 
+inline vec3
+v3_from_scalar(float s) {
+    return (vec3){s, s, s};
+}
+
 typedef struct _mat4 {
     float d[4][4];
 } mat4;
