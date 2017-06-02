@@ -15,7 +15,7 @@ def configure(ctx):
                        '-fomit-frame-pointer',
                        '-march=native',
                        '-mtune=native']
-        debug_flags = ['-O3', '-g']
+        debug_flags = ['-O2', '-g']
     extra_flags = speed_flags
     ctx.env.append_unique('CFLAGS',
                           base_flags + extra_flags)
@@ -61,4 +61,9 @@ def build(ctx):
                       ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
         build_program(ctx, 'sigsegv.c', [])
         build_program(ctx, 'pcre.c', ['PCRE'])
-    build_program(ctx, 'raytrace.c', ['DT_OBJS', 'M', 'LINALG_OBJS'])
+    # Raytracer
+    source = ctx.path.ant_glob('programs/raytrace/*.c')
+    target = 'raytrace'
+    ctx.program(source = source,
+                target = target,
+                use = ['DT_OBJS', 'M', 'LINALG_OBJS'])
