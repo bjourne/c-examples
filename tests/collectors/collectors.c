@@ -234,7 +234,6 @@ test_torture() {
         vm_set_slot(v, rand_arr, 1 + rand_n(n_els), p);
     }
     vm_collect(v);
-    printf("%lu collections, max pause %lu ms\n", v->n_collections, v->max_pause / 1000 / 1000);
     vm_free(v);
 }
 
@@ -250,8 +249,6 @@ test_torture2() {
     vm_collect(v);
     vm_set(v, 0, 0);
     vm_collect(v);
-    printf("%lu collections, max pause %lu ms\n", v->n_collections, v->max_pause / 1000 / 1000);
-
     vm_free(v);
 }
 
