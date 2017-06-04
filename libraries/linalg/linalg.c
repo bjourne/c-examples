@@ -168,7 +168,9 @@ m4_look_at(vec3 eye, vec3 center, vec3 up) {
 mat4
 m4_perspective(float rad, float ar, float near, float far) {
     float tan_half = tan(rad / 2.0f);
-    mat4 res = {0};
+    mat4 res = {
+        {{0}}
+    };
     res.d[0][0] = 1.0f / (ar * tan_half);
     res.d[1][1] = 1.0f / tan_half;
     res.d[2][3] = -1.0f;
@@ -198,31 +200,3 @@ m4_approx_eq(mat4 l, mat4 r) {
 extern inline vec3 m4_mul_v3p(mat4 m, vec3 v);
 extern inline vec3 m4_mul_v3d(mat4 m, vec3 v);
 extern inline mat4 m4_mul_m4(mat4 l, mat4 r);
-
-bool
-ray_tri_intersect(vec3 orig, vec3 dir,
-                  vec3 v0, vec3 v1, vec3 v2,
-                  float *t, float *u, float *v) {
-    vec3 v0v1 = v3_sub(v1, v0);
-    vec3 v0v2 = v3_sub(v2, v0);
-    vec3 pvec = v3_cross(dir, v0v2);
-    float det = v3_dot(v0v1, pvec);
-
-    if (fabs(det) < LINALG_EPSILON) {
-        return false;
-    }
-    float inv_det = 1 / det;
-    vec3 tvec = v3_sub(orig, v0);
-
-    *u = v3_dot(tvec, pvec) * inv_det;
-    if (*u < 0 || *u > 1) {
-        return false;
-    }
-    vec3 qvec = v3_cross(tvec, v0v1);
-    *v = v3_dot(dir, qvec) * inv_det;
-    if (*v < 0 || *u + *v > 1) {
-        return false;
-    }
-    *t = v3_dot(v0v2, qvec) * inv_det;
-    return true;
-}

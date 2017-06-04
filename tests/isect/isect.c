@@ -4,6 +4,37 @@
 #include "linalg/linalg.h"
 
 void
+test_moeller_trumbore() {
+    vec3 orig = {
+        24.492475509643554688,
+        24.006366729736328125,
+        22.174991607666015625
+    };
+    vec3 dir = {
+        -0.582438647747039795,
+        -0.430847525596618652,
+        -0.689300775527954102
+    };
+    vec3 v0 = {
+        2.079962015151977539,
+        8.324080467224121094,
+        -4.233458995819091797
+    };
+    vec3 v1 = {
+        1.942253947257995605,
+        8.138879776000976562,
+        -3.293735027313232422
+    };
+    vec3 v2 = {
+        2.189547061920166016,
+        7.210639953613281250,
+        -4.343578815460205078
+    };
+    float t, u, v;
+    assert(isect_moeller_trumbore(orig, dir, v0, v1, v2, &t, &u, &v));
+}
+
+void
 test_precomp12() {
     vec3 v0 = {2.189, 5.870, 0.517};
     vec3 v1 = {1.795, 4.835, 0.481};
@@ -102,6 +133,7 @@ test_diffs_hard() {
 int
 main(int argc, char* argv[]) {
     rand_init(0);
+    PRINT_RUN(test_moeller_trumbore);
     PRINT_RUN(test_precomp12);
     PRINT_RUN(test_diffs_01);
     PRINT_RUN(test_diffs_02);
