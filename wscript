@@ -16,7 +16,7 @@ def configure(ctx):
                        '-march=native',
                        '-mtune=native']
         debug_flags = ['-O2', '-g']
-    extra_flags = speed_flags
+    extra_flags = debug_flags
     ctx.env.append_unique('CFLAGS',
                           base_flags + extra_flags)
     ctx.env.append_unique('CXXFLAGS', base_flags + extra_flags)
@@ -48,6 +48,7 @@ def build(ctx):
     build_library(ctx, 'quickfit', 'QF_OBJS')
     build_library(ctx, 'collectors', 'GC_OBJS')
     build_library(ctx, 'linalg', 'LINALG_OBJS')
+    build_library(ctx, 'isect', 'ISECT_OBJS')
 
     build_tests(ctx, 'datatypes', ['DT_OBJS'])
     build_tests(ctx, 'quickfit', ['DT_OBJS', 'QF_OBJS'])
@@ -65,4 +66,6 @@ def build(ctx):
     source = ctx.path.ant_glob('programs/raytrace/*.c')
     ctx.program(source = source,
                 target = 'rt',
-                use = ['DT_OBJS', 'M', 'LINALG_OBJS'])
+                use = ['DT_OBJS', 'M', 'LINALG_OBJS', 'ISECT_OBJS'])
+
+    build_tests(ctx, 'isect', ['LINALG_OBJS', 'DT_OBJS', 'M', 'ISECT_OBJS'])
