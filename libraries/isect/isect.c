@@ -13,7 +13,7 @@ isect_precomp12(vec3 o, vec3 d,
                 float *T);
 
 void
-isect_precomp12_precompute(vec3 v0, vec3 v1, vec3 v2, float *T) {
+isect_precomp12_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
     vec3 e1 = v3_sub(v1, v0);
     vec3 e2 = v3_sub(v2, v0);
     vec3 n = v3_cross(e1, e2);
@@ -47,5 +47,4 @@ isect_precomp12_precompute(vec3 v0, vec3 v1, vec3 v2, float *T) {
     } else {
         error("Impossible!");
     }
-
 }

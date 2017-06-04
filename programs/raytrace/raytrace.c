@@ -145,6 +145,7 @@ cast_ray(vec3 orig, vec3 dir, vec3 bg_col, triangle_mesh *tm) {
 
 void
 render(raytrace_settings *rt, triangle_mesh *tm, vec3 *fbuf) {
+    size_t start = nano_count();
     int w = rt->width;
     int h = rt->height;
     vec3 orig = m4_mul_v3p(rt->view, rt->position);
@@ -157,6 +158,9 @@ render(raytrace_settings *rt, triangle_mesh *tm, vec3 *fbuf) {
             fbuf++;
         }
     }
+    size_t end = nano_count();
+    double secs = (double)(end - start) / 1000 / 1000 / 1000;
+    printf("-> %.3f seconds\n", secs);
 }
 
 void

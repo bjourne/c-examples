@@ -133,7 +133,7 @@ tm_init(int n_faces,
         vec3 v0 = me->positions[*at_idx++];
         vec3 v1 = me->positions[*at_idx++];
         vec3 v2 = me->positions[*at_idx++];
-        isect_precomp12_precompute(v0, v1, v2, &me->precomp12[i*12]);
+        isect_precomp12_pre(v0, v1, v2, &me->precomp12[i*12]);
     }
 #endif
     return me;

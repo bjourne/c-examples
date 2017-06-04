@@ -41,7 +41,7 @@ test_precomp12() {
     vec3 v2 = {2.717, 6.016, -1.116};
 
     float T[12];
-    isect_precomp12_precompute(v0, v1, v2, T);
+    isect_precomp12_pre(v0, v1, v2, T);
 
     float Texp[12] = {
         0.000000000000000000,
@@ -73,7 +73,7 @@ test_diffs_01() {
     vec3 d = {-0.891354, -0.050203, -0.450520};
 
     float T[12];
-    isect_precomp12_precompute(v0, v1, v2, T);
+    isect_precomp12_pre(v0, v1, v2, T);
 
     bool mt = isect_moeller_trumbore(o, d, v0, v1, v2, &t, &u, &v);
     bool pc = isect_precomp12(o, d, v0, v1, v2, &t, &u, &v, T);
@@ -92,7 +92,7 @@ test_diffs_02() {
     vec3 d = {-0.628539, -0.769961, -0.109994};
 
     float T[12];
-    isect_precomp12_precompute(v0, v1, v2, T);
+    isect_precomp12_pre(v0, v1, v2, T);
 
     bool mt = isect_moeller_trumbore(o, d, v0, v1, v2, &t, &u, &v);
     bool pc = isect_precomp12(o, d, v0, v1, v2, &t, &u, &v, T);
@@ -116,7 +116,7 @@ test_diffs_hard() {
             vec[i].y = rand_n(200) - 100;
             vec[i].z = rand_n(200) - 100;
         }
-        isect_precomp12_precompute(vec[0], vec[1], vec[2], T);
+        isect_precomp12_pre(vec[0], vec[1], vec[2], T);
         bool mt = isect_moeller_trumbore(o, d, vec[0], vec[1], vec[2], &t, &u, &v);
         bool pc = isect_precomp12(o, d, vec[0], vec[1], vec[2], &t, &u, &v, T);
 

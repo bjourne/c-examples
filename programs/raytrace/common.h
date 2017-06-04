@@ -4,8 +4,8 @@
 //#define ISECT_MT
 #define ISECT_PRECOMP12
 
-//#define FANCY_SHADING
-#define PLAIN_SHADING
+#define FANCY_SHADING
+//#define PLAIN_SHADING
 
 typedef struct _ray_intersection {
     float t;
