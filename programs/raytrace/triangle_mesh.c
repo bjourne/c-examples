@@ -1,7 +1,10 @@
+#include <float.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "datatypes/common.h"
 #include "linalg/linalg.h"
+
+#include "intersection.h"
 #include "triangle_mesh.h"
 
 static bool
@@ -324,4 +327,61 @@ tm_print(triangle_mesh *me) {
         tm_print_index(me, *at_idx++);
         printf("}\n");
     }
+}
+
+void
+tm_get_surface_props(triangle_mesh *me, ray_intersection *ri,
+                     vec3 *normal, vec2 *tex_coords) {
+    int t0 = 3 * ri->tri_idx;
+    int t1 = 3 * ri->tri_idx + 1;
+    int t2 = 3 * ri->tri_idx + 2;
+
+    // Texture coordinates
+    vec2 st0 = me->coords[t0];
+    vec2 st1 = me->coords[t1];
+    vec2 st2 = me->coords[t2];
+    vec2 st0_scaled = v2_scale(st0, 1 - ri->uv.x - ri->uv.y);
+    vec2 st1_scaled = v2_scale(st1, ri->uv.x);
+    vec2 st2_scaled = v2_scale(st2, ri->uv.y);
+    *tex_coords = v2_add(v2_add(st0_scaled, st1_scaled), st2_scaled);
+
+    vec3 n0 = me->normals[t0];
+    vec3 n1 = me->normals[t1];
+    vec3 n2 = me->normals[t2];
+    vec3 n0_scaled = v3_scale(n0, 1 - ri->uv.x - ri->uv.y);
+    vec3 n1_scaled = v3_scale(n1, ri->uv.x);
+    vec3 n2_scaled = v3_scale(n2, ri->uv.y);
+    *normal = v3_add(v3_add(n0_scaled, n1_scaled), n2_scaled);
+}
+
+bool
+tm_intersect(triangle_mesh *me, vec3 orig, vec3 dir,
+             ray_intersection *ri) {
+    float nearest = FLT_MAX;
+    int *at_idx = me->indices;
+    for (int i = 0; i < me->n_tris; i++) {
+        vec3 v0 = me->positions[*at_idx++];
+        vec3 v1 = me->positions[*at_idx++];
+        vec3 v2 = me->positions[*at_idx++];
+        float u, v, t;
+
+#if defined(ISECT_MT)
+        bool isect = moeller_trumbore_isect(orig, dir,
+                                            v0, v1, v2,
+                                            &t, &u, &v);
+#elif defined(ISECT_PRECOMP12)
+        float *trans = &me->precomp12[i*12];
+        bool isect = precomp12_isect(orig, dir,
+                                     v0, v1, v2,
+                                     &t, &u, &v, trans);
+#endif
+        if (isect && t < nearest) {
+            nearest = t;
+            ri->t = t;
+            ri->uv.x = u;
+            ri->uv.y = v;
+            ri->tri_idx = i;
+        }
+    }
+    return nearest < FLT_MAX;
 }

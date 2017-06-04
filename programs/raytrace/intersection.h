@@ -36,7 +36,6 @@ precomp12_isect(vec3 orig, vec3 dir,
                 vec3 v0, vec3 v1, vec3 v2,
                 float *t, float *u, float *v,
                 float *T) {
-
     float trans_s =
         T[8] * orig.x +
         T[9] * orig.y +
@@ -67,6 +66,5 @@ precomp12_isect(vec3 orig, vec3 dir,
     }
     return false;
 }
-
 
 #endif
