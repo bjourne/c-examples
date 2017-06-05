@@ -129,6 +129,58 @@ test_diffs_hard() {
     }
 }
 
+void
+test_precomp9_diffs_01() {
+    vec3 orig = {
+        11.998573303, 14.635927200, 9.681089401
+    };
+    vec3 dir = {
+        -0.271481574, -0.138526469, -0.952422261
+    };
+    vec3 v0 = {
+        9.093396187, 7.740341663, -0.646813512
+    };
+    vec3 v1 = {
+        8.976127625, 7.674720764, -0.514906883
+    };
+    vec3 v2 = {
+        9.011932373, 7.674720764, -0.644407809
+    };
+    float t, u, v;
+    assert(!isect_moeller_trumbore(orig, dir, v0, v1, v2, &t, &u, &v));
+
+    float T[10];
+    isect_precomp9_pre(v0, v1, v2, T);
+    assert(!isect_precomp9(orig, dir, v0, v1, v2, &t, &u, &v, T));
+}
+
+void
+test_precomp9_diffs_02() {
+    vec3 o = {
+        11.998573303, 14.635927200, 9.681089401
+    };
+    vec3 d = {
+        -0.613979876, -0.327146232, -0.718334198
+    };
+    vec3 v0 = {
+        -0.707162023, 7.976923943, -4.903222084
+    };
+    vec3 v1 = {
+        0.022265967, 7.976923943, -4.960473537
+    };
+    vec3 v2 = {
+        0.022265967, 7.989515781, -5.001806736
+    };
+    float t, u, v;
+
+
+    float T[10];
+    isect_precomp9_pre(v0, v1, v2, T);
+    // The discrepancy appears to be caused by a fp precision issue.
+    assert(isect_moeller_trumbore(o, d, v0, v1, v2, &t, &u, &v));
+    assert(!isect_precomp9(o, d, v0, v1, v2, &t, &u, &v, T));
+}
+
 
 int
 main(int argc, char* argv[]) {
@@ -138,5 +190,7 @@ main(int argc, char* argv[]) {
     PRINT_RUN(test_diffs_01);
     PRINT_RUN(test_diffs_02);
     PRINT_RUN(test_diffs_hard);
+    PRINT_RUN(test_precomp9_diffs_01);
+    PRINT_RUN(test_precomp9_diffs_02);
     return 0;
 }
