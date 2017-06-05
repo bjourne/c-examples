@@ -52,7 +52,7 @@ typedef struct _raytrace_settings {
 
 raytrace_settings *
 rt_from_args(int argc, char *argv[]) {
-    if (argc != 9) {
+    if (argc != 5) {
         return NULL;
     }
     int width = atoi(argv[3]);
@@ -61,27 +61,16 @@ rt_from_args(int argc, char *argv[]) {
         height <= 0 || height > 2048) {
         return NULL;
     }
-    double fov_d = atof(argv[5]);
-    if (fov_d <= 0.0 || fov_d >= 100.0) {
-        return NULL;
-    }
-
-    double r = atof(argv[6]);
-    double g = atof(argv[7]);
-    double b = atof(argv[8]);
-    if (r < 0 || r > 1 || g < 0 || g > 1 || b < 0 || b > 1) {
-        return NULL;
-    }
     raytrace_settings *me = (raytrace_settings *)
         malloc(sizeof(raytrace_settings));
     me->width = width;
     me->height = height;
     me->mesh_file = strdup(argv[1]);
     me->image_file = strdup(argv[2]);
-    me->fov = fov_d;
-    me->bg_col.x = r;
-    me->bg_col.y = g;
-    me->bg_col.z = b;
+    me->fov = 50.0393;
+    me->bg_col.x = 0.1;
+    me->bg_col.y = 0.1;
+    me->bg_col.z = 0.2;
     me->position = (vec3){0, 0, -20};
     mat4 tmp = {
         {
@@ -134,10 +123,13 @@ shade_intersection(vec3 orig, vec3 dir, ray_intersection *ri,
     #endif
 }
 
+static size_t hits = 0;
+
 vec3
 cast_ray(vec3 orig, vec3 dir, vec3 bg_col, triangle_mesh *tm) {
     ray_intersection ri;
     if (tm_intersect(tm, orig, dir, &ri)) {
+        hits++;
         return shade_intersection(orig, dir, &ri, tm);
     }
     return bg_col;
@@ -160,14 +152,13 @@ render(raytrace_settings *rt, triangle_mesh *tm, vec3 *fbuf) {
     }
     size_t end = nano_count();
     double secs = (double)(end - start) / 1000 / 1000 / 1000;
-    printf("-> %.3f seconds\n", secs);
+    printf("-> %.3f seconds %lu hits\n", secs, hits);
 }
 
 void
 usage() {
     printf("usage: raytrace mesh-file image "
-           "width[0-2048] height[0-2048] fov[0-100] "
-           "bg_r[0-1] bg_g[0-1] bg_b[0-1]\n");
+           "width[0-2048] height[0-2048]\n");
     exit(1);
 }
 
