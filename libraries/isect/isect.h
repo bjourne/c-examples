@@ -46,7 +46,7 @@ isect_precomp12(vec3 o, vec3 d,
     *t = -t_o / t_d;
     if  (*t < ISECT_NEAR || *t > ISECT_FAR)
         return false;
-    vec3 wr = {o.x + *t * d.x, o.y + *t * d.y, o.z + *t * d.z};
+    vec3 wr = v3_add(o, v3_scale(d, *t));
     *u = T[0] * wr.x + T[1] * wr.y + T[2] * wr.z + T[3];
     *v = T[4] * wr.x + T[5] * wr.y + T[6] * wr.z + T[7];
     return *u >= 0 && *v >= 0 && (*v + *u) <= 1;
@@ -57,23 +57,22 @@ isect_precomp9(vec3 o, vec3 d,
                vec3 v0, vec3 v1, vec3 v2,
                float *t, float *u, float *v,
                float *T) {
-    float fix_col = T[9];
-    if (fix_col == 1.0) {
+    if (T[9] == 1.0) {
         float t_o = o.x + T[6] * o.y + T[7]  * o.z + T[8];
         float t_d = d.x + T[6] * d.y + T[7] * d.z;
         *t = -t_o / t_d;
         if  (*t < ISECT_NEAR || *t > ISECT_FAR)
             return false;
-        vec3 wr = {o.x + *t * d.x, o.y + *t * d.y, o.z + *t * d.z};
+        vec3 wr = v3_add(o, v3_scale(d, *t));
         *u = T[0] * wr.y + T[1] * wr.z + T[2];
         *v = T[3] * wr.y + T[4] * wr.z + T[5];
-    } else if (fix_col == 2.0) {
+    } else if (T[9] == 2.0) {
         float t_o = T[6] * o.x + o.y + T[7] * o.z + T[8];
         float t_d = T[6] * d.x + d.y + T[7] * d.z;
         *t = -t_o / t_d;
         if  (*t < ISECT_NEAR || *t > ISECT_FAR)
             return false;
-        vec3 wr = {o.x + *t * d.x, o.y + *t * d.y, o.z + *t * d.z};
+        vec3 wr = v3_add(o, v3_scale(d, *t));
         *u = T[0] * wr.x + T[1] * wr.z + T[2];
         *v = T[3] * wr.x + T[4] * wr.z + T[5];
     } else {
@@ -82,12 +81,11 @@ isect_precomp9(vec3 o, vec3 d,
         *t = -t_o / t_d;
         if  (*t < ISECT_NEAR || *t > ISECT_FAR)
             return false;
-        vec3 wr = {o.x + *t * d.x, o.y + *t * d.y, o.z + *t * d.z};
+        vec3 wr = v3_add(o, v3_scale(d, *t));
         *u = T[0] * wr.x + T[1] * wr.y + T[2];
         *v = T[3] * wr.x + T[4] * wr.y + T[5];
     }
     return *u >= 0 && *v >= 0 && (*v + *u) <= 1;
 }
-
 
 #endif
