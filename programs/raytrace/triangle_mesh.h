@@ -10,8 +10,8 @@ typedef struct _triangle_mesh {
     vec3 *positions;
     vec3 *normals;
     vec2 *coords;
-#if defined(ISECT_PRECOMP12)
-    float *precomp12;
+#if ISECT_METHOD == ISECT_PC12 || ISECT_METHOD == ISECT_PC9
+    float *precomp;
 #endif
 } triangle_mesh;
 

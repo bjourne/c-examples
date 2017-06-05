@@ -108,7 +108,7 @@ rt_ray_direction(raytrace_settings *rt, int x, int y,
 static vec3
 shade_intersection(vec3 orig, vec3 dir, ray_intersection *ri,
                    triangle_mesh *tm) {
-    #ifdef FANCY_SHADING
+    #if SHADING_STYLE == FANCY_SHADING
     vec3 normal;
     vec2 coords;
     tm_get_surface_props(tm, ri, &normal, &coords);
@@ -152,7 +152,7 @@ render(raytrace_settings *rt, triangle_mesh *tm, vec3 *fbuf) {
     }
     size_t end = nano_count();
     double secs = (double)(end - start) / 1000 / 1000 / 1000;
-    printf("-> %.3f seconds %lu hits\n", secs, hits);
+    printf("%.3f seconds, %lu intersections\n", secs, hits);
 }
 
 void

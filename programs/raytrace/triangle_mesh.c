@@ -126,14 +126,18 @@ tm_init(int n_faces,
         k += faces[i];
     }
 
-#if defined(ISECT_PRECOMP12)
-    me->precomp12 = (float *)malloc(sizeof(float) * 12 * me->n_tris);
+#if ISECT_METHOD == ISECT_PC12 || ISECT_METHOD == ISECT_PC9
+    me->precomp = (float *)malloc(ISECT_PC12_SIZE * me->n_tris);
     int *at_idx = me->indices;
     for (int i = 0; i < me->n_tris; i++) {
         vec3 v0 = me->positions[*at_idx++];
         vec3 v1 = me->positions[*at_idx++];
         vec3 v2 = me->positions[*at_idx++];
-        isect_precomp12_pre(v0, v1, v2, &me->precomp12[i*12]);
+        #if ISECT_METHOD == ISECT_PC12
+        isect_precomp12_pre(v0, v1, v2, &me->precomp[i*12]);
+        #else
+        isect_precomp9_pre(v0, v1, v2, &me->precomp[i*10]);
+        #endif
     }
 #endif
     return me;
@@ -145,8 +149,8 @@ tm_free(triangle_mesh *me) {
     free(me->normals);
     free(me->coords);
     free(me->positions);
-#if defined(ISECT_PRECOMP12)
-    free(me->precomp12);
+#if ISECT_METHOD == ISECT_PC12 || ISECT_METHOD == ISECT_PC9
+    free(me->precomp);
 #endif
     free(me);
 }
@@ -292,19 +296,20 @@ tm_intersect(triangle_mesh *me, vec3 orig, vec3 dir,
         vec3 v1 = me->positions[*at_idx++];
         vec3 v2 = me->positions[*at_idx++];
         float u = 0, v = 0, t = 0;
-
-#if defined(ISECT_MT)
+#if ISECT_METHOD == ISECT_MT
         bool isect = isect_moeller_trumbore(orig, dir,
                                             v0, v1, v2,
                                             &t, &u, &v);
-#elif defined(ISECT_PRECOMP12)
-        float *trans = &me->precomp12[i*12];
-
-
-
+#elif ISECT_METHOD == ISECT_PC12
+        float *trans = &me->precomp[i*12];
         bool isect = isect_precomp12(orig, dir,
-                                     v0, v1, v2,
-                                     &t, &u, &v, trans);
+                                v0, v1, v2,
+                                &t, &u, &v, trans);
+#elif ISECT_METHOD == ISECT_PC9
+        float *trans = &me->precomp[i*10];
+        bool isect = isect_precomp9(orig, dir,
+                                      v0, v1, v2,
+                                      &t, &u, &v, trans);
 #endif
         if (isect && t < nearest) {
             nearest = t;
