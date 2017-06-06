@@ -13,10 +13,37 @@
 void isect_precomp12_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
 void isect_precomp9_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
 
+// This algorithm is taken from
+// https://pdfs.semanticscholar.org/8fc1/5c74a9d7326591c6bc507f539e1b0473b280.pdf
+// but doesn't work properly yet.
+inline float
+v3_sign_3d(vec3 p, vec3 q, vec3 r) {
+    return v3_dot(p, v3_cross(q, r));
+}
+
 inline bool
-isect_moeller_trumbore(vec3 o, vec3 d,
-                       vec3 v0, vec3 v1, vec3 v2,
-                       float *t, vec2  *uv) {
+isect_sf01(vec3 o, vec3 d,
+           vec3 v0, vec3 v1, vec3 v2,
+           float *t, vec2  *uv) {
+    float w2 = v3_sign_3d(d, v3_sub(v1, o), v3_sub(v0, o));
+    float w0 = v3_sign_3d(d, v3_sub(v2, o), v3_sub(v1, o));
+    bool s2 = w2 >= 0.0f;
+    bool s0 = w0 >= 0.0f;
+    if (s2 != s0)
+        return false;
+    float w1 = v3_sign_3d(d, v3_sub(v0, o), v3_sub(v2, o));
+    bool s1 = w1 >= 0.0f;
+    if (s2 != s1)
+        return false;
+    uv->x = w1 / (w0 + w1 + w2);
+    uv->y = w2 / (w0 + w1 + w2);
+    vec3 n = v3_cross(v0, v1);
+    *t = v3_dot(n, v3_sub(v0, o)) / v3_dot(n, d);
+    return uv->x >= 0 && uv->y >= 0 && (uv->x + uv->y) <= 1;
+}
+
+inline bool
+isect_mt(vec3 o, vec3 d, vec3 v0, vec3 v1, vec3 v2, float *t, vec2  *uv) {
     vec3 v0v1 = v3_sub(v1, v0);
     vec3 v0v2 = v3_sub(v2, v0);
     vec3 pvec = v3_cross(d, v0v2);
@@ -57,7 +84,7 @@ isect_precomp9(vec3 o, vec3 d,
                float *t, vec2 *uv,
                float *T) {
     if (T[9] == 1.0) {
-        float t_o = o.x + T[6] * o.y + T[7]  * o.z + T[8];
+        float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
         float t_d = d.x + T[6] * d.y + T[7] * d.z;
         *t = -t_o / t_d;
         if  (*t < ISECT_NEAR || *t > ISECT_FAR)

@@ -3,9 +3,9 @@
 #include "isect.h"
 
 extern inline bool
-isect_moeller_trumbore(vec3 o, vec3 d,
-                       vec3 v0, vec3 v1, vec3 v2,
-                       float *t, vec2 *uv);
+isect_mt(vec3 o, vec3 d,
+         vec3 v0, vec3 v1, vec3 v2,
+         float *t, vec2 *uv);
 
 extern inline bool
 isect_precomp9(vec3 o, vec3 d,

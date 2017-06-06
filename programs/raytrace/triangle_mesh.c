@@ -126,8 +126,12 @@ tm_init(int n_faces,
         k += faces[i];
     }
 
-#if ISECT_METHOD == ISECT_PC12 || ISECT_METHOD == ISECT_PC9
+#if ISECT_METHOD == ISECT_PC9 || ISECT_METHOD == ISECT_PC12
+    #if ISECT_METHOD == ISECT_PC12
     me->precomp = (float *)malloc(ISECT_PC12_SIZE * me->n_tris);
+    #elif ISECT_METHOD == ISECT_PC9
+    me->precomp = (float *)malloc(ISECT_PC9_SIZE * me->n_tris);
+    #endif
     int *at_idx = me->indices;
     for (int i = 0; i < me->n_tris; i++) {
         vec3 v0 = me->positions[*at_idx++];
@@ -135,7 +139,7 @@ tm_init(int n_faces,
         vec3 v2 = me->positions[*at_idx++];
         #if ISECT_METHOD == ISECT_PC12
         isect_precomp12_pre(v0, v1, v2, &me->precomp[i*12]);
-        #else
+        #elif ISECT_METHOD == ISECT_PC9
         isect_precomp9_pre(v0, v1, v2, &me->precomp[i*10]);
         #endif
     }
@@ -287,8 +291,7 @@ tm_get_surface_props(triangle_mesh *me, ray_intersection *ri,
 }
 
 bool
-tm_intersect(triangle_mesh *me, vec3 orig, vec3 dir,
-             ray_intersection *ri) {
+tm_intersect(triangle_mesh *me, vec3 o, vec3 d, ray_intersection *ri) {
     float nearest = FLT_MAX;
     int *at_idx = me->indices;
     for (int i = 0; i < me->n_tris; i++) {
@@ -298,13 +301,13 @@ tm_intersect(triangle_mesh *me, vec3 orig, vec3 dir,
         vec2 uv;
         float t = 0;
 #if ISECT_METHOD == ISECT_MT
-        bool isect = isect_moeller_trumbore(orig, dir, v0, v1, v2, &t, &uv);
+        bool isect = isect_mt(o, d, v0, v1, v2, &t, &uv);
 #elif ISECT_METHOD == ISECT_PC12
-        float *trans = &me->precomp[i*12];
-        bool isect = isect_precomp12(orig, dir, v0, v1, v2, &t, &uv, trans);
+        float *T = &me->precomp[i*12];
+        bool isect = isect_precomp12(o, d, v0, v1, v2, &t, &uv, T);
 #elif ISECT_METHOD == ISECT_PC9
-        float *trans = &me->precomp[i*10];
-        bool isect = isect_precomp9(orig, dir, v0, v1, v2, &t, &uv, trans);
+        float *T = &me->precomp[i*10];
+        bool isect = isect_precomp9(o, d, v0, v1, v2, &t, &uv, T);
 #endif
         if (isect && t < nearest) {
             nearest = t;
