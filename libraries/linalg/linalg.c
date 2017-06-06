@@ -43,6 +43,15 @@ v3_print(vec3 v, int n_dec) {
     printf("}");
 }
 
+void
+v2_print(vec2 v, int n_dec) {
+    printf("{");
+    print_float(v.x, n_dec);
+    printf(", ");
+    print_float(v.y, n_dec);
+    printf("}");
+}
+
 mat4
 m4_identity() {
     return (mat4){

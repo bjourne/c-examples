@@ -44,6 +44,9 @@ typedef struct _vec3 {
 void
 v3_print(vec3 v, int n_dec);
 
+void
+v2_print(vec2 v, int n_dec);
+
 inline vec3
 v3_sub(vec3 l, vec3 r) {
     return (vec3){l.x - r.x, l.y - r.y, l.z - r.z};
@@ -98,9 +101,9 @@ v3_normalize(vec3 in) {
 
 inline bool
 v3_approx_eq(vec3 l, vec3 r) {
-    return fabs(l.x - r.x) < LINALG_EPSILON &&
-        fabs(l.y - r.y) < LINALG_EPSILON &&
-        fabs(l.z - r.z) < LINALG_EPSILON;
+    return fabsf(l.x - r.x) < LINALG_EPSILON &&
+        fabsf(l.y - r.y) < LINALG_EPSILON &&
+        fabsf(l.z - r.z) < LINALG_EPSILON;
 }
 
 inline vec3
@@ -111,6 +114,17 @@ v3_scale(vec3 v, float f) {
 inline vec3
 v3_from_scalar(float s) {
     return (vec3){s, s, s};
+}
+
+inline bool
+v2_approx_eq2(vec2 l, vec2 r, float epsilon) {
+    return fabsf(l.x - r.x) < epsilon &&
+        fabsf(l.y - r.y) < epsilon;
+}
+
+inline bool
+v2_approx_eq(vec2 l, vec2 r) {
+    return v2_approx_eq2(l, r, LINALG_EPSILON);
 }
 
 typedef struct _mat4 {
