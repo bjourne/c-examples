@@ -300,16 +300,19 @@ tm_intersect(triangle_mesh *me, vec3 o, vec3 d, ray_intersection *ri) {
         vec3 v2 = me->positions[*at_idx++];
         vec2 uv;
         float t = 0;
+        bool isect;
 #if ISECT_METHOD == ISECT_MT
-        bool isect = isect_mt(o, d, v0, v1, v2, &t, &uv);
+        isect = isect_mt(o, d, v0, v1, v2, &t, &uv);
+#elif ISECT_METHOD == ISECT_MT_B
+        isect = isect_mt_b(o, d, v0, v1, v2, &t, &uv);
 #elif ISECT_METHOD == ISECT_PC12
         float *T = &me->precomp[i*12];
-        bool isect = isect_precomp12(o, d, v0, v1, v2, &t, &uv, T);
+        isect = isect_precomp12(o, d, v0, v1, v2, &t, &uv, T);
 #elif ISECT_METHOD == ISECT_PC9
         float *T = &me->precomp[i*10];
-        bool isect = isect_precomp9(o, d, v0, v1, v2, &t, &uv, T);
+        isect = isect_precomp9(o, d, v0, v1, v2, &t, &uv, T);
 #elif ISECT_METHOD == ISECT_SF01
-        bool isect = isect_sf01(o, d, v0, v1, v2, &t, &uv);
+        isect = isect_sf01(o, d, v0, v1, v2, &t, &uv);
 #endif
         if (isect && t < nearest) {
             nearest = t;
