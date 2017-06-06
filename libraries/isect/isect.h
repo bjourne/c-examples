@@ -116,6 +116,23 @@ isect_precomp12(vec3 o, vec3 d,
 }
 
 inline bool
+isect_precomp12_b(vec3 o, vec3 d,
+                  vec3 v0, vec3 v1, vec3 v2,
+                  float *t, vec2 *uv, float *T) {
+    float t_o = T[8] * o.x + T[9] * o.y + T[10] * o.z + T[11];
+    float t_d = T[8] * d.x + T[9] * d.y + T[10] * d.z;
+    *t = -t_o / t_d;
+    if  (*t < ISECT_NEAR || *t > ISECT_FAR)
+        return false;
+    vec3 wr = v3_add(o, v3_scale(d, *t));
+    uv->x = T[0] * wr.x + T[1] * wr.y + T[2] * wr.z + T[3];
+    if (uv->x < 0 || uv->x > 1)
+        return false;
+    uv->y = T[4] * wr.x + T[5] * wr.y + T[6] * wr.z + T[7];
+    return uv->y >= 0 && (uv->x + uv->y) <= 1;
+}
+
+inline bool
 isect_precomp9(vec3 o, vec3 d,
                vec3 v0, vec3 v1, vec3 v2,
                float *t, vec2 *uv,
