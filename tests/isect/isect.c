@@ -30,8 +30,9 @@ test_moeller_trumbore() {
         7.210639953613281250,
         -4.343578815460205078
     };
-    float t, u, v;
-    assert(isect_moeller_trumbore(orig, dir, v0, v1, v2, &t, &u, &v));
+    float t;
+    vec2 uv;
+    assert(isect_moeller_trumbore(orig, dir, v0, v1, v2, &t, &uv));
 }
 
 void
@@ -64,7 +65,8 @@ test_precomp12() {
 
 void
 test_diffs_01() {
-    float t, u, v;
+    float t;
+    vec2 uv;
     vec3 v0 = {1.470782, 7.976924, 3.797243};
     vec3 v1 = {0.767229, 7.976924, 3.966874};
     vec3 v2 = {0.777313, 7.939148, 4.027555};
@@ -75,14 +77,15 @@ test_diffs_01() {
     float T[12];
     isect_precomp12_pre(v0, v1, v2, T);
 
-    bool mt = isect_moeller_trumbore(o, d, v0, v1, v2, &t, &u, &v);
-    bool pc = isect_precomp12(o, d, v0, v1, v2, &t, &u, &v, T);
+    bool mt = isect_moeller_trumbore(o, d, v0, v1, v2, &t, &uv);
+    bool pc = isect_precomp12(o, d, v0, v1, v2, &t, &uv, T);
     assert(mt == pc);
 }
 
 void
 test_diffs_02() {
-    float t, u, v;
+    float t;
+    vec2 uv;
 
     vec3 v0 = {63.000000, 44.000000, 95.000000};
     vec3 v1  = {-46.000000, 26.000000, 57.000000};
@@ -94,15 +97,16 @@ test_diffs_02() {
     float T[12];
     isect_precomp12_pre(v0, v1, v2, T);
 
-    bool mt = isect_moeller_trumbore(o, d, v0, v1, v2, &t, &u, &v);
-    bool pc = isect_precomp12(o, d, v0, v1, v2, &t, &u, &v, T);
+    bool mt = isect_moeller_trumbore(o, d, v0, v1, v2, &t, &uv);
+    bool pc = isect_precomp12(o, d, v0, v1, v2, &t, &uv, T);
     assert(mt == pc);
 }
 
-
 void
 test_diffs_hard() {
-    float t, u, v;
+    float t;
+    vec2 uv;
+
     vec3 vec[3];
     vec3 o = {0}, d;
     float T[12];
@@ -117,9 +121,8 @@ test_diffs_hard() {
             vec[i].z = rand_n(200) - 100;
         }
         isect_precomp12_pre(vec[0], vec[1], vec[2], T);
-        bool mt = isect_moeller_trumbore(o, d, vec[0], vec[1], vec[2], &t, &u, &v);
-        bool pc = isect_precomp12(o, d, vec[0], vec[1], vec[2], &t, &u, &v, T);
-
+        bool mt = isect_moeller_trumbore(o, d, vec[0], vec[1], vec[2], &t, &uv);
+        bool pc = isect_precomp12(o, d, vec[0], vec[1], vec[2], &t, &uv, T);
         if (mt  != pc) {
             for (int i  = 0; i < 3; i++) {
                 v3_print(vec[i], 6);
@@ -146,12 +149,13 @@ test_precomp9_diffs_01() {
     vec3 v2 = {
         9.011932373, 7.674720764, -0.644407809
     };
-    float t, u, v;
-    assert(!isect_moeller_trumbore(orig, dir, v0, v1, v2, &t, &u, &v));
+    float t;
+    vec2 uv;
+    assert(!isect_moeller_trumbore(orig, dir, v0, v1, v2, &t, &uv));
 
     float T[10];
     isect_precomp9_pre(v0, v1, v2, T);
-    assert(!isect_precomp9(orig, dir, v0, v1, v2, &t, &u, &v, T));
+    assert(!isect_precomp9(orig, dir, v0, v1, v2, &t, &uv, T));
 }
 
 void
@@ -171,16 +175,15 @@ test_precomp9_diffs_02() {
     vec3 v2 = {
         0.022265967, 7.989515781, -5.001806736
     };
-    float t, u, v;
-
+    float t;
+    vec2 uv;
 
     float T[10];
     isect_precomp9_pre(v0, v1, v2, T);
     // The discrepancy appears to be caused by a fp precision issue.
-    assert(isect_moeller_trumbore(o, d, v0, v1, v2, &t, &u, &v));
-    assert(!isect_precomp9(o, d, v0, v1, v2, &t, &u, &v, T));
+    assert(isect_moeller_trumbore(o, d, v0, v1, v2, &t, &uv));
+    assert(!isect_precomp9(o, d, v0, v1, v2, &t, &uv, T));
 }
-
 
 int
 main(int argc, char* argv[]) {

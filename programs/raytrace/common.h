@@ -4,7 +4,7 @@
 #define ISECT_MT        1
 #define ISECT_PC9       2
 #define ISECT_PC12      3
-#define ISECT_METHOD ISECT_PC12
+#define ISECT_METHOD ISECT_MT
 
 #define PLAIN_SHADING   1
 #define FANCY_SHADING   2

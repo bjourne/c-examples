@@ -295,27 +295,21 @@ tm_intersect(triangle_mesh *me, vec3 orig, vec3 dir,
         vec3 v0 = me->positions[*at_idx++];
         vec3 v1 = me->positions[*at_idx++];
         vec3 v2 = me->positions[*at_idx++];
-        float u = 0, v = 0, t = 0;
+        vec2 uv;
+        float t = 0;
 #if ISECT_METHOD == ISECT_MT
-        bool isect = isect_moeller_trumbore(orig, dir,
-                                            v0, v1, v2,
-                                            &t, &u, &v);
+        bool isect = isect_moeller_trumbore(orig, dir, v0, v1, v2, &t, &uv);
 #elif ISECT_METHOD == ISECT_PC12
         float *trans = &me->precomp[i*12];
-        bool isect = isect_precomp12(orig, dir,
-                                v0, v1, v2,
-                                &t, &u, &v, trans);
+        bool isect = isect_precomp12(orig, dir, v0, v1, v2, &t, &uv, trans);
 #elif ISECT_METHOD == ISECT_PC9
         float *trans = &me->precomp[i*10];
-        bool isect = isect_precomp9(orig, dir,
-                                      v0, v1, v2,
-                                      &t, &u, &v, trans);
+        bool isect = isect_precomp9(orig, dir, v0, v1, v2, &t, &uv, trans);
 #endif
         if (isect && t < nearest) {
             nearest = t;
             ri->t = t;
-            ri->uv.x = u;
-            ri->uv.y = v;
+            ri->uv = uv;
             ri->tri_idx = i;
         }
     }

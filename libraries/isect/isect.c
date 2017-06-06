@@ -1,22 +1,22 @@
+// -rwxrwxr-x 1 bjourne bjourne 51264 jun  6 03:20 build/rt<
 #include <string.h>
 #include "isect.h"
 
 extern inline bool
 isect_moeller_trumbore(vec3 o, vec3 d,
                        vec3 v0, vec3 v1, vec3 v2,
-                       float *t, float *u, float *v);
+                       float *t, vec2 *uv);
 
 extern inline bool
 isect_precomp9(vec3 o, vec3 d,
-                vec3 v0, vec3 v1, vec3 v2,
-                float *t, float *u, float *v,
-                float *T);
+               vec3 v0, vec3 v1, vec3 v2,
+               float *t, vec2 *uv,
+               float *T);
 
 extern inline bool
 isect_precomp12(vec3 o, vec3 d,
                 vec3 v0, vec3 v1, vec3 v2,
-                float *t, float *u, float *v,
-                float *T);
+                float *t, vec2 *uv, float *T);
 
 void
 isect_precomp9_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {

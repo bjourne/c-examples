@@ -34,13 +34,13 @@ print_float(float f, int n_dec) {
 
 void
 v3_print(vec3 v, int n_dec) {
-    printf("[");
+    printf("{");
     print_float(v.x, n_dec);
     printf(", ");
     print_float(v.y, n_dec);
     printf(", ");
     print_float(v.z, n_dec);
-    printf("]");
+    printf("}");
 }
 
 mat4
