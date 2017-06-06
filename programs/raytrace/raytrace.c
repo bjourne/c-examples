@@ -152,7 +152,8 @@ render(raytrace_settings *rt, triangle_mesh *tm, vec3 *fbuf) {
     }
     size_t end = nano_count();
     double secs = (double)(end - start) / 1000 / 1000 / 1000;
-    printf("%.3f seconds, %lu intersections\n", secs, hits);
+    printf("%s: %.3f seconds, %lu intersections\n",
+           isect_name(), secs, hits);
 }
 
 void

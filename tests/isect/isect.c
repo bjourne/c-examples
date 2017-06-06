@@ -5,12 +5,12 @@
 
 void
 test_mt() {
-    vec3 orig = {
+    vec3 o = {
         24.492475509643554688,
         24.006366729736328125,
         22.174991607666015625
     };
-    vec3 dir = {
+    vec3 d = {
         -0.582438647747039795,
         -0.430847525596618652,
         -0.689300775527954102
@@ -32,7 +32,7 @@ test_mt() {
     };
     float t;
     vec2 uv;
-    assert(isect_mt(orig, dir, v0, v1, v2, &t, &uv));
+    assert(isect_mt(o, d, v0, v1, v2, &t, &uv));
 }
 
 void
@@ -215,11 +215,9 @@ test_isect_sf01() {
     float t1, t2;
     vec2 uv1, uv2;
     isect_mt(o, d, v0, v1, v2, &t1, &uv1);
-    printf("%.2f\n", t1);
-    printf("%.2f, %.2f\n", uv1.x, uv1.y);
     isect_sf01(o, d, v0, v1, v2, &t2, &uv2);
-    printf("%.2f\n", t2);
-    printf("%.2f, %.2f\n", uv2.x, uv2.y);
+    printf("%.6f %.6f\n", t1, t2);
+    assert(approx_eq2(t1, t2, 0.0001));
 }
 
 int

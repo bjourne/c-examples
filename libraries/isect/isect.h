@@ -13,9 +13,6 @@
 void isect_precomp12_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
 void isect_precomp9_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
 
-// This algorithm is taken from
-// https://pdfs.semanticscholar.org/8fc1/5c74a9d7326591c6bc507f539e1b0473b280.pdf
-// but doesn't work properly yet.
 inline float
 v3_sign_3d(vec3 p, vec3 q, vec3 r) {
     return v3_dot(p, v3_cross(q, r));
@@ -25,21 +22,26 @@ inline bool
 isect_sf01(vec3 o, vec3 d,
            vec3 v0, vec3 v1, vec3 v2,
            float *t, vec2  *uv) {
-    float w2 = v3_sign_3d(d, v3_sub(v1, o), v3_sub(v0, o));
-    float w0 = v3_sign_3d(d, v3_sub(v2, o), v3_sub(v1, o));
+    vec3 v0o = v3_sub(v0, o);
+    vec3 v1o = v3_sub(v1, o);
+    vec3 v2o = v3_sub(v2, o);
+    float w2 = v3_sign_3d(d, v1o, v0o);
+    float w0 = v3_sign_3d(d, v2o, v1o);
     bool s2 = w2 >= 0.0f;
     bool s0 = w0 >= 0.0f;
     if (s2 != s0)
         return false;
-    float w1 = v3_sign_3d(d, v3_sub(v0, o), v3_sub(v2, o));
+    float w1 = v3_sign_3d(d, v0o, v2o);
     bool s1 = w1 >= 0.0f;
     if (s2 != s1)
         return false;
     uv->x = w1 / (w0 + w1 + w2);
     uv->y = w2 / (w0 + w1 + w2);
-    vec3 n = v3_cross(v0, v1);
-    *t = v3_dot(n, v3_sub(v0, o)) / v3_dot(n, d);
-    return uv->x >= 0 && uv->y >= 0 && (uv->x + uv->y) <= 1;
+    vec3 v0v1 = v3_sub(v1, v0);
+    vec3 v0v2 = v3_sub(v2, v0);
+    vec3 n = v3_cross(v0v1, v0v2);
+    *t = v3_dot(n, v0o) / v3_dot(n, d);
+    return *t >= ISECT_NEAR && *t <= ISECT_FAR;
 }
 
 inline bool
@@ -60,6 +62,37 @@ isect_mt(vec3 o, vec3 d, vec3 v0, vec3 v1, vec3 v2, float *t, vec2  *uv) {
     if (uv->y < 0 || uv->x + uv->y > 1)
         return false;
     *t = v3_dot(v0v2, qvec) * inv_det;
+    return *t >= ISECT_NEAR && *t <= ISECT_FAR;
+}
+
+inline bool
+isect_mt2(vec3 o, vec3 d, vec3 v0, vec3 v1, vec3 v2, float *t, vec2  *uv) {
+    vec3 v0v1 = v3_sub(v1, v0);
+    vec3 v0v2 = v3_sub(v2, v0);
+    vec3 pvec = v3_cross(d, v0v2);
+    vec3 tvec = v3_sub(o, v0);
+    vec3 qvec = v3_cross(tvec, v0v1);
+    uv->x = v3_dot(tvec, pvec);
+    float det = v3_dot(v0v1, pvec);
+    if (det > LINALG_EPSILON) {
+        if (uv->x < 0 || uv->x > det)
+            return false;
+        uv->y = v3_dot(d, qvec);
+        if (uv->y < 0 || uv->x + uv->y > det)
+            return false;
+    } else if (det < -LINALG_EPSILON) {
+        if (uv->x > 0 || uv->x < det)
+            return false;
+        uv->y = v3_dot(d, qvec);
+        if (uv->y > 0 || uv->x + uv->y < det)
+            return false;
+    } else {
+        return false;
+    }
+    float inv_det = 1.0f / det;
+    *t = v3_dot(v0v2, qvec) * inv_det;
+    uv->x *= inv_det;
+    uv->y *= inv_det;
     return *t >= ISECT_NEAR && *t <= ISECT_FAR;
 }
 
