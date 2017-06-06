@@ -21,7 +21,7 @@ v3_sign_3d(vec3 p, vec3 q, vec3 r) {
 inline bool
 isect_sf01(vec3 o, vec3 d,
            vec3 v0, vec3 v1, vec3 v2,
-           float *t, vec2  *uv) {
+           float *t, vec2 *uv) {
     vec3 v0o = v3_sub(v0, o);
     vec3 v1o = v3_sub(v1, o);
     vec3 v2o = v3_sub(v2, o);
@@ -45,7 +45,9 @@ isect_sf01(vec3 o, vec3 d,
 }
 
 inline bool
-isect_mt(vec3 o, vec3 d, vec3 v0, vec3 v1, vec3 v2, float *t, vec2  *uv) {
+isect_mt(vec3 o, vec3 d,
+         vec3 v0, vec3 v1, vec3 v2,
+         float *t, vec2 *uv) {
     vec3 e1 = v3_sub(v1, v0);
     vec3 e2 = v3_sub(v2, v0);
     vec3 pvec = v3_cross(d, e2);
@@ -137,7 +139,7 @@ isect_precomp9(vec3 o, vec3 d,
                vec3 v0, vec3 v1, vec3 v2,
                float *t, vec2 *uv,
                float *T) {
-    if (T[9] == 1.0) {
+    if ((int)T[9] == 1) {
         float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
         float t_d = d.x + T[6] * d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -146,7 +148,7 @@ isect_precomp9(vec3 o, vec3 d,
         vec3 wr = v3_add(o, v3_scale(d, *t));
         uv->x = T[0] * wr.y + T[1] * wr.z + T[2];
         uv->y = T[3] * wr.y + T[4] * wr.z + T[5];
-    } else if (T[9] == 2.0) {
+    } else if ((int)T[9] == 2) {
         float t_o = T[6] * o.x + o.y + T[7] * o.z + T[8];
         float t_d = T[6] * d.x + d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -167,5 +169,48 @@ isect_precomp9(vec3 o, vec3 d,
     }
     return uv->x >= 0 && uv->y >= 0 && (uv->x + uv->y) <= 1;
 }
+
+inline bool
+isect_precomp9_b(vec3 o, vec3 d,
+                 vec3 v0, vec3 v1, vec3 v2,
+                 float *t, vec2 *uv,
+                 float *T) {
+    if ((int)T[9] == 1) {
+        float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
+        float t_d = d.x + T[6] * d.y + T[7] * d.z;
+        *t = -t_o / t_d;
+        if  (*t < ISECT_NEAR || *t > ISECT_FAR)
+            return false;
+        vec3 wr = v3_add(o, v3_scale(d, *t));
+        uv->x = T[0] * wr.y + T[1] * wr.z + T[2];
+        if (uv->x < 0 || uv->x > 1)
+            return false;
+        uv->y = T[3] * wr.y + T[4] * wr.z + T[5];
+    } else if ((int)T[9] == 2) {
+        float t_o = T[6] * o.x + o.y + T[7] * o.z + T[8];
+        float t_d = T[6] * d.x + d.y + T[7] * d.z;
+        *t = -t_o / t_d;
+        if  (*t < ISECT_NEAR || *t > ISECT_FAR)
+            return false;
+        vec3 wr = v3_add(o, v3_scale(d, *t));
+        uv->x = T[0] * wr.x + T[1] * wr.z + T[2];
+        if (uv->x < 0 || uv->x > 1)
+            return false;
+        uv->y = T[3] * wr.x + T[4] * wr.z + T[5];
+    } else {
+        float t_o = o.x * T[6] + o.y * T[7] + o.z + T[8];
+        float t_d = d.x * T[6] + d.y * T[7] + d.z;
+        *t = -t_o / t_d;
+        if  (*t < ISECT_NEAR || *t > ISECT_FAR)
+            return false;
+        vec3 wr = v3_add(o, v3_scale(d, *t));
+        uv->x = T[0] * wr.x + T[1] * wr.y + T[2];
+        if (uv->x < 0 || uv->x > 1)
+            return false;
+        uv->y = T[3] * wr.x + T[4] * wr.y + T[5];
+    }
+    return uv->y >= 0 && (uv->x + uv->y) <= 1;
+}
+
 
 #endif

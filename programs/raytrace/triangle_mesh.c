@@ -127,17 +127,17 @@ tm_init(int n_faces,
     }
 
 #if ISECT_PC_P
-    int bytes = ISECT_PC_SIZE * sizeof(float) * me->n_tris;
+    int bytes = ISECT_PC_N_ELS * sizeof(float) * me->n_tris;
     me->precomp = (float *)malloc(bytes);
     int *at_idx = me->indices;
     for (int i = 0; i < me->n_tris; i++) {
         vec3 v0 = me->positions[*at_idx++];
         vec3 v1 = me->positions[*at_idx++];
         vec3 v2 = me->positions[*at_idx++];
-        float *addr = &me->precomp[i * ISECT_PC_SIZE];
+        float *addr = &me->precomp[i * ISECT_PC_N_ELS];
         #if ISECT_METHOD == ISECT_PC12 || ISECT_METHOD == ISECT_PC12_B
         isect_precomp12_pre(v0, v1, v2, addr);
-        #elif ISECT_METHOD == ISECT_PC9
+        #elif ISECT_METHOD == ISECT_PC9 || ISECT_METHOD == ISECT_PC9_B
         isect_precomp9_pre(v0, v1, v2, addr);
         #endif
     }
@@ -304,14 +304,17 @@ tm_intersect(triangle_mesh *me, vec3 o, vec3 d, ray_intersection *ri) {
 #elif ISECT_METHOD == ISECT_MT_B
         isect = isect_mt_b(o, d, v0, v1, v2, &t, &uv);
 #elif ISECT_METHOD == ISECT_PC12
-        float *T = &me->precomp[i*12];
+        float *T = &me->precomp[i*ISECT_PC_N_ELS];
         isect = isect_precomp12(o, d, v0, v1, v2, &t, &uv, T);
 #elif ISECT_METHOD == ISECT_PC12_B
-        float *T = &me->precomp[i*12];
+        float *T = &me->precomp[i*ISECT_PC_N_ELS];
         isect = isect_precomp12_b(o, d, v0, v1, v2, &t, &uv, T);
 #elif ISECT_METHOD == ISECT_PC9
-        float *T = &me->precomp[i*10];
+        float *T = &me->precomp[i*ISECT_PC_N_ELS];
         isect = isect_precomp9(o, d, v0, v1, v2, &t, &uv, T);
+#elif ISECT_METHOD == ISECT_PC9_B
+        float *T = &me->precomp[i*ISECT_PC_N_ELS];
+        isect = isect_precomp9_b(o, d, v0, v1, v2, &t, &uv, T);
 #elif ISECT_METHOD == ISECT_SF01
         isect = isect_sf01(o, d, v0, v1, v2, &t, &uv);
 #endif
