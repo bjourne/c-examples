@@ -38,9 +38,9 @@ def build_tests(ctx, path, use):
         target = splitext(from_path)[0]
         ctx.program(source = [test], use = use, target = target)
 
-def build_program(ctx, filename, use):
-    source = 'programs/%s' % filename
-    target = 'programs/%s' % splitext(filename)[0]
+def build_program(ctx, fname, use):
+    source = 'programs/%s' % fname
+    target = 'programs/%s' % splitext(fname)[0]
     ctx.program(source = source, target = target, use = use)
 
 def build(ctx):

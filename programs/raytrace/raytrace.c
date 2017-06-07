@@ -163,13 +163,29 @@ usage() {
     exit(1);
 }
 
+const char *
+fname_ext(const char *fname) {
+    const char *dot = strrchr(fname, '.');
+    if(!dot || dot == fname)
+        return "";
+    return dot + 1;
+}
+
 int
 main(int argc, char *argv[]) {
     raytrace_settings *rt = rt_from_args(argc, argv);
     if (!rt) {
         usage();
     }
-    triangle_mesh *tm = tm_from_file(rt->mesh_file);
+    triangle_mesh *tm = NULL;
+    const char *ext = fname_ext(rt->mesh_file);
+    if (!strcmp("geo", ext)) {
+        tm = tm_from_geo_file(rt->mesh_file);
+    } else if (!strcmp("obj", ext)) {
+        tm = tm_from_obj_file(rt->mesh_file);
+    } else {
+        error("Unsupported extension '%s'!\n", ext);
+    }
     if (!tm) {
         error("Failed to read mesh from file '%s'.\n", rt->mesh_file);
     }

@@ -15,7 +15,8 @@ typedef struct _triangle_mesh {
 #endif
 } triangle_mesh;
 
-triangle_mesh *tm_from_file(const char *filename);
+triangle_mesh *tm_from_geo_file(const char *fname);
+triangle_mesh *tm_from_obj_file(const char *fname);
 void tm_free(triangle_mesh *me);
 
 void tm_get_surface_props(triangle_mesh *me, ray_intersection *ri,
