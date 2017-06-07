@@ -19,6 +19,38 @@ v3_sign_3d(vec3 p, vec3 q, vec3 r) {
 }
 
 inline bool
+isect_ds(vec3 o, vec3 d,
+         vec3 v0, vec3 v1, vec3 v2,
+         float *t, vec2 *uv) {
+    vec3 e1 = v3_sub(v1, v0);
+    vec3 e2 = v3_sub(v2, v0);
+    vec3 n = v3_cross(e1, e2);
+    vec3 v0o = v3_sub(v0, o);
+    float a = v3_dot(n, v0o);
+    float b = v3_dot(n, d);
+    if (b < LINALG_EPSILON && b > -LINALG_EPSILON)
+        return false;
+    *t = a / b;
+    if (*t < ISECT_NEAR || *t > ISECT_FAR)
+        return false;
+    vec3 i = v3_add(o, v3_scale(d, *t));
+    float u_u = v3_dot(e1, e1);
+    float u_v = v3_dot(e1, e2);
+    float v_v = v3_dot(e2, e2);
+    vec3 w = v3_sub(i, v0);
+    float w_u = v3_dot(w, e1);
+    float w_v = v3_dot(w, e2);
+    float det = u_v * u_v - u_u * v_v;
+    uv->x = (u_v * w_v - v_v * w_u) / det;
+    if (uv->x < 0 || uv->x > 1)
+        return false;
+    uv->y = (u_v * w_u - u_u * w_v) / det;
+    if (uv->y < 0 || uv->x + uv->y > 1)
+        return false;
+    return true;
+}
+
+inline bool
 isect_sf01(vec3 o, vec3 d,
            vec3 v0, vec3 v1, vec3 v2,
            float *t, vec2 *uv) {
@@ -52,7 +84,7 @@ isect_mt(vec3 o, vec3 d,
     vec3 e2 = v3_sub(v2, v0);
     vec3 pvec = v3_cross(d, e2);
     float det = v3_dot(e1, pvec);
-    if (fabs(det) < LINALG_EPSILON)
+    if (det < LINALG_EPSILON && det > -LINALG_EPSILON)
         return false;
     float inv_det = 1 / det;
     vec3 tvec = v3_sub(o, v0);

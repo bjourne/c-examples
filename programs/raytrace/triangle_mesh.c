@@ -317,6 +317,8 @@ tm_intersect(triangle_mesh *me, vec3 o, vec3 d, ray_intersection *ri) {
         isect = isect_precomp9_b(o, d, v0, v1, v2, &t, &uv, T);
 #elif ISECT_METHOD == ISECT_SF01
         isect = isect_sf01(o, d, v0, v1, v2, &t, &uv);
+#elif ISECT_METHOD == ISECT_DS
+        isect = isect_ds(o, d, v0, v1, v2, &t, &uv);
 #endif
         if (isect && t < nearest) {
             nearest = t;

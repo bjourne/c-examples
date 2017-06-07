@@ -11,9 +11,6 @@ typedef uintptr_t ptr;
 
 void error(char *fmt, ...);
 
-int rand_n(int n);
-void rand_init(unsigned int seed);
-
 // Platform detection
 #if defined(__amd64__) || defined(__x86_64__) || defined(_M_AMD64)
 #define CPU_64
@@ -41,5 +38,14 @@ void timed_run(void (*func)());
 
 // Timing
 size_t nano_count();
+
+// Random
+// I happen to like rand(), but one should also consider
+// http://cpp.indi.frih.net/blog/2014/12/the-bell-has-tolled-for-rand/
+// :)
+int rand_n(int n);
+void rand_init(unsigned int seed);
+
+
 
 #endif

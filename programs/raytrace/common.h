@@ -8,7 +8,8 @@
 #define ISECT_PC12      5
 #define ISECT_PC12_B    6
 #define ISECT_SF01      7
-#define ISECT_METHOD ISECT_MT_B
+#define ISECT_DS        8
+#define ISECT_METHOD ISECT_DS
 
 #define PLAIN_SHADING   1
 #define FANCY_SHADING   2
@@ -41,6 +42,8 @@ isect_name() {
     return "Baldwin-Weber pre12 B";
 #elif ISECT_METHOD == ISECT_SF01
     return "Segura-Feito 01";
+#elif ISECT_METHOD == ISECT_DS
+    return "Dan Sunday";
 #endif
 }
 
