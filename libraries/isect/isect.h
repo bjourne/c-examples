@@ -136,7 +136,6 @@ isect_mt_b(vec3 o, vec3 d,
 
 inline bool
 isect_precomp12(vec3 o, vec3 d,
-                vec3 v0, vec3 v1, vec3 v2,
                 float *t, vec2 *uv, float *T) {
     float t_o = T[8] * o.x + T[9] * o.y + T[10] * o.z + T[11];
     float t_d = T[8] * d.x + T[9] * d.y + T[10] * d.z;
@@ -151,7 +150,6 @@ isect_precomp12(vec3 o, vec3 d,
 
 inline bool
 isect_precomp12_b(vec3 o, vec3 d,
-                  vec3 v0, vec3 v1, vec3 v2,
                   float *t, vec2 *uv, float *T) {
     float t_o = T[8] * o.x + T[9] * o.y + T[10] * o.z + T[11];
     float t_d = T[8] * d.x + T[9] * d.y + T[10] * d.z;
@@ -168,9 +166,7 @@ isect_precomp12_b(vec3 o, vec3 d,
 
 inline bool
 isect_precomp9(vec3 o, vec3 d,
-               vec3 v0, vec3 v1, vec3 v2,
-               float *t, vec2 *uv,
-               float *T) {
+               float *t, vec2 *uv, float *T) {
     if ((int)T[9] == 1) {
         float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
         float t_d = d.x + T[6] * d.y + T[7] * d.z;
@@ -204,9 +200,7 @@ isect_precomp9(vec3 o, vec3 d,
 
 inline bool
 isect_precomp9_b(vec3 o, vec3 d,
-                 vec3 v0, vec3 v1, vec3 v2,
-                 float *t, vec2 *uv,
-                 float *T) {
+                 float *t, vec2 *uv, float *T) {
     if ((int)T[9] == 1) {
         float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
         float t_d = d.x + T[6] * d.y + T[7] * d.z;

@@ -9,11 +9,10 @@
 #define ISECT_PC12_B    6
 #define ISECT_SF01      7
 #define ISECT_DS        8
-#define ISECT_METHOD ISECT_DS
+#define ISECT_METHOD ISECT_MT_B
 
 #define PLAIN_SHADING   1
 #define FANCY_SHADING   2
-
 #define SHADING_STYLE FANCY_SHADING
 
 #define ISECT_PC_P ISECT_METHOD == ISECT_PC9 || \
@@ -24,6 +23,26 @@
 #define ISECT_PC_N_ELS 12
 #else
 #define ISECT_PC_N_ELS 10
+#endif
+
+#if ISECT_METHOD == ISECT_MT
+#define ISECT_FUN isect_mt
+#elif ISECT_METHOD == ISECT_MT_B
+#define ISECT_FUN isect_mt_b
+#elif ISECT_METHOD == ISECT_PC9
+#define ISECT_FUN isect_precomp9
+#elif ISECT_METHOD == ISECT_PC9_B
+#define ISECT_FUN isect_precomp9_b
+#elif ISECT_METHOD == ISECT_PC12
+#define ISECT_FUN isect_precomp12
+#elif ISECT_METHOD == ISECT_PC12_B
+#define ISECT_FUN isect_precomp12_b
+#elif ISECT_METHOD == ISECT_SF01
+#define ISECT_FUN isect_sf01
+#elif ISECT_METHOD == ISECT_DS
+#define ISECT_FUN isect_ds
+#else
+#error "Wrong ISECT_METHOD"
 #endif
 
 inline const char *

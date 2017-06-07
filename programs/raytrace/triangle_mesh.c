@@ -291,35 +291,12 @@ tm_get_surface_props(triangle_mesh *me, ray_intersection *ri,
 bool
 tm_intersect(triangle_mesh *me, vec3 o, vec3 d, ray_intersection *ri) {
     float nearest = FLT_MAX;
-    int *at_idx = me->indices;
+    float t = 0;
+    vec2 uv;
+#if ISECT_PC_P
     for (int i = 0; i < me->n_tris; i++) {
-        vec3 v0 = me->positions[*at_idx++];
-        vec3 v1 = me->positions[*at_idx++];
-        vec3 v2 = me->positions[*at_idx++];
-        vec2 uv;
-        float t = 0;
-        bool isect;
-#if ISECT_METHOD == ISECT_MT
-        isect = isect_mt(o, d, v0, v1, v2, &t, &uv);
-#elif ISECT_METHOD == ISECT_MT_B
-        isect = isect_mt_b(o, d, v0, v1, v2, &t, &uv);
-#elif ISECT_METHOD == ISECT_PC12
         float *T = &me->precomp[i*ISECT_PC_N_ELS];
-        isect = isect_precomp12(o, d, v0, v1, v2, &t, &uv, T);
-#elif ISECT_METHOD == ISECT_PC12_B
-        float *T = &me->precomp[i*ISECT_PC_N_ELS];
-        isect = isect_precomp12_b(o, d, v0, v1, v2, &t, &uv, T);
-#elif ISECT_METHOD == ISECT_PC9
-        float *T = &me->precomp[i*ISECT_PC_N_ELS];
-        isect = isect_precomp9(o, d, v0, v1, v2, &t, &uv, T);
-#elif ISECT_METHOD == ISECT_PC9_B
-        float *T = &me->precomp[i*ISECT_PC_N_ELS];
-        isect = isect_precomp9_b(o, d, v0, v1, v2, &t, &uv, T);
-#elif ISECT_METHOD == ISECT_SF01
-        isect = isect_sf01(o, d, v0, v1, v2, &t, &uv);
-#elif ISECT_METHOD == ISECT_DS
-        isect = isect_ds(o, d, v0, v1, v2, &t, &uv);
-#endif
+        bool isect = ISECT_FUN(o, d, &t, &uv, T);
         if (isect && t < nearest) {
             nearest = t;
             ri->t = t;
@@ -327,5 +304,20 @@ tm_intersect(triangle_mesh *me, vec3 o, vec3 d, ray_intersection *ri) {
             ri->tri_idx = i;
         }
     }
+#else
+    int *at_idx = me->indices;
+    for (int i = 0; i < me->n_tris; i++) {
+        vec3 v0 = me->positions[*at_idx++];
+        vec3 v1 = me->positions[*at_idx++];
+        vec3 v2 = me->positions[*at_idx++];
+        bool isect = ISECT_FUN(o, d, v0, v1, v2, &t, &uv);
+        if (isect && t < nearest) {
+            nearest = t;
+            ri->t = t;
+            ri->uv = uv;
+            ri->tri_idx = i;
+        }
+    }
+#endif
     return nearest < FLT_MAX;
 }

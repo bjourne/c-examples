@@ -9,13 +9,15 @@ isect_mt(vec3 o, vec3 d,
 
 extern inline bool
 isect_precomp9(vec3 o, vec3 d,
-               vec3 v0, vec3 v1, vec3 v2,
-               float *t, vec2 *uv,
-               float *T);
-
+               float *t, vec2 *uv, float *T);
+extern inline bool
+isect_precomp9_b(vec3 o, vec3 d,
+               float *t, vec2 *uv, float *T);
 extern inline bool
 isect_precomp12(vec3 o, vec3 d,
-                vec3 v0, vec3 v1, vec3 v2,
+                float *t, vec2 *uv, float *T);
+extern inline bool
+isect_precomp12_b(vec3 o, vec3 d,
                 float *t, vec2 *uv, float *T);
 
 void

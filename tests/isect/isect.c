@@ -78,7 +78,7 @@ test_diffs_01() {
     isect_precomp12_pre(v0, v1, v2, T);
 
     bool mt = isect_mt(o, d, v0, v1, v2, &t, &uv);
-    bool pc = isect_precomp12(o, d, v0, v1, v2, &t, &uv, T);
+    bool pc = isect_precomp12(o, d, &t, &uv, T);
     assert(mt == pc);
 }
 
@@ -98,7 +98,7 @@ test_diffs_02() {
     isect_precomp12_pre(v0, v1, v2, T);
 
     bool mt = isect_mt(o, d, v0, v1, v2, &t, &uv);
-    bool pc = isect_precomp12(o, d, v0, v1, v2, &t, &uv, T);
+    bool pc = isect_precomp12(o, d, &t, &uv, T);
     assert(mt == pc);
 }
 
@@ -122,7 +122,7 @@ test_diffs_hard() {
         }
         isect_precomp12_pre(vec[0], vec[1], vec[2], T);
         bool mt = isect_mt(o, d, vec[0], vec[1], vec[2], &t, &uv);
-        bool pc = isect_precomp12(o, d, vec[0], vec[1], vec[2], &t, &uv, T);
+        bool pc = isect_precomp12(o, d, &t, &uv, T);
         if (mt  != pc) {
             for (int i  = 0; i < 3; i++) {
                 v3_print(vec[i], 6);
@@ -134,10 +134,10 @@ test_diffs_hard() {
 
 void
 test_precomp9_diffs_01() {
-    vec3 orig = {
+    vec3 o = {
         11.998573303, 14.635927200, 9.681089401
     };
-    vec3 dir = {
+    vec3 d = {
         -0.271481574, -0.138526469, -0.952422261
     };
     vec3 v0 = {
@@ -151,11 +151,11 @@ test_precomp9_diffs_01() {
     };
     float t;
     vec2 uv;
-    assert(!isect_mt(orig, dir, v0, v1, v2, &t, &uv));
+    assert(!isect_mt(o, d, v0, v1, v2, &t, &uv));
 
     float T[10];
     isect_precomp9_pre(v0, v1, v2, T);
-    assert(!isect_precomp9(orig, dir, v0, v1, v2, &t, &uv, T));
+    assert(!isect_precomp9(o, d, &t, &uv, T));
 }
 
 void
