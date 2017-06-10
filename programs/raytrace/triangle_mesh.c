@@ -9,7 +9,7 @@
 #include "triangle_mesh.h"
 #include "loaders.h"
 
-void
+static void
 tm_intersect_precompute(triangle_mesh *me) {
 #if ISECT_PC_P
     int bytes = ISECT_PC_N_ELS * sizeof(float) * me->n_tris;
@@ -41,44 +41,14 @@ tm_free(triangle_mesh *me) {
     free(me);
 }
 
-const char *
-fname_ext(const char *fname) {
-    const char *dot = strrchr(fname, '.');
-    if(!dot || dot == fname)
-        return "";
-    return dot + 1;
-}
-
 // Don't run on untrusted data :)
 triangle_mesh *
 tm_from_file(const char *fname) {
     triangle_mesh *me = (triangle_mesh *)malloc(sizeof(triangle_mesh));
-    const char *ext = fname_ext(fname);
-    bool ret = false;
-    if (!strcmp("geo", ext)) {
-        ret = load_geo_file(fname, &me->n_tris, &me->indices,
-                            &me->verts, &me->normals, &me->coords);
-    } else if (!strcmp("obj", ext)) {
-        ret = load_obj_file(fname,
-                            &me->n_tris, &me->indices,
-                            &me->verts);
-    } else {
-        error("Unsupported extension '%s'!\n", ext);
-    }
-    if (!ret) {
-        free(me);
-        return NULL;
-    }
-    return me;
-
-}
-
-triangle_mesh *
-tm_from_geo_file(const char *fname) {
-    triangle_mesh *me = (triangle_mesh *)malloc(sizeof(triangle_mesh));
-    if (!load_geo_file(fname,
+    if (!load_any_file(fname,
                        &me->n_tris, &me->indices,
-                       &me->verts, &me->normals, &me->coords)) {
+                       &me->n_verts, &me->verts,
+                       &me->normals, &me->coords)) {
         free(me);
         return NULL;
     }
@@ -119,10 +89,6 @@ tm_get_surface_props(triangle_mesh *me, ray_intersection *ri,
         vec2 st0 = me->coords[t0];
         vec2 st1 = me->coords[t1];
         vec2 st2 = me->coords[t2];
-        v2_print(st0, 3);
-        v2_print(st1, 3);
-        v2_print(st2, 3);
-        printf("\n");
         vec2 st0_scaled = v2_scale(st0, 1 - ri->uv.x - ri->uv.y);
         vec2 st1_scaled = v2_scale(st1, ri->uv.x);
         vec2 st2_scaled = v2_scale(st2, ri->uv.y);

@@ -17,7 +17,7 @@
 #include "triangle_mesh.h"
 
 bool
-vec3_array_to_ppm(vec3 *arr, const char *filename,
+v3_array_to_ppm(vec3 *arr, const char *filename,
                   int width, int height) {
     FILE *f = fopen(filename, "wb");
     if (!f) {
@@ -45,6 +45,7 @@ typedef struct _raytrace_settings {
     float fov;
     int width;
     int height;
+    float scale;
     char *mesh_file;
     char *image_file;
     vec3 bg_col;
@@ -52,7 +53,7 @@ typedef struct _raytrace_settings {
 
 raytrace_settings *
 rt_from_args(int argc, char *argv[]) {
-    if (argc != 5) {
+    if (argc != 6) {
         return NULL;
     }
     int width = atoi(argv[3]);
@@ -61,8 +62,10 @@ rt_from_args(int argc, char *argv[]) {
         height <= 0 || height > 2048) {
         return NULL;
     }
+
     raytrace_settings *me = (raytrace_settings *)
         malloc(sizeof(raytrace_settings));
+    me->scale = atof(argv[5]);
     me->width = width;
     me->height = height;
     me->mesh_file = strdup(argv[1]);
@@ -71,7 +74,7 @@ rt_from_args(int argc, char *argv[]) {
     me->bg_col.x = 0.1;
     me->bg_col.y = 0.1;
     me->bg_col.z = 0.2;
-    me->position = (vec3){0, 0, -20};
+    me->position = (vec3){0, 0, -20.0};
     mat4 tmp = {
         {
             {0.707107, -0.331295, 0.624695, 0},
@@ -137,6 +140,11 @@ cast_ray(vec3 orig, vec3 dir, vec3 bg_col, triangle_mesh *tm) {
 
 void
 render(raytrace_settings *rt, triangle_mesh *tm, vec3 *fbuf) {
+    for (int i = 0; i < tm->n_verts; i++) {
+        vec3 v = tm->verts[i];
+        tm->verts[i] = v3_scale(v, rt->scale);
+    }
+
     size_t start = nano_count();
     int w = rt->width;
     int h = rt->height;
@@ -159,7 +167,7 @@ render(raytrace_settings *rt, triangle_mesh *tm, vec3 *fbuf) {
 void
 usage() {
     printf("usage: raytrace mesh-file image "
-           "width[0-2048] height[0-2048]\n");
+           "width[0-2048] height[0-2048] scale\n");
     exit(1);
 }
 
@@ -177,7 +185,7 @@ main(int argc, char *argv[]) {
     int h = rt->height;
     vec3 *fbuf = (vec3 *)malloc(w * h * sizeof(vec3));
     render(rt, tm, fbuf);
-    if (!vec3_array_to_ppm(fbuf, rt->image_file, w, h)) {
+    if (!v3_array_to_ppm(fbuf, rt->image_file, w, h)) {
         error("Failed to save to '%s'.", rt->image_file);
     }
     free(fbuf);

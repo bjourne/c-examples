@@ -5,6 +5,7 @@
 
 typedef struct _triangle_mesh {
     int n_tris;
+    int n_verts;
     // Three indices per triangle.
     int *indices;
     vec3 *verts;

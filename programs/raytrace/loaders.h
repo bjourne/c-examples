@@ -12,10 +12,16 @@ vec3 *v3_array_read(FILE *f, int n);
 bool
 load_geo_file(const char *fname,
               int *n_tris, int **indices,
-              vec3 **verts, vec3 **normals, vec2 **coords);
+              int *n_verts, vec3 **verts,
+              vec3 **normals, vec2 **coords);
 bool
 load_obj_file(const char *fname,
               int *n_tris, int **indices,
-              vec3 **verts);
+              int *n_verts, vec3 **verts);
+bool
+load_any_file(const char *fname,
+              int *n_tris, int **indices,
+              int *n_verts, vec3 **verts,
+              vec3 **normals, vec2 **coords);
 
 #endif
