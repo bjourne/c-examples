@@ -2,6 +2,18 @@ from os.path import splitext
 
 def options(ctx):
     ctx.load('compiler_c compiler_cxx')
+    ctx.add_option(
+        '--isect',
+        type = 'string',
+        default = 'ISECT_MT',
+        help = 'Preferred intersection algorithm.'
+        )
+    ctx.add_option(
+        '--shading',
+        type = 'string',
+        default = 'FANCY_SHADING',
+        help = 'Preferred shading style.'
+        )
 
 def configure(ctx):
     ctx.load('compiler_c compiler_cxx')
@@ -16,7 +28,7 @@ def configure(ctx):
                        '-march=native',
                        '-mtune=native']
         debug_flags = ['-O2', '-g']
-    extra_flags = debug_flags
+    extra_flags = speed_flags
     ctx.env.append_unique('CFLAGS',
                           base_flags + extra_flags)
     ctx.env.append_unique('CXXFLAGS', base_flags + extra_flags)
@@ -24,6 +36,8 @@ def configure(ctx):
     if ctx.env.DEST_OS != 'win32':
         ctx.check(lib = 'pcre')
     ctx.check(lib = 'm')
+    ctx.define('ISECT_METHOD', ctx.options.isect, quote = False)
+    ctx.define('SHADING_STYLE', ctx.options.shading, quote = False)
 
 def build_library(ctx, path, target):
     path = 'libraries/%s' % path
@@ -68,4 +82,5 @@ def build(ctx):
                 target = 'rt',
                 use = ['DT_OBJS', 'M', 'LINALG_OBJS', 'ISECT_OBJS'])
 
-    build_tests(ctx, 'isect', ['LINALG_OBJS', 'DT_OBJS', 'M', 'ISECT_OBJS'])
+    build_tests(ctx, 'isect',
+                ['LINALG_OBJS', 'DT_OBJS', 'M', 'ISECT_OBJS'])
