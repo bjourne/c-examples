@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "datatypes/vector.h"
 #include "loaders.h"
 
 bool
@@ -182,5 +183,70 @@ load_geo_file(const char *fname,
     if (f) {
         fclose(f);
     }
+    return ret;
+}
+
+// This "trick" is to store float values in my vector type.
+typedef union {
+    ptr i;
+    float f;
+} u;
+
+bool
+load_obj_file(const char *fname,
+              int *n_tris, int **indices,
+              vec3 **verts) {
+    vector *tmp_verts = v_init(10);
+    vector *tmp_indices = v_init(10);
+    FILE* f = fopen(fname, "rb");
+    bool ret = false;
+    if (!f) {
+        goto end;
+    }
+    char buf[1024];
+    while (fgets(buf, 1024, f)) {
+        if (!strncmp(buf, "v ", 2)) {
+            u x, y, z;
+            if (sscanf(buf, "v %f %f %f", &x.f, &y.f, &z.f) != 3) {
+                goto end;
+            }
+            v_add(tmp_verts, x.i);
+            v_add(tmp_verts, y.i);
+            v_add(tmp_verts, z.i);
+        } else if (!strncmp(buf, "#", 1)) {
+            // Skip comments
+        } else if (!strncmp(buf, "f ", 2)) {
+            // Only supports one face format for now
+            int i0, i1, i2;
+            if (sscanf(buf, "f %d %d %d", &i0, &i1, &i2) != 3) {
+                goto end;
+            }
+            v_add(tmp_indices, i0 - 1);
+            v_add(tmp_indices, i1 - 1);
+            v_add(tmp_indices, i2 - 1);
+        } else {
+            error("Unparsable line '%s'!\n", buf);
+        }
+    }
+    *n_tris = tmp_indices->used / 3;
+    size_t n_verts = tmp_verts->used / 3;
+    *verts = (vec3 *)malloc(sizeof(vec3) * n_verts);
+    for (int i = 0; i < n_verts; i++) {
+        (*verts)[i].x = ((u)tmp_verts->array[i * 3]).f;
+        (*verts)[i].y = ((u)tmp_verts->array[i * 3+1]).f;
+        (*verts)[i].z = ((u)tmp_verts->array[i * 3+2]).f;
+        (*verts)[i] = v3_scale((*verts)[i], 70.0f);
+    }
+    *indices = (int *)malloc(sizeof(int) * *n_tris * 3);
+    for (int i = 0; i < *n_tris * 3; i++) {
+        (*indices)[i] = tmp_indices->array[i];
+    }
+    ret = true;
+ end:
+    if (f) {
+        fclose(f);
+    }
+    v_free(tmp_verts);
+    v_free(tmp_indices);
     return ret;
 }

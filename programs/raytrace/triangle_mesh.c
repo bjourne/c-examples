@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "datatypes/common.h"
-#include "datatypes/vector.h"
 
 #include "isect/isect.h"
 #include "linalg/linalg.h"
@@ -30,26 +29,6 @@ tm_intersect_precompute(triangle_mesh *me) {
 #endif
 }
 
-triangle_mesh *
-tm_init_simple(int n_tris, int *indices, int n_verts, vec3 *verts) {
-    triangle_mesh *me = (triangle_mesh *)malloc(sizeof(triangle_mesh));
-    me->n_tris = n_tris;
-    int ibuf_size = sizeof(int) * me->n_tris * 3;
-    me->indices = (int *)malloc(ibuf_size);
-    memcpy(me->indices, indices, ibuf_size);
-
-    int vbuf_size = sizeof(vec3) * n_verts;
-    me->verts = (vec3 *)malloc(vbuf_size);
-    memcpy(me->verts, verts, vbuf_size);
-
-    me->normals = NULL;
-    me->coords = NULL;
-
-    tm_intersect_precompute(me);
-
-    return me;
-}
-
 void
 tm_free(triangle_mesh *me) {
     free(me->indices);
@@ -62,78 +41,36 @@ tm_free(triangle_mesh *me) {
     free(me);
 }
 
-typedef union {
-    ptr i;
-    float f;
-} u;
+const char *
+fname_ext(const char *fname) {
+    const char *dot = strrchr(fname, '.');
+    if(!dot || dot == fname)
+        return "";
+    return dot + 1;
+}
 
 // Don't run on untrusted data :)
 triangle_mesh *
-tm_from_obj_file(const char *fname) {
-    vector *tmp_verts = NULL;
-    vector *tmp_indices = NULL;
-    triangle_mesh *tm = NULL;
-    FILE* f = fopen(fname, "rb");
-    if (!f) {
-        goto end;
+tm_from_file(const char *fname) {
+    triangle_mesh *me = (triangle_mesh *)malloc(sizeof(triangle_mesh));
+    const char *ext = fname_ext(fname);
+    bool ret = false;
+    if (!strcmp("geo", ext)) {
+        ret = load_geo_file(fname, &me->n_tris, &me->indices,
+                            &me->verts, &me->normals, &me->coords);
+    } else if (!strcmp("obj", ext)) {
+        ret = load_obj_file(fname,
+                            &me->n_tris, &me->indices,
+                            &me->verts);
+    } else {
+        error("Unsupported extension '%s'!\n", ext);
     }
-    char buf[1024];
-    tmp_verts = v_init(10);
-    tmp_indices = v_init(10);
-    while (fgets(buf, 1024, f)) {
-        if (!strncmp(buf, "v ", 2)) {
-            u x, y, z;
-            if (sscanf(buf, "v %f %f %f", &x.f, &y.f, &z.f) != 3) {
-                goto end;
-            }
-            v_add(tmp_verts, x.i);
-            v_add(tmp_verts, y.i);
-            v_add(tmp_verts, z.i);
-        } else if (!strncmp(buf, "#", 1)) {
-            // Skip comments
-        } else if (!strncmp(buf, "f ", 2)) {
-            // Only supports one face format for now
-            int i0, i1, i2;
-            if (sscanf(buf, "f %d %d %d", &i0, &i1, &i2) != 3) {
-                goto end;
-            }
-            v_add(tmp_indices, i0 - 1);
-            v_add(tmp_indices, i1 - 1);
-            v_add(tmp_indices, i2 - 1);
-        } else {
-            error("Unparsable line '%s'!\n", buf);
-        }
+    if (!ret) {
+        free(me);
+        return NULL;
     }
-    size_t n_tris = tmp_indices->used / 3;
-    size_t n_verts = tmp_verts->used / 3;
+    return me;
 
-    // Convert the arrays to right format.
-    vec3 *verts = (vec3 *)malloc(sizeof(vec3) * n_verts);
-    for (int i = 0; i < n_verts; i++) {
-        verts[i].x = ((u)tmp_verts->array[i*3]).f;
-        verts[i].y = ((u)tmp_verts->array[i*3+1]).f;
-        verts[i].z = ((u)tmp_verts->array[i*3+2]).f;
-        verts[i] = v3_scale(verts[i], 70.0f);
-    }
-    int *indices = (int *)malloc(sizeof(int) * n_tris * 3);
-    for (int i = 0; i < n_tris * 3; i++) {
-        indices[i] = tmp_indices->array[i];
-    }
-    tm = tm_init_simple(n_tris, indices, n_verts, verts);
-    free(indices);
-    free(verts);
-
- end:
-    if (f) {
-        fclose(f);
-    }
-    if (tmp_verts) {
-        v_free(tmp_verts);
-    }
-    if (tmp_indices) {
-        v_free(tmp_indices);
-    }
-    return tm;
 }
 
 triangle_mesh *
@@ -182,12 +119,16 @@ tm_get_surface_props(triangle_mesh *me, ray_intersection *ri,
         vec2 st0 = me->coords[t0];
         vec2 st1 = me->coords[t1];
         vec2 st2 = me->coords[t2];
+        v2_print(st0, 3);
+        v2_print(st1, 3);
+        v2_print(st2, 3);
+        printf("\n");
         vec2 st0_scaled = v2_scale(st0, 1 - ri->uv.x - ri->uv.y);
         vec2 st1_scaled = v2_scale(st1, ri->uv.x);
         vec2 st2_scaled = v2_scale(st2, ri->uv.y);
         *tex_coords = v2_add(v2_add(st0_scaled, st1_scaled), st2_scaled);
     } else {
-        *tex_coords = ri->uv;
+        *tex_coords = v2_scale(ri->uv, 10.0);
     }
     if (me->normals) {
         vec3 n0 = me->normals[t0];
