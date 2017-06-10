@@ -8,76 +8,7 @@
 #include "isect/isect.h"
 #include "linalg/linalg.h"
 #include "triangle_mesh.h"
-
-static bool
-read_float(FILE *f, float *value) {
-    int ret = fscanf(f, "%f", value);
-    return ret == 1;
-}
-
-static bool
-read_int(FILE *f, int *value) {
-    int ret = fscanf(f, "%d", value);
-    return ret == 1;
-}
-
-static bool
-vec2_read(vec2 *vec, FILE *f) {
-    if (!read_float(f, &vec->x)) {
-        return false;
-    }
-    if (!read_float(f, &vec->y)) {
-        return false;
-    }
-    return true;
-}
-
-static vec2 *
-vec2_array_read(FILE *f, int n) {
-    vec2 *arr = (vec2 *)malloc(sizeof(vec2) * n);
-    for (int i = 0; i < n; i++) {
-        if (!vec2_read(&arr[i], f)) {
-            return NULL;
-        }
-    }
-    return arr;
-}
-
-static int *
-int_array_read(FILE *f, int n) {
-    int *arr = (int *)malloc(sizeof(int) * n);
-    for (int i = 0; i < n; i++) {
-        if (!read_int(f, &arr[i])) {
-            return NULL;
-        }
-    }
-    return arr;
-}
-
-static bool
-vec3_read(vec3 *vec, FILE *f) {
-    if (!read_float(f, &vec->x)) {
-        return false;
-    }
-    if (!read_float(f, &vec->y)) {
-        return false;
-    }
-    if (!read_float(f, &vec->z)) {
-        return false;
-    }
-    return true;
-}
-
-static vec3 *
-vec3_array_read(FILE *f, int n) {
-    vec3 *arr = (vec3 *)malloc(sizeof(vec3) * n);
-    for (int i = 0; i < n; i++) {
-        if (!vec3_read(&arr[i], f)) {
-            return NULL;
-        }
-    }
-    return arr;
-}
+#include "loaders.h"
 
 void
 tm_intersect_precompute(triangle_mesh *me) {
@@ -86,9 +17,9 @@ tm_intersect_precompute(triangle_mesh *me) {
     me->precomp = (float *)malloc(bytes);
     int *at_idx = me->indices;
     for (int i = 0; i < me->n_tris; i++) {
-        vec3 v0 = me->positions[*at_idx++];
-        vec3 v1 = me->positions[*at_idx++];
-        vec3 v2 = me->positions[*at_idx++];
+        vec3 v0 = me->verts[*at_idx++];
+        vec3 v1 = me->verts[*at_idx++];
+        vec3 v2 = me->verts[*at_idx++];
         float *addr = &me->precomp[i * ISECT_PC_N_ELS];
         #if ISECT_METHOD == ISECT_PC12 || ISECT_METHOD == ISECT_PC12_B
         isect_precomp12_pre(v0, v1, v2, addr);
@@ -108,8 +39,8 @@ tm_init_simple(int n_tris, int *indices, int n_verts, vec3 *verts) {
     memcpy(me->indices, indices, ibuf_size);
 
     int vbuf_size = sizeof(vec3) * n_verts;
-    me->positions = (vec3 *)malloc(vbuf_size);
-    memcpy(me->positions, verts, vbuf_size);
+    me->verts = (vec3 *)malloc(vbuf_size);
+    memcpy(me->verts, verts, vbuf_size);
 
     me->normals = NULL;
     me->coords = NULL;
@@ -119,64 +50,12 @@ tm_init_simple(int n_tris, int *indices, int n_verts, vec3 *verts) {
     return me;
 }
 
-triangle_mesh *
-tm_init_from_face_list(int n_faces,
-                       int *faces,
-                       int *verts_indices,
-                       vec3 *verts,
-                       vec3 *normals,
-                       vec2 *coords) {
-    triangle_mesh *me = (triangle_mesh *)malloc(sizeof(triangle_mesh));
-
-    me->n_tris = 0;
-    int n_verts = 0;
-    int k = 0;
-    for (int i = 0; i < n_faces; i++) {
-        me->n_tris += faces[i] - 2;
-        for (int j = 0; j < faces[i]; j++) {
-            if (verts_indices[k + j] > n_verts) {
-                n_verts = verts_indices[k + j];
-            }
-        }
-        k += faces[i];
-    }
-    n_verts++;
-
-    me->positions = (vec3 *)malloc(sizeof(vec3) * n_verts);
-    for (int i = 0; i < n_verts; i++) {
-        me->positions[i] = verts[i];
-    }
-
-    // Allocate memory to store triangle indices.
-    me->indices = (int *)malloc(sizeof(int) * me->n_tris * 3);
-    me->normals = (vec3 *)malloc(sizeof(vec3) * me->n_tris * 3);
-    me->coords = (vec2 *)malloc(sizeof(vec2) * me->n_tris * 3);
-
-    for (int i = 0, k = 0, l = 0; i < n_faces; i++) {
-        for (int j = 0; j < faces[i] - 2; j++) {
-            me->indices[l] = verts_indices[k];
-            me->indices[l + 1] = verts_indices[k + j + 1];
-            me->indices[l + 2] = verts_indices[k + j + 2];
-            me->normals[l] = normals[k];
-            me->normals[l + 1] = normals[k + j + 1];
-            me->normals[l + 2] = normals[k + j + 2];
-            me->coords[l] = coords[k];
-            me->coords[l + 1] = coords[k + j + 1];
-            me->coords[l + 2] = coords[k + j + 2];
-            l += 3;
-        }
-        k += faces[i];
-    }
-    tm_intersect_precompute(me);
-    return me;
-}
-
 void
 tm_free(triangle_mesh *me) {
     free(me->indices);
     free(me->normals);
     free(me->coords);
-    free(me->positions);
+    free(me->verts);
 #if ISECT_PC_P
     free(me->precomp);
 #endif
@@ -191,10 +70,10 @@ typedef union {
 // Don't run on untrusted data :)
 triangle_mesh *
 tm_from_obj_file(const char *fname) {
-    FILE* f = fopen(fname, "rb");
     vector *tmp_verts = NULL;
     vector *tmp_indices = NULL;
     triangle_mesh *tm = NULL;
+    FILE* f = fopen(fname, "rb");
     if (!f) {
         goto end;
     }
@@ -259,92 +138,20 @@ tm_from_obj_file(const char *fname) {
 
 triangle_mesh *
 tm_from_geo_file(const char *fname) {
-    FILE* f = fopen(fname, "rb");
-    int *faces = NULL;
-    int *verts_indices = NULL;
-    vec3 *verts = NULL;
-    vec3 *normals = NULL;
-    vec2 *coords = NULL;
-    triangle_mesh *tm = NULL;
-    if (!f) {
-        goto end;
+    triangle_mesh *me = (triangle_mesh *)malloc(sizeof(triangle_mesh));
+    if (!load_geo_file(fname,
+                       &me->n_tris, &me->indices,
+                       &me->verts, &me->normals, &me->coords)) {
+        free(me);
+        return NULL;
     }
-
-    // Read polygon count
-    int n_faces;
-    if (!read_int(f, &n_faces)) {
-        goto end;
-    }
-
-    faces = int_array_read(f, n_faces);
-    if (!faces) {
-        goto end;
-    }
-    int n_verts_indices = 0;
-    for (int i = 0; i < n_faces; i++) {
-        n_verts_indices += faces[i];
-    }
-    verts_indices = int_array_read(f, n_verts_indices);
-    if (!verts_indices) {
-        goto end;
-    }
-    int n_verts_array = 0;
-    for (int i = 0; i < n_verts_indices; i++) {
-        if (verts_indices[i] > n_verts_array) {
-            n_verts_array = verts_indices[i];
-        }
-    }
-    n_verts_array++;
-
-    // Reading vertices
-    verts = vec3_array_read(f, n_verts_array);
-    if (!verts) {
-        goto end;
-    }
-
-    // Reading normals
-    normals = vec3_array_read(f, n_verts_indices);
-    if (!normals) {
-        goto end;
-    }
-
-    // Reading texture coords
-    coords = vec2_array_read(f, n_verts_indices);
-    if (!coords) {
-        goto end;
-    }
-
-    tm = tm_init_from_face_list(n_faces,
-                                faces,
-                                verts_indices,
-                                verts,
-                                normals,
-                                coords);
- end:
-    if (faces) {
-        free(faces);
-    }
-    if (verts_indices) {
-        free(verts_indices);
-    }
-    if (verts) {
-        free(verts);
-    }
-    if (normals) {
-        free(normals);
-    }
-    if (coords) {
-        free(coords);
-    }
-    if (f) {
-        fclose(f);
-    }
-    return tm;
+    tm_intersect_precompute(me);
+    return me;
 }
 
 void
 tm_print_index(triangle_mesh *me, int index) {
-    vec3 vec = me->positions[index];
+    vec3 vec = me->verts[index];
     printf("%d = {%.2f, %.2f, %.2f}", index, vec.x, vec.y, vec.z);
 }
 
@@ -391,9 +198,9 @@ tm_get_surface_props(triangle_mesh *me, ray_intersection *ri,
         vec3 n2_scaled = v3_scale(n2, ri->uv.y);
         *normal = v3_add(v3_add(n0_scaled, n1_scaled), n2_scaled);
     } else {
-        vec3 v0 = me->positions[me->indices[t0]];
-        vec3 v1 = me->positions[me->indices[t1]];
-        vec3 v2 = me->positions[me->indices[t2]];
+        vec3 v0 = me->verts[me->indices[t0]];
+        vec3 v1 = me->verts[me->indices[t1]];
+        vec3 v2 = me->verts[me->indices[t2]];
         vec3 e1 = v3_sub(v1, v0);
         vec3 e2 = v3_sub(v2, v0);
         *normal = v3_normalize(v3_cross(e1, e2));
@@ -419,9 +226,9 @@ tm_intersect(triangle_mesh *me, vec3 o, vec3 d, ray_intersection *ri) {
 #else
     int *at_idx = me->indices;
     for (int i = 0; i < me->n_tris; i++) {
-        vec3 v0 = me->positions[*at_idx++];
-        vec3 v1 = me->positions[*at_idx++];
-        vec3 v2 = me->positions[*at_idx++];
+        vec3 v0 = me->verts[*at_idx++];
+        vec3 v1 = me->verts[*at_idx++];
+        vec3 v2 = me->verts[*at_idx++];
         bool isect = ISECT_FUN(o, d, v0, v1, v2, &t, &uv);
         if (isect && t < nearest) {
             nearest = t;

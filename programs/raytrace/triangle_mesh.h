@@ -7,7 +7,7 @@ typedef struct _triangle_mesh {
     int n_tris;
     // Three indices per triangle.
     int *indices;
-    vec3 *positions;
+    vec3 *verts;
     vec3 *normals;
     vec2 *coords;
 #if ISECT_PC_P
