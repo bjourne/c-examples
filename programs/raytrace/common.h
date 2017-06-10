@@ -45,10 +45,12 @@
 
 inline const char *
 isect_name() {
+    // It should be Möller, not Moller. But printf misaligns text with
+    // ö in it.
 #if ISECT_METHOD == ISECT_MT
-    return "Möller-Trumbore";
+    return "Moller-Trumbore";
 #elif ISECT_METHOD == ISECT_MT_B
-    return "Möller-Trumbore B";
+    return "Moller-Trumbore B";
 #elif ISECT_METHOD == ISECT_PC9
     return "Baldwin-Weber pre9";
 #elif ISECT_METHOD == ISECT_PC9_B

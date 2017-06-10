@@ -41,7 +41,6 @@ tm_free(triangle_mesh *me) {
     free(me);
 }
 
-// Don't run on untrusted data :)
 triangle_mesh *
 tm_from_file(const char *fname) {
     triangle_mesh *me = (triangle_mesh *)malloc(sizeof(triangle_mesh));

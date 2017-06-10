@@ -282,6 +282,7 @@ fname_ext(const char *fname) {
     return dot + 1;
 }
 
+// Don't run on untrusted data :)
 bool
 load_any_file(const char *fname,
               int *n_tris, int **indices,
