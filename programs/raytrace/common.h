@@ -9,11 +9,9 @@
 #define ISECT_PC12_B    6
 #define ISECT_SF01      7
 #define ISECT_DS        8
-#define ISECT_METHOD ISECT_MT_B
 
 #define PLAIN_SHADING   1
 #define FANCY_SHADING   2
-#define SHADING_STYLE FANCY_SHADING
 
 #define ISECT_PC_P ISECT_METHOD == ISECT_PC9 || \
         ISECT_METHOD == ISECT_PC12 || ISECT_METHOD == ISECT_PC12_B || \

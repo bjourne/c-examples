@@ -2,6 +2,7 @@
 // This code is verrrry much based on: www.scratchapixel.com
 #include <assert.h>
 #include <float.h>
+#include <libgen.h>
 #include <limits.h>
 #include <math.h>
 #include <stdbool.h>
@@ -39,13 +40,13 @@ v3_array_to_ppm(vec3 *arr, const char *filename,
 }
 
 typedef struct _raytrace_settings {
-    // Camera position
     vec3 position;
     mat4 view;
     float fov;
     int width;
     int height;
     float scale;
+    vec3 translate;
     char *mesh_file;
     char *image_file;
     vec3 bg_col;
@@ -53,7 +54,7 @@ typedef struct _raytrace_settings {
 
 raytrace_settings *
 rt_from_args(int argc, char *argv[]) {
-    if (argc != 6) {
+    if (argc != 9) {
         return NULL;
     }
     int width = atoi(argv[3]);
@@ -65,7 +66,13 @@ rt_from_args(int argc, char *argv[]) {
 
     raytrace_settings *me = (raytrace_settings *)
         malloc(sizeof(raytrace_settings));
+
+    // Scaling and translation
     me->scale = atof(argv[5]);
+    me->translate.x = atof(argv[6]);
+    me->translate.y = atof(argv[7]);
+    me->translate.z = atof(argv[8]);
+
     me->width = width;
     me->height = height;
     me->mesh_file = strdup(argv[1]);
@@ -142,7 +149,8 @@ void
 render(raytrace_settings *rt, triangle_mesh *tm, vec3 *fbuf) {
     for (int i = 0; i < tm->n_verts; i++) {
         vec3 v = tm->verts[i];
-        tm->verts[i] = v3_scale(v, rt->scale);
+        v = v3_add(v3_scale(v, rt->scale), rt->translate);
+        tm->verts[i] = v;
     }
 
     size_t start = nano_count();
@@ -160,14 +168,18 @@ render(raytrace_settings *rt, triangle_mesh *tm, vec3 *fbuf) {
     }
     size_t end = nano_count();
     double secs = (double)(end - start) / 1000 / 1000 / 1000;
-    printf("%s: %.3f seconds, %lu intersections\n",
-           isect_name(), secs, hits);
+    printf("%-22s, %s, %d, %d, %.3f, %lu\n",
+           isect_name(),
+           basename(rt->mesh_file),
+           rt->width,
+           rt->height,
+           secs, hits);
 }
 
 void
 usage() {
     printf("usage: raytrace mesh-file image "
-           "width[0-2048] height[0-2048] scale\n");
+           "width[0-2048] height[0-2048] scale tx ty tz\n");
     exit(1);
 }
 
