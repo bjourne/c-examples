@@ -115,32 +115,44 @@ tm_intersect(triangle_mesh *me, vec3 o, vec3 d, ray_intersection *ri) {
     float nearest = FLT_MAX;
     float t = 0;
     vec2 uv;
+
 #if ISECT_PC_P
+#define BODY(N, I, O)                                           \
+    { if (ISECT_FUN(o, d, &t, &uv, T) && t < nearest) {         \
+            nearest = t;                                        \
+            ri->t = t;                                          \
+            ri->uv = uv;                                        \
+            ri->tri_idx = N*I+O;                                \
+        }                                                       \
+        T += ISECT_PC_N_ELS;                                    \
+    }
     float *T = me->precomp;
-    for (int i = 0; i < me->n_tris; i++) {
-        bool isect = ISECT_FUN(o, d, &t, &uv, T);
-        if (isect && t < nearest) {
-            nearest = t;
-            ri->t = t;
-            ri->uv = uv;
-            ri->tri_idx = i;
-        }
-        T += ISECT_PC_N_ELS;
-    }
 #else
-    vec3 *it = me->verts;
-    for (int i = 0; i < me->n_tris; i++) {
-        vec3 v0 = *it++;
-        vec3 v1 = *it++;
-        vec3 v2 = *it++;
-        bool isect = ISECT_FUN(o, d, v0, v1, v2, &t, &uv);
-        if (isect && t < nearest) {
-            nearest = t;
-            ri->t = t;
-            ri->uv = uv;
-            ri->tri_idx = i;
-        }
+#define BODY(N, I, O)                                                   \
+    { vec3 v0 = *it++, v1 = *it++, v2 = *it++;                          \
+      if (ISECT_FUN(o, d, v0, v1, v2, &t, &uv) && t < nearest) {        \
+          nearest = t;                                                  \
+          ri->t = t;                                                    \
+          ri->uv = uv;                                                  \
+          ri->tri_idx = N*I+O;                                          \
+      }                                                                 \
     }
+    vec3 *it = me->verts;
 #endif
+    int n_loops = me->n_tris / 8;
+    int n_remain = me->n_tris % 8;
+    for (int i = 0; i < n_loops; i++) {
+        BODY(8, i, 0);
+        BODY(8, i, 1);
+        BODY(8, i, 2);
+        BODY(8, i, 3);
+        BODY(8, i, 4);
+        BODY(8, i, 5);
+        BODY(8, i, 6);
+        BODY(8, i, 7);
+    }
+    for (int i = 0; i < n_remain; i++) {
+        BODY(8, n_loops, i);
+    }
     return nearest < FLT_MAX;
 }
