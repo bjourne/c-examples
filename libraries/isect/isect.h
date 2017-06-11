@@ -28,7 +28,7 @@ isect_ds(vec3 o, vec3 d,
     vec3 v0o = v3_sub(v0, o);
     float a = v3_dot(n, v0o);
     float b = v3_dot(n, d);
-    if (b < LINALG_EPSILON && b > -LINALG_EPSILON)
+    if (b == 0.0f)
         return false;
     *t = a / b;
     if (*t < ISECT_NEAR || *t > ISECT_FAR)
@@ -84,7 +84,7 @@ isect_mt(vec3 o, vec3 d,
     vec3 e2 = v3_sub(v2, v0);
     vec3 pvec = v3_cross(d, e2);
     float det = v3_dot(e1, pvec);
-    if (det < LINALG_EPSILON && det > -LINALG_EPSILON)
+    if (det == 0.0f)
         return false;
     float inv_det = 1 / det;
     vec3 tvec = v3_sub(o, v0);
@@ -110,14 +110,14 @@ isect_mt_b(vec3 o, vec3 d,
     vec3 qvec;
     uv->x = v3_dot(tvec, pvec);
     float det = v3_dot(e1, pvec);
-    if (det > LINALG_EPSILON) {
+    if (det > 0.0f) {
         if (uv->x < 0 || uv->x > det)
             return false;
         qvec = v3_cross(tvec, e1);
         uv->y = v3_dot(d, qvec);
         if (uv->y < 0 || uv->x + uv->y > det)
             return false;
-    } else if (det < -LINALG_EPSILON) {
+    } else if (det < 0.0f) {
         if (uv->x > 0 || uv->x < det)
             return false;
         qvec = v3_cross(tvec, e1);
