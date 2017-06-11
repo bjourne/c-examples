@@ -147,12 +147,6 @@ cast_ray(vec3 orig, vec3 dir, vec3 bg_col, triangle_mesh *tm) {
 
 void
 render(raytrace_settings *rt, triangle_mesh *tm, vec3 *fbuf) {
-    for (int i = 0; i < tm->n_verts; i++) {
-        vec3 v = tm->verts[i];
-        v = v3_add(v3_scale(v, rt->scale), rt->translate);
-        tm->verts[i] = v;
-    }
-
     size_t start = nano_count();
     int w = rt->width;
     int h = rt->height;
@@ -189,7 +183,9 @@ main(int argc, char *argv[]) {
     if (!rt) {
         usage();
     }
-    triangle_mesh *tm = tm_from_file(rt->mesh_file);
+    triangle_mesh *tm = tm_from_file(rt->mesh_file,
+                                     rt->scale,
+                                     rt->translate);
     if (!tm) {
         error("Failed to read mesh from file '%s'.\n", rt->mesh_file);
     }

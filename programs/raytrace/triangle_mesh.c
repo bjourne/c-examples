@@ -14,11 +14,11 @@ tm_intersect_precompute(triangle_mesh *me) {
 #if ISECT_PC_P
     int bytes = ISECT_PC_N_ELS * sizeof(float) * me->n_tris;
     me->precomp = (float *)malloc(bytes);
-    int *at_idx = me->indices;
+    vec3 *it = me->verts;
     for (int i = 0; i < me->n_tris; i++) {
-        vec3 v0 = me->verts[*at_idx++];
-        vec3 v1 = me->verts[*at_idx++];
-        vec3 v2 = me->verts[*at_idx++];
+        vec3 v0 = *it++;
+        vec3 v1 = *it++;
+        vec3 v2 = *it++;
         float *addr = &me->precomp[i * ISECT_PC_N_ELS];
         #if ISECT_METHOD == ISECT_PC12 || ISECT_METHOD == ISECT_PC12_B
         isect_precomp12_pre(v0, v1, v2, addr);
@@ -31,7 +31,6 @@ tm_intersect_precompute(triangle_mesh *me) {
 
 void
 tm_free(triangle_mesh *me) {
-    free(me->indices);
     free(me->normals);
     free(me->coords);
     free(me->verts);
@@ -42,38 +41,36 @@ tm_free(triangle_mesh *me) {
 }
 
 triangle_mesh *
-tm_from_file(const char *fname) {
+tm_from_file(const char *fname, float scale, vec3 translate) {
     triangle_mesh *me = (triangle_mesh *)malloc(sizeof(triangle_mesh));
+
+    int n_verts;
+    int* indices;
+    vec3* verts;
+
     if (!load_any_file(fname,
-                       &me->n_tris, &me->indices,
-                       &me->n_verts, &me->verts,
+                       &me->n_tris, &indices,
+                       &n_verts, &verts,
                        &me->normals, &me->coords)) {
         free(me);
         return NULL;
     }
+
+    for (int i = 0; i < n_verts; i++) {
+        vec3 v = verts[i];
+        v = v3_add(v3_scale(v, scale), translate);
+        verts[i] = v;
+    }
+    // "Unpack" indexed vertices.
+    me->verts = (vec3 *)malloc(sizeof(vec3) * me->n_tris * 3);
+    for (int i = 0; i < me->n_tris * 3; i++) {
+        me->verts[i] = verts[indices[i]];
+    }
+    free(indices);
+    free(verts);
+
     tm_intersect_precompute(me);
     return me;
-}
-
-void
-tm_print_index(triangle_mesh *me, int index) {
-    vec3 vec = me->verts[index];
-    printf("%d = {%.2f, %.2f, %.2f}", index, vec.x, vec.y, vec.z);
-}
-
-void
-tm_print(triangle_mesh *me) {
-    printf("# triangles: %d\n", me->n_tris);
-    int *at_idx = me->indices;
-    for (int i = 0; i < me->n_tris; i++) {
-        printf("{");
-        tm_print_index(me, *at_idx++);
-        printf(", ");
-        tm_print_index(me, *at_idx++);
-        printf(", ");
-        tm_print_index(me, *at_idx++);
-        printf("}\n");
-    }
 }
 
 void
@@ -104,9 +101,9 @@ tm_get_surface_props(triangle_mesh *me, ray_intersection *ri,
         vec3 n2_scaled = v3_scale(n2, ri->uv.y);
         *normal = v3_add(v3_add(n0_scaled, n1_scaled), n2_scaled);
     } else {
-        vec3 v0 = me->verts[me->indices[t0]];
-        vec3 v1 = me->verts[me->indices[t1]];
-        vec3 v2 = me->verts[me->indices[t2]];
+        vec3 v0 = me->verts[t0];
+        vec3 v1 = me->verts[t1];
+        vec3 v2 = me->verts[t2];
         vec3 e1 = v3_sub(v1, v0);
         vec3 e2 = v3_sub(v2, v0);
         *normal = v3_normalize(v3_cross(e1, e2));
@@ -119,8 +116,8 @@ tm_intersect(triangle_mesh *me, vec3 o, vec3 d, ray_intersection *ri) {
     float t = 0;
     vec2 uv;
 #if ISECT_PC_P
+    float *T = me->precomp;
     for (int i = 0; i < me->n_tris; i++) {
-        float *T = &me->precomp[i*ISECT_PC_N_ELS];
         bool isect = ISECT_FUN(o, d, &t, &uv, T);
         if (isect && t < nearest) {
             nearest = t;
@@ -128,13 +125,14 @@ tm_intersect(triangle_mesh *me, vec3 o, vec3 d, ray_intersection *ri) {
             ri->uv = uv;
             ri->tri_idx = i;
         }
+        T += ISECT_PC_N_ELS;
     }
 #else
-    int *at_idx = me->indices;
+    vec3 *it = me->verts;
     for (int i = 0; i < me->n_tris; i++) {
-        vec3 v0 = me->verts[*at_idx++];
-        vec3 v1 = me->verts[*at_idx++];
-        vec3 v2 = me->verts[*at_idx++];
+        vec3 v0 = *it++;
+        vec3 v1 = *it++;
+        vec3 v2 = *it++;
         bool isect = ISECT_FUN(o, d, v0, v1, v2, &t, &uv);
         if (isect && t < nearest) {
             nearest = t;
