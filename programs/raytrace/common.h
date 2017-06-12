@@ -3,10 +3,10 @@
 
 #define ISECT_MT        1
 #define ISECT_MT_B      2
-#define ISECT_PC9       3
-#define ISECT_PC9_B     4
-#define ISECT_PC12      5
-#define ISECT_PC12_B    6
+#define ISECT_BW9       3
+#define ISECT_BW9_B     4
+#define ISECT_BW12      5
+#define ISECT_BW12_B    6
 #define ISECT_SF01      7
 #define ISECT_DS        8
 #define ISECT_SHEV      9
@@ -14,12 +14,13 @@
 #define PLAIN_SHADING   1
 #define FANCY_SHADING   2
 
-#define ISECT_PC_P ISECT_METHOD == ISECT_PC9 || \
-        ISECT_METHOD == ISECT_PC12 || ISECT_METHOD == ISECT_PC12_B || \
-        ISECT_METHOD == ISECT_PC9_B || ISECT_METHOD == ISECT_SHEV
+#define ISECT_PC_P ISECT_METHOD == ISECT_BW9 ||                         \
+        ISECT_METHOD == ISECT_BW12 ||                                   \
+        ISECT_METHOD == ISECT_BW12_B ||                                 \
+        ISECT_METHOD == ISECT_BW9_B || ISECT_METHOD == ISECT_SHEV
 
-#if ISECT_METHOD == ISECT_PC12 ||   \
-    ISECT_METHOD == ISECT_PC12_B
+#if ISECT_METHOD == ISECT_BW12 ||   \
+    ISECT_METHOD == ISECT_BW12_B
 #define ISECT_PC_N_ELS 12
 #else
 #define ISECT_PC_N_ELS 10
@@ -29,14 +30,14 @@
 #define ISECT_FUN isect_mt
 #elif ISECT_METHOD == ISECT_MT_B
 #define ISECT_FUN isect_mt_b
-#elif ISECT_METHOD == ISECT_PC9
-#define ISECT_FUN isect_precomp9
-#elif ISECT_METHOD == ISECT_PC9_B
-#define ISECT_FUN isect_precomp9_b
-#elif ISECT_METHOD == ISECT_PC12
-#define ISECT_FUN isect_precomp12
-#elif ISECT_METHOD == ISECT_PC12_B
-#define ISECT_FUN isect_precomp12_b
+#elif ISECT_METHOD == ISECT_BW9
+#define ISECT_FUN isect_bw9
+#elif ISECT_METHOD == ISECT_BW9_B
+#define ISECT_FUN isect_bw_b
+#elif ISECT_METHOD == ISECT_BW12
+#define ISECT_FUN isect_bw12
+#elif ISECT_METHOD == ISECT_BW12_B
+#define ISECT_FUN isect_bw12_b
 #elif ISECT_METHOD == ISECT_SF01
 #define ISECT_FUN isect_sf01
 #elif ISECT_METHOD == ISECT_DS
@@ -55,13 +56,13 @@ isect_name() {
     return "Moller-Trumbore";
 #elif ISECT_METHOD == ISECT_MT_B
     return "Moller-Trumbore B";
-#elif ISECT_METHOD == ISECT_PC9
+#elif ISECT_METHOD == ISECT_BW9
     return "Baldwin-Weber pre9";
-#elif ISECT_METHOD == ISECT_PC9_B
+#elif ISECT_METHOD == ISECT_BW9_B
     return "Baldwin-Weber pre9 B";
-#elif ISECT_METHOD == ISECT_PC12
+#elif ISECT_METHOD == ISECT_BW12
     return "Baldwin-Weber pre12";
-#elif ISECT_METHOD == ISECT_PC12_B
+#elif ISECT_METHOD == ISECT_BW12_B
     return "Baldwin-Weber pre12 B";
 #elif ISECT_METHOD == ISECT_SF01
     return "Segura-Feito 01";

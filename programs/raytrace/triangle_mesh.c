@@ -20,10 +20,10 @@ tm_intersect_precompute(triangle_mesh *me) {
         vec3 v1 = *it++;
         vec3 v2 = *it++;
         float *addr = &me->precomp[i * ISECT_PC_N_ELS];
-#if ISECT_METHOD == ISECT_PC12 || ISECT_METHOD == ISECT_PC12_B
-        isect_precomp12_pre(v0, v1, v2, addr);
-#elif ISECT_METHOD == ISECT_PC9 || ISECT_METHOD == ISECT_PC9_B
-        isect_precomp9_pre(v0, v1, v2, addr);
+#if ISECT_METHOD == ISECT_BW12 || ISECT_METHOD == ISECT_BW12_B
+        isect_bw12_pre(v0, v1, v2, addr);
+#elif ISECT_METHOD == ISECT_BW9 || ISECT_METHOD == ISECT_BW9_B
+        isect_bw9_pre(v0, v1, v2, addr);
 #elif ISECT_METHOD == ISECT_SHEV
         isect_shev_pre(v0, v1, v2, addr);
 #endif
@@ -57,7 +57,6 @@ tm_from_file(const char *fname, float scale, vec3 translate) {
         free(me);
         return NULL;
     }
-
     for (int i = 0; i < n_verts; i++) {
         vec3 v = verts[i];
         v = v3_add(v3_scale(v, scale), translate);

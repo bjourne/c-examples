@@ -7,11 +7,29 @@
 #define ISECT_NEAR 0.0001f
 #define ISECT_FAR 10000.0f
 
-#define ISECT_PC12_SIZE sizeof(float) * 12
-#define ISECT_PC9_SIZE sizeof(float) * 10
+#define ISECT_BW12_SIZE sizeof(float) * 12
+#define ISECT_BW9_SIZE sizeof(float) * 10
 
-void isect_precomp12_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
-void isect_precomp9_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
+typedef struct {
+    float T[9];
+    int ci;
+} bw9_data;
+
+typedef struct {
+    float nu;
+    float nv;
+    float np;
+    float pu;
+    float pv;
+    float e1u;
+    float e1v;
+    float e2u;
+    float e2v;
+    int ci;
+} shev_data;
+
+void isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
+void isect_bw12_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
 void isect_shev_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
 
 inline float
@@ -136,7 +154,7 @@ isect_mt_b(vec3 o, vec3 d,
 }
 
 inline bool
-isect_precomp12(vec3 o, vec3 d,
+isect_bw12(vec3 o, vec3 d,
                 float *t, vec2 *uv, float *T) {
     float t_o = T[8] * o.x + T[9] * o.y + T[10] * o.z + T[11];
     float t_d = T[8] * d.x + T[9] * d.y + T[10] * d.z;
@@ -150,7 +168,7 @@ isect_precomp12(vec3 o, vec3 d,
 }
 
 inline bool
-isect_precomp12_b(vec3 o, vec3 d,
+isect_bw12_b(vec3 o, vec3 d,
                   float *t, vec2 *uv, float *T) {
     float t_o = T[8] * o.x + T[9] * o.y + T[10] * o.z + T[11];
     float t_d = T[8] * d.x + T[9] * d.y + T[10] * d.z;
@@ -166,7 +184,7 @@ isect_precomp12_b(vec3 o, vec3 d,
 }
 
 inline bool
-isect_precomp9(vec3 o, vec3 d,
+isect_bw9(vec3 o, vec3 d,
                float *t, vec2 *uv, float *T) {
     if ((int)T[9] == 1) {
         float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
@@ -200,7 +218,7 @@ isect_precomp9(vec3 o, vec3 d,
 }
 
 inline bool
-isect_precomp9_b(vec3 o, vec3 d,
+isect_bw9_b(vec3 o, vec3 d,
                  float *t, vec2 *uv, float *T) {
     // TODO: Fix this
     if ((int)T[9] == 1) {
@@ -239,19 +257,6 @@ isect_precomp9_b(vec3 o, vec3 d,
     }
     return uv->y >= 0 && (uv->x + uv->y) <= 1;
 }
-
-typedef struct {
-    float nu;
-    float nv;
-    float np;
-    float pu;
-    float pv;
-    float e1u;
-    float e1v;
-    float e2u;
-    float e2v;
-    int ci;
-} shev_data;
 
 typedef union { int i; float f; } u;
 
