@@ -12,6 +12,7 @@
 
 void isect_precomp12_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
 void isect_precomp9_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
+void isect_shev_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
 
 inline float
 v3_sign_3d(vec3 p, vec3 q, vec3 r) {
@@ -201,6 +202,7 @@ isect_precomp9(vec3 o, vec3 d,
 inline bool
 isect_precomp9_b(vec3 o, vec3 d,
                  float *t, vec2 *uv, float *T) {
+    // TODO: Fix this
     if ((int)T[9] == 1) {
         float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
         float t_d = d.x + T[6] * d.y + T[7] * d.z;
@@ -237,6 +239,64 @@ isect_precomp9_b(vec3 o, vec3 d,
     }
     return uv->y >= 0 && (uv->x + uv->y) <= 1;
 }
+
+typedef struct {
+    float nu;
+    float nv;
+    float np;
+    float pu;
+    float pv;
+    float e1u;
+    float e1v;
+    float e2u;
+    float e2v;
+    int ci;
+} shev_data;
+
+typedef union { int i; float f; } u;
+
+#define ISECT_SHEV_ENDING                       \
+    float detu = D->e2v * Du - D->e2u * Dv;     \
+    float detv = D->e1u * Dv - D->e1v * Du;     \
+    float tmpdet0 = det - detu - detv;          \
+    int pdet0 = ((u)tmpdet0).i;                 \
+    int pdetu = ((u)detu).i;                    \
+    int pdetv = ((u)detv).i;                    \
+    pdet0 = pdet0 ^ pdetu;                      \
+    pdet0 = pdet0 | (pdetu ^ pdetv);            \
+    if (pdet0 & 0x80000000)                     \
+        return false;                           \
+    float rdet = 1 / det;                       \
+    *t = dett * rdet;                           \
+    uv->x = detu * rdet;                        \
+    uv->y = detv * rdet;                        \
+    return *t >= ISECT_NEAR && *t <= ISECT_FAR;
+
+inline bool
+isect_shev(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
+    shev_data *D = (shev_data *)T;
+    float dett, det, Du, Dv;
+    if (D->ci == 0) {
+        dett = D->np - (o.y * D->nu + o.z * D->nv + o.x);
+        det = d.y * D->nu + d.z * D->nv + d.x;
+        Du = d.y*dett - (D->pu - o.y) * det;
+        Dv = d.z*dett - (D->pv - o.z) * det;
+        ISECT_SHEV_ENDING;
+    } else if (D->ci == 1) {
+        dett = D->np - (o.x * D->nu + o.z * D->nv + o.y);
+        det = d.x * D->nu + d.z * D->nv + d.y;
+        Du = d.x * dett - (D->pu - o.x) * det;
+        Dv = d.z * dett - (D->pv - o.z) * det;
+        ISECT_SHEV_ENDING;
+    } else {
+        dett = D->np - (o.x * D->nu + o.y * D->nv + o.z);
+        det = d.x * D->nu + d.y * D->nv + d.z;
+        Du = d.x * dett - (D->pu - o.x) * det;
+        Dv = d.y * dett - (D->pv - o.y) * det;
+        ISECT_SHEV_ENDING;
+    }
+}
+
 
 
 #endif

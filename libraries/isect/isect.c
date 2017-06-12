@@ -19,6 +19,57 @@ isect_precomp12(vec3 o, vec3 d,
 extern inline bool
 isect_precomp12_b(vec3 o, vec3 d,
                 float *t, vec2 *uv, float *T);
+extern inline bool
+isect_sf01(vec3 o, vec3 d,
+           vec3 v0, vec3 v1, vec3 v2,
+           float *t, vec2 *uv);
+
+#define V3_GET(v, i) (i == 0 ? v.x : (i == 1  ? v.y : v.z))
+
+void
+isect_shev_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
+    shev_data *D = (shev_data *)T;
+    vec3 e1 = v3_sub(v1, v0);
+    vec3 e2 = v3_sub(v2, v0);
+    vec3 n = v3_cross(e1, e2);
+    int u,v,w;
+    if (abs(n.x) < abs(n.y)) {
+        if (abs(n.z) < abs(n.x)) {
+            u = 0; v = 2; w = 1;
+        } else {
+            if (abs(n.z) < abs(n.y)) {
+                u = 0; v = 2; w = 1;
+            } else {
+                u = 0; v = 1; w = 2;
+            }
+        }
+    } else {
+        if (abs(n.z) < abs(n.y)) {
+            u = 1; v = 2; w = 0;
+        } else {
+            if (abs(n.z) < abs(n.x)) {
+                u = 1; v = 2; w = 0;
+            }
+            else {
+                u = 0; v = 1; w = 2;
+            }
+        }
+    }
+    float sign = 1.0f;
+    for(int i=0; i<w; ++i)
+        sign *= -1.0f;
+    float nw = V3_GET(n, w);
+    D->nu = V3_GET(n, u) / nw;
+    D->nv = V3_GET(n, v) / nw;
+    D->pu = V3_GET(v0, u);
+    D->pv = V3_GET(v0, v);
+    D->np = (D->nu*D->pu + D->nv*D->pv + V3_GET(v0, w));
+    D->e1u = sign * V3_GET(e1, u) / nw;
+    D->e1v = sign * V3_GET(e1, v) / nw;
+    D->e2u = sign * V3_GET(e2, u) / nw;
+    D->e2v = sign * V3_GET(e2, v) / nw;
+    D->ci = w;
+}
 
 void
 isect_precomp9_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {

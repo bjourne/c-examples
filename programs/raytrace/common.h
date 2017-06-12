@@ -9,15 +9,17 @@
 #define ISECT_PC12_B    6
 #define ISECT_SF01      7
 #define ISECT_DS        8
+#define ISECT_SHEV      9
 
 #define PLAIN_SHADING   1
 #define FANCY_SHADING   2
 
 #define ISECT_PC_P ISECT_METHOD == ISECT_PC9 || \
         ISECT_METHOD == ISECT_PC12 || ISECT_METHOD == ISECT_PC12_B || \
-        ISECT_METHOD == ISECT_PC9_B
+        ISECT_METHOD == ISECT_PC9_B || ISECT_METHOD == ISECT_SHEV
 
-#if ISECT_METHOD == ISECT_PC12 || ISECT_METHOD == ISECT_PC12_B
+#if ISECT_METHOD == ISECT_PC12 ||   \
+    ISECT_METHOD == ISECT_PC12_B
 #define ISECT_PC_N_ELS 12
 #else
 #define ISECT_PC_N_ELS 10
@@ -39,6 +41,8 @@
 #define ISECT_FUN isect_sf01
 #elif ISECT_METHOD == ISECT_DS
 #define ISECT_FUN isect_ds
+#elif ISECT_METHOD == ISECT_SHEV
+#define ISECT_FUN isect_shev
 #else
 #error "Wrong ISECT_METHOD"
 #endif
@@ -63,6 +67,8 @@ isect_name() {
     return "Segura-Feito 01";
 #elif ISECT_METHOD == ISECT_DS
     return "Dan Sunday";
+#elif ISECT_METHOD == ISECT_SHEV
+    return "Shevtsov";
 #endif
 }
 
