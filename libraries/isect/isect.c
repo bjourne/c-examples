@@ -36,34 +36,21 @@ isect_sf01(vec3 o, vec3 d,
 //  7 = e2u
 //  8 = e2v
 //  9 = ci
-
+//
+// I get slightly different results for some models depending on if
+// abs() or fabs() is used.
 void
 isect_shev_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
     vec3 e1 = v3_sub(v1, v0);
     vec3 e2 = v3_sub(v2, v0);
     vec3 n = v3_cross(e1, e2);
     int u,v,w;
-    if (abs(n.x) < abs(n.y)) {
-        if (abs(n.z) < abs(n.x)) {
-            u = 0; v = 2; w = 1;
-        } else {
-            if (abs(n.z) < abs(n.y)) {
-                u = 0; v = 2; w = 1;
-            } else {
-                u = 0; v = 1; w = 2;
-            }
-        }
+    if (abs(n.x) > abs(n.y) && abs(n.x) > abs(n.z)) {
+        w = 0; u = 1; v = 2;
+    } else if (abs(n.y) > abs(n.z)) {
+        w = 1; u = 0; v = 2;
     } else {
-        if (abs(n.z) < abs(n.y)) {
-            u = 1; v = 2; w = 0;
-        } else {
-            if (abs(n.z) < abs(n.x)) {
-                u = 1; v = 2; w = 0;
-            }
-            else {
-                u = 0; v = 1; w = 2;
-            }
-        }
+        w = 2; u = 0; v = 1;
     }
     float sign = 1.0f;
     for(int i=0; i<w; ++i)

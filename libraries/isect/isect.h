@@ -243,21 +243,21 @@ isect_bw9_b(vec3 o, vec3 d,
     return uv->y >= 0 && (uv->x + uv->y) <= 1;
 }
 
-#define ISECT_SHEV_ENDING                       \
-    float detu = T[8] * Du - T[7] * Dv;         \
-    float detv = T[5] * Dv - T[6] * Du;         \
-    float tmpdet0 = det - detu - detv;          \
+#define ISECT_SHEV_ENDING                                  \
+    float detu = T[8] * Du - T[7] * Dv;                    \
+    float detv = T[5] * Dv - T[6] * Du;                    \
+    float tmpdet0 = det - detu - detv;                     \
     int pdet0 = ((int_or_float)tmpdet0).i;                 \
     int pdetu = ((int_or_float)detu).i;                    \
     int pdetv = ((int_or_float)detv).i;                    \
-    pdet0 = pdet0 ^ pdetu;                      \
-    pdet0 = pdet0 | (pdetu ^ pdetv);            \
-    if (pdet0 & 0x80000000)                     \
-        return false;                           \
-    float rdet = 1 / det;                       \
-    *t = dett * rdet;                           \
-    uv->x = detu * rdet;                        \
-    uv->y = detv * rdet;                        \
+    pdet0 = pdet0 ^ pdetu;                                 \
+    pdet0 = pdet0 | (pdetu ^ pdetv);                       \
+    if (pdet0 & 0x80000000)                                \
+        return false;                                      \
+    float rdet = 1 / det;                                  \
+    *t = dett * rdet;                                      \
+    uv->x = detu * rdet;                                   \
+    uv->y = detv * rdet;                                   \
     return *t >= ISECT_NEAR && *t <= ISECT_FAR;
 
 inline bool
