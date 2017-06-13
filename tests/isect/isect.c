@@ -36,7 +36,51 @@ test_mt() {
 }
 
 void
-test_bw12() {
+test_bw9_pre() {
+    vec3 v0 = {2.189, 5.870, 0.517};
+    vec3 v1 = {1.795, 4.835, 0.481};
+    vec3 v2 = {2.717, 6.016, -1.116};
+    float T[10];
+    isect_bw9_pre(v0, v1, v2, T);
+
+    float Texp[9] = {
+        -0.963188350201,
+        -0.086114756763,
+        5.698436737061,
+        0.021233797073,
+        -0.610471367836,
+        0.190971285105,
+        -0.390707582235,
+        0.288399755955,
+        -0.044649176300,
+    };
+    for (int i = 0; i < 9; i++) {
+        assert(approx_eq2(T[i], Texp[i], 1e-6));
+    }
+
+
+    v0 = (vec3){4.0, 1.0, 2.0};
+    v1 = (vec3){-4.0, 3.0, 3.0};
+    v2 = (vec3){-10.0, -3.0, 21.5};
+    isect_bw9_pre(v0, v1, v2, T);
+    float Texp2[9] = {
+        -0.137323945761,
+        -0.098591551185,
+        0.746478855610,
+        0.007042253390,
+        0.056338027120,
+        -0.140845075250,
+        0.302816897631,
+        0.422535210848,
+        -3.056338071823
+    };
+    for (int i = 0; i < 9; i++) {
+        assert(approx_eq2(T[i], Texp2[i], 1e-6));
+    }
+}
+
+void
+test_bw12_pre() {
     vec3 v0 = {2.189, 5.870, 0.517};
     vec3 v1 = {1.795, 4.835, 0.481};
     vec3 v2 = {2.717, 6.016, -1.116};
@@ -216,7 +260,6 @@ test_isect_sf01() {
     vec2 uv1, uv2;
     isect_mt(o, d, v0, v1, v2, &t1, &uv1);
     isect_sf01(o, d, v0, v1, v2, &t2, &uv2);
-    printf("%.6f %.6f\n", t1, t2);
     assert(approx_eq2(t1, t2, 0.0001));
 }
 
@@ -224,7 +267,8 @@ int
 main(int argc, char* argv[]) {
     rand_init(0);
     PRINT_RUN(test_mt);
-    PRINT_RUN(test_bw12);
+    PRINT_RUN(test_bw9_pre);
+    PRINT_RUN(test_bw12_pre);
     PRINT_RUN(test_diffs_01);
     PRINT_RUN(test_diffs_02);
     PRINT_RUN(test_diffs_hard);
