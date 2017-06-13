@@ -221,7 +221,7 @@ typedef union { int i; float f; } u;
 
 inline bool
 isect_bw9_b(vec3 o, vec3 d,
-                 float *t, vec2 *uv, float *T) {
+            float *t, vec2 *uv, float *T) {
     if (((u)T[9]).i == 1) {
         float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
         float t_d = d.x + T[6] * d.y + T[7] * d.z;

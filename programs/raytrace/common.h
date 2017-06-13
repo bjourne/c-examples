@@ -19,50 +19,48 @@
         ISECT_METHOD == ISECT_BW12_B ||                                 \
         ISECT_METHOD == ISECT_BW9_B || ISECT_METHOD == ISECT_SHEV
 
-#if ISECT_METHOD == ISECT_BW12 ||   \
-    ISECT_METHOD == ISECT_BW12_B
-#define ISECT_PC_N_ELS 12
-#else
-#define ISECT_PC_N_ELS 10
-#endif
-
 #if ISECT_METHOD == ISECT_MT
-// It should be Möller, not Moller. But printf misaligns text with ö
-// in it.
-#define ISECT_FUN isect_mt
-#define ISECT_NAME "Moller-Trumbore"
+    // It should be Möller, not Moller. But printf misaligns text with ö
+    // in it.
+    #define ISECT_FUN isect_mt
+    #define ISECT_NAME "Moller-Trumbore"
 #elif ISECT_METHOD == ISECT_MT_B
-#define ISECT_FUN isect_mt_b
-#define ISECT_NAME "Moller-Trumbore B"
+    #define ISECT_FUN isect_mt_b
+    #define ISECT_NAME "Moller-Trumbore B"
 #elif ISECT_METHOD == ISECT_BW9
-#define ISECT_FUN isect_bw9
-#define ISECT_NAME "Baldwin-Weber pre9";
+    #define ISECT_FUN isect_bw9
+    #define ISECT_FUN_PRE isect_bw9_pre
+    #define ISECT_NAME "Baldwin-Weber pre9"
+    #define ISECT_PC_SIZE 10
 #elif ISECT_METHOD == ISECT_BW9_B
-#define ISECT_FUN isect_bw9_b
-#define ISECT_NAME "Baldwin-Weber pre9 B";
+    #define ISECT_FUN isect_bw9_b
+    #define ISECT_FUN_PRE isect_bw9_pre
+    #define ISECT_NAME "Baldwin-Weber pre9 B"
+    #define ISECT_PC_SIZE 10
 #elif ISECT_METHOD == ISECT_BW12
-#define ISECT_FUN isect_bw12
-#define ISECT_NAME "Baldwin-Weber pre12"
+    #define ISECT_FUN isect_bw12
+    #define ISECT_FUN_PRE isect_bw12_pre
+    #define ISECT_NAME "Baldwin-Weber pre12"
+    #define ISECT_PC_SIZE 12
 #elif ISECT_METHOD == ISECT_BW12_B
-#define ISECT_FUN isect_bw12_b
-#define ISECT_NAME "Baldwin-Weber pre12 B"
+    #define ISECT_FUN isect_bw12_b
+    #define ISECT_FUN_PRE isect_bw12_pre
+    #define ISECT_NAME "Baldwin-Weber pre12 B"
+    #define ISECT_PC_SIZE 12
 #elif ISECT_METHOD == ISECT_SF01
-#define ISECT_FUN isect_sf01
-#define ISECT_NAME "Segura-Feito 01"
+    #define ISECT_FUN isect_sf01
+    #define ISECT_NAME "Segura-Feito 01"
 #elif ISECT_METHOD == ISECT_DS
-#define ISECT_FUN isect_ds
-#define ISECT_NAME "Dan Sunday"
+    #define ISECT_FUN isect_ds
+    #define ISECT_NAME "Dan Sunday"
 #elif ISECT_METHOD == ISECT_SHEV
-#define ISECT_FUN isect_shev
-#define ISECT_NAMEE "Shevtsov et al";
+    #define ISECT_FUN isect_shev
+    #define ISECT_FUN_PRE isect_shev_pre
+    #define ISECT_NAME "Shevtsov et al"
+    #define ISECT_PC_SIZE 10
 #else
-#error "Wrong ISECT_METHOD"
+    #error "Wrong ISECT_METHOD"
 #endif
-
-inline const char *
-isect_name() {
-    return ISECT_NAME;
-}
 
 typedef struct _ray_intersection {
     float t;

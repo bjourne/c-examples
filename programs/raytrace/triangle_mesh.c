@@ -12,21 +12,15 @@
 static void
 tm_intersect_precompute(triangle_mesh *me) {
 #if ISECT_PC_P
-    int bytes = ISECT_PC_N_ELS * sizeof(float) * me->n_tris;
+    int bytes = ISECT_PC_SIZE * sizeof(float) * me->n_tris;
     me->precomp = (float *)malloc(bytes);
     vec3 *it = me->verts;
     for (int i = 0; i < me->n_tris; i++) {
         vec3 v0 = *it++;
         vec3 v1 = *it++;
         vec3 v2 = *it++;
-        float *addr = &me->precomp[i * ISECT_PC_N_ELS];
-#if ISECT_METHOD == ISECT_BW12 || ISECT_METHOD == ISECT_BW12_B
-        isect_bw12_pre(v0, v1, v2, addr);
-#elif ISECT_METHOD == ISECT_BW9 || ISECT_METHOD == ISECT_BW9_B
-        isect_bw9_pre(v0, v1, v2, addr);
-#elif ISECT_METHOD == ISECT_SHEV
-        isect_shev_pre(v0, v1, v2, addr);
-#endif
+        float *addr = &me->precomp[i * ISECT_PC_SIZE];
+        ISECT_FUN_PRE(v0, v1, v2, addr);
     }
 #endif
 }
@@ -125,7 +119,7 @@ tm_intersect(triangle_mesh *me, vec3 o, vec3 d, ray_intersection *ri) {
             ri->uv = uv;                                        \
             ri->tri_idx = N*I+O;                                \
         }                                                       \
-        T += ISECT_PC_N_ELS;                                    \
+        T += ISECT_PC_SIZE;                                     \
     }
     float *T = me->precomp;
 #else
