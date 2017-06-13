@@ -41,6 +41,8 @@ typedef struct _vec3 {
     float x, y, z;
 } vec3;
 
+#define V3_GET(v, i) ((float *)&v)[i]
+
 void
 v3_print(vec3 v, int n_dec);
 
