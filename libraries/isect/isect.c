@@ -24,10 +24,6 @@ isect_sf01(vec3 o, vec3 d,
            vec3 v0, vec3 v1, vec3 v2,
            float *t, vec2 *uv);
 
-// The precomputed intersection tests appear to depend a lot on if
-// abs() or fabs() is used. I belive it is related to something with
-// axis-aligned triangles.
-
 // Storage layout:
 //
 //  0 = nu
@@ -46,9 +42,9 @@ isect_shev_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
     vec3 e2 = v3_sub(v2, v0);
     vec3 n = v3_cross(e1, e2);
     int u,v,w;
-    if (abs(n.x) > abs(n.y) && abs(n.x) > abs(n.z)) {
+    if (fabsf(n.x) > fabsf(n.y) && fabsf(n.x) > fabsf(n.z)) {
         w = 0; u = 1; v = 2;
-    } else if (abs(n.y) > abs(n.z)) {
+    } else if (fabsf(n.y) > fabsf(n.z)) {
         w = 1; u = 0; v = 2;
     } else {
         w = 2; u = 0; v = 1;
@@ -79,7 +75,7 @@ isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
     vec3 n = v3_cross(e1, e2);
     float x1, x2;
     float num = v3_dot(v0, n);
-    if (abs(n.x) > abs(n.y) && abs(n.x) > abs(n.z)) {
+    if (fabsf(n.x) > fabsf(n.y) && fabsf(n.x) > fabsf(n.z)) {
         x1 = v1.y * v0.z - v1.z * v0.y;
         x2 = v2.y * v0.z - v2.z * v0.y;
         memcpy(T, (float[10]){
@@ -88,7 +84,7 @@ isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
               n.y / n.x,   n.z / n.x, -num / n.x,
              ((int_or_float)0).f
             }, ISECT_BW9_SIZE);
-    } else if (abs(n.y) > abs(n.z)) {
+    } else if (fabsf(n.y) > fabsf(n.z)) {
         x1 = v1.z * v0.x - v1.x * v0.z;
         x2 = v2.z * v0.x - v2.x * v0.z;
         memcpy(T, (float[10]){
@@ -117,7 +113,7 @@ isect_bw12_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
 
     float x1, x2;
     float num = v3_dot(v0, n);
-    if (abs(n.x) > abs(n.y) && abs(n.x) > abs(n.z)) {
+    if (fabsf(n.x) > fabsf(n.y) && fabsf(n.x) > fabsf(n.z)) {
         x1 = v1.y * v0.z - v1.z * v0.y;
         x2 = v2.y * v0.z - v2.z * v0.y;
         memcpy(T, (float[12]){
@@ -125,7 +121,7 @@ isect_bw12_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
             0.0f, -e1.z / n.x,  e1.y / n.x,  -x1 / n.x,
             1.0f,   n.y / n.x,   n.z / n.x, -num / n.x
         }, ISECT_BW12_SIZE);
-    } else if (abs(n.y) > abs(n.z)) {
+    } else if (fabsf(n.y) > fabsf(n.z)) {
         x1 = v1.z * v0.x - v1.x * v0.z;
         x2 = v2.z * v0.x - v2.x * v0.z;
         memcpy(T, (float[12]){
