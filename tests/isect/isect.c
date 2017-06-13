@@ -36,13 +36,13 @@ test_mt() {
 }
 
 void
-test_precomp12() {
+test_bw12() {
     vec3 v0 = {2.189, 5.870, 0.517};
     vec3 v1 = {1.795, 4.835, 0.481};
     vec3 v2 = {2.717, 6.016, -1.116};
 
     float T[12];
-    isect_precomp12_pre(v0, v1, v2, T);
+    isect_bw12_pre(v0, v1, v2, T);
 
     float Texp[12] = {
         0.000000000000000000,
@@ -75,10 +75,10 @@ test_diffs_01() {
     vec3 d = {-0.891354, -0.050203, -0.450520};
 
     float T[12];
-    isect_precomp12_pre(v0, v1, v2, T);
+    isect_bw12_pre(v0, v1, v2, T);
 
     bool mt = isect_mt(o, d, v0, v1, v2, &t, &uv);
-    bool pc = isect_precomp12(o, d, &t, &uv, T);
+    bool pc = isect_bw12(o, d, &t, &uv, T);
     assert(mt == pc);
 }
 
@@ -95,10 +95,10 @@ test_diffs_02() {
     vec3 d = {-0.628539, -0.769961, -0.109994};
 
     float T[12];
-    isect_precomp12_pre(v0, v1, v2, T);
+    isect_bw12_pre(v0, v1, v2, T);
 
     bool mt = isect_mt(o, d, v0, v1, v2, &t, &uv);
-    bool pc = isect_precomp12(o, d, &t, &uv, T);
+    bool pc = isect_bw12(o, d, &t, &uv, T);
     assert(mt == pc);
 }
 
@@ -120,9 +120,9 @@ test_diffs_hard() {
             vec[i].y = rand_n(200) - 100;
             vec[i].z = rand_n(200) - 100;
         }
-        isect_precomp12_pre(vec[0], vec[1], vec[2], T);
+        isect_bw12_pre(vec[0], vec[1], vec[2], T);
         bool mt = isect_mt(o, d, vec[0], vec[1], vec[2], &t, &uv);
-        bool pc = isect_precomp12(o, d, &t, &uv, T);
+        bool pc = isect_bw12(o, d, &t, &uv, T);
         if (mt  != pc) {
             for (int i  = 0; i < 3; i++) {
                 v3_print(vec[i], 6);
@@ -133,7 +133,7 @@ test_diffs_hard() {
 }
 
 void
-test_precomp9_diffs_01() {
+test_bw9_diffs_01() {
     vec3 o = {
         11.998573303, 14.635927200, 9.681089401
     };
@@ -154,12 +154,12 @@ test_precomp9_diffs_01() {
     assert(!isect_mt(o, d, v0, v1, v2, &t, &uv));
 
     float T[10];
-    isect_precomp9_pre(v0, v1, v2, T);
-    assert(!isect_precomp9(o, d, &t, &uv, T));
+    isect_bw9_pre(v0, v1, v2, T);
+    assert(!isect_bw9(o, d, &t, &uv, T));
 }
 
 void
-test_precomp9_diffs_02() {
+test_bw9_diffs_02() {
     vec3 o = {
         11.998573303, 14.635927200, 9.681089401
     };
@@ -179,10 +179,10 @@ test_precomp9_diffs_02() {
     vec2 uv;
 
     float T[10];
-    isect_precomp9_pre(v0, v1, v2, T);
+    isect_bw9_pre(v0, v1, v2, T);
     // The discrepancy appears to be caused by a fp precision issue.
     assert(isect_mt(o, d, v0, v1, v2, &t, &uv));
-    //assert(!isect_precomp9(o, d, v0, v1, v2, &t, &uv, T));
+    //assert(!isect_bw9(o, d, v0, v1, v2, &t, &uv, T));
 }
 
 void
@@ -224,12 +224,12 @@ int
 main(int argc, char* argv[]) {
     rand_init(0);
     PRINT_RUN(test_mt);
-    PRINT_RUN(test_precomp12);
+    PRINT_RUN(test_bw12);
     PRINT_RUN(test_diffs_01);
     PRINT_RUN(test_diffs_02);
     PRINT_RUN(test_diffs_hard);
-    PRINT_RUN(test_precomp9_diffs_01);
-    PRINT_RUN(test_precomp9_diffs_02);
+    PRINT_RUN(test_bw9_diffs_01);
+    PRINT_RUN(test_bw9_diffs_02);
     PRINT_RUN(test_isect_sf01);
     return 0;
 }

@@ -33,7 +33,7 @@
 #elif ISECT_METHOD == ISECT_BW9
 #define ISECT_FUN isect_bw9
 #elif ISECT_METHOD == ISECT_BW9_B
-#define ISECT_FUN isect_bw_b
+#define ISECT_FUN isect_bw9_b
 #elif ISECT_METHOD == ISECT_BW12
 #define ISECT_FUN isect_bw12
 #elif ISECT_METHOD == ISECT_BW12_B
