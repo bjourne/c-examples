@@ -7,23 +7,10 @@
 #define ISECT_NEAR 0.0001f
 #define ISECT_FAR 10000.0f
 
-#define ISECT_BW12_SIZE sizeof(float) * 12
-#define ISECT_BW9_SIZE sizeof(float) * 10
-
-typedef union { int i; float f; } u;
-
-typedef struct {
-    float nu;
-    float nv;
-    float np;
-    float pu;
-    float pv;
-    float e1u;
-    float e1v;
-    float e2u;
-    float e2v;
-    int ci;
-} shev_data;
+typedef union {
+    int i;
+    float f;
+} int_or_float;
 
 void isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
 void isect_bw12_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
@@ -152,7 +139,7 @@ isect_mt_b(vec3 o, vec3 d,
 
 inline bool
 isect_bw12(vec3 o, vec3 d,
-                float *t, vec2 *uv, float *T) {
+           float *t, vec2 *uv, float *T) {
     float t_o = T[8] * o.x + T[9] * o.y + T[10] * o.z + T[11];
     float t_d = T[8] * d.x + T[9] * d.y + T[10] * d.z;
     *t = -t_o / t_d;
@@ -166,7 +153,7 @@ isect_bw12(vec3 o, vec3 d,
 
 inline bool
 isect_bw12_b(vec3 o, vec3 d,
-                  float *t, vec2 *uv, float *T) {
+             float *t, vec2 *uv, float *T) {
     float t_o = T[8] * o.x + T[9] * o.y + T[10] * o.z + T[11];
     float t_d = T[8] * d.x + T[9] * d.y + T[10] * d.z;
     *t = -t_o / t_d;
@@ -182,8 +169,9 @@ isect_bw12_b(vec3 o, vec3 d,
 
 inline bool
 isect_bw9(vec3 o, vec3 d,
-               float *t, vec2 *uv, float *T) {
-    if (((u)T[9]).i == 0) {
+          float *t, vec2 *uv, float *T) {
+    int sel = ((int_or_float)T[9]).i;
+    if (sel == 0) {
         float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
         float t_d = d.x + T[6] * d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -192,7 +180,7 @@ isect_bw9(vec3 o, vec3 d,
         vec3 wr = v3_add(o, v3_scale(d, *t));
         uv->x = T[0] * wr.y + T[1] * wr.z + T[2];
         uv->y = T[3] * wr.y + T[4] * wr.z + T[5];
-    } else if (((u)T[9]).i == 1) {
+    } else if (sel == 1) {
         float t_o = T[6] * o.x + o.y + T[7] * o.z + T[8];
         float t_d = T[6] * d.x + d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -217,7 +205,8 @@ isect_bw9(vec3 o, vec3 d,
 inline bool
 isect_bw9_b(vec3 o, vec3 d,
             float *t, vec2 *uv, float *T) {
-    if (((u)T[9]).i == 0) {
+    int sel = ((int_or_float)T[9]).i;
+    if (sel == 0) {
         float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
         float t_d = d.x + T[6] * d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -228,7 +217,7 @@ isect_bw9_b(vec3 o, vec3 d,
         if (uv->x < 0 || uv->x > 1)
             return false;
         uv->y = T[3] * wr.y + T[4] * wr.z + T[5];
-    } else if (((u)T[9]).i == 1) {
+    } else if (sel == 1) {
         float t_o = T[6] * o.x + o.y + T[7] * o.z + T[8];
         float t_d = T[6] * d.x + d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -255,12 +244,12 @@ isect_bw9_b(vec3 o, vec3 d,
 }
 
 #define ISECT_SHEV_ENDING                       \
-    float detu = D->e2v * Du - D->e2u * Dv;     \
-    float detv = D->e1u * Dv - D->e1v * Du;     \
+    float detu = T[8] * Du - T[7] * Dv;         \
+    float detv = T[5] * Dv - T[6] * Du;         \
     float tmpdet0 = det - detu - detv;          \
-    int pdet0 = ((u)tmpdet0).i;                 \
-    int pdetu = ((u)detu).i;                    \
-    int pdetv = ((u)detv).i;                    \
+    int pdet0 = ((int_or_float)tmpdet0).i;                 \
+    int pdetu = ((int_or_float)detu).i;                    \
+    int pdetv = ((int_or_float)detv).i;                    \
     pdet0 = pdet0 ^ pdetu;                      \
     pdet0 = pdet0 | (pdetu ^ pdetv);            \
     if (pdet0 & 0x80000000)                     \
@@ -273,25 +262,24 @@ isect_bw9_b(vec3 o, vec3 d,
 
 inline bool
 isect_shev(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
-    shev_data *D = (shev_data *)T;
     float dett, det, Du, Dv;
-    if (((u)T[9]).i == 0) {
-        dett = D->np - (o.y * D->nu + o.z * D->nv + o.x);
-        det = d.y * D->nu + d.z * D->nv + d.x;
-        Du = d.y*dett - (D->pu - o.y) * det;
-        Dv = d.z*dett - (D->pv - o.z) * det;
+    if (((int_or_float)T[9]).i == 0) {
+        dett = T[2] - (o.y * T[0] + o.z * T[1] + o.x);
+        det = d.y * T[0] + d.z * T[1] + d.x;
+        Du = d.y*dett - (T[3] - o.y) * det;
+        Dv = d.z*dett - (T[4] - o.z) * det;
         ISECT_SHEV_ENDING;
-    } else if (((u)T[9]).i == 1) {
-        dett = D->np - (o.x * D->nu + o.z * D->nv + o.y);
-        det = d.x * D->nu + d.z * D->nv + d.y;
-        Du = d.x * dett - (D->pu - o.x) * det;
-        Dv = d.z * dett - (D->pv - o.z) * det;
+    } else if (((int_or_float)T[9]).i == 1) {
+        dett = T[2] - (o.x * T[0] + o.z * T[1] + o.y);
+        det = d.x * T[0] + d.z * T[1] + d.y;
+        Du = d.x * dett - (T[3] - o.x) * det;
+        Dv = d.z * dett - (T[4] - o.z) * det;
         ISECT_SHEV_ENDING;
     } else {
-        dett = D->np - (o.x * D->nu + o.y * D->nv + o.z);
-        det = d.x * D->nu + d.y * D->nv + d.z;
-        Du = d.x * dett - (D->pu - o.x) * det;
-        Dv = d.y * dett - (D->pv - o.y) * det;
+        dett = T[2] - (o.x * T[0] + o.y * T[1] + o.z);
+        det = d.x * T[0] + d.y * T[1] + d.z;
+        Du = d.x * dett - (T[3] - o.x) * det;
+        Dv = d.y * dett - (T[4] - o.y) * det;
         ISECT_SHEV_ENDING;
     }
 }
