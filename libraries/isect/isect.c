@@ -24,6 +24,10 @@ isect_sf01(vec3 o, vec3 d,
            vec3 v0, vec3 v1, vec3 v2,
            float *t, vec2 *uv);
 
+// The precomputed intersection tests appear to depend a lot on if
+// abs() or fabs() is used. I belive it is related to something with
+// axis-aligned triangles.
+
 // Storage layout:
 //
 //  0 = nu
@@ -36,9 +40,6 @@ isect_sf01(vec3 o, vec3 d,
 //  7 = e2u
 //  8 = e2v
 //  9 = ci
-//
-// I get slightly different results for some models depending on if
-// abs() or fabs() is used.
 void
 isect_shev_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
     vec3 e1 = v3_sub(v1, v0);
@@ -76,10 +77,9 @@ isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
     vec3 e1 = v3_sub(v1, v0);
     vec3 e2 = v3_sub(v2, v0);
     vec3 n = v3_cross(e1, e2);
-
     float x1, x2;
     float num = v3_dot(v0, n);
-    if (fabs(n.x) > fabs(n.y) && fabs(n.x) > fabs(n.z)) {
+    if (abs(n.x) > abs(n.y) && abs(n.x) > abs(n.z)) {
         x1 = v1.y * v0.z - v1.z * v0.y;
         x2 = v2.y * v0.z - v2.z * v0.y;
         memcpy(T, (float[10]){
@@ -88,7 +88,7 @@ isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
               n.y / n.x,   n.z / n.x, -num / n.x,
              ((int_or_float)0).f
             }, ISECT_BW9_SIZE);
-    } else if (fabs(n.y) > fabs(n.z)) {
+    } else if (abs(n.y) > abs(n.z)) {
         x1 = v1.z * v0.x - v1.x * v0.z;
         x2 = v2.z * v0.x - v2.x * v0.z;
         memcpy(T, (float[10]){
@@ -97,7 +97,7 @@ isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
               n.x / n.y,   n.z / n.y, -num / n.y,
              ((int_or_float)1).f
         }, ISECT_BW9_SIZE);
-    } else if (fabs(n.z) > 0.0f) {
+    } else {
         x1 = v1.x * v0.y - v1.y * v0.x;
         x2 = v2.x * v0.y - v2.y * v0.x;
         memcpy(T, (float[10]){
@@ -106,8 +106,6 @@ isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
               n.x / n.z,   n.y / n.z, -num / n.z,
              ((int_or_float)2).f
         }, ISECT_BW9_SIZE);
-    } else {
-        error("Impossible!");
     }
 }
 
@@ -119,7 +117,7 @@ isect_bw12_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
 
     float x1, x2;
     float num = v3_dot(v0, n);
-    if (fabs(n.x) > fabs(n.y) && fabs(n.x) > fabs(n.z)) {
+    if (abs(n.x) > abs(n.y) && abs(n.x) > abs(n.z)) {
         x1 = v1.y * v0.z - v1.z * v0.y;
         x2 = v2.y * v0.z - v2.z * v0.y;
         memcpy(T, (float[12]){
@@ -127,7 +125,7 @@ isect_bw12_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
             0.0f, -e1.z / n.x,  e1.y / n.x,  -x1 / n.x,
             1.0f,   n.y / n.x,   n.z / n.x, -num / n.x
         }, ISECT_BW12_SIZE);
-    } else if (fabs(n.y) > fabs(n.z)) {
+    } else if (abs(n.y) > abs(n.z)) {
         x1 = v1.z * v0.x - v1.x * v0.z;
         x2 = v2.z * v0.x - v2.x * v0.z;
         memcpy(T, (float[12]){
@@ -135,7 +133,7 @@ isect_bw12_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
              e1.z / n.y, 0.0f, -e1.x / n.y,  -x1 / n.y,
               n.x / n.y, 1.0f,   n.z / n.y, -num / n.y
         }, ISECT_BW12_SIZE);
-    } else if (fabs(n.z) > 0.0f) {
+    } else {
         x1 = v1.x * v0.y - v1.y * v0.x;
         x2 = v2.x * v0.y - v2.y * v0.x;
         memcpy(T, (float[12]){
@@ -143,7 +141,5 @@ isect_bw12_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
            -e1.y / n.z,  e1.x / n.z, 0.0f,  -x1 / n.z,
              n.x / n.z,   n.y / n.z, 1.0f, -num / n.z
         }, ISECT_BW12_SIZE);
-    } else {
-        error("Impossible!");
     }
 }
