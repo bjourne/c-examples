@@ -10,10 +10,7 @@
 #define ISECT_BW12_SIZE sizeof(float) * 12
 #define ISECT_BW9_SIZE sizeof(float) * 10
 
-typedef struct {
-    float T[9];
-    int ci;
-} bw9_data;
+typedef union { int i; float f; } u;
 
 typedef struct {
     float nu;
@@ -186,7 +183,7 @@ isect_bw12_b(vec3 o, vec3 d,
 inline bool
 isect_bw9(vec3 o, vec3 d,
                float *t, vec2 *uv, float *T) {
-    if ((int)T[9] == 1) {
+    if (((u)T[9]).i == 1) {
         float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
         float t_d = d.x + T[6] * d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -195,7 +192,7 @@ isect_bw9(vec3 o, vec3 d,
         vec3 wr = v3_add(o, v3_scale(d, *t));
         uv->x = T[0] * wr.y + T[1] * wr.z + T[2];
         uv->y = T[3] * wr.y + T[4] * wr.z + T[5];
-    } else if ((int)T[9] == 2) {
+    } else if (((u)T[9]).i == 2) {
         float t_o = T[6] * o.x + o.y + T[7] * o.z + T[8];
         float t_d = T[6] * d.x + d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -216,8 +213,6 @@ isect_bw9(vec3 o, vec3 d,
     }
     return uv->x >= 0 && uv->y >= 0 && (uv->x + uv->y) <= 1;
 }
-
-typedef union { int i; float f; } u;
 
 inline bool
 isect_bw9_b(vec3 o, vec3 d,
