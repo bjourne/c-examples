@@ -217,7 +217,7 @@ isect_bw9_b(vec3 o, vec3 d,
         if (uv->x < 0 || uv->x > 1)
             return false;
         uv->y = T[3] * wr.y + T[4] * wr.z + T[5];
-    } else if (sel == 1) {
+    } else if (sel > 0) {
         float t_o = T[6] * o.x + o.y + T[7] * o.z + T[8];
         float t_d = T[6] * d.x + d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -269,7 +269,7 @@ isect_shev(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
         Du = d.y*dett - (T[3] - o.y) * det;
         Dv = d.z*dett - (T[4] - o.z) * det;
         ISECT_SHEV_ENDING;
-    } else if (((int_or_float)T[9]).i == 1) {
+    } else if (((int_or_float)T[9]).i > 0) {
         dett = T[2] - (o.x * T[0] + o.z * T[1] + o.y);
         det = d.x * T[0] + d.z * T[1] + d.y;
         Du = d.x * dett - (T[3] - o.x) * det;

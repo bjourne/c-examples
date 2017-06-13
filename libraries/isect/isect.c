@@ -62,6 +62,7 @@ isect_shev_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
     T[6] = sign * V3_GET(e1, v) / nw;
     T[7] = sign * V3_GET(e2, u) / nw;
     T[8] = sign * V3_GET(e2, v) / nw;
+    if (w == 2) w = -1;
     T[9] = ((int_or_float)w).f;
 }
 
@@ -100,7 +101,7 @@ isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
              e2.y / n.z, -e2.x / n.z,   x2 / n.z,
             -e1.y / n.z,  e1.x / n.z,  -x1 / n.z,
               n.x / n.z,   n.y / n.z, -num / n.z,
-             ((int_or_float)2).f
+             ((int_or_float)-1).f
         }, ISECT_BW9_SIZE);
     }
 }
