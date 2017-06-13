@@ -183,7 +183,7 @@ isect_bw12_b(vec3 o, vec3 d,
 inline bool
 isect_bw9(vec3 o, vec3 d,
                float *t, vec2 *uv, float *T) {
-    if (((u)T[9]).i == 1) {
+    if (((u)T[9]).i == 0) {
         float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
         float t_d = d.x + T[6] * d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -192,7 +192,7 @@ isect_bw9(vec3 o, vec3 d,
         vec3 wr = v3_add(o, v3_scale(d, *t));
         uv->x = T[0] * wr.y + T[1] * wr.z + T[2];
         uv->y = T[3] * wr.y + T[4] * wr.z + T[5];
-    } else if (((u)T[9]).i == 2) {
+    } else if (((u)T[9]).i == 1) {
         float t_o = T[6] * o.x + o.y + T[7] * o.z + T[8];
         float t_d = T[6] * d.x + d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -217,7 +217,7 @@ isect_bw9(vec3 o, vec3 d,
 inline bool
 isect_bw9_b(vec3 o, vec3 d,
             float *t, vec2 *uv, float *T) {
-    if (((u)T[9]).i == 1) {
+    if (((u)T[9]).i == 0) {
         float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
         float t_d = d.x + T[6] * d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -228,7 +228,7 @@ isect_bw9_b(vec3 o, vec3 d,
         if (uv->x < 0 || uv->x > 1)
             return false;
         uv->y = T[3] * wr.y + T[4] * wr.z + T[5];
-    } else if (((u)T[9]).i == 2) {
+    } else if (((u)T[9]).i == 1) {
         float t_o = T[6] * o.x + o.y + T[7] * o.z + T[8];
         float t_d = T[6] * d.x + d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -275,13 +275,13 @@ inline bool
 isect_shev(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
     shev_data *D = (shev_data *)T;
     float dett, det, Du, Dv;
-    if (D->ci == 0) {
+    if (((u)T[9]).i == 0) {
         dett = D->np - (o.y * D->nu + o.z * D->nv + o.x);
         det = d.y * D->nu + d.z * D->nv + d.x;
         Du = d.y*dett - (D->pu - o.y) * det;
         Dv = d.z*dett - (D->pv - o.z) * det;
         ISECT_SHEV_ENDING;
-    } else if (D->ci == 1) {
+    } else if (((u)T[9]).i == 1) {
         dett = D->np - (o.x * D->nu + o.z * D->nv + o.y);
         det = d.x * D->nu + d.z * D->nv + d.y;
         Du = d.x * dett - (D->pu - o.x) * det;
