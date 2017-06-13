@@ -86,7 +86,7 @@ isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
              e2.z / n.x, -e2.y / n.x,   x2 / n.x,
             -e1.z / n.x,  e1.y / n.x,  -x1 / n.x,
               n.y / n.x,   n.z / n.x, -num / n.x,
-              (float)1
+             ((u)1).f
             }, ISECT_BW9_SIZE);
     } else if (fabs(n.y) > fabs(n.z)) {
         x1 = v1.z * v0.x - v1.x * v0.z;
@@ -95,7 +95,7 @@ isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
             -e2.z / n.y,  e2.x / n.y,   x2 / n.y,
              e1.z / n.y, -e1.x / n.y,  -x1 / n.y,
               n.x / n.y,   n.z / n.y, -num / n.y,
-              (float)2
+             ((u)2).f
         }, ISECT_BW9_SIZE);
     } else if (fabs(n.z) > 0.0f) {
         x1 = v1.x * v0.y - v1.y * v0.x;
@@ -104,7 +104,7 @@ isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
              e2.y / n.z, -e2.x / n.z,   x2 / n.z,
             -e1.y / n.z,  e1.x / n.z,  -x1 / n.z,
               n.x / n.z,   n.y / n.z, -num / n.z,
-              (float)3
+             ((u)3).f
         }, ISECT_BW9_SIZE);
     } else {
         error("Impossible!");

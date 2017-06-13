@@ -217,11 +217,12 @@ isect_bw9(vec3 o, vec3 d,
     return uv->x >= 0 && uv->y >= 0 && (uv->x + uv->y) <= 1;
 }
 
+typedef union { int i; float f; } u;
+
 inline bool
 isect_bw9_b(vec3 o, vec3 d,
                  float *t, vec2 *uv, float *T) {
-    // TODO: Fix this
-    if ((int)T[9] == 1) {
+    if (((u)T[9]).i == 1) {
         float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
         float t_d = d.x + T[6] * d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -232,7 +233,7 @@ isect_bw9_b(vec3 o, vec3 d,
         if (uv->x < 0 || uv->x > 1)
             return false;
         uv->y = T[3] * wr.y + T[4] * wr.z + T[5];
-    } else if ((int)T[9] == 2) {
+    } else if (((u)T[9]).i == 2) {
         float t_o = T[6] * o.x + o.y + T[7] * o.z + T[8];
         float t_d = T[6] * d.x + d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -257,8 +258,6 @@ isect_bw9_b(vec3 o, vec3 d,
     }
     return uv->y >= 0 && (uv->x + uv->y) <= 1;
 }
-
-typedef union { int i; float f; } u;
 
 #define ISECT_SHEV_ENDING                       \
     float detu = D->e2v * Du - D->e2u * Dv;     \
