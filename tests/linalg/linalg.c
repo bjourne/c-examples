@@ -99,6 +99,18 @@ test_perspective() {
     assert(persp.d[3][3] == 0.0f);
 }
 
+void
+test_get_plane() {
+    vec3 v0 = {1, 2, 3};
+    vec3 v1 = {3, 2, 1};
+    vec3 v2 = {1, 0, 0};
+    vec3 n;
+    float d;
+    v3_get_plane(v0, v1, v2, &n, &d);
+    assert(v3_approx_eq(n, (vec3){-4, 6, -4}));
+    assert(d == 4);
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_sub);
@@ -109,5 +121,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_mat_mul);
     PRINT_RUN(test_look_at);
     PRINT_RUN(test_perspective);
+    PRINT_RUN(test_get_plane);
     return 0;
 }

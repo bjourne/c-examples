@@ -134,6 +134,9 @@ v3_from_scalar(float s) {
     return (vec3){s, s, s};
 }
 
+void
+v3_get_plane(vec3 v0, vec3 v1, vec3 v2, vec3 *n, float *d);
+
 // mat4 type
 typedef struct _mat4 {
     float d[4][4];

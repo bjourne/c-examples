@@ -33,7 +33,6 @@ v2_print(vec2 v, int n_dec) {
 }
 
 // vec3 type
-
 extern inline vec3 v3_add(vec3 l, vec3 r);
 extern inline vec3 v3_sub(vec3 l, vec3 r);
 extern inline vec3 v3_neg(vec3 v);
@@ -53,6 +52,15 @@ v3_print(vec3 v, int n_dec) {
     printf(", ");
     print_float(v.z, n_dec);
     printf("}");
+}
+
+void
+v3_get_plane(vec3 v0, vec3 v1, vec3 v2,
+             vec3 *n, float *d) {
+    vec3 e1 = v3_sub(v1, v0);
+    vec3 e2 = v3_sub(v2, v0);
+    *n = v3_cross(e1, e2);
+    *d = -(n->x * v0.x + n->y * v0.y + n->z * v0.z);
 }
 
 
