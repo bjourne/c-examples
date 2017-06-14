@@ -31,7 +31,7 @@ isect_ds(vec3 o, vec3 d,
     vec3 v0o = v3_sub(v0, o);
     float a = v3_dot(n, v0o);
     float b = v3_dot(n, d);
-    if (b == 0.0f)
+    if (b == 0)
         return false;
     *t = a / b;
     if (*t < ISECT_NEAR || *t > ISECT_FAR)
@@ -104,8 +104,8 @@ isect_mt(vec3 o, vec3 d,
 
 inline bool
 isect_mt_b(vec3 o, vec3 d,
-          vec3 v0, vec3 v1, vec3 v2,
-          float *t, vec2  *uv) {
+           vec3 v0, vec3 v1, vec3 v2,
+           float *t, vec2  *uv) {
     vec3 e1 = v3_sub(v1, v0);
     vec3 e2 = v3_sub(v2, v0);
     vec3 pvec = v3_cross(d, e2);
@@ -113,14 +113,14 @@ isect_mt_b(vec3 o, vec3 d,
     vec3 qvec;
     uv->x = v3_dot(tvec, pvec);
     float det = v3_dot(e1, pvec);
-    if (det > 0.0f) {
+    if (det > 0) {
         if (uv->x < 0 || uv->x > det)
             return false;
         qvec = v3_cross(tvec, e1);
         uv->y = v3_dot(d, qvec);
         if (uv->y < 0 || uv->x + uv->y > det)
             return false;
-    } else if (det < 0.0f) {
+    } else if (det < 0) {
         if (uv->x > 0 || uv->x < det)
             return false;
         qvec = v3_cross(tvec, e1);
@@ -138,8 +138,7 @@ isect_mt_b(vec3 o, vec3 d,
 }
 
 inline bool
-isect_bw12(vec3 o, vec3 d,
-           float *t, vec2 *uv, float *T) {
+isect_bw12(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
     float t_o = T[8] * o.x + T[9] * o.y + T[10] * o.z + T[11];
     float t_d = T[8] * d.x + T[9] * d.y + T[10] * d.z;
     *t = -t_o / t_d;
@@ -152,8 +151,7 @@ isect_bw12(vec3 o, vec3 d,
 }
 
 inline bool
-isect_bw12_b(vec3 o, vec3 d,
-             float *t, vec2 *uv, float *T) {
+isect_bw12_b(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
     float t_o = T[8] * o.x + T[9] * o.y + T[10] * o.z + T[11];
     float t_d = T[8] * d.x + T[9] * d.y + T[10] * d.z;
     *t = -t_o / t_d;
@@ -170,8 +168,7 @@ isect_bw12_b(vec3 o, vec3 d,
 inline bool
 isect_bw9(vec3 o, vec3 d,
           float *t, vec2 *uv, float *T) {
-    int sel = ((int_or_float)T[9]).i;
-    if (sel == 0) {
+    if (((int_or_float)T[9]).i == 0) {
         float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
         float t_d = d.x + T[6] * d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -180,7 +177,7 @@ isect_bw9(vec3 o, vec3 d,
         vec3 wr = v3_add(o, v3_scale(d, *t));
         uv->x = T[0] * wr.y + T[1] * wr.z + T[2];
         uv->y = T[3] * wr.y + T[4] * wr.z + T[5];
-    } else if (sel == 1) {
+    } else if (((int_or_float)T[9]).i > 0) {
         float t_o = T[6] * o.x + o.y + T[7] * o.z + T[8];
         float t_d = T[6] * d.x + d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -205,8 +202,7 @@ isect_bw9(vec3 o, vec3 d,
 inline bool
 isect_bw9_b(vec3 o, vec3 d,
             float *t, vec2 *uv, float *T) {
-    int sel = ((int_or_float)T[9]).i;
-    if (sel == 0) {
+    if (((int_or_float)T[9]).i == 0) {
         float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
         float t_d = d.x + T[6] * d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -217,7 +213,7 @@ isect_bw9_b(vec3 o, vec3 d,
         if (uv->x < 0 || uv->x > 1)
             return false;
         uv->y = T[3] * wr.y + T[4] * wr.z + T[5];
-    } else if (sel > 0) {
+    } else if (((int_or_float)T[9]).i > 0) {
         float t_o = T[6] * o.x + o.y + T[7] * o.z + T[8];
         float t_d = T[6] * d.x + d.y + T[7] * d.z;
         *t = -t_o / t_d;
@@ -283,7 +279,5 @@ isect_shev(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
         ISECT_SHEV_ENDING;
     }
 }
-
-
 
 #endif
