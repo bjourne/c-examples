@@ -1,36 +1,48 @@
+// Copyright (C) 2017 Björn Lindqvist
 #include <stdio.h>
 #include "linalg.h"
 
-extern inline vec3 v3_add(vec3 l, vec3 r);
-extern inline vec3 v3_sub(vec3 l, vec3 r);
-
-inline vec2 v2_add(vec2 l, vec2 r);
-
-inline vec3 v3_neg(vec3 v);
-
-extern inline vec3 v3_cross(vec3 l, vec3 r);
-extern inline float v3_dot(vec3 l, vec3 r);
-extern inline vec3 v3_normalize(vec3 in);
-
-extern inline bool v3_approx_eq(vec3 l, vec3 r);
-
-extern inline float to_rad(const float deg);
-extern inline float to_deg(const float rad);
-
-extern inline bool approx_eq2(float x, float y, float epsilon);
-extern inline bool approx_eq(float x, float y);
-
-extern inline vec3 v3_scale(vec3 v, float f);
-
-inline vec2 v2_scale(vec2 v, float f);
-inline vec3 v3_from_scalar(float s);
-
+// Utils
 static void
 print_float(float f, int n_dec) {
     char buf[256];
     sprintf(buf, "%%.%df", n_dec);
     printf(buf, f);
 }
+
+// Approximations
+extern inline bool approx_eq2(float x, float y, float epsilon);
+extern inline bool approx_eq(float x, float y);
+
+// Trigonometry
+extern inline float to_rad(const float deg);
+extern inline float to_deg(const float rad);
+
+
+// vec2 type
+inline vec2 v2_add(vec2 l, vec2 r);
+inline vec2 v2_scale(vec2 v, float f);
+
+void
+v2_print(vec2 v, int n_dec) {
+    printf("{");
+    print_float(v.x, n_dec);
+    printf(", ");
+    print_float(v.y, n_dec);
+    printf("}");
+}
+
+// vec3 type
+
+extern inline vec3 v3_add(vec3 l, vec3 r);
+extern inline vec3 v3_sub(vec3 l, vec3 r);
+extern inline vec3 v3_neg(vec3 v);
+extern inline vec3 v3_cross(vec3 l, vec3 r);
+extern inline float v3_dot(vec3 l, vec3 r);
+extern inline vec3 v3_normalize(vec3 in);
+extern inline bool v3_approx_eq(vec3 l, vec3 r);
+extern inline vec3 v3_scale(vec3 v, float f);
+extern inline vec3 v3_from_scalar(float s);
 
 void
 v3_print(vec3 v, int n_dec) {
@@ -43,15 +55,8 @@ v3_print(vec3 v, int n_dec) {
     printf("}");
 }
 
-void
-v2_print(vec2 v, int n_dec) {
-    printf("{");
-    print_float(v.x, n_dec);
-    printf(", ");
-    print_float(v.y, n_dec);
-    printf("}");
-}
 
+// mat4 type
 mat4
 m4_identity() {
     return (mat4){

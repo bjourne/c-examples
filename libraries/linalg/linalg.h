@@ -1,3 +1,4 @@
+// Copyright (C) 2017 Björn Lindqvist
 #ifndef LINALG_H
 #define LINALG_H
 
@@ -6,6 +7,7 @@
 
 // A simple linear algebra library for C.
 
+// Approximations
 #define LINALG_EPSILON 1e-8
 
 inline bool
@@ -18,6 +20,7 @@ approx_eq(float x, float y) {
     return approx_eq2(x, y, LINALG_EPSILON);
 }
 
+// Trigonometry
 inline float
 to_rad(const float deg) {
     return deg * M_PI / 180;
@@ -28,6 +31,7 @@ to_deg(const float rad) {
     return rad * (180.0f / M_PI);
 }
 
+// vec2 type
 typedef struct _vec2 {
     float x, y;
 } vec2;
@@ -37,6 +41,26 @@ v2_scale(vec2 v, float f) {
     return (vec2){v.x * f, v.y * f};
 }
 
+void
+v2_print(vec2 v, int n_dec);
+
+inline vec2
+v2_add(vec2 l, vec2 r) {
+    return (vec2){l.x + r.x, l.y + r.y};
+}
+
+inline bool
+v2_approx_eq2(vec2 l, vec2 r, float epsilon) {
+    return fabsf(l.x - r.x) < epsilon &&
+        fabsf(l.y - r.y) < epsilon;
+}
+
+inline bool
+v2_approx_eq(vec2 l, vec2 r) {
+    return v2_approx_eq2(l, r, LINALG_EPSILON);
+}
+
+// vec3 type
 typedef struct _vec3 {
     float x, y, z;
 } vec3;
@@ -46,9 +70,6 @@ typedef struct _vec3 {
 void
 v3_print(vec3 v, int n_dec);
 
-void
-v2_print(vec2 v, int n_dec);
-
 inline vec3
 v3_sub(vec3 l, vec3 r) {
     return (vec3){l.x - r.x, l.y - r.y, l.z - r.z};
@@ -57,11 +78,6 @@ v3_sub(vec3 l, vec3 r) {
 inline vec3
 v3_add(vec3 l, vec3 r) {
     return (vec3){l.x + r.x, l.y + r.y, l.z + r.z};
-}
-
-inline vec2
-v2_add(vec2 l, vec2 r) {
-    return (vec2){l.x + r.x, l.y + r.y};
 }
 
 inline vec3
@@ -118,17 +134,7 @@ v3_from_scalar(float s) {
     return (vec3){s, s, s};
 }
 
-inline bool
-v2_approx_eq2(vec2 l, vec2 r, float epsilon) {
-    return fabsf(l.x - r.x) < epsilon &&
-        fabsf(l.y - r.y) < epsilon;
-}
-
-inline bool
-v2_approx_eq(vec2 l, vec2 r) {
-    return v2_approx_eq2(l, r, LINALG_EPSILON);
-}
-
+// mat4 type
 typedef struct _mat4 {
     float d[4][4];
 } mat4;
