@@ -60,7 +60,7 @@ v3_get_plane(vec3 v0, vec3 v1, vec3 v2,
     vec3 e1 = v3_sub(v1, v0);
     vec3 e2 = v3_sub(v2, v0);
     *n = v3_cross(e1, e2);
-    *d = -(n->x * v0.x + n->y * v0.y + n->z * v0.z);
+    *d = -v3_dot(*n, v0);
 }
 
 
