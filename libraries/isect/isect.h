@@ -310,9 +310,7 @@ isect_shev(vec3 o, vec3 d, float *t, vec2 *uv, isect_shev_data *D) {
 
 // I'm annoyed. My cpu does not support sse 4.1.
 inline bool
-isect_hh(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
-    isect_hh_data *D = (isect_hh_data *)T;
-
+isect_hh(vec3 o, vec3 d, float *t, vec2 *uv, isect_hh_data *D) {
     float det = v3_dot(D->n0, d);
     float dett = D->d0 - v3_dot(o, D->n0);
     vec3 wr = v3_add(v3_scale(o, det), v3_scale(d, dett));

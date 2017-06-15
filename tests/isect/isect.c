@@ -41,7 +41,7 @@ test_bw9_pre() {
     vec3 v1 = {1.795, 4.835, 0.481};
     vec3 v2 = {2.717, 6.016, -1.116};
     float T[10];
-    isect_bw9_pre(v0, v1, v2, T);
+    isect_bw9_pre(v0, v1, v2, (isect_bw9_data *)&T);
 
     float Texp[9] = {
         -0.963188350201,
@@ -62,7 +62,7 @@ test_bw9_pre() {
     v0 = (vec3){4.0, 1.0, 2.0};
     v1 = (vec3){-4.0, 3.0, 3.0};
     v2 = (vec3){-10.0, -3.0, 21.5};
-    isect_bw9_pre(v0, v1, v2, T);
+    isect_bw9_pre(v0, v1, v2, (isect_bw9_data *)&T);
     float Texp2[9] = {
         -0.137323945761,
         -0.098591551185,
@@ -86,7 +86,7 @@ test_bw12_pre() {
     vec3 v2 = {2.717, 6.016, -1.116};
 
     float T[12];
-    isect_bw12_pre(v0, v1, v2, T);
+    isect_bw12_pre(v0, v1, v2, (isect_bw12_data *)&T);
 
     float Texp[12] = {
         0.000000000000000000,
@@ -118,11 +118,11 @@ test_diffs_01() {
     vec3 o = {11.998573, 14.635927, 9.681089};
     vec3 d = {-0.891354, -0.050203, -0.450520};
 
-    float T[12];
-    isect_bw12_pre(v0, v1, v2, T);
+    isect_bw12_data D;
+    isect_bw12_pre(v0, v1, v2, &D);
 
     bool mt = isect_mt(o, d, v0, v1, v2, &t, &uv);
-    bool pc = isect_bw12(o, d, &t, &uv, T);
+    bool pc = isect_bw12(o, d, &t, &uv, &D);
     assert(mt == pc);
 }
 
@@ -138,11 +138,11 @@ test_diffs_02() {
     vec3 o = {0};
     vec3 d = {-0.628539, -0.769961, -0.109994};
 
-    float T[12];
-    isect_bw12_pre(v0, v1, v2, T);
+    isect_bw12_data D;
+    isect_bw12_pre(v0, v1, v2, &D);
 
     bool mt = isect_mt(o, d, v0, v1, v2, &t, &uv);
-    bool pc = isect_bw12(o, d, &t, &uv, T);
+    bool pc = isect_bw12(o, d, &t, &uv, &D);
     assert(mt == pc);
 }
 
@@ -153,7 +153,7 @@ test_diffs_hard() {
 
     vec3 vec[3];
     vec3 o = {0}, d;
-    float T[12];
+    isect_bw12_data D;
     d.x = rand_n(200) - 100;
     d.y = rand_n(200) - 100;
     d.z = rand_n(200) - 100;
@@ -164,9 +164,9 @@ test_diffs_hard() {
             vec[i].y = rand_n(200) - 100;
             vec[i].z = rand_n(200) - 100;
         }
-        isect_bw12_pre(vec[0], vec[1], vec[2], T);
+        isect_bw12_pre(vec[0], vec[1], vec[2], &D);
         bool mt = isect_mt(o, d, vec[0], vec[1], vec[2], &t, &uv);
-        bool pc = isect_bw12(o, d, &t, &uv, T);
+        bool pc = isect_bw12(o, d, &t, &uv, &D);
         if (mt  != pc) {
             for (int i  = 0; i < 3; i++) {
                 v3_print(vec[i], 6);
@@ -197,9 +197,9 @@ test_bw9_diffs_01() {
     vec2 uv;
     assert(!isect_mt(o, d, v0, v1, v2, &t, &uv));
 
-    float T[10];
-    isect_bw9_pre(v0, v1, v2, T);
-    assert(!isect_bw9(o, d, &t, &uv, T));
+    isect_bw9_data D;
+    isect_bw9_pre(v0, v1, v2, &D);
+    assert(!isect_bw9(o, d, &t, &uv, &D));
 }
 
 void
@@ -222,8 +222,8 @@ test_bw9_diffs_02() {
     float t;
     vec2 uv;
 
-    float T[10];
-    isect_bw9_pre(v0, v1, v2, T);
+    isect_bw9_data D;
+    isect_bw9_pre(v0, v1, v2, &D);
     // The discrepancy appears to be caused by a fp precision issue.
     assert(isect_mt(o, d, v0, v1, v2, &t, &uv));
     //assert(!isect_bw9(o, d, v0, v1, v2, &t, &uv, T));
