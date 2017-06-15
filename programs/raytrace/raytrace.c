@@ -179,6 +179,7 @@ usage() {
 
 int
 main(int argc, char *argv[]) {
+    rand_init(0);
     raytrace_settings *rt = rt_from_args(argc, argv);
     if (!rt) {
         usage();

@@ -12,14 +12,13 @@
 static void
 tm_intersect_precompute(triangle_mesh *me) {
 #if ISECT_PC_P
-    int bytes = ISECT_PC_SIZE * sizeof(float) * me->n_tris;
-    me->precomp = (float *)malloc(bytes);
+    me->precomp = (ISECT_DATA *)malloc(sizeof(ISECT_DATA) * me->n_tris);
     vec3 *it = me->verts;
     for (int i = 0; i < me->n_tris; i++) {
         vec3 v0 = *it++;
         vec3 v1 = *it++;
         vec3 v2 = *it++;
-        float *addr = &me->precomp[i * ISECT_PC_SIZE];
+        ISECT_DATA *addr = &me->precomp[i];
         ISECT_FUN_PRE(v0, v1, v2, addr);
     }
 #endif
@@ -113,15 +112,15 @@ tm_intersect(triangle_mesh *me, vec3 o, vec3 d, ray_intersection *ri) {
 
 #if ISECT_PC_P
 #define BODY(N, I, O)                                           \
-    { if (ISECT_FUN(o, d, &t, &uv, T) && t < nearest) {         \
+    { if (ISECT_FUN(o, d, &t, &uv, D) && t < nearest) {         \
             nearest = t;                                        \
             ri->t = t;                                          \
             ri->uv = uv;                                        \
             ri->tri_idx = N*I+O;                                \
         }                                                       \
-        T += ISECT_PC_SIZE;                                     \
+        D++;                                                    \
     }
-    float *T = me->precomp;
+    ISECT_DATA *D = me->precomp;
 #else
 #define BODY(N, I, O)                                                   \
     { vec3 v0 = *it++, v1 = *it++, v2 = *it++;                          \

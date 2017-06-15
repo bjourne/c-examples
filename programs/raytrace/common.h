@@ -1,6 +1,8 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include "isect/isect.h"
+
 #define ISECT_MT        1
 #define ISECT_MT_B      2
 #define ISECT_BW9       3
@@ -33,22 +35,22 @@
     #define ISECT_FUN isect_bw9
     #define ISECT_FUN_PRE isect_bw9_pre
     #define ISECT_NAME "Baldwin-Weber pre9"
-    #define ISECT_PC_SIZE 10
+    #define ISECT_DATA isect_bw9_data
 #elif ISECT_METHOD == ISECT_BW9_B
     #define ISECT_FUN isect_bw9_b
     #define ISECT_FUN_PRE isect_bw9_pre
     #define ISECT_NAME "Baldwin-Weber pre9 B"
-    #define ISECT_PC_SIZE 10
+    #define ISECT_DATA isect_bw9_data
 #elif ISECT_METHOD == ISECT_BW12
     #define ISECT_FUN isect_bw12
     #define ISECT_FUN_PRE isect_bw12_pre
     #define ISECT_NAME "Baldwin-Weber pre12"
-    #define ISECT_PC_SIZE 12
+    #define ISECT_DATA isect_bw12_data
 #elif ISECT_METHOD == ISECT_BW12_B
     #define ISECT_FUN isect_bw12_b
     #define ISECT_FUN_PRE isect_bw12_pre
     #define ISECT_NAME "Baldwin-Weber pre12 B"
-    #define ISECT_PC_SIZE 12
+    #define ISECT_DATA isect_bw12_data
 #elif ISECT_METHOD == ISECT_SF01
     #define ISECT_FUN isect_sf01
     #define ISECT_NAME "Segura-Feito 01"
@@ -59,12 +61,12 @@
     #define ISECT_FUN isect_shev
     #define ISECT_FUN_PRE isect_shev_pre
     #define ISECT_NAME "Shevtsov et al"
-    #define ISECT_PC_SIZE 10
+    #define ISECT_DATA isect_shev_data
 #elif ISECT_METHOD == ISECT_HH
     #define ISECT_FUN isect_hh
     #define ISECT_FUN_PRE isect_hh_pre
     #define ISECT_NAME "Havel-Herout"
-    #define ISECT_PC_SIZE 12
+    #define ISECT_DATA isect_hh_data
 #else
     #error "Wrong ISECT_METHOD"
 #endif

@@ -38,12 +38,10 @@ typedef struct {
     vec3 n2; float d2;
 } isect_hh_data;
 
-
-
-void isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
-void isect_bw12_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
-void isect_shev_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
-void isect_hh_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
+void isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2, isect_bw9_data *D);
+void isect_bw12_pre(vec3 v0, vec3 v1, vec3 v2, isect_bw12_data *D);
+void isect_shev_pre(vec3 v0, vec3 v1, vec3 v2, isect_shev_data *D);
+void isect_hh_pre(vec3 v0, vec3 v1, vec3 v2, isect_hh_data *D);
 
 inline float
 v3_sign_3d(vec3 p, vec3 q, vec3 r) {
@@ -168,8 +166,7 @@ isect_mt_b(vec3 o, vec3 d,
 }
 
 inline bool
-isect_bw12(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
-    isect_bw12_data *D = (isect_bw12_data *)T;
+isect_bw12(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw12_data *D) {
     float t_o = v3_dot(o, D->n2) + D->d2;
     float t_d = v3_dot(d, D->n2);
     *t = -t_o / t_d;
@@ -182,8 +179,7 @@ isect_bw12(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
 }
 
 inline bool
-isect_bw12_b(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
-    isect_bw12_data *D = (isect_bw12_data *)T;
+isect_bw12_b(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw12_data *D) {
     float t_o = v3_dot(o, D->n2) + D->d2;
     float t_d = v3_dot(d, D->n2);
     *t = -t_o / t_d;
@@ -199,8 +195,7 @@ isect_bw12_b(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
 
 inline bool
 isect_bw9(vec3 o, vec3 d,
-          float *t, vec2 *uv, float *T) {
-    isect_bw9_data *D = (isect_bw9_data *)T;
+          float *t, vec2 *uv, isect_bw9_data *D) {
     if (D->ci == 0) {
         float t_o = o.x + D->g * o.y + D->h * o.z + D->i;
         float t_d = d.x + D->g * d.y + D->h * d.z;
@@ -234,8 +229,7 @@ isect_bw9(vec3 o, vec3 d,
 
 inline bool
 isect_bw9_b(vec3 o, vec3 d,
-            float *t, vec2 *uv, float *T) {
-    isect_bw9_data *D = (isect_bw9_data *)T;
+            float *t, vec2 *uv, isect_bw9_data *D) {
     if (D->ci == 0) {
         float t_o = o.x + D->g * o.y + D->h * o.z + D->i;
         float t_d = d.x + D->g * d.y + D->h * d.z;
@@ -291,8 +285,7 @@ isect_bw9_b(vec3 o, vec3 d,
     return *t >= ISECT_NEAR && *t <= ISECT_FAR;
 
 inline bool
-isect_shev(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
-    isect_shev_data *D = (isect_shev_data *)T;
+isect_shev(vec3 o, vec3 d, float *t, vec2 *uv, isect_shev_data *D) {
     float dett, det, Du, Dv;
     if (D->ci == 0) {
         dett = D->np - (o.y * D->nu + o.z * D->nv + o.x);

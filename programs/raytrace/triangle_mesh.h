@@ -9,7 +9,7 @@ typedef struct _triangle_mesh {
     vec3 *normals;
     vec2 *coords;
 #if ISECT_PC_P
-    float *precomp;
+    ISECT_DATA *precomp;
 #endif
 } triangle_mesh;
 
