@@ -184,11 +184,14 @@ main(int argc, char *argv[]) {
     if (!rt) {
         usage();
     }
+    char err_buf[256];
     triangle_mesh *tm = tm_from_file(rt->mesh_file,
                                      rt->scale,
-                                     rt->translate);
+                                     rt->translate,
+                                     err_buf);
     if (!tm) {
-        error("Failed to read mesh from file '%s'.\n", rt->mesh_file);
+        error("Failed to read mesh from file '%s': %s\n",
+              rt->mesh_file, err_buf);
     }
     int w = rt->width;
     int h = rt->height;

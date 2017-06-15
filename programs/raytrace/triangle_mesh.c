@@ -36,17 +36,21 @@ tm_free(triangle_mesh *me) {
 }
 
 triangle_mesh *
-tm_from_file(const char *fname, float scale, vec3 translate) {
+tm_from_file(const char *fname,
+             float scale, vec3 translate,
+             char *err_buf) {
     triangle_mesh *me = (triangle_mesh *)malloc(sizeof(triangle_mesh));
 
-    int n_verts;
-    int* indices;
-    vec3* verts;
+    int n_verts, n_normals;
+    vec3 *verts, *normals;
+    int *v_indices = NULL, *n_indices = NULL;
 
     if (!load_any_file(fname,
-                       &me->n_tris, &indices,
+                       &me->n_tris, &v_indices, &n_indices,
                        &n_verts, &verts,
-                       &me->normals, &me->coords)) {
+                       &n_normals, &normals,
+                       &me->coords,
+                       err_buf)) {
         free(me);
         return NULL;
     }
@@ -58,11 +62,25 @@ tm_from_file(const char *fname, float scale, vec3 translate) {
     // "Unpack" indexed vertices.
     me->verts = (vec3 *)malloc(sizeof(vec3) * me->n_tris * 3);
     for (int i = 0; i < me->n_tris * 3; i++) {
-        me->verts[i] = verts[indices[i]];
+        me->verts[i] = verts[v_indices[i]];
     }
-    free(indices);
-    free(verts);
 
+    // "Unpack" indexed normals.
+    if (n_indices) {
+        me->normals = (vec3 *)malloc(sizeof(vec3) * me->n_tris * 3);
+        for (int i = 0; i < me->n_tris * 3; i++) {
+            me->normals[i] = normals[n_indices[i]];
+        }
+        free(n_indices);
+    } else if (n_normals > 0) {
+        me->normals = (vec3 *)malloc(sizeof(vec3) * me->n_tris * 3);
+        for (int i = 0; i < me->n_tris * 3; i++) {
+            me->normals[i] = normals[i];
+        }
+    }
+    free(verts);
+    free(normals);
+    free(v_indices);
     tm_intersect_precompute(me);
     return me;
 }

@@ -204,12 +204,58 @@ is_empty(const char *s) {
     return true;
 }
 
+static bool
+read_vertex(char *buf, const char *fmt, vector *a) {
+    u x, y, z;
+    if (sscanf(buf, fmt, &x.f, &y.f, &z.f) != 3) {
+        return false;
+    }
+    v_add(a, x.i);
+    v_add(a, y.i);
+    v_add(a, z.i);
+    return true;
+}
+
+static bool
+read_tri_indices(char *buf,
+                 vector *v_indices,
+                 vector *n_indices) {
+    int i0, i1, i2;
+    int ni0, ni1, ni2;
+    if (sscanf(buf, "f %d %d %d", &i0, &i1, &i2) == 3) {
+        v_add(v_indices, i0 - 1);
+        v_add(v_indices, i1 - 1);
+        v_add(v_indices, i2 - 1);
+        return true;
+    }
+    if (sscanf(buf, "f %d//%d %d//%d %d//%d",
+               &i0, &ni0,
+               &i1, &ni1,
+               &i2, &ni2) == 6) {
+        v_add(v_indices, i0 - 1);
+        v_add(v_indices, i1 - 1);
+        v_add(v_indices, i2 - 1);
+        v_add(n_indices, ni0 - 1);
+        v_add(n_indices, ni1 - 1);
+        v_add(n_indices, ni2 - 1);
+        return true;
+    }
+    return false;
+}
+
 bool
 load_obj_file(const char *fname,
-              int *n_tris, int **indices,
-              int *n_verts, vec3 **verts) {
+              int *n_tris, int **v_indices, int **n_indices,
+              int *n_verts, vec3 **verts,
+              int *n_normals, vec3 **normals,
+              char *err_buf) {
+    char *err_bad_normals = "Failed reading normals: %s";
+    char *err_face_format = "Unsupported face format: %s";
+
     vector *tmp_verts = v_init(10);
-    vector *tmp_indices = v_init(10);
+    vector *tmp_normals = v_init(10);
+    vector *tmp_v_indices = v_init(10);
+    vector *tmp_n_indices = v_init(10);
     FILE* f = fopen(fname, "rb");
     bool ret = false;
     if (!f) {
@@ -221,13 +267,14 @@ load_obj_file(const char *fname,
             continue;
         }
         if (!strncmp(buf, "v ", 2)) {
-            u x, y, z;
-            if (sscanf(buf, "v %f %f %f", &x.f, &y.f, &z.f) != 3) {
+            if (!read_vertex(buf, "v %f %f %f", tmp_verts)) {
                 goto end;
             }
-            v_add(tmp_verts, x.i);
-            v_add(tmp_verts, y.i);
-            v_add(tmp_verts, z.i);
+        } else if (!strncmp(buf, "vn ", 3)) {
+            if (!read_vertex(buf, "vn %f %f %f", tmp_normals)) {
+                sprintf(err_buf, err_bad_normals, buf);
+                goto end;
+            }
         } else if (!strncmp(buf, "#", 1)) {
             // Skip comments
         } else if (!strncmp(buf, "mtllib ", 7)) {
@@ -239,30 +286,41 @@ load_obj_file(const char *fname,
         } else if (!strncmp(buf, "s ", 2)) {
             // Skip smooth shading
         } else if (!strncmp(buf, "f ", 2)) {
-            // Only supports one face format for now
-            int i0, i1, i2;
-            if (sscanf(buf, "f %d %d %d", &i0, &i1, &i2) != 3) {
+            if (!read_tri_indices(buf, tmp_v_indices, tmp_n_indices)) {
+                sprintf(err_buf, err_face_format, buf);
                 goto end;
             }
-            v_add(tmp_indices, i0 - 1);
-            v_add(tmp_indices, i1 - 1);
-            v_add(tmp_indices, i2 - 1);
         } else {
             error("Unparsable line '%s'!\n", buf);
         }
     }
-    *n_tris = tmp_indices->used / 3;
+    *n_tris = tmp_v_indices->used / 3;
     *n_verts = tmp_verts->used / 3;
+    *n_normals = tmp_normals->used / 3;
     *verts = (vec3 *)malloc(sizeof(vec3) * *n_verts);
+    *normals = (vec3 *)malloc(sizeof(vec3) * *n_normals);
 
     for (int i = 0; i < *n_verts; i++) {
         (*verts)[i].x = ((u)tmp_verts->array[i * 3]).f;
         (*verts)[i].y = ((u)tmp_verts->array[i * 3+1]).f;
         (*verts)[i].z = ((u)tmp_verts->array[i * 3+2]).f;
     }
-    *indices = (int *)malloc(sizeof(int) * *n_tris * 3);
+    for (int i = 0; i < *n_normals; i++) {
+        (*normals)[i].x = ((u)tmp_normals->array[i * 3]).f;
+        (*normals)[i].y = ((u)tmp_normals->array[i * 3+1]).f;
+        (*normals)[i].z = ((u)tmp_normals->array[i * 3+2]).f;
+    }
+    *v_indices = (int *)malloc(sizeof(int) * *n_tris * 3);
     for (int i = 0; i < *n_tris * 3; i++) {
-        (*indices)[i] = tmp_indices->array[i];
+        (*v_indices)[i] = tmp_v_indices->array[i];
+    }
+    if (tmp_n_indices->used) {
+        *n_indices = (int *)malloc(sizeof(int) * *n_tris * 3);
+        for (int i = 0; i < *n_tris * 3; i++) {
+            (*n_indices)[i] = tmp_n_indices->array[i];
+        }
+    } else {
+        *n_indices = NULL;
     }
     ret = true;
  end:
@@ -270,7 +328,9 @@ load_obj_file(const char *fname,
         fclose(f);
     }
     v_free(tmp_verts);
-    v_free(tmp_indices);
+    v_free(tmp_normals);
+    v_free(tmp_v_indices);
+    v_free(tmp_n_indices);
     return ret;
 }
 
@@ -285,19 +345,26 @@ fname_ext(const char *fname) {
 // Don't run on untrusted data :)
 bool
 load_any_file(const char *fname,
-              int *n_tris, int **indices,
+              int *n_tris, int **v_indices, int **n_indices,
               int *n_verts, vec3 **verts,
-              vec3 **normals, vec2 **coords) {
+              int *n_normals, vec3 **normals,
+              vec2 **coords,
+              char *err_buf) {
     const char *ext = fname_ext(fname);
     if (!strcmp("geo", ext)) {
-        return load_geo_file(fname,
-                             n_tris, indices,
-                             n_verts, verts,
-                             normals, coords);
+        bool ret = load_geo_file(fname,
+                                 n_tris, v_indices,
+                                 n_verts, verts,
+                                 normals, coords);
+        *n_normals = *n_verts;
+        *n_indices = NULL;
+        return ret;
     } else if (!strcmp("obj", ext)) {
         return load_obj_file(fname,
-                             n_tris, indices,
-                             n_verts, verts);
+                             n_tris, v_indices, n_indices,
+                             n_verts, verts,
+                             n_normals, normals,
+                             err_buf);
     } else {
         return false;
     }
