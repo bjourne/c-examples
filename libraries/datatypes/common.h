@@ -45,7 +45,6 @@ size_t nano_count();
 // :)
 int rand_n(int n);
 void rand_init(unsigned int seed);
-
-
+void rand_shuffle(void *array, size_t n, size_t size);
 
 #endif
