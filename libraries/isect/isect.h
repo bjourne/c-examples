@@ -15,6 +15,7 @@ typedef union {
 void isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
 void isect_bw12_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
 void isect_shev_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
+void isect_hh_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
 
 inline float
 v3_sign_3d(vec3 p, vec3 q, vec3 r) {
@@ -106,6 +107,7 @@ inline bool
 isect_mt_b(vec3 o, vec3 d,
            vec3 v0, vec3 v1, vec3 v2,
            float *t, vec2  *uv) {
+
     vec3 e1 = v3_sub(v1, v0);
     vec3 e2 = v3_sub(v2, v0);
     vec3 pvec = v3_cross(d, e2);
@@ -239,21 +241,21 @@ isect_bw9_b(vec3 o, vec3 d,
     return uv->y >= 0 && (uv->x + uv->y) <= 1;
 }
 
-#define ISECT_SHEV_ENDING                                  \
-    float detu = T[8] * Du - T[7] * Dv;                    \
-    float detv = T[5] * Dv - T[6] * Du;                    \
-    float tmpdet0 = det - detu - detv;                     \
-    int pdet0 = ((int_or_float)tmpdet0).i;                 \
-    int pdetu = ((int_or_float)detu).i;                    \
-    int pdetv = ((int_or_float)detv).i;                    \
-    pdet0 = pdet0 ^ pdetu;                                 \
-    pdet0 = pdet0 | (pdetu ^ pdetv);                       \
-    if (pdet0 & 0x80000000)                                \
-        return false;                                      \
-    float rdet = 1 / det;                                  \
-    *t = dett * rdet;                                      \
-    uv->x = detu * rdet;                                   \
-    uv->y = detv * rdet;                                   \
+#define ISECT_SHEV_ENDING                                    \
+    uv->x = T[8] * Du - T[7] * Dv;                           \
+    uv->y = T[5] * Dv - T[6] * Du;                           \
+    float tmpdet0 = det - uv->x - uv->y;                     \
+    int pdet0 = ((int_or_float)tmpdet0).i;                   \
+    int pdetu = ((int_or_float)uv->x).i;                     \
+    int pdetv = ((int_or_float)uv->y).i;                     \
+    pdet0 = pdet0 ^ pdetu;                                   \
+    pdet0 = pdet0 | (pdetu ^ pdetv);                         \
+    if (pdet0 & 0x80000000)                                  \
+        return false;                                        \
+    float rdet = 1 / det;                                    \
+    *t = dett * rdet;                                        \
+    uv->x *= rdet;                                           \
+    uv->y *= rdet;                                           \
     return *t >= ISECT_NEAR && *t <= ISECT_FAR;
 
 inline bool
@@ -278,6 +280,40 @@ isect_shev(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
         Dv = d.y * dett - (T[4] - o.y) * det;
         ISECT_SHEV_ENDING;
     }
+}
+
+// I'm going back and forth on this
+typedef struct {
+    vec3 n0; float d0;
+    vec3 n1; float d1;
+    vec3 n2; float d2;
+} isect_hh_data;
+
+// I'm annoyed. My cpu does not support sse 4.1.
+inline bool
+isect_hh(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
+    isect_hh_data *D = (isect_hh_data *)T;
+
+    float det = v3_dot(D->n0, d);
+    float dett = D->d0 - v3_dot(o, D->n0);
+    vec3 wr = v3_add(v3_scale(o, det), v3_scale(d, dett));
+    uv->x = v3_dot(wr, D->n1) + det * D->d1;
+    uv->y = v3_dot(wr, D->n2) + det * D->d2;
+
+    float tmpdet0 = det - uv->x - uv->y;
+    int pdet0 = ((int_or_float)tmpdet0).i;
+    int pdetu = ((int_or_float)uv->x).i;
+    int pdetv = ((int_or_float)uv->y).i;
+    pdet0 = pdet0 ^ pdetu;
+    pdet0 = pdet0 | (pdetu ^ pdetv);
+    if (pdet0 & 0x80000000)
+        return false;
+    float rdet = 1 / det;
+    *t = dett * rdet;
+    uv->x *= rdet;
+    uv->y *= rdet;
+    *t = dett * rdet;
+    return *t >= ISECT_NEAR && *t <= ISECT_FAR;
 }
 
 #endif

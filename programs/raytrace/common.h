@@ -17,7 +17,9 @@
 #define ISECT_PC_P ISECT_METHOD == ISECT_BW9 ||                         \
         ISECT_METHOD == ISECT_BW12 ||                                   \
         ISECT_METHOD == ISECT_BW12_B ||                                 \
-        ISECT_METHOD == ISECT_BW9_B || ISECT_METHOD == ISECT_SHEV
+        ISECT_METHOD == ISECT_BW9_B ||                                  \
+        ISECT_METHOD == ISECT_HH ||                                     \
+        ISECT_METHOD == ISECT_SHEV
 
 #if ISECT_METHOD == ISECT_MT
     // It should be Möller, not Moller. But printf misaligns text with ö
@@ -58,6 +60,11 @@
     #define ISECT_FUN_PRE isect_shev_pre
     #define ISECT_NAME "Shevtsov et al"
     #define ISECT_PC_SIZE 10
+#elif ISECT_METHOD == ISECT_HH
+    #define ISECT_FUN isect_hh
+    #define ISECT_FUN_PRE isect_hh_pre
+    #define ISECT_NAME "Havel-Herout"
+    #define ISECT_PC_SIZE 12
 #else
     #error "Wrong ISECT_METHOD"
 #endif

@@ -133,3 +133,20 @@ isect_bw12_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
         }, 48);
     }
 }
+
+void
+isect_hh_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
+    isect_hh_data *D = (isect_hh_data *)T;
+    vec3 e1 = v3_sub(v1, v0);   // AB
+    vec3 e2 = v3_sub(v2, v0);   // AC
+    D->n0 = v3_cross(e1, e2);
+    D->d0 = v3_dot(D->n0, v0);
+
+    float inv_denom = 1 / v3_dot(D->n0, D->n0);
+
+    D->n1 = v3_scale(v3_cross(e2, D->n0), inv_denom);
+    D->d1 = -v3_dot(D->n1, v0);
+
+    D->n2 = v3_scale(v3_cross(D->n0, e1), inv_denom);
+    D->d2 = -v3_dot(D->n2, v0);
+}
