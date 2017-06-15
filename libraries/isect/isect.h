@@ -12,6 +12,34 @@ typedef union {
     float f;
 } int_or_float;
 
+typedef struct {
+    vec3 n0; float d0;
+    vec3 n1; float d1;
+    vec3 n2; float d2;
+} isect_bw12_data;
+
+typedef struct {
+    float a, b, c, d, e, f, g, h, i;
+    int ci;
+} isect_bw9_data;
+
+typedef struct {
+    float nu, nv;
+    float np;
+    float pu, pv;
+    float e1u, e1v;
+    float e2u, e2v;
+    int ci;
+} isect_shev_data;
+
+typedef struct {
+    vec3 n0; float d0;
+    vec3 n1; float d1;
+    vec3 n2; float d2;
+} isect_hh_data;
+
+
+
 void isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
 void isect_bw12_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
 void isect_shev_pre(vec3 v0, vec3 v1, vec3 v2, float *T);
@@ -141,62 +169,65 @@ isect_mt_b(vec3 o, vec3 d,
 
 inline bool
 isect_bw12(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
-    float t_o = T[8] * o.x + T[9] * o.y + T[10] * o.z + T[11];
-    float t_d = T[8] * d.x + T[9] * d.y + T[10] * d.z;
+    isect_bw12_data *D = (isect_bw12_data *)T;
+    float t_o = v3_dot(o, D->n2) + D->d2;
+    float t_d = v3_dot(d, D->n2);
     *t = -t_o / t_d;
     if  (*t < ISECT_NEAR || *t > ISECT_FAR)
         return false;
     vec3 wr = v3_add(o, v3_scale(d, *t));
-    uv->x = T[0] * wr.x + T[1] * wr.y + T[2] * wr.z + T[3];
-    uv->y = T[4] * wr.x + T[5] * wr.y + T[6] * wr.z + T[7];
-    return uv->x >= 0 && uv->y >= 0 && (uv->x + uv->y) <= 1;
+    uv->x = v3_dot(wr, D->n0) + D->d0;
+    uv->y = v3_dot(wr, D->n1) + D->d1;
+    return uv->y >= 0 && (uv->x + uv->y) <= 1;
 }
 
 inline bool
 isect_bw12_b(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
-    float t_o = T[8] * o.x + T[9] * o.y + T[10] * o.z + T[11];
-    float t_d = T[8] * d.x + T[9] * d.y + T[10] * d.z;
+    isect_bw12_data *D = (isect_bw12_data *)T;
+    float t_o = v3_dot(o, D->n2) + D->d2;
+    float t_d = v3_dot(d, D->n2);
     *t = -t_o / t_d;
     if  (*t < ISECT_NEAR || *t > ISECT_FAR)
         return false;
     vec3 wr = v3_add(o, v3_scale(d, *t));
-    uv->x = T[0] * wr.x + T[1] * wr.y + T[2] * wr.z + T[3];
+    uv->x = v3_dot(wr, D->n0) + D->d0;
     if (uv->x < 0 || uv->x > 1)
         return false;
-    uv->y = T[4] * wr.x + T[5] * wr.y + T[6] * wr.z + T[7];
+    uv->y = v3_dot(wr, D->n1) + D->d1;
     return uv->y >= 0 && (uv->x + uv->y) <= 1;
 }
 
 inline bool
 isect_bw9(vec3 o, vec3 d,
           float *t, vec2 *uv, float *T) {
-    if (((int_or_float)T[9]).i == 0) {
-        float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
-        float t_d = d.x + T[6] * d.y + T[7] * d.z;
+    isect_bw9_data *D = (isect_bw9_data *)T;
+    if (D->ci == 0) {
+        float t_o = o.x + D->g * o.y + D->h * o.z + D->i;
+        float t_d = d.x + D->g * d.y + D->h * d.z;
         *t = -t_o / t_d;
         if  (*t < ISECT_NEAR || *t > ISECT_FAR)
             return false;
         vec3 wr = v3_add(o, v3_scale(d, *t));
-        uv->x = T[0] * wr.y + T[1] * wr.z + T[2];
-        uv->y = T[3] * wr.y + T[4] * wr.z + T[5];
-    } else if (((int_or_float)T[9]).i > 0) {
-        float t_o = T[6] * o.x + o.y + T[7] * o.z + T[8];
-        float t_d = T[6] * d.x + d.y + T[7] * d.z;
+        uv->x = D->a * wr.y + D->b * wr.z + D->c;
+        uv->y = D->d * wr.y + D->e * wr.z + D->f;
+    } else if (D->ci > 0) {
+        float t_o = D->g * o.x + o.y + D->h * o.z + D->i;
+        float t_d = D->g * d.x + d.y + D->h * d.z;
         *t = -t_o / t_d;
         if  (*t < ISECT_NEAR || *t > ISECT_FAR)
             return false;
         vec3 wr = v3_add(o, v3_scale(d, *t));
-        uv->x = T[0] * wr.x + T[1] * wr.z + T[2];
-        uv->y = T[3] * wr.x + T[4] * wr.z + T[5];
+        uv->x = D->a * wr.x + D->b * wr.z + D->c;
+        uv->y = D->d * wr.x + D->e * wr.z + D->f;
     } else {
-        float t_o = o.x * T[6] + o.y * T[7] + o.z + T[8];
-        float t_d = d.x * T[6] + d.y * T[7] + d.z;
+        float t_o = o.x * D->g + o.y * D->h + o.z + D->i;
+        float t_d = d.x * D->g + d.y * D->h + d.z;
         *t = -t_o / t_d;
         if  (*t < ISECT_NEAR || *t > ISECT_FAR)
             return false;
         vec3 wr = v3_add(o, v3_scale(d, *t));
-        uv->x = T[0] * wr.x + T[1] * wr.y + T[2];
-        uv->y = T[3] * wr.x + T[4] * wr.y + T[5];
+        uv->x = D->a * wr.x + D->b * wr.y + D->c;
+        uv->y = D->d * wr.x + D->e * wr.y + D->f;
     }
     return uv->x >= 0 && uv->y >= 0 && (uv->x + uv->y) <= 1;
 }
@@ -204,46 +235,47 @@ isect_bw9(vec3 o, vec3 d,
 inline bool
 isect_bw9_b(vec3 o, vec3 d,
             float *t, vec2 *uv, float *T) {
-    if (((int_or_float)T[9]).i == 0) {
-        float t_o = o.x + T[6] * o.y + T[7] * o.z + T[8];
-        float t_d = d.x + T[6] * d.y + T[7] * d.z;
+    isect_bw9_data *D = (isect_bw9_data *)T;
+    if (D->ci == 0) {
+        float t_o = o.x + D->g * o.y + D->h * o.z + D->i;
+        float t_d = d.x + D->g * d.y + D->h * d.z;
         *t = -t_o / t_d;
         if  (*t < ISECT_NEAR || *t > ISECT_FAR)
             return false;
         vec3 wr = v3_add(o, v3_scale(d, *t));
-        uv->x = T[0] * wr.y + T[1] * wr.z + T[2];
+        uv->x = D->a * wr.y + D->b * wr.z + D->c;
         if (uv->x < 0 || uv->x > 1)
             return false;
-        uv->y = T[3] * wr.y + T[4] * wr.z + T[5];
-    } else if (((int_or_float)T[9]).i > 0) {
-        float t_o = T[6] * o.x + o.y + T[7] * o.z + T[8];
-        float t_d = T[6] * d.x + d.y + T[7] * d.z;
+        uv->y = D->d * wr.y + D->e * wr.z + D->f;
+    } else if (D->ci > 0) {
+        float t_o = D->g * o.x + o.y + D->h * o.z + D->i;
+        float t_d = D->g * d.x + d.y + D->h * d.z;
         *t = -t_o / t_d;
         if  (*t < ISECT_NEAR || *t > ISECT_FAR)
             return false;
         vec3 wr = v3_add(o, v3_scale(d, *t));
-        uv->x = T[0] * wr.x + T[1] * wr.z + T[2];
+        uv->x = D->a * wr.x + D->b * wr.z + D->c;
         if (uv->x < 0 || uv->x > 1)
             return false;
-        uv->y = T[3] * wr.x + T[4] * wr.z + T[5];
+        uv->y = D->d * wr.x + D->e * wr.z + D->f;
     } else {
-        float t_o = o.x * T[6] + o.y * T[7] + o.z + T[8];
-        float t_d = d.x * T[6] + d.y * T[7] + d.z;
+        float t_o = o.x * D->g + o.y * D->h + o.z + D->i;
+        float t_d = d.x * D->g + d.y * D->h + d.z;
         *t = -t_o / t_d;
         if  (*t < ISECT_NEAR || *t > ISECT_FAR)
             return false;
         vec3 wr = v3_add(o, v3_scale(d, *t));
-        uv->x = T[0] * wr.x + T[1] * wr.y + T[2];
+        uv->x = D->a * wr.x + D->b * wr.y + D->c;
         if (uv->x < 0 || uv->x > 1)
             return false;
-        uv->y = T[3] * wr.x + T[4] * wr.y + T[5];
+        uv->y = D->d * wr.x + D->e * wr.y + D->f;
     }
     return uv->y >= 0 && (uv->x + uv->y) <= 1;
 }
 
 #define ISECT_SHEV_ENDING                                    \
-    uv->x = T[8] * Du - T[7] * Dv;                           \
-    uv->y = T[5] * Dv - T[6] * Du;                           \
+    uv->x = D->e2v * Du - D->e2u * Dv;                       \
+    uv->y = D->e1u * Dv - D->e1v * Du;                       \
     float tmpdet0 = det - uv->x - uv->y;                     \
     int pdet0 = ((int_or_float)tmpdet0).i;                   \
     int pdetu = ((int_or_float)uv->x).i;                     \
@@ -260,34 +292,28 @@ isect_bw9_b(vec3 o, vec3 d,
 
 inline bool
 isect_shev(vec3 o, vec3 d, float *t, vec2 *uv, float *T) {
+    isect_shev_data *D = (isect_shev_data *)T;
     float dett, det, Du, Dv;
-    if (((int_or_float)T[9]).i == 0) {
-        dett = T[2] - (o.y * T[0] + o.z * T[1] + o.x);
-        det = d.y * T[0] + d.z * T[1] + d.x;
-        Du = d.y*dett - (T[3] - o.y) * det;
-        Dv = d.z*dett - (T[4] - o.z) * det;
+    if (D->ci == 0) {
+        dett = D->np - (o.y * D->nu + o.z * D->nv + o.x);
+        det = d.y * D->nu + d.z * D->nv + d.x;
+        Du = d.y * dett - (D->pu - o.y) * det;
+        Dv = d.z * dett - (D->pv - o.z) * det;
         ISECT_SHEV_ENDING;
-    } else if (((int_or_float)T[9]).i > 0) {
-        dett = T[2] - (o.x * T[0] + o.z * T[1] + o.y);
-        det = d.x * T[0] + d.z * T[1] + d.y;
-        Du = d.x * dett - (T[3] - o.x) * det;
-        Dv = d.z * dett - (T[4] - o.z) * det;
+    } else if (D->ci > 0) {
+        dett = D->np - (o.x * D->nu + o.z * D->nv + o.y);
+        det = d.x * D->nu + d.z * D->nv + d.y;
+        Du = d.x * dett - (D->pu - o.x) * det;
+        Dv = d.z * dett - (D->pv - o.z) * det;
         ISECT_SHEV_ENDING;
     } else {
-        dett = T[2] - (o.x * T[0] + o.y * T[1] + o.z);
-        det = d.x * T[0] + d.y * T[1] + d.z;
-        Du = d.x * dett - (T[3] - o.x) * det;
-        Dv = d.y * dett - (T[4] - o.y) * det;
+        dett = D->np - (o.x * D->nu + o.y * D->nv + o.z);
+        det = d.x * D->nu + d.y * D->nv + d.z;
+        Du = d.x * dett - (D->pu - o.x) * det;
+        Dv = d.y * dett - (D->pv - o.y) * det;
         ISECT_SHEV_ENDING;
     }
 }
-
-// I'm going back and forth on this
-typedef struct {
-    vec3 n0; float d0;
-    vec3 n1; float d1;
-    vec3 n2; float d2;
-} isect_hh_data;
 
 // I'm annoyed. My cpu does not support sse 4.1.
 inline bool

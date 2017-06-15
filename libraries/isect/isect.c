@@ -23,20 +23,9 @@ isect_sf01(vec3 o, vec3 d,
            vec3 v0, vec3 v1, vec3 v2,
            float *t, vec2 *uv);
 
-// Storage layout:
-//
-//  0 = nu
-//  1 = nv
-//  2 = np
-//  3 = pu
-//  4 = pv
-//  5 = e1u
-//  6 = e1v
-//  7 = e2u
-//  8 = e2v
-//  9 = ci
 void
 isect_shev_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
+    isect_shev_data *D = (isect_shev_data *)T;
     vec3 e1 = v3_sub(v1, v0);
     vec3 e2 = v3_sub(v2, v0);
     vec3 n = v3_cross(e1, e2);
@@ -50,17 +39,17 @@ isect_shev_pre(vec3 v0, vec3 v1, vec3 v2, float *T) {
     }
     float sign = (w == 1) ? -1.0 : 1.0f;
     float nw = V3_GET(n, w);
-    T[0] = V3_GET(n, u) / nw;
-    T[1] = V3_GET(n, v) / nw;
-    T[3] = V3_GET(v0, u);
-    T[4] = V3_GET(v0, v);
-    T[2] = T[0] * T[3] + T[1] * T[4] + V3_GET(v0, w);
-    T[5] = sign * V3_GET(e1, u) / nw;
-    T[6] = sign * V3_GET(e1, v) / nw;
-    T[7] = sign * V3_GET(e2, u) / nw;
-    T[8] = sign * V3_GET(e2, v) / nw;
+    D->nu = V3_GET(n, u) / nw;
+    D->nv = V3_GET(n, v) / nw;
+    D->pu = V3_GET(v0, u);
+    D->pv = V3_GET(v0, v);
+    D->np = D->nu * D->pu + D->nv * D->pv + V3_GET(v0, w);
+    D->e1u = sign * V3_GET(e1, u) / nw;
+    D->e1v = sign * V3_GET(e1, v) / nw;
+    D->e2u = sign * V3_GET(e2, u) / nw;
+    D->e2v = sign * V3_GET(e2, v) / nw;
     if (w == 2) w = -1;
-    T[9] = ((int_or_float)w).f;
+    D->ci = w;
 }
 
 void
