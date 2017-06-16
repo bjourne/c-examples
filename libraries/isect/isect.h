@@ -206,7 +206,8 @@ isect_bw12_b(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw12_data *D) {
 inline bool
 isect_bw9(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
     float new_t;
-    if (D->ci == 0) {
+    switch (D->ci) {
+    case 0: {
         float t_o = o.x + D->g * o.y + D->h * o.z + D->i;
         float t_d = d.x + D->g * d.y + D->h * d.z;
         new_t = -t_o / t_d;
@@ -215,7 +216,9 @@ isect_bw9(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
         vec3 wr = v3_add(o, v3_scale(d, new_t));
         uv->x = D->a * wr.y + D->b * wr.z + D->c;
         uv->y = D->d * wr.y + D->e * wr.z + D->f;
-    } else if (D->ci > 0) {
+        break;
+    }
+    case 1: {
         float t_o = D->g * o.x + o.y + D->h * o.z + D->i;
         float t_d = D->g * d.x + d.y + D->h * d.z;
         new_t = -t_o / t_d;
@@ -224,7 +227,9 @@ isect_bw9(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
         vec3 wr = v3_add(o, v3_scale(d, new_t));
         uv->x = D->a * wr.x + D->b * wr.z + D->c;
         uv->y = D->d * wr.x + D->e * wr.z + D->f;
-    } else {
+        break;
+    }
+    default: {
         float t_o = o.x * D->g + o.y * D->h + o.z + D->i;
         float t_d = d.x * D->g + d.y * D->h + d.z;
         new_t = -t_o / t_d;
@@ -233,6 +238,7 @@ isect_bw9(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
         vec3 wr = v3_add(o, v3_scale(d, new_t));
         uv->x = D->a * wr.x + D->b * wr.y + D->c;
         uv->y = D->d * wr.x + D->e * wr.y + D->f;
+    }
     }
     if (uv->x < 0 || uv->y < 0 || (uv->x + uv->y) > 1)
         return false;
@@ -244,7 +250,8 @@ isect_bw9(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
 inline bool
 isect_bw9_b(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
     float new_t;
-    if (D->ci == 0) {
+    switch (D->ci) {
+    case 0: {
         float t_o = o.x + D->g * o.y + D->h * o.z + D->i;
         float t_d = d.x + D->g * d.y + D->h * d.z;
         new_t = -t_o / t_d;
@@ -255,7 +262,9 @@ isect_bw9_b(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
         if (uv->x < 0 || uv->x > 1)
             return false;
         uv->y = D->d * wr.y + D->e * wr.z + D->f;
-    } else if (D->ci > 0) {
+        break;
+    }
+    case 1: {
         float t_o = D->g * o.x + o.y + D->h * o.z + D->i;
         float t_d = D->g * d.x + d.y + D->h * d.z;
         new_t = -t_o / t_d;
@@ -266,7 +275,9 @@ isect_bw9_b(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
         if (uv->x < 0 || uv->x > 1)
             return false;
         uv->y = D->d * wr.x + D->e * wr.z + D->f;
-    } else {
+        break;
+    }
+    default: {
         float t_o = o.x * D->g + o.y * D->h + o.z + D->i;
         float t_d = d.x * D->g + d.y * D->h + d.z;
         new_t = -t_o / t_d;
@@ -277,6 +288,7 @@ isect_bw9_b(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
         if (uv->x < 0 || uv->x > 1)
             return false;
         uv->y = D->d * wr.x + D->e * wr.y + D->f;
+    }
     }
     if (uv->y < 0 || (uv->x + uv->y) > 1)
         return false;
@@ -309,19 +321,22 @@ isect_shev_ending(float det, float dett,
 inline bool
 isect_shev(vec3 o, vec3 d, float *t, vec2 *uv, isect_shev_data *D) {
     float dett, det, Du, Dv;
-    if (D->ci == 0) {
+    switch(D->ci){
+    case 0: {
         dett = D->np - (o.y * D->nu + o.z * D->nv + o.x);
         det = d.y * D->nu + d.z * D->nv + d.x;
         Du = d.y * dett - (D->pu - o.y) * det;
         Dv = d.z * dett - (D->pv - o.z) * det;
         return isect_shev_ending(det, dett, Du, Dv, t, uv, D);
-    } else if (D->ci > 0) {
+    }
+    case 1: {
         dett = D->np - (o.x * D->nu + o.z * D->nv + o.y);
         det = d.x * D->nu + d.z * D->nv + d.y;
         Du = d.x * dett - (D->pu - o.x) * det;
         Dv = d.z * dett - (D->pv - o.z) * det;
         return isect_shev_ending(det, dett, Du, Dv, t, uv, D);
-    } else {
+    }
+    default:
         dett = D->np - (o.x * D->nu + o.y * D->nv + o.z);
         det = d.x * D->nu + d.y * D->nv + d.z;
         Du = d.x * dett - (D->pu - o.x) * det;
