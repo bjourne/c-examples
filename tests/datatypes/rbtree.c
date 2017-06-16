@@ -107,7 +107,7 @@ test_simple() {
 
     assert(t->parent == NULL);
     assert(t->childs[BST_LEFT]->parent == t);
-    assert(t->childs[BST_RIGHT]->parent = t);
+    assert(t->childs[BST_RIGHT]->parent == t);
 
     t = rbt_add_key(t, 1);
     assert(!t->is_red);
