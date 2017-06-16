@@ -24,8 +24,7 @@ isect_sf01(vec3 o, vec3 d,
            float *t, vec2 *uv);
 
 void
-isect_shev_pre(vec3 v0, vec3 v1, vec3 v2,
-               isect_shev_data *D) {
+isect_shev_pre(vec3 v0, vec3 v1, vec3 v2, isect_shev_data *D) {
     vec3 e1 = v3_sub(v1, v0);
     vec3 e2 = v3_sub(v2, v0);
     vec3 n = v3_cross(e1, e2);
@@ -53,8 +52,7 @@ isect_shev_pre(vec3 v0, vec3 v1, vec3 v2,
 }
 
 void
-isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2,
-              isect_bw9_data *D) {
+isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2, isect_bw9_data *D) {
     vec3 e1 = v3_sub(v1, v0);
     vec3 e2 = v3_sub(v2, v0);
     vec3 n = v3_cross(e1, e2);
@@ -91,8 +89,7 @@ isect_bw9_pre(vec3 v0, vec3 v1, vec3 v2,
 }
 
 void
-isect_bw12_pre(vec3 v0, vec3 v1, vec3 v2,
-               isect_bw12_data *D) {
+isect_bw12_pre(vec3 v0, vec3 v1, vec3 v2, isect_bw12_data *D) {
     vec3 e1 = v3_sub(v1, v0);
     vec3 e2 = v3_sub(v2, v0);
     vec3 n = v3_cross(e1, e2);
@@ -102,32 +99,31 @@ isect_bw12_pre(vec3 v0, vec3 v1, vec3 v2,
         x1 = v1.y * v0.z - v1.z * v0.y;
         x2 = v2.y * v0.z - v2.z * v0.y;
         memcpy(D, (float[12]){
-            0.0f,  e2.z / n.x, -e2.y / n.x,   x2 / n.x,
-            0.0f, -e1.z / n.x,  e1.y / n.x,  -x1 / n.x,
-            1.0f,   n.y / n.x,   n.z / n.x, -num / n.x
+            0,  e2.z / n.x, -e2.y / n.x,   x2 / n.x,
+            0, -e1.z / n.x,  e1.y / n.x,  -x1 / n.x,
+            1,   n.y / n.x,   n.z / n.x, -num / n.x
         }, 48);
     } else if (fabsf(n.y) > fabsf(n.z)) {
         x1 = v1.z * v0.x - v1.x * v0.z;
         x2 = v2.z * v0.x - v2.x * v0.z;
         memcpy(D, (float[12]){
-            -e2.z / n.y, 0.0f,  e2.x / n.y,   x2 / n.y,
-             e1.z / n.y, 0.0f, -e1.x / n.y,  -x1 / n.y,
-              n.x / n.y, 1.0f,   n.z / n.y, -num / n.y
+            -e2.z / n.y, 0,  e2.x / n.y,   x2 / n.y,
+             e1.z / n.y, 0, -e1.x / n.y,  -x1 / n.y,
+              n.x / n.y, 1,   n.z / n.y, -num / n.y
         }, 48);
     } else {
         x1 = v1.x * v0.y - v1.y * v0.x;
         x2 = v2.x * v0.y - v2.y * v0.x;
         memcpy(D, (float[12]){
-            e2.y / n.z, -e2.x / n.z, 0.0f,   x2 / n.z,
-           -e1.y / n.z,  e1.x / n.z, 0.0f,  -x1 / n.z,
-             n.x / n.z,   n.y / n.z, 1.0f, -num / n.z
+            e2.y / n.z, -e2.x / n.z, 0,   x2 / n.z,
+           -e1.y / n.z,  e1.x / n.z, 0,  -x1 / n.z,
+             n.x / n.z,   n.y / n.z, 1, -num / n.z
         }, 48);
     }
 }
 
 void
-isect_hh_pre(vec3 v0, vec3 v1, vec3 v2,
-             isect_hh_data *D) {
+isect_hh_pre(vec3 v0, vec3 v1, vec3 v2, isect_hh_data *D) {
     vec3 e1 = v3_sub(v1, v0);
     vec3 e2 = v3_sub(v2, v0);
     D->n0 = v3_cross(e1, e2);

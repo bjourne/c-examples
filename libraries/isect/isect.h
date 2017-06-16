@@ -194,8 +194,7 @@ isect_bw12_b(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw12_data *D) {
 }
 
 inline bool
-isect_bw9(vec3 o, vec3 d,
-          float *t, vec2 *uv, isect_bw9_data *D) {
+isect_bw9(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
     if (D->ci == 0) {
         float t_o = o.x + D->g * o.y + D->h * o.z + D->i;
         float t_d = d.x + D->g * d.y + D->h * d.z;
@@ -228,8 +227,7 @@ isect_bw9(vec3 o, vec3 d,
 }
 
 inline bool
-isect_bw9_b(vec3 o, vec3 d,
-            float *t, vec2 *uv, isect_bw9_data *D) {
+isect_bw9_b(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
     if (D->ci == 0) {
         float t_o = o.x + D->g * o.y + D->h * o.z + D->i;
         float t_d = d.x + D->g * d.y + D->h * d.z;
@@ -267,22 +265,26 @@ isect_bw9_b(vec3 o, vec3 d,
     return uv->y >= 0 && (uv->x + uv->y) <= 1;
 }
 
-#define ISECT_SHEV_ENDING                                    \
-    uv->x = D->e2v * Du - D->e2u * Dv;                       \
-    uv->y = D->e1u * Dv - D->e1v * Du;                       \
-    float tmpdet0 = det - uv->x - uv->y;                     \
-    int pdet0 = ((int_or_float)tmpdet0).i;                   \
-    int pdetu = ((int_or_float)uv->x).i;                     \
-    int pdetv = ((int_or_float)uv->y).i;                     \
-    pdet0 = pdet0 ^ pdetu;                                   \
-    pdet0 = pdet0 | (pdetu ^ pdetv);                         \
-    if (pdet0 & 0x80000000)                                  \
-        return false;                                        \
-    float rdet = 1 / det;                                    \
-    *t = dett * rdet;                                        \
-    uv->x *= rdet;                                           \
-    uv->y *= rdet;                                           \
+inline bool
+isect_shev_ending(float det, float dett,
+                  float Du, float Dv,
+                  float *t, vec2 *uv, isect_shev_data *D) {
+    uv->x = D->e2v * Du - D->e2u * Dv;
+    uv->y = D->e1u * Dv - D->e1v * Du;
+    float tmpdet0 = det - uv->x - uv->y;
+    int pdet0 = ((int_or_float)tmpdet0).i;
+    int pdetu = ((int_or_float)uv->x).i;
+    int pdetv = ((int_or_float)uv->y).i;
+    pdet0 = pdet0 ^ pdetu;
+    pdet0 = pdet0 | (pdetu ^ pdetv);
+    if (pdet0 & 0x80000000)
+        return false;
+    float rdet = 1 / det;
+    *t = dett * rdet;
+    uv->x *= rdet;
+    uv->y *= rdet;
     return *t >= ISECT_NEAR && *t <= ISECT_FAR;
+}
 
 inline bool
 isect_shev(vec3 o, vec3 d, float *t, vec2 *uv, isect_shev_data *D) {
@@ -292,19 +294,19 @@ isect_shev(vec3 o, vec3 d, float *t, vec2 *uv, isect_shev_data *D) {
         det = d.y * D->nu + d.z * D->nv + d.x;
         Du = d.y * dett - (D->pu - o.y) * det;
         Dv = d.z * dett - (D->pv - o.z) * det;
-        ISECT_SHEV_ENDING;
+        return isect_shev_ending(det, dett, Du, Dv, t, uv, D);
     } else if (D->ci > 0) {
         dett = D->np - (o.x * D->nu + o.z * D->nv + o.y);
         det = d.x * D->nu + d.z * D->nv + d.y;
         Du = d.x * dett - (D->pu - o.x) * det;
         Dv = d.z * dett - (D->pv - o.z) * det;
-        ISECT_SHEV_ENDING;
+        return isect_shev_ending(det, dett, Du, Dv, t, uv, D);
     } else {
         dett = D->np - (o.x * D->nu + o.y * D->nv + o.z);
         det = d.x * D->nu + d.y * D->nv + d.z;
         Du = d.x * dett - (D->pu - o.x) * det;
         Dv = d.y * dett - (D->pv - o.y) * det;
-        ISECT_SHEV_ENDING;
+        return isect_shev_ending(det, dett, Du, Dv, t, uv, D);
     }
 }
 

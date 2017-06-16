@@ -12,6 +12,7 @@
 #define ISECT_SF01      7
 #define ISECT_DS        8
 #define ISECT_SHEV      9
+#define ISECT_HH       10
 
 #define PLAIN_SHADING   1
 #define FANCY_SHADING   2
