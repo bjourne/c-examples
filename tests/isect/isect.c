@@ -109,7 +109,7 @@ test_bw12_pre() {
 
 void
 test_diffs_01() {
-    float t;
+    float t = ISECT_FAR;
     vec2 uv;
     vec3 v0 = {1.470782, 7.976924, 3.797243};
     vec3 v1 = {0.767229, 7.976924, 3.966874};
@@ -148,7 +148,7 @@ test_diffs_02() {
 
 void
 test_diffs_hard() {
-    float t;
+    float t = ISECT_FAR;
     vec2 uv;
 
     vec3 vec[3];
@@ -193,7 +193,7 @@ test_bw9_diffs_01() {
     vec3 v2 = {
         9.011932373, 7.674720764, -0.644407809
     };
-    float t;
+    float t = ISECT_FAR;
     vec2 uv;
     assert(!isect_mt(o, d, v0, v1, v2, &t, &uv));
 
