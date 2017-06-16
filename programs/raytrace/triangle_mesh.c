@@ -124,11 +124,26 @@ tm_get_surface_props(triangle_mesh *me, ray_intersection *ri,
 
 bool
 tm_intersect(triangle_mesh *me, vec3 o, vec3 d, ray_intersection *ri) {
-    float nearest = FLT_MAX;
-    float t = 0;
+    float nearest = ISECT_FAR;
+#if ISECT_RUNNING_MIN == false
+    float t;
+#endif
     vec2 uv;
 
 #if ISECT_PC_P
+#if ISECT_RUNNING_MIN == true
+
+#define BODY(N, I, O)                            \
+    { if (ISECT_FUN(o, d, &nearest, &uv, D)) {   \
+            ri->t = nearest;                     \
+            ri->uv = uv;                         \
+            ri->tri_idx = N*I+O;                 \
+        }                                        \
+        D++;                                     \
+    }
+    ISECT_DATA *D = me->precomp;
+#else
+
 #define BODY(N, I, O)                                           \
     { if (ISECT_FUN(o, d, &t, &uv, D) && t < nearest) {         \
             nearest = t;                                        \
@@ -139,6 +154,19 @@ tm_intersect(triangle_mesh *me, vec3 o, vec3 d, ray_intersection *ri) {
         D++;                                                    \
     }
     ISECT_DATA *D = me->precomp;
+#endif
+#else
+
+#if ISECT_RUNNING_MIN == true
+#define BODY(N, I, O)                                                   \
+    { vec3 v0 = *it++, v1 = *it++, v2 = *it++;                          \
+        if (ISECT_FUN(o, d, v0, v1, v2, &nearest, &uv)) {               \
+            ri->t = nearest;                                            \
+            ri->uv = uv;                                                \
+            ri->tri_idx = N*I+O;                                        \
+      }                                                                 \
+    }
+    vec3 *it = me->verts;
 #else
 #define BODY(N, I, O)                                                   \
     { vec3 v0 = *it++, v1 = *it++, v2 = *it++;                          \
@@ -150,6 +178,9 @@ tm_intersect(triangle_mesh *me, vec3 o, vec3 d, ray_intersection *ri) {
       }                                                                 \
     }
     vec3 *it = me->verts;
+#endif
+
+
 #endif
     int n_loops = me->n_tris / 8;
     int n_remain = me->n_tris % 8;
@@ -166,5 +197,5 @@ tm_intersect(triangle_mesh *me, vec3 o, vec3 d, ray_intersection *ri) {
     for (int i = 0; i < n_remain; i++) {
         BODY(8, n_loops, i);
     }
-    return nearest < FLT_MAX;
+    return nearest < ISECT_FAR;
 }

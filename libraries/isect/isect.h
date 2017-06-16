@@ -43,11 +43,7 @@ void isect_bw12_pre(vec3 v0, vec3 v1, vec3 v2, isect_bw12_data *D);
 void isect_shev_pre(vec3 v0, vec3 v1, vec3 v2, isect_shev_data *D);
 void isect_hh_pre(vec3 v0, vec3 v1, vec3 v2, isect_hh_data *D);
 
-inline float
-v3_sign_3d(vec3 p, vec3 q, vec3 r) {
-    return v3_dot(p, v3_cross(q, r));
-}
-
+// Only sets t on intersection.
 inline bool
 isect_ds(vec3 o, vec3 d,
          vec3 v0, vec3 v1, vec3 v2,
@@ -60,10 +56,10 @@ isect_ds(vec3 o, vec3 d,
     float b = v3_dot(n, d);
     if (b == 0)
         return false;
-    *t = a / b;
-    if (*t < ISECT_NEAR || *t > ISECT_FAR)
+    float new_t = a / b;
+    if  (new_t < ISECT_NEAR || new_t > *t)
         return false;
-    vec3 i = v3_add(o, v3_scale(d, *t));
+    vec3 i = v3_add(o, v3_scale(d, new_t));
     float u_u = v3_dot(e1, e1);
     float u_v = v3_dot(e1, e2);
     float v_v = v3_dot(e2, e2);
@@ -77,9 +73,14 @@ isect_ds(vec3 o, vec3 d,
     uv->y = (u_v * w_u - u_u * w_v) / det;
     if (uv->y < 0 || uv->x + uv->y > 1)
         return false;
+    *t = new_t;
     return true;
 }
 
+inline float
+v3_sign_3d(vec3 p, vec3 q, vec3 r) {
+    return v3_dot(p, v3_cross(q, r));
+}
 inline bool
 isect_sf01(vec3 o, vec3 d,
            vec3 v0, vec3 v1, vec3 v2,
@@ -165,76 +166,91 @@ isect_mt_b(vec3 o, vec3 d,
     return *t >= ISECT_NEAR && *t <= ISECT_FAR;
 }
 
+// Only sets t on intersection.
 inline bool
 isect_bw12(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw12_data *D) {
     float t_o = v3_dot(o, D->n2) + D->d2;
     float t_d = v3_dot(d, D->n2);
-    *t = -t_o / t_d;
-    if  (*t < ISECT_NEAR || *t > ISECT_FAR)
+    float new_t = -t_o / t_d;
+    if  (new_t < ISECT_NEAR || new_t > *t)
         return false;
-    vec3 wr = v3_add(o, v3_scale(d, *t));
+    vec3 wr = v3_add(o, v3_scale(d, new_t));
     uv->x = v3_dot(wr, D->n0) + D->d0;
     uv->y = v3_dot(wr, D->n1) + D->d1;
-    return uv->y >= 0 && (uv->x + uv->y) <= 1;
+    if (uv->x < 0 || uv->y < 0 || (uv->x + uv->y) > 1)
+        return false;
+    *t = new_t;
+    return true;
 }
 
+// Only sets t on intersection.
 inline bool
 isect_bw12_b(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw12_data *D) {
     float t_o = v3_dot(o, D->n2) + D->d2;
     float t_d = v3_dot(d, D->n2);
-    *t = -t_o / t_d;
-    if  (*t < ISECT_NEAR || *t > ISECT_FAR)
+    float new_t = -t_o / t_d;
+    if  (new_t < ISECT_NEAR || new_t > *t)
         return false;
-    vec3 wr = v3_add(o, v3_scale(d, *t));
+    vec3 wr = v3_add(o, v3_scale(d, new_t));
     uv->x = v3_dot(wr, D->n0) + D->d0;
     if (uv->x < 0 || uv->x > 1)
         return false;
     uv->y = v3_dot(wr, D->n1) + D->d1;
-    return uv->y >= 0 && (uv->x + uv->y) <= 1;
+    if (uv->y < 0 || (uv->x + uv->y) > 1)
+        return false;
+    *t = new_t;
+    return true;
 }
 
+// Only sets t on intersection.
 inline bool
 isect_bw9(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
+    float new_t;
     if (D->ci == 0) {
         float t_o = o.x + D->g * o.y + D->h * o.z + D->i;
         float t_d = d.x + D->g * d.y + D->h * d.z;
-        *t = -t_o / t_d;
-        if  (*t < ISECT_NEAR || *t > ISECT_FAR)
+        new_t = -t_o / t_d;
+        if  (new_t < ISECT_NEAR || new_t > *t)
             return false;
-        vec3 wr = v3_add(o, v3_scale(d, *t));
+        vec3 wr = v3_add(o, v3_scale(d, new_t));
         uv->x = D->a * wr.y + D->b * wr.z + D->c;
         uv->y = D->d * wr.y + D->e * wr.z + D->f;
     } else if (D->ci > 0) {
         float t_o = D->g * o.x + o.y + D->h * o.z + D->i;
         float t_d = D->g * d.x + d.y + D->h * d.z;
-        *t = -t_o / t_d;
-        if  (*t < ISECT_NEAR || *t > ISECT_FAR)
+        new_t = -t_o / t_d;
+        if  (new_t < ISECT_NEAR || new_t > *t)
             return false;
-        vec3 wr = v3_add(o, v3_scale(d, *t));
+        vec3 wr = v3_add(o, v3_scale(d, new_t));
         uv->x = D->a * wr.x + D->b * wr.z + D->c;
         uv->y = D->d * wr.x + D->e * wr.z + D->f;
     } else {
         float t_o = o.x * D->g + o.y * D->h + o.z + D->i;
         float t_d = d.x * D->g + d.y * D->h + d.z;
-        *t = -t_o / t_d;
-        if  (*t < ISECT_NEAR || *t > ISECT_FAR)
+        new_t = -t_o / t_d;
+        if  (new_t < ISECT_NEAR || new_t > *t)
             return false;
-        vec3 wr = v3_add(o, v3_scale(d, *t));
+        vec3 wr = v3_add(o, v3_scale(d, new_t));
         uv->x = D->a * wr.x + D->b * wr.y + D->c;
         uv->y = D->d * wr.x + D->e * wr.y + D->f;
     }
-    return uv->x >= 0 && uv->y >= 0 && (uv->x + uv->y) <= 1;
+    if (uv->x < 0 || uv->y < 0 || (uv->x + uv->y) > 1)
+        return false;
+    *t = new_t;
+    return true;
 }
 
+// Only sets t on intersection.
 inline bool
 isect_bw9_b(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
+    float new_t;
     if (D->ci == 0) {
         float t_o = o.x + D->g * o.y + D->h * o.z + D->i;
         float t_d = d.x + D->g * d.y + D->h * d.z;
-        *t = -t_o / t_d;
-        if  (*t < ISECT_NEAR || *t > ISECT_FAR)
+        new_t = -t_o / t_d;
+        if  (new_t < ISECT_NEAR || new_t > *t)
             return false;
-        vec3 wr = v3_add(o, v3_scale(d, *t));
+        vec3 wr = v3_add(o, v3_scale(d, new_t));
         uv->x = D->a * wr.y + D->b * wr.z + D->c;
         if (uv->x < 0 || uv->x > 1)
             return false;
@@ -242,10 +258,10 @@ isect_bw9_b(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
     } else if (D->ci > 0) {
         float t_o = D->g * o.x + o.y + D->h * o.z + D->i;
         float t_d = D->g * d.x + d.y + D->h * d.z;
-        *t = -t_o / t_d;
-        if  (*t < ISECT_NEAR || *t > ISECT_FAR)
+        new_t = -t_o / t_d;
+        if  (new_t < ISECT_NEAR || new_t > *t)
             return false;
-        vec3 wr = v3_add(o, v3_scale(d, *t));
+        vec3 wr = v3_add(o, v3_scale(d, new_t));
         uv->x = D->a * wr.x + D->b * wr.z + D->c;
         if (uv->x < 0 || uv->x > 1)
             return false;
@@ -253,16 +269,19 @@ isect_bw9_b(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
     } else {
         float t_o = o.x * D->g + o.y * D->h + o.z + D->i;
         float t_d = d.x * D->g + d.y * D->h + d.z;
-        *t = -t_o / t_d;
-        if  (*t < ISECT_NEAR || *t > ISECT_FAR)
+        new_t = -t_o / t_d;
+        if  (new_t < ISECT_NEAR || new_t > *t)
             return false;
-        vec3 wr = v3_add(o, v3_scale(d, *t));
+        vec3 wr = v3_add(o, v3_scale(d, new_t));
         uv->x = D->a * wr.x + D->b * wr.y + D->c;
         if (uv->x < 0 || uv->x > 1)
             return false;
         uv->y = D->d * wr.x + D->e * wr.y + D->f;
     }
-    return uv->y >= 0 && (uv->x + uv->y) <= 1;
+    if (uv->y < 0 || (uv->x + uv->y) > 1)
+        return false;
+    *t = new_t;
+    return true;
 }
 
 inline bool
@@ -280,6 +299,7 @@ isect_shev_ending(float det, float dett,
     if (pdet0 & 0x80000000)
         return false;
     float rdet = 1 / det;
+
     *t = dett * rdet;
     uv->x *= rdet;
     uv->y *= rdet;
@@ -310,11 +330,11 @@ isect_shev(vec3 o, vec3 d, float *t, vec2 *uv, isect_shev_data *D) {
     }
 }
 
-// I'm annoyed. My cpu does not support sse 4.1.
 inline bool
 isect_hh(vec3 o, vec3 d, float *t, vec2 *uv, isect_hh_data *D) {
     float det = v3_dot(D->n0, d);
     float dett = D->d0 - v3_dot(o, D->n0);
+
     vec3 wr = v3_add(v3_scale(o, det), v3_scale(d, dett));
     uv->x = v3_dot(wr, D->n1) + det * D->d1;
     uv->y = v3_dot(wr, D->n2) + det * D->d2;
@@ -327,12 +347,13 @@ isect_hh(vec3 o, vec3 d, float *t, vec2 *uv, isect_hh_data *D) {
     pdet0 = pdet0 | (pdetu ^ pdetv);
     if (pdet0 & 0x80000000)
         return false;
+
     float rdet = 1 / det;
-    *t = dett * rdet;
     uv->x *= rdet;
     uv->y *= rdet;
     *t = dett * rdet;
     return *t >= ISECT_NEAR && *t <= ISECT_FAR;
 }
+
 
 #endif
