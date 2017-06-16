@@ -90,12 +90,12 @@ isect_sf01(vec3 o, vec3 d,
     vec3 v2o = v3_sub(v2, o);
     float w2 = v3_sign_3d(d, v1o, v0o);
     float w0 = v3_sign_3d(d, v2o, v1o);
-    bool s2 = w2 >= 0.0f;
-    bool s0 = w0 >= 0.0f;
+    bool s2 = w2 >= 0;
+    bool s0 = w0 >= 0;
     if (s2 != s0)
         return false;
     float w1 = v3_sign_3d(d, v0o, v2o);
-    bool s1 = w1 >= 0.0f;
+    bool s1 = w1 >= 0;
     if (s2 != s1)
         return false;
     uv->x = w1 / (w0 + w1 + w2);
@@ -115,7 +115,7 @@ isect_mt(vec3 o, vec3 d,
     vec3 e2 = v3_sub(v2, v0);
     vec3 pvec = v3_cross(d, e2);
     float det = v3_dot(e1, pvec);
-    if (det == 0.0f)
+    if (det == 0)
         return false;
     float inv_det = 1 / det;
     vec3 tvec = v3_sub(o, v0);
@@ -246,7 +246,15 @@ isect_bw9(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
     return true;
 }
 
+
 // Only sets t on intersection.
+inline bool
+isect_bw9_b_ending(vec2 *uv, float *t, float new_t) {
+    if (uv->y < 0 || (uv->x + uv->y) > 1)
+        return false;
+    *t = new_t;
+    return true;
+}
 inline bool
 isect_bw9_b(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
     float new_t;
@@ -262,7 +270,7 @@ isect_bw9_b(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
         if (uv->x < 0 || uv->x > 1)
             return false;
         uv->y = D->d * wr.y + D->e * wr.z + D->f;
-        break;
+        return isect_bw9_b_ending(uv, t, new_t);
     }
     case 1: {
         float t_o = D->g * o.x + o.y + D->h * o.z + D->i;
@@ -275,7 +283,7 @@ isect_bw9_b(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
         if (uv->x < 0 || uv->x > 1)
             return false;
         uv->y = D->d * wr.x + D->e * wr.z + D->f;
-        break;
+        return isect_bw9_b_ending(uv, t, new_t);
     }
     default: {
         float t_o = o.x * D->g + o.y * D->h + o.z + D->i;
@@ -288,12 +296,9 @@ isect_bw9_b(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw9_data *D) {
         if (uv->x < 0 || uv->x > 1)
             return false;
         uv->y = D->d * wr.x + D->e * wr.y + D->f;
+        return isect_bw9_b_ending(uv, t, new_t);
     }
     }
-    if (uv->y < 0 || (uv->x + uv->y) > 1)
-        return false;
-    *t = new_t;
-    return true;
 }
 
 inline bool
@@ -319,9 +324,10 @@ isect_shev_ending(float det, float dett,
 }
 
 inline bool
-isect_shev(vec3 o, vec3 d, float *t, vec2 *uv, isect_shev_data *D) {
+isect_shev(vec3 o, vec3 d,
+           float *t, vec2 *uv, isect_shev_data *D) {
     float dett, det, Du, Dv;
-    switch(D->ci){
+    switch (D->ci) {
     case 0: {
         dett = D->np - (o.y * D->nu + o.z * D->nv + o.x);
         det = d.y * D->nu + d.z * D->nv + d.x;
@@ -349,11 +355,9 @@ inline bool
 isect_hh(vec3 o, vec3 d, float *t, vec2 *uv, isect_hh_data *D) {
     float det = v3_dot(D->n0, d);
     float dett = D->d0 - v3_dot(o, D->n0);
-
     vec3 wr = v3_add(v3_scale(o, det), v3_scale(d, dett));
     uv->x = v3_dot(wr, D->n1) + det * D->d1;
     uv->y = v3_dot(wr, D->n2) + det * D->d2;
-
     float tmpdet0 = det - uv->x - uv->y;
     int pdet0 = ((int_or_float)tmpdet0).i;
     int pdetu = ((int_or_float)uv->x).i;
@@ -362,7 +366,6 @@ isect_hh(vec3 o, vec3 d, float *t, vec2 *uv, isect_hh_data *D) {
     pdet0 = pdet0 | (pdetu ^ pdetv);
     if (pdet0 & 0x80000000)
         return false;
-
     float rdet = 1 / det;
     uv->x *= rdet;
     uv->y *= rdet;
