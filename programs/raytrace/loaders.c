@@ -223,25 +223,39 @@ read_tri_indices(char *buf,
     int i0, i1, i2;
     int ni0, ni1, ni2;
     if (sscanf(buf, "f %d %d %d", &i0, &i1, &i2) == 3) {
-        v_add(v_indices, i0 - 1);
-        v_add(v_indices, i1 - 1);
-        v_add(v_indices, i2 - 1);
+        v_add(v_indices, (ptr)(i0 - 1));
+        v_add(v_indices, (ptr)(i1 - 1));
+        v_add(v_indices, (ptr)(i2 - 1));
         return true;
     }
     if (sscanf(buf, "f %d//%d %d//%d %d//%d",
                &i0, &ni0,
                &i1, &ni1,
                &i2, &ni2) == 6) {
-        v_add(v_indices, i0 - 1);
-        v_add(v_indices, i1 - 1);
-        v_add(v_indices, i2 - 1);
-        v_add(n_indices, ni0 - 1);
-        v_add(n_indices, ni1 - 1);
-        v_add(n_indices, ni2 - 1);
+        v_add(v_indices, (ptr)(i0 - 1));
+        v_add(v_indices, (ptr)(i1 - 1));
+        v_add(v_indices, (ptr)(i2 - 1));
+        v_add(n_indices, (ptr)(ni0 - 1));
+        v_add(n_indices, (ptr)(ni1 - 1));
+        v_add(n_indices, (ptr)(ni2 - 1));
         return true;
     }
     return false;
 }
+
+static int *
+pack_index_array(vector *a, int n_vecs) {
+    int *pack = (int *)malloc(sizeof(int) * a->used);
+    for (int i = 0; i < a->used; i++) {
+        int idx = (int)a->array[i];
+        if (idx < 0) {
+            idx = n_vecs + idx;
+        }
+        pack[i] = idx;
+    }
+    return pack;
+}
+
 
 bool
 load_obj_file(const char *fname,
@@ -310,15 +324,9 @@ load_obj_file(const char *fname,
         (*normals)[i].y = ((u)tmp_normals->array[i * 3+1]).f;
         (*normals)[i].z = ((u)tmp_normals->array[i * 3+2]).f;
     }
-    *v_indices = (int *)malloc(sizeof(int) * *n_tris * 3);
-    for (int i = 0; i < *n_tris * 3; i++) {
-        (*v_indices)[i] = tmp_v_indices->array[i];
-    }
+    *v_indices = pack_index_array(tmp_v_indices, *n_verts);
     if (tmp_n_indices->used) {
-        *n_indices = (int *)malloc(sizeof(int) * *n_tris * 3);
-        for (int i = 0; i < *n_tris * 3; i++) {
-            (*n_indices)[i] = tmp_n_indices->array[i];
-        }
+        *n_indices = pack_index_array(tmp_n_indices, *n_normals);
     } else {
         *n_indices = NULL;
     }

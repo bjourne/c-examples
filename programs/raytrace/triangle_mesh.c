@@ -62,7 +62,8 @@ tm_from_file(const char *fname,
     // "Unpack" indexed vertices.
     me->verts = (vec3 *)malloc(sizeof(vec3) * me->n_tris * 3);
     for (int i = 0; i < me->n_tris * 3; i++) {
-        me->verts[i] = verts[v_indices[i]];
+        int idx = v_indices[i];
+        me->verts[i] = verts[idx];
     }
 
     // "Unpack" indexed normals.
