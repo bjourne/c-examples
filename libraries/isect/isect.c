@@ -22,6 +22,10 @@ extern inline bool
 isect_sf01(vec3 o, vec3 d,
            vec3 v0, vec3 v1, vec3 v2,
            float *t, vec2 *uv);
+extern inline bool
+isect_ds(vec3 o, vec3 d,
+         vec3 v0, vec3 v1, vec3 v2,
+         float *t, vec2 *uv);
 
 extern inline bool
 isect_shev(vec3 o, vec3 d,
