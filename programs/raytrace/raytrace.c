@@ -162,7 +162,7 @@ render(raytrace_settings *rt, triangle_mesh *tm, vec3 *fbuf) {
     }
     size_t end = nano_count();
     double secs = (double)(end - start) / 1000 / 1000 / 1000;
-    printf("%-24s, %s, %d, %d, %.3f, %lu\n",
+    printf("%s %s %d %d %.5f %lu\n",
            ISECT_NAME,
            basename(rt->mesh_file),
            rt->width,

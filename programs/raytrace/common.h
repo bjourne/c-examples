@@ -28,54 +28,54 @@
     // It should be Möller, not Moller. But printf misaligns text with ö
     // in it.
     #define ISECT_FUN isect_mt
-    #define ISECT_NAME "Moller-Trumbore"
+    #define ISECT_NAME "mt"
     #define ISECT_RUNNING_MIN false
 #elif ISECT_METHOD == ISECT_MT_B
     #define ISECT_FUN isect_mt_b
-    #define ISECT_NAME "Moller-Trumbore B"
+    #define ISECT_NAME "mt-b"
     #define ISECT_RUNNING_MIN false
 #elif ISECT_METHOD == ISECT_BW9
     #define ISECT_FUN isect_bw9
     #define ISECT_FUN_PRE isect_bw9_pre
-    #define ISECT_NAME "Baldwin-Weber pre9"
+    #define ISECT_NAME "bw9"
     #define ISECT_DATA isect_bw9_data
     #define ISECT_RUNNING_MIN true
 #elif ISECT_METHOD == ISECT_BW9_B
     #define ISECT_FUN isect_bw9_b
     #define ISECT_FUN_PRE isect_bw9_pre
-    #define ISECT_NAME "Baldwin-Weber pre9 B"
+    #define ISECT_NAME "bw9-b"
     #define ISECT_DATA isect_bw9_data
     #define ISECT_RUNNING_MIN true
 #elif ISECT_METHOD == ISECT_BW12
     #define ISECT_FUN isect_bw12
     #define ISECT_FUN_PRE isect_bw12_pre
-    #define ISECT_NAME "Baldwin-Weber pre12"
+    #define ISECT_NAME "bw12"
     #define ISECT_DATA isect_bw12_data
     #define ISECT_RUNNING_MIN true
 #elif ISECT_METHOD == ISECT_BW12_B
     #define ISECT_FUN isect_bw12_b
     #define ISECT_FUN_PRE isect_bw12_pre
-    #define ISECT_NAME "Baldwin-Weber pre12 B"
+    #define ISECT_NAME "bw12-b"
     #define ISECT_DATA isect_bw12_data
     #define ISECT_RUNNING_MIN true
 #elif ISECT_METHOD == ISECT_SF01
     #define ISECT_FUN isect_sf01
-    #define ISECT_NAME "Segura-Feito 01"
+    #define ISECT_NAME "sf01"
     #define ISECT_RUNNING_MIN false
 #elif ISECT_METHOD == ISECT_DS
     #define ISECT_FUN isect_ds
-    #define ISECT_NAME "Dan Sunday"
+    #define ISECT_NAME "ds"
     #define ISECT_RUNNING_MIN true
 #elif ISECT_METHOD == ISECT_SHEV
     #define ISECT_FUN isect_shev
     #define ISECT_FUN_PRE isect_shev_pre
-    #define ISECT_NAME "Shevtsov et al"
+    #define ISECT_NAME "shev"
     #define ISECT_DATA isect_shev_data
     #define ISECT_RUNNING_MIN false
 #elif ISECT_METHOD == ISECT_HH
     #define ISECT_FUN isect_hh
     #define ISECT_FUN_PRE isect_hh_pre
-    #define ISECT_NAME "Havel-Herout"
+    #define ISECT_NAME "hh"
     #define ISECT_DATA isect_hh_data
     #define ISECT_RUNNING_MIN false
 #else
