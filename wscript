@@ -63,11 +63,13 @@ def build(ctx):
     build_library(ctx, 'collectors', 'GC_OBJS')
     build_library(ctx, 'linalg', 'LINALG_OBJS')
     build_library(ctx, 'isect', 'ISECT_OBJS')
+    build_library(ctx, 'file3d', 'FILE3D_OBJS')
 
     build_tests(ctx, 'datatypes', ['DT_OBJS'])
     build_tests(ctx, 'quickfit', ['DT_OBJS', 'QF_OBJS'])
     build_tests(ctx, 'collectors', ['GC_OBJS', 'DT_OBJS', 'QF_OBJS'])
     build_tests(ctx, 'linalg', ['LINALG_OBJS', 'DT_OBJS', 'M'])
+    build_tests(ctx, 'file3d', ['FILE3D_OBJS', 'DT_OBJS'])
 
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
     build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
