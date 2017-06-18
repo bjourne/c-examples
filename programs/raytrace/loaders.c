@@ -222,6 +222,7 @@ read_tri_indices(char *buf,
                  vector *n_indices) {
     int i0, i1, i2;
     int ni0, ni1, ni2;
+    int ti0, ti1, ti2;
     if (sscanf(buf, "f %d %d %d", &i0, &i1, &i2) == 3) {
         v_add(v_indices, (ptr)(i0 - 1));
         v_add(v_indices, (ptr)(i1 - 1));
@@ -238,6 +239,15 @@ read_tri_indices(char *buf,
         v_add(n_indices, (ptr)(ni0 - 1));
         v_add(n_indices, (ptr)(ni1 - 1));
         v_add(n_indices, (ptr)(ni2 - 1));
+        return true;
+    }
+    if (sscanf(buf, "f %d/%d %d/%d %d/%d",
+               &i0, &ti0,
+               &i1, &ti1,
+               &i2, &ti2) == 6) {
+        v_add(v_indices, (ptr)(i0 - 1));
+        v_add(v_indices, (ptr)(i1 - 1));
+        v_add(v_indices, (ptr)(i2 - 1));
         return true;
     }
     return false;
@@ -299,6 +309,8 @@ load_obj_file(const char *fname,
             // Skip group names
         } else if (!strncmp(buf, "s ", 2)) {
             // Skip smooth shading
+        } else if (!strncmp(buf, "vt ", 2)) {
+            // Skip something
         } else if (!strncmp(buf, "f ", 2)) {
             if (!read_tri_indices(buf, tmp_v_indices, tmp_n_indices)) {
                 sprintf(err_buf, err_face_format, buf);
@@ -367,7 +379,7 @@ load_any_file(const char *fname,
         *n_normals = *n_verts;
         *n_indices = NULL;
         return ret;
-    } else if (!strcmp("obj", ext)) {
+    } else if (!strcmp("obj", ext) || !strcmp("OBJ", ext)) {
         return load_obj_file(fname,
                              n_tris, v_indices, n_indices,
                              n_verts, verts,
