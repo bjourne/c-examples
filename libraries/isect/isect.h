@@ -159,7 +159,7 @@ isect_mt_b(vec3 o, vec3 d,
     } else {
         return false;
     }
-    float inv_det = 1.0f / det;
+    float inv_det = 1 / det;
     *t = v3_dot(e2, qvec) * inv_det;
     uv->x *= inv_det;
     uv->y *= inv_det;

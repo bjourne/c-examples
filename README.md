@@ -14,6 +14,7 @@ directory:
  * `collectors` - An object model and a bunch of garbage collectors.
  * `quickfit` - A memory allocator based on the Quick Fit algorithm.
  * `linalg` - Trival linear algebra (3D) library.
+ * `isect` - A collection of ray/triangle intersection algorithms
 
 ## Tests
 
@@ -22,3 +23,7 @@ Test suites for the various libraries.
 ## Programs
 
 Demo programs of all kinds.
+
+### Raytracer
+
+A simple raytracer I built for fun.
