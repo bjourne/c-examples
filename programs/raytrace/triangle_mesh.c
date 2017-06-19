@@ -44,8 +44,6 @@ tm_from_file(char *fname, float scale, vec3 translate) {
         printf("Loading error: %s\n", f3d_get_error_string(f3d));
         return NULL;
     }
-
-
     // Scale and translate all vertices
     for (int i = 0; i < f3d->n_verts; i++) {
         vec3 v = f3d->verts[i];
@@ -59,9 +57,8 @@ tm_from_file(char *fname, float scale, vec3 translate) {
     for (int i = 0; i < me->n_tris * 3; i++) {
         me->verts[i] = f3d->verts[f3d->vertex_indices[i]];
     }
-
-
     me->normals = (vec3 *)malloc(sizeof(vec3) * f3d->n_tris * 3);
+
     if (f3d->n_normals > 0) {
         // Unpack indexed normals
         for (int i = 0; i < me->n_tris * 3; i++) {
@@ -82,12 +79,14 @@ tm_from_file(char *fname, float scale, vec3 translate) {
             me->normals[3 * i + 2] = normal;
         }
     }
-
     if (f3d->n_coords > 0) {
         me->coords = (vec2 *)malloc(sizeof(vec2) * f3d->n_tris * 3);
         for (int i = 0; i < me->n_tris * 3; i++) {
-            me->coords[i] = f3d->coords[f3d->coord_indices[i]];
+            int idx = f3d->coord_indices[i];
+            me->coords[i] = f3d->coords[idx];
         }
+    } else {
+        me->coords = NULL;
     }
     f3d_free(f3d);
     tm_intersect_precompute(me);
@@ -100,7 +99,6 @@ tm_get_surface_props(triangle_mesh *me, ray_intersection *ri,
     int t0 = 3 * ri->tri_idx;
     int t1 = 3 * ri->tri_idx + 1;
     int t2 = 3 * ri->tri_idx + 2;
-
     // Texture coordinates
     if (me->coords) {
         vec2 st0 = me->coords[t0];
@@ -111,7 +109,8 @@ tm_get_surface_props(triangle_mesh *me, ray_intersection *ri,
         vec2 st2_scaled = v2_scale(st2, ri->uv.y);
         *tex_coords = v2_add(v2_add(st0_scaled, st1_scaled), st2_scaled);
     } else {
-        *tex_coords = v2_scale(ri->uv, 0.01);
+        *tex_coords = (vec2){0.5, 0.5};
+        //*tex_coords = v2_scale(ri->uv, 0.01);
     }
     vec3 n0 = me->normals[t0];
     vec3 n1 = me->normals[t1];

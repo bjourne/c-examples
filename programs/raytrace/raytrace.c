@@ -188,7 +188,7 @@ main(int argc, char *argv[]) {
                                      rt->scale,
                                      rt->translate);
     if (!tm) {
-        error("Failed to read mesh from file '%s': %s\n",
+        error("Failed to read mesh from file '%s'.\n",
               rt->mesh_file);
     }
     int w = rt->width;
