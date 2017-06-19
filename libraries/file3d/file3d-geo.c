@@ -140,15 +140,17 @@ f3d_load_geo(file3d *me, FILE *f) {
         n_tris += faces[i] - 2;
     }
 
-    me->n_indices = n_tris * 3;
-    me->indices = (int *)malloc(sizeof(int) * me->n_indices);
-    me->normals = (vec3 *)malloc(sizeof(vec3) * me->n_indices);
-    me->coords = (vec2 *)malloc(sizeof(vec2) * me->n_indices);
+    me->n_tris = n_tris;
+    me->vertex_indices = (int *)malloc(sizeof(int) * n_tris * 3);
+    me->n_normals = n_tris * 3;
+    me->normals = (vec3 *)malloc(sizeof(vec3) * me->n_normals);
+    me->n_coords = n_tris * 3;
+    me->coords = (vec2 *)malloc(sizeof(vec2) * me->n_coords);
     for (int i = 0, k = 0, l = 0; i < n_faces; i++) {
         for (int j = 0; j < faces[i] - 2; j++) {
-            me->indices[l] = indices[k];
-            me->indices[l + 1] = indices[k + j + 1];
-            me->indices[l + 2] = indices[k + j + 2];
+            me->vertex_indices[l] = indices[k];
+            me->vertex_indices[l + 1] = indices[k + j + 1];
+            me->vertex_indices[l + 2] = indices[k + j + 2];
             me->normals[l] = normals[k];
             me->normals[l + 1] = normals[k + j + 1];
             me->normals[l + 2] = normals[k + j + 2];
@@ -159,6 +161,19 @@ f3d_load_geo(file3d *me, FILE *f) {
         }
         k += faces[i];
     }
+
+    // Normals aren't shared so we need to fake their indices.
+    me->normal_indices = (int *)malloc(sizeof(int) * n_tris * 3);
+    for (int i = 0; i < me->n_normals; i++) {
+        me->normal_indices[i] = i;
+    }
+
+    // Fake coord indexes in the same way.
+    me->coord_indices = (int *)malloc(sizeof(int) * n_tris * 3);
+    for (int i = 0; i < me->n_coords; i++) {
+        me->coord_indices[i] = i;
+    }
+
 
     free(faces);
     free(indices);

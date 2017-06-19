@@ -14,16 +14,18 @@ fname_ext(char *fname) {
 }
 
 
-static void
+void
 f3d_set_error(file3d *me, int error_code, char *error_line) {
+    if (error_line) {
+        me->error_line = strdup(error_line);
+    }
     me->error_code = error_code;
-    me->error_line = error_line;
 }
 
 file3d *
 f3d_load(char *filename) {
     file3d *me = (file3d *)malloc(sizeof(file3d));
-    me->indices = NULL;
+    me->vertex_indices = NULL;
     me->verts = NULL;
     me->normals = NULL;
     me->coords = NULL;
@@ -62,8 +64,8 @@ f3d_get_error_string(file3d *me) {
 
 void
 f3d_free(file3d *me) {
-    if (me->indices) {
-        free(me->indices);
+    if (me->vertex_indices) {
+        free(me->vertex_indices);
     }
     if (me->verts) {
         free(me->verts);

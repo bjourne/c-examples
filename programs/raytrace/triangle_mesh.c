@@ -3,11 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include "datatypes/common.h"
-
+#include "file3d/file3d.h"
 #include "isect/isect.h"
 #include "linalg/linalg.h"
 #include "triangle_mesh.h"
-#include "loaders.h"
 
 static void
 tm_intersect_precompute(triangle_mesh *me) {
@@ -27,7 +26,9 @@ tm_intersect_precompute(triangle_mesh *me) {
 void
 tm_free(triangle_mesh *me) {
     free(me->normals);
-    free(me->coords);
+    if (me->coords) {
+        free(me->coords);
+    }
     free(me->verts);
 #if ISECT_PC_P
     free(me->precomp);
@@ -36,52 +37,59 @@ tm_free(triangle_mesh *me) {
 }
 
 triangle_mesh *
-tm_from_file(const char *fname,
-             float scale, vec3 translate,
-             char *err_buf) {
-    triangle_mesh *me = (triangle_mesh *)malloc(sizeof(triangle_mesh));
+tm_from_file(char *fname, float scale, vec3 translate) {
 
-    int n_verts, n_normals;
-    vec3 *verts, *normals;
-    int *v_indices = NULL, *n_indices = NULL;
-
-    if (!load_any_file(fname,
-                       &me->n_tris, &v_indices, &n_indices,
-                       &n_verts, &verts,
-                       &n_normals, &normals,
-                       &me->coords,
-                       err_buf)) {
-        free(me);
+    file3d *f3d = f3d_load(fname);
+    if (f3d->error_code != FILE3D_ERR_NONE) {
+        printf("Loading error: %s\n", f3d_get_error_string(f3d));
         return NULL;
     }
-    for (int i = 0; i < n_verts; i++) {
-        vec3 v = verts[i];
-        v = v3_add(v3_scale(v, scale), translate);
-        verts[i] = v;
+
+
+    // Scale and translate all vertices
+    for (int i = 0; i < f3d->n_verts; i++) {
+        vec3 v = f3d->verts[i];
+        f3d->verts[i] = v3_add(v3_scale(v, scale), translate);
     }
-    // "Unpack" indexed vertices.
-    me->verts = (vec3 *)malloc(sizeof(vec3) * me->n_tris * 3);
+    triangle_mesh *me = (triangle_mesh *)malloc(sizeof(triangle_mesh));
+
+    // Unpack indexed vertices
+    me->n_tris = f3d->n_tris;
+    me->verts = (vec3 *)malloc(sizeof(vec3) * f3d->n_tris * 3);
     for (int i = 0; i < me->n_tris * 3; i++) {
-        int idx = v_indices[i];
-        me->verts[i] = verts[idx];
+        me->verts[i] = f3d->verts[f3d->vertex_indices[i]];
     }
 
-    // "Unpack" indexed normals.
-    if (n_indices) {
-        me->normals = (vec3 *)malloc(sizeof(vec3) * me->n_tris * 3);
+
+    me->normals = (vec3 *)malloc(sizeof(vec3) * f3d->n_tris * 3);
+    if (f3d->n_normals > 0) {
+        // Unpack indexed normals
         for (int i = 0; i < me->n_tris * 3; i++) {
-            me->normals[i] = normals[n_indices[i]];
+            int idx = f3d->normal_indices[i];
+            me->normals[i] = f3d->normals[idx];
         }
-        free(n_indices);
-    } else if (n_normals > 0) {
-        me->normals = (vec3 *)malloc(sizeof(vec3) * me->n_tris * 3);
-        for (int i = 0; i < me->n_tris * 3; i++) {
-            me->normals[i] = normals[i];
+    } else {
+        // Fake normals
+        for (int i = 0; i < me->n_tris; i++) {
+            vec3 v0 = me->verts[3 * i];
+            vec3 v1 = me->verts[3 * i + 1];
+            vec3 v2 = me->verts[3 * i + 2];
+            vec3 e1 = v3_sub(v1, v0);
+            vec3 e2 = v3_sub(v2, v0);
+            vec3 normal = v3_normalize(v3_cross(e1, e2));
+            me->normals[3 * i] = normal;
+            me->normals[3 * i + 1] = normal;
+            me->normals[3 * i + 2] = normal;
         }
     }
-    free(verts);
-    free(normals);
-    free(v_indices);
+
+    if (f3d->n_coords > 0) {
+        me->coords = (vec2 *)malloc(sizeof(vec2) * f3d->n_tris * 3);
+        for (int i = 0; i < me->n_tris * 3; i++) {
+            me->coords[i] = f3d->coords[f3d->coord_indices[i]];
+        }
+    }
+    f3d_free(f3d);
     tm_intersect_precompute(me);
     return me;
 }
@@ -103,24 +111,15 @@ tm_get_surface_props(triangle_mesh *me, ray_intersection *ri,
         vec2 st2_scaled = v2_scale(st2, ri->uv.y);
         *tex_coords = v2_add(v2_add(st0_scaled, st1_scaled), st2_scaled);
     } else {
-        *tex_coords = v2_scale(ri->uv, 10.0);
+        *tex_coords = v2_scale(ri->uv, 0.01);
     }
-    if (me->normals) {
-        vec3 n0 = me->normals[t0];
-        vec3 n1 = me->normals[t1];
-        vec3 n2 = me->normals[t2];
-        vec3 n0_scaled = v3_scale(n0, 1 - ri->uv.x - ri->uv.y);
-        vec3 n1_scaled = v3_scale(n1, ri->uv.x);
-        vec3 n2_scaled = v3_scale(n2, ri->uv.y);
-        *normal = v3_add(v3_add(n0_scaled, n1_scaled), n2_scaled);
-    } else {
-        vec3 v0 = me->verts[t0];
-        vec3 v1 = me->verts[t1];
-        vec3 v2 = me->verts[t2];
-        vec3 e1 = v3_sub(v1, v0);
-        vec3 e2 = v3_sub(v2, v0);
-        *normal = v3_normalize(v3_cross(e1, e2));
-    }
+    vec3 n0 = me->normals[t0];
+    vec3 n1 = me->normals[t1];
+    vec3 n2 = me->normals[t2];
+    vec3 n0_scaled = v3_scale(n0, 1 - ri->uv.x - ri->uv.y);
+    vec3 n1_scaled = v3_scale(n1, ri->uv.x);
+    vec3 n2_scaled = v3_scale(n2, ri->uv.y);
+    *normal = v3_add(v3_add(n0_scaled, n1_scaled), n2_scaled);
 }
 
 bool

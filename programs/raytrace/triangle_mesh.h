@@ -13,9 +13,7 @@ typedef struct _triangle_mesh {
 #endif
 } triangle_mesh;
 
-triangle_mesh *tm_from_file(const char *fname,
-                            float scale, vec3 translate,
-                            char *err_buf);
+triangle_mesh *tm_from_file(char *fname, float scale, vec3 translate);
 void tm_free(triangle_mesh *me);
 
 void tm_get_surface_props(triangle_mesh *me, ray_intersection *ri,

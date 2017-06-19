@@ -82,7 +82,12 @@ def build(ctx):
     source = ctx.path.ant_glob('programs/raytrace/*.c')
     ctx.program(source = source,
                 target = 'rt',
-                use = ['DT_OBJS', 'M', 'LINALG_OBJS', 'ISECT_OBJS'])
+                use = [
+                    'DT_OBJS',
+                    'FILE3D_OBJS',
+                    'M',
+                    'LINALG_OBJS',
+                    'ISECT_OBJS'])
 
     build_tests(ctx, 'isect',
                 ['LINALG_OBJS', 'DT_OBJS', 'M', 'ISECT_OBJS'])
