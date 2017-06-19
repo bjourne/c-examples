@@ -9,12 +9,15 @@ Currently four libraries I have developed while writing garbage
 collectors and other projects. They are located in the `libraries`
 directory:
 
+ * `collectors` - An object model and a bunch of garbage collectors.
  * `datatypes` - Standard datatypes for C programming like `vector`
    and `hashset`.
- * `collectors` - An object model and a bunch of garbage collectors.
- * `quickfit` - A memory allocator based on the Quick Fit algorithm.
- * `linalg` - Trival linear algebra (3D) library.
  * `isect` - A collection of ray/triangle intersection algorithms
+ * `linalg` - Trival linear algebra (3D) library.
+ * `quickfit` - A memory allocator based on the Quick Fit algorithm.
+
+No guarantee that the libraries are, or ever will be, complete. They
+were written because I personally needed them.
 
 ## Tests
 
