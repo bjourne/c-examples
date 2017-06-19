@@ -38,14 +38,9 @@ f3d_load(char *filename) {
 
     char *ext = fname_ext(filename);
     if (!strcmp("geo", ext)) {
-        if (!f3d_load_geo(me, f)) {
-            f3d_set_error(me, FILE3D_ERR_GEO_FORMAT, NULL);
-        }
+        f3d_load_geo(me, f);
     } else if (!strcmp("obj", ext) || !strcmp("OBJ", ext)) {
-        if (!f3d_load_obj(me, f)) {
-            f3d_set_error(me, FILE3D_ERR_OBJ_FORMAT, NULL);
-        }
-
+        f3d_load_obj(me, f);
     } else {
         f3d_set_error(me, FILE3D_ERR_UNKNOWN_EXTENSION, NULL);
     }
@@ -55,10 +50,17 @@ f3d_load(char *filename) {
 
 char *
 f3d_get_error_string(file3d *me) {
-    if (me->error_code == FILE3D_ERR_FILE_NOT_FOUND) {
-        return "File not found";
-    } else {
+    switch (me->error_code) {
+    case FILE3D_ERR_NONE:
         return "No error";
+    case FILE3D_ERR_FILE_NOT_FOUND:
+        return "File not found";
+    case FILE3D_ERR_OBJ_FACE_VARYING:
+        return "Obj: Varying faces detected";
+    case FILE3D_ERR_OBJ_LINE_UNPARSABLE:
+        return "Obj: Unparsable line";
+    default:
+        return "Unknown error";
     }
 }
 

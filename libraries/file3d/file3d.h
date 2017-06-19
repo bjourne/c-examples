@@ -8,9 +8,8 @@
 #define FILE3D_ERR_NONE                 0
 #define FILE3D_ERR_FILE_NOT_FOUND       1
 #define FILE3D_ERR_UNKNOWN_EXTENSION    2
-#define FILE3D_ERR_GEO_FORMAT           3
-#define FILE3D_ERR_OBJ_FORMAT           4
-#define FILE3D_ERR_OBJ_LINE_UNPARSABLE  5
+#define FILE3D_ERR_OBJ_FACE_VARYING     5
+#define FILE3D_ERR_OBJ_LINE_UNPARSABLE  6
 
 typedef struct {
     int n_tris;
@@ -33,8 +32,8 @@ typedef struct {
 } file3d;
 
 // Private
-bool f3d_load_geo(file3d *me, FILE *f);
-bool f3d_load_obj(file3d *me, FILE *f);
+void f3d_load_geo(file3d *me, FILE *f);
+void f3d_load_obj(file3d *me, FILE *f);
 void f3d_set_error(file3d *me, int error_code, char *error_line);
 
 // Public

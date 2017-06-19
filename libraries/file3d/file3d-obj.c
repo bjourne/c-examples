@@ -27,6 +27,8 @@ index_array_pack(vector *a, int n_vecs) {
         int idx = (int)a->array[i];
         if (idx < 0) {
             idx = n_vecs + idx;
+        } else {
+            idx -= 1;
         }
         pack[i] = idx;
     }
@@ -45,45 +47,84 @@ v3_array_pack(vector *a) {
     return out;
 }
 
+static vec2 *
+v2_array_pack(vector *a) {
+    int n = a->used / 2;
+    vec2 *out = (vec2 *)malloc(sizeof(vec2) * n);
+    for (int i  = 0; i < n; i++) {
+        out[i].x = ((int_or_float)a->array[2 * i]).f;
+        out[i].y = ((int_or_float)a->array[2 * i + 1]).f;
+    }
+    return out;
+}
+
+static void
+add_triple(vector *a, int i0, int i1, int i2) {
+    v_add(a, ((int_or_float)i0).p);
+    v_add(a, ((int_or_float)i1).p);
+    v_add(a, ((int_or_float)i2).p);
+}
+
 static bool
 str_to_tri_indices(char *buf,
                    vector *vertex_indices,
-                   vector *normal_indices) {
-    int i0, i1, i2;
+                   vector *normal_indices,
+                   vector *coord_indices) {
+    int vi0, vi1, vi2, vi3;
     int ni0, ni1, ni2;
-    int ti0, ti1, ti2;
-    if (sscanf(buf, "f %d %d %d", &i0, &i1, &i2) == 3) {
-        v_add(vertex_indices, (ptr)(i0 - 1));
-        v_add(vertex_indices, (ptr)(i1 - 1));
-        v_add(vertex_indices, (ptr)(i2 - 1));
+    int ti0, ti1, ti2, ti3;
+
+    // This approach is perhaps a little lazy. :)
+    if (sscanf(buf, "f %d %d %d %d", &vi0, &vi1, &vi2, &vi3) == 4) {
+        add_triple(vertex_indices, vi0, vi1, vi2);
+        add_triple(vertex_indices, vi0, vi2, vi3);
+        return true;
+    }
+    if (sscanf(buf, "f %d/%d %d/%d %d/%d %d/%d",
+               &vi0, &ti0,
+               &vi1, &ti1,
+               &vi2, &ti2,
+               &vi3, &ti3) == 8) {
+        add_triple(vertex_indices, vi0, vi1, vi2);
+        add_triple(coord_indices, ti0, ti1, ti2);
+        add_triple(vertex_indices, vi0, vi2, vi3);
+        add_triple(coord_indices, ti0, ti2, ti3);
+        return true;
+    }
+    if (sscanf(buf, "f %d %d %d", &vi0, &vi1, &vi2) == 3) {
+        add_triple(vertex_indices, vi0, vi1, vi2);
         return true;
     }
     if (sscanf(buf, "f %d//%d %d//%d %d//%d",
-               &i0, &ni0,
-               &i1, &ni1,
-               &i2, &ni2) == 6) {
-        v_add(vertex_indices, (ptr)(i0 - 1));
-        v_add(vertex_indices, (ptr)(i1 - 1));
-        v_add(vertex_indices, (ptr)(i2 - 1));
-        v_add(normal_indices, (ptr)(ni0 - 1));
-        v_add(normal_indices, (ptr)(ni1 - 1));
-        v_add(normal_indices, (ptr)(ni2 - 1));
+               &vi0, &ni0,
+               &vi1, &ni1,
+               &vi2, &ni2) == 6) {
+        add_triple(vertex_indices, vi0, vi1, vi2);
+        add_triple(normal_indices, ni0, ni1, ni2);
         return true;
     }
     if (sscanf(buf, "f %d/%d %d/%d %d/%d",
-               &i0, &ti0,
-               &i1, &ti1,
-               &i2, &ti2) == 6) {
-        v_add(vertex_indices, (ptr)(i0 - 1));
-        v_add(vertex_indices, (ptr)(i1 - 1));
-        v_add(vertex_indices, (ptr)(i2 - 1));
+               &vi0, &ti0,
+               &vi1, &ti1,
+               &vi2, &ti2) == 6) {
+        add_triple(vertex_indices, vi0, vi1, vi2);
+        add_triple(coord_indices, ti0, ti1, ti2);
+        return true;
+    }
+    if (sscanf(buf, "f %d/%d/%d %d/%d/%d %d/%d/%d",
+               &vi0, &ti0, &ni0,
+               &vi1, &ti1, &ni1,
+               &vi2, &ti2, &ni2) == 9) {
+        add_triple(vertex_indices, vi0, vi1, vi2);
+        add_triple(normal_indices, ni0, ni1, ni2);
+        add_triple(coord_indices, ti0, ti1, ti2);
         return true;
     }
     return false;
 }
 
 static bool
-str_to_vertex(char *buf, const char *fmt, vector *a) {
+str_to_v3(char *buf, const char *fmt, vector *a) {
     int_or_float x, y, z;
     if (sscanf(buf, fmt, &x.f, &y.f, &z.f) != 3) {
         return false;
@@ -94,24 +135,36 @@ str_to_vertex(char *buf, const char *fmt, vector *a) {
     return true;
 }
 
-bool
+static bool
+str_to_v2(char *buf, char *fmt, vector *a) {
+    int_or_float x, y;
+    if (sscanf(buf, fmt, &x.f, &y.f) != 2) {
+        return false;
+    }
+    v_add(a, x.i);
+    v_add(a, y.i);
+    return true;
+}
+
+void
 f3d_load_obj(file3d *me, FILE *f) {
     vector *verts = v_init(10);
     vector *normals = v_init(10);
+    vector *coords = v_init(10);
     vector *vertex_indices = v_init(10);
     vector *normal_indices = v_init(10);
+    vector *coord_indices = v_init(10);
     char buf[1024];
-    bool ret = false;
     while (fgets(buf, 1024, f)) {
         if (str_is_empty(buf)) {
             continue;
         }
         if (!strncmp(buf, "v ", 2)) {
-            if (!str_to_vertex(buf, "v %f %f %f", verts)) {
+            if (!str_to_v3(buf, "v %f %f %f", verts)) {
                 goto end;
             }
         } else if (!strncmp(buf, "vn ", 3)) {
-            if (!str_to_vertex(buf, "vn %f %f %f", normals)) {
+            if (!str_to_v3(buf, "vn %f %f %f", normals)) {
                 goto end;
             }
         } else if (!strncmp(buf, "#", 1)) {
@@ -125,11 +178,14 @@ f3d_load_obj(file3d *me, FILE *f) {
         } else if (!strncmp(buf, "s ", 2)) {
             // Skip smooth shading
         } else if (!strncmp(buf, "vt ", 2)) {
-            // Skip texture coords
+            if (!str_to_v2(buf, "vt %f %f", coords)) {
+                goto end;
+            }
         } else if (!strncmp(buf, "f ", 2)) {
             if (!str_to_tri_indices(buf,
                                     vertex_indices,
-                                    normal_indices)) {
+                                    normal_indices,
+                                    coord_indices)) {
                 goto end;
             }
         } else {
@@ -139,7 +195,17 @@ f3d_load_obj(file3d *me, FILE *f) {
             goto end;
         }
     }
-    me->n_tris = vertex_indices->used / 3;
+
+    int n_v_indices = vertex_indices->used;
+    int n_n_indices = normal_indices->used;
+    int n_c_indices = coord_indices->used;
+    if ((n_n_indices > 0 && n_n_indices != n_v_indices) ||
+        (n_c_indices > 0 && n_c_indices != n_v_indices)) {
+        f3d_set_error(me, FILE3D_ERR_OBJ_FACE_VARYING, NULL);
+        goto end;
+    }
+
+    me->n_tris = n_v_indices / 3;
 
     me->n_verts = verts->used / 3;
     me->verts = v3_array_pack(verts);
@@ -148,11 +214,15 @@ f3d_load_obj(file3d *me, FILE *f) {
     me->n_normals = normals->used / 3;
     me->normals = v3_array_pack(normals);
     me->normal_indices = index_array_pack(normal_indices, me->n_normals);
-    ret = true;
+
+    me->n_coords = coords->used / 2;
+    me->coords = v2_array_pack(coords);
+    me->coord_indices = index_array_pack(coord_indices, me->n_coords);
  end:
     v_free(verts);
     v_free(vertex_indices);
     v_free(normals);
     v_free(normal_indices);
-    return ret;
+    v_free(coords);
+    v_free(coord_indices);
 }

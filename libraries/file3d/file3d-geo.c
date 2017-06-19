@@ -94,22 +94,23 @@ v3_array_read(FILE *f, int n) {
     return arr;
 }
 
-bool
+// Error reporting is spotty
+void
 f3d_load_geo(file3d *me, FILE *f) {
     int n_faces;
     if (!int_read(f, &n_faces)) {
-        return false;
+        return;
     }
     int *faces = int_array_read(f, n_faces);
     if (!faces) {
-        return false;
+        return;
     }
     int n_indices = int_array_sum(faces, n_faces);
 
     int *indices = int_array_read(f, n_indices);
     if (!indices)  {
         free(faces);
-        return false;
+        return;
     }
     me->n_verts = int_array_max(indices, n_indices) + 1;
 
@@ -117,14 +118,14 @@ f3d_load_geo(file3d *me, FILE *f) {
     if (!me->verts) {
         free(faces);
         free(indices);
-        return false;
+        return;
     }
 
     vec3 *normals = v3_array_read(f, n_indices);
     if (!normals) {
         free(faces);
         free(indices);
-        return false;
+        return;
     }
 
     vec2 *coords = v2_array_read(f, n_indices);
@@ -179,5 +180,4 @@ f3d_load_geo(file3d *me, FILE *f) {
     free(indices);
     free(normals);
     free(coords);
-    return true;
 }
