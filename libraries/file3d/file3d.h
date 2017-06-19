@@ -1,6 +1,7 @@
 #ifndef FILES3D_H
 #define FILES3D_H
 
+#include <stdio.h>
 #include "linalg/linalg.h"
 
 // A simple library for loading 3d files.
@@ -8,6 +9,7 @@
 #define FILE3D_ERR_FILE_NOT_FOUND     1
 #define FILE3D_ERR_UNKNOWN_EXTENSION  2
 #define FILE3D_ERR_GEO_FORMAT         3
+#define FILE3D_ERR_OBJ_FORMAT         4
 
 typedef struct {
     int n_indices;
@@ -24,11 +26,13 @@ typedef struct {
     char *error_line;
 } file3d;
 
-file3d *
-f3d_load(char *filename);
+// Private
+bool f3d_load_geo(file3d *me, FILE *f);
+bool f3d_load_obj(file3d *me, FILE *f);
 
-void
-f3d_free(file3d *me);
+// Public
+file3d *f3d_load(char *filename);
+void f3d_free(file3d *me);
 
 
 #endif
