@@ -3,11 +3,13 @@
 #include "file3d/file3d.h"
 
 // Not sure how to do this. I don't want to put the models in the
-// repo.
+// repo. Most referenced files comes from:
+// http://graphics.cs.williams.edu/data/meshes.xml
 #define FILE_COW_GEO "/tmp/cow.geo"
 #define FILE_BUNNY_OBJ "/tmp/bunny.obj"
 #define FILE_BUNNY_2_OBJ "/tmp/bunny_2.obj"
 #define FILE_TEAPOT_GEO "/tmp/teapot.obj"
+#define FILE_HEAD_OBJ "/tmp/head.OBJ"
 
 void
 test_errors() {
@@ -46,6 +48,12 @@ test_obj() {
     assert(approx_eq(f->verts[0].x, 0.1102022));
     assert(approx_eq(f->verts[0].y, 0.74011));
     assert(approx_eq(f->verts[0].z, 1.132398));
+    f3d_free(f);
+
+    f = f3d_load(FILE_HEAD_OBJ);
+    assert(f->error_code == FILE3D_ERR_NONE);
+    assert(f->n_tris == 17684);
+    assert(f->n_coords == 35368);
     f3d_free(f);
 }
 
