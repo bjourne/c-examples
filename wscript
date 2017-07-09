@@ -35,6 +35,18 @@ def configure(ctx):
     ctx.env.append_value('INCLUDES', ['libraries'])
     if ctx.env.DEST_OS != 'win32':
         ctx.check(lib = 'pcre')
+        llvm_libs = ['core', 'executionengine', 'mcjit', 'native']
+        args = [
+            '--cxxflags',
+            '--ldflags',
+            '--libs',
+            ' '.join(llvm_libs),
+            '--system-libs'
+        ]
+        ctx.check_cfg(path = 'llvm-config-3.8',
+                      args = ' '.join(args),
+                      package = '',
+                      uselib_store = 'LLVM')
     ctx.check(lib = 'm')
     ctx.define('ISECT_METHOD', ctx.options.isect, quote = False)
     ctx.define('SHADING_STYLE', ctx.options.shading, quote = False)
@@ -78,6 +90,7 @@ def build(ctx):
                       ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
         build_program(ctx, 'sigsegv.c', [])
         build_program(ctx, 'pcre.c', ['PCRE'])
+        build_program(ctx, 'llvm-sum.cpp', ['LLVM'])
     # Raytracer
     source = ctx.path.ant_glob('programs/raytrace/*.c')
     ctx.program(source = source,
