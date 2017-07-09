@@ -1,4 +1,3 @@
-// gcc -o pcre pcre.c -lpcre
 #include <pcre.h>
 #include <stdio.h>
 
