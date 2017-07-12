@@ -5,14 +5,13 @@
 // But fixed to work with LLVM 3.8
 #include <stdio.h>
 #include <stdlib.h>
+#include <llvm-c/BitWriter.h>
 #include <llvm-c/Core.h>
 #include <llvm-c/ExecutionEngine.h>
 #include <llvm-c/Analysis.h>
 
-int
-main(int argc, char* argv[]) {
-    LLVMModuleRef mod = LLVMModuleCreateWithName("my_module");
-
+static LLVMValueRef
+build_sum_function(LLVMModuleRef mod) {
     LLVMTypeRef param_types[] = { LLVMInt32Type(), LLVMInt32Type() };
     LLVMTypeRef ret_type = LLVMFunctionType(LLVMInt32Type(),
                                             param_types,
@@ -28,6 +27,14 @@ main(int argc, char* argv[]) {
                                     "tmp");
     LLVMBuildRet(builder, tmp);
     LLVMDisposeBuilder(builder);
+    return sum;
+}
+
+
+int
+main(int argc, char* argv[]) {
+    LLVMModuleRef mod = LLVMModuleCreateWithName("my_module");
+    LLVMValueRef sum = build_sum_function(mod);
 
     char *error = NULL;
     LLVMVerifyModule(mod, LLVMAbortProcessAction, &error);
@@ -39,9 +46,8 @@ main(int argc, char* argv[]) {
     LLVMInitializeNativeTarget();
     LLVMInitializeNativeAsmPrinter();
     LLVMInitializeNativeAsmParser();
-    if (LLVMCreateExecutionEngineForModule(&engine, mod, &error) != 0) {
-        fprintf(stderr, "failed to create execution engine\n");
-        fprintf(stderr, "error: %s\n", error);
+    if (LLVMCreateExecutionEngineForModule(&engine, mod, &error)) {
+        printf("Failed to create execution engine: %s\n", error);
         LLVMDisposeMessage(error);
         return 1;
     }
@@ -51,6 +57,10 @@ main(int argc, char* argv[]) {
         = (int32_t (*)(int32_t, int32_t)) LLVMGetPointerToGlobal(engine, sum);
     // Run the code!
     printf("%d\n", funcPtr(x, y));
+    if (LLVMWriteBitcodeToFile(mod, "sum.bc")) {
+        printf("Error writing bitcode to file, skipping\n");
+        return 1;
+    }
     LLVMDumpModule(mod);
     LLVMDisposeExecutionEngine(engine);
     return 0;

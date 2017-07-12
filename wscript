@@ -90,7 +90,8 @@ def build(ctx):
                       ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
         build_program(ctx, 'sigsegv.c', [])
         build_program(ctx, 'pcre.c', ['PCRE'])
-        build_program(ctx, 'llvm-sum.cpp', ['LLVM'])
+        build_program(ctx, 'llvm-wbc.cpp', ['LLVM'])
+        build_program(ctx, 'llvm-rbc.cpp', ['LLVM'])
     # Raytracer
     source = ctx.path.ant_glob('programs/raytrace/*.c')
     ctx.program(source = source,
