@@ -1,23 +1,49 @@
 # c-examples
 C code I have written.
 
-The project consists of the following parts
+The project consists of the following parts.
 
 ## Libraries
 
-Currently four libraries I have developed while writing garbage
+Currently six libraries I have developed while writing garbage
 collectors and other projects. They are located in the `libraries`
-directory:
-
- * `collectors` - An object model and a bunch of garbage collectors.
- * `datatypes` - Standard datatypes for C programming like `vector`
-   and `hashset`.
- * `isect` - A collection of ray/triangle intersection algorithms
- * `linalg` - Trival linear algebra (3D) library.
- * `quickfit` - A memory allocator based on the Quick Fit algorithm.
+directory.
 
 No guarantee that the libraries are, or ever will be, complete. They
 were written because I personally needed them.
+
+### `libraries/collectors`
+
+An object model and a bunch of garbage collectors. These were written
+to teach myself about garbage collection strategies.
+
+* `copying.[ch]` - Bump pointer allocation and semi-space copying
+* `copying-opt.[ch]` - Optimized version of the above
+* `ref-counting.[ch]` - Plain reference counting
+* `ref-counting-cycles.[ch]` - Reference counting with cycle detection
+* `mark-sweep.[ch]` - Mark & Sweep gc
+
+### `libraries/datatypes`
+
+Standard datatypes for C programming like `vector` and `hashset`.
+
+### `libraries/isect`
+
+A collection of ray/triangle intersection algorithms. These are used by my raytracer.
+
+### `libraries/linalg`
+
+Trival linear algebra (3D) library. Contains things like matrix
+multiplication and stuff.
+
+### `libraries/quickfit`
+
+A memory allocator based on the Quick Fit algorithm. It's used by my
+garbage collectors.
+
+### `libraries/file3d`
+
+A library for loading 3d meshes.
 
 ## Tests
 
