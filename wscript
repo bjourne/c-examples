@@ -37,13 +37,13 @@ def configure(ctx):
         ctx.check(lib = 'pcre')
         llvm_libs = ['core', 'executionengine', 'mcjit', 'native']
         args = [
-            '--cxxflags',
+            '--cflags',
             '--ldflags',
             '--libs',
             ' '.join(llvm_libs),
             '--system-libs'
         ]
-        ctx.check_cfg(path = 'llvm-config-3.8',
+        ctx.check_cfg(path = 'llvm-config-3.9',
                       args = ' '.join(args),
                       package = '',
                       uselib_store = 'LLVM')
@@ -90,8 +90,8 @@ def build(ctx):
                       ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
         build_program(ctx, 'sigsegv.c', [])
         build_program(ctx, 'pcre.c', ['PCRE'])
-        build_program(ctx, 'llvm-wbc.cpp', ['LLVM'])
-        build_program(ctx, 'llvm-rbc.cpp', ['LLVM'])
+        build_program(ctx, 'llvm-wbc.c', ['LLVM'])
+        build_program(ctx, 'llvm-rbc.c', ['LLVM'])
     # Raytracer
     source = ctx.path.ant_glob('programs/raytrace/*.c')
     ctx.program(source = source,
