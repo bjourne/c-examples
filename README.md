@@ -1,10 +1,9 @@
-# c-examples
+# C examples
 C code I have written.
 
 The project consists of the following parts.
 
 ## Libraries
-
 Currently six libraries I have developed while writing garbage
 collectors and other projects. They are located in the `libraries`
 directory.
@@ -46,13 +45,26 @@ garbage collectors.
 A library for loading 3d meshes.
 
 ## Tests
-
 Test suites for the various libraries.
 
 ## Programs
-
 Demo programs of all kinds.
 
 ### Raytracer
+A simple raytracer I built for a project.
 
-A simple raytracer I built for fun.
+## Install instructions
+The project is built using
+the [WAF](https://github.com/waf-project/waf) tool. It requires you to
+have Python installed.
+
+First configure it:
+
+    $ ./waf configure
+
+The `--isect` and `--shading` options can be passed to control the
+compilation of the toy raytracer. Then build:
+
+    $ ./waf build
+
+All build artefacts are put in the `./build` directory.
