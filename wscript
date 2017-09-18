@@ -46,7 +46,9 @@ def configure(ctx):
         ctx.check_cfg(path = 'llvm-config-3.9',
                       args = ' '.join(args),
                       package = '',
-                      uselib_store = 'LLVM')
+                      uselib_store = 'LLVM',
+                      mandatory = False)
+
     ctx.check(lib = 'm')
     ctx.define('ISECT_METHOD', ctx.options.isect, quote = False)
     ctx.define('SHADING_STYLE', ctx.options.shading, quote = False)
@@ -90,6 +92,7 @@ def build(ctx):
                       ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
         build_program(ctx, 'sigsegv.c', [])
         build_program(ctx, 'pcre.c', ['PCRE'])
+    if ctx.env['LIB_LLVM']:
         build_program(ctx, 'llvm-wbc.c', ['LLVM'])
         build_program(ctx, 'llvm-rbc.c', ['LLVM'])
     # Raytracer
