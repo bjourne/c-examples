@@ -53,7 +53,11 @@ def configure(ctx):
     ctx.define('ISECT_METHOD', ctx.options.isect, quote = False)
     ctx.define('SHADING_STYLE', ctx.options.shading, quote = False)
 
-def build_library(ctx, path, target):
+def noinst_program(ctx, source, target, use):
+    ctx.program(source = source, target = target,
+                use = use, install_path = None)
+
+def build_objects(ctx, path, target):
     path = 'libraries/%s' % path
     objs = ctx.path.ant_glob('%s/*.c' % path)
     ctx.objects(source = objs, target = target)
@@ -64,20 +68,20 @@ def build_tests(ctx, path, use):
     for test in tests:
         from_path = test.path_from(ctx.path)
         target = splitext(from_path)[0]
-        ctx.program(source = [test], use = use, target = target)
+        noinst_program(ctx, [test], target, use)
 
 def build_program(ctx, fname, use):
     source = 'programs/%s' % fname
     target = 'programs/%s' % splitext(fname)[0]
-    ctx.program(source = source, target = target, use = use)
+    noinst_program(ctx, source, target, use)
 
 def build(ctx):
-    build_library(ctx, 'datatypes', 'DT_OBJS')
-    build_library(ctx, 'quickfit', 'QF_OBJS')
-    build_library(ctx, 'collectors', 'GC_OBJS')
-    build_library(ctx, 'linalg', 'LINALG_OBJS')
-    build_library(ctx, 'isect', 'ISECT_OBJS')
-    build_library(ctx, 'file3d', 'FILE3D_OBJS')
+    build_objects(ctx, 'datatypes', 'DT_OBJS')
+    build_objects(ctx, 'quickfit', 'QF_OBJS')
+    build_objects(ctx, 'collectors', 'GC_OBJS')
+    build_objects(ctx, 'linalg', 'LINALG_OBJS')
+    build_objects(ctx, 'isect', 'ISECT_OBJS')
+    build_objects(ctx, 'file3d', 'FILE3D_OBJS')
 
     build_tests(ctx, 'datatypes', ['DT_OBJS'])
     build_tests(ctx, 'quickfit', ['DT_OBJS', 'QF_OBJS'])
@@ -97,14 +101,12 @@ def build(ctx):
         build_program(ctx, 'llvm-rbc.c', ['LLVM'])
     # Raytracer
     source = ctx.path.ant_glob('programs/raytrace/*.c')
-    ctx.program(source = source,
-                target = 'rt',
-                use = [
-                    'DT_OBJS',
-                    'FILE3D_OBJS',
-                    'M',
-                    'LINALG_OBJS',
-                    'ISECT_OBJS'])
+    noinst_program(ctx, source, 'txt', [
+        'DT_OBJS',
+        'FILE3D_OBJS',
+        'M',
+        'LINALG_OBJS',
+        'ISECT_OBJS'])
 
     build_tests(ctx, 'isect',
                 ['LINALG_OBJS', 'DT_OBJS', 'M', 'ISECT_OBJS'])
