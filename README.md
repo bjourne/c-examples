@@ -1,5 +1,7 @@
 # C examples
-C code I have written.
+This project contains C code I have written. They say that only the
+one who reinvents the wheel truly understand how it works and in this
+project I spend a lot of time reinventing wheels.
 
 The project consists of the following parts.
 
@@ -24,7 +26,9 @@ to teach myself about garbage collection strategies.
 
 ### `libraries/datatypes`
 
-Standard datatypes for C programming like `vector` and `hashset`.
+Standard datatypes for C programming like `vector` and
+`hashset`. There is not a lot of documentation for these
+datatypes. Instead, I hope that the code is self-explanatory.
 
 ### `libraries/isect`
 
