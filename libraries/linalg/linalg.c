@@ -20,8 +20,8 @@ extern inline float to_deg(const float rad);
 
 
 // vec2 type
-inline vec2 v2_add(vec2 l, vec2 r);
-inline vec2 v2_scale(vec2 v, float f);
+extern inline vec2 v2_add(vec2 l, vec2 r);
+extern inline vec2 v2_scale(vec2 v, float f);
 
 void
 v2_print(vec2 v, int n_dec) {
