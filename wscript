@@ -75,11 +75,15 @@ def build_program(ctx, fname, use):
     target = 'programs/%s' % splitext(fname)[0]
     noinst_program(ctx, source, target, use)
 
-def build_library(ctx, path, target):
-    path = 'libraries/%s' % path
+def build_library(ctx, libname, target):
+    path = 'libraries/%s' % libname
     objs = ctx.path.ant_glob('%s/*.c' % path)
     ctx(features = 'c', source = objs, target = target)
     ctx(features = 'c cshlib', target = path, use = target)
+
+    # Installation of header files
+    ctx.install_files('${PREFIX}/include/' + libname,
+                      ctx.path.ant_glob('%s/*.h' % path))
 
 def build(ctx):
     build_library(ctx, 'datatypes', 'DT_OBJS')
