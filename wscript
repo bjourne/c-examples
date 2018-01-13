@@ -75,23 +75,26 @@ def build_program(ctx, fname, use):
     target = 'programs/%s' % splitext(fname)[0]
     noinst_program(ctx, source, target, use)
 
-def build_library(ctx, libname, target):
+def build_library(ctx, libname, target, uses = []):
     path = 'libraries/%s' % libname
     objs = ctx.path.ant_glob('%s/*.c' % path)
     ctx(features = 'c', source = objs, target = target)
-    ctx(features = 'c cshlib', target = path, use = target)
+    ctx(features = 'c cshlib',
+        target = libname,
+        use = [target] + uses)
 
     # Installation of header files
     ctx.install_files('${PREFIX}/include/' + libname,
                       ctx.path.ant_glob('%s/*.h' % path))
 
 def build(ctx):
-    build_library(ctx, 'datatypes', 'DT_OBJS')
-    build_library(ctx, 'quickfit', 'QF_OBJS')
-    build_library(ctx, 'collectors', 'GC_OBJS')
-    build_library(ctx, 'linalg', 'LINALG_OBJS')
-    build_library(ctx, 'isect', 'ISECT_OBJS')
-    build_library(ctx, 'file3d', 'FILE3D_OBJS')
+    build_library(ctx, 'datatypes', 'DT_OBJS', [])
+    build_library(ctx, 'quickfit', 'QF_OBJS', [])
+    build_library(ctx, 'collectors', 'GC_OBJS', [])
+    build_library(ctx, 'linalg', 'LINALG_OBJS', ['M'])
+    build_library(ctx, 'isect', 'ISECT_OBJS', [])
+    build_library(ctx, 'file3d', 'FILE3D_OBJS',
+                  ['datatypes', 'linalg'])
 
     build_tests(ctx, 'datatypes', ['DT_OBJS'])
     build_tests(ctx, 'quickfit', ['DT_OBJS', 'QF_OBJS'])
