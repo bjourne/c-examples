@@ -23,7 +23,6 @@ def configure(ctx):
     ctx.env.append_unique('CXXFLAGS', base_cxx_flags + extra_flags)
     ctx.env.append_value('INCLUDES', ['libraries'])
     if ctx.env.DEST_OS != 'win32':
-        ctx.check(lib = 'pcre')
         llvm_libs = ['core', 'executionengine', 'mcjit', 'native']
         args = [
             '--cflags',
@@ -37,7 +36,9 @@ def configure(ctx):
                       package = '',
                       uselib_store = 'LLVM',
                       mandatory = False)
-
+        ctx.check_cfg(package = 'libpcre',
+                      args = ['libpcre >= 8.33', '--cflags', '--libs'],
+                      uselib_store = 'PCRE')
     ctx.check(lib = 'm')
 
 def noinst_program(ctx, source, target, use):
