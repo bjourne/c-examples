@@ -227,7 +227,7 @@ test_torture() {
     }
     int n_roots = (int)vm_size(v);
     assert(n_roots == 100);
-    for (int i = 0; i < 40000000; i++) {
+    for (int i = 0; i < 10000000; i++) {
         ptr rand_arr = vm_get(v, rand_n(n_roots));
         int n_els = (int)*SLOT_P(*SLOT_P(rand_arr, 0), 0);
         ptr p = random_object(v);

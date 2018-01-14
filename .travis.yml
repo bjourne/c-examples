@@ -3,6 +3,8 @@ script:
   - ./waf configure build
   - ./build/tests/collectors/collectors
   - ./build/tests/collectors/mark-sweep
+  - ./build/tests/collectors/mark-sweep-bits
+  - ./build/tests/collectors/ref-counting
   - ./build/tests/isect/isect
   - ./build/tests/datatypes/vector
 os:
