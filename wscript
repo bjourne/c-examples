@@ -38,7 +38,8 @@ def configure(ctx):
                       mandatory = False)
         ctx.check_cfg(package = 'libpcre',
                       args = ['libpcre >= 8.33', '--cflags', '--libs'],
-                      uselib_store = 'PCRE')
+                      uselib_store = 'PCRE',
+                      mandatory = False)
     ctx.check(lib = 'm')
 
 def noinst_program(ctx, source, target, use):
@@ -98,6 +99,7 @@ def build(ctx):
         build_program(ctx, 'capstack.c',
                       ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
         build_program(ctx, 'sigsegv.c', [])
+    if ctx.env['LIB_PCRE']:
         build_program(ctx, 'pcre.c', ['PCRE'])
     if ctx.env['LIB_LLVM']:
         build_program(ctx, 'llvm-wbc.c', ['LLVM'])
