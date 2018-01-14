@@ -1,7 +1,9 @@
 # C examples
-This project contains C code I have written. They say that only the
-one who reinvents the wheel truly understand how it works and in this
-project I spend a lot of time reinventing wheels.
+
+This project contains C code I have written. A lot of it is stuff that
+already exists, that I now have my own versions of. It was written for
+fun because I love C coding. And they say that only the one who
+reinvents the wheel truly understand how it works. So there's that.
 
 The project consists of the following parts.
 
@@ -53,22 +55,3 @@ Test suites for the various libraries.
 
 ## Programs
 Demo programs of all kinds.
-
-### Raytracer
-A simple raytracer I built for a project.
-
-## Install instructions
-The project is built using
-the [WAF](https://github.com/waf-project/waf) tool. It requires you to
-have Python installed.
-
-First configure it:
-
-    $ ./waf configure
-
-The `--isect` and `--shading` options can be passed to control the
-compilation of the toy raytracer. Then build:
-
-    $ ./waf build
-
-All build artefacts are put in the `./build` directory.

@@ -2,18 +2,6 @@ from os.path import splitext
 
 def options(ctx):
     ctx.load('compiler_c compiler_cxx')
-    ctx.add_option(
-        '--isect',
-        type = 'string',
-        default = 'ISECT_MT',
-        help = 'Preferred intersection algorithm.'
-        )
-    ctx.add_option(
-        '--shading',
-        type = 'string',
-        default = 'FANCY_SHADING',
-        help = 'Preferred shading style.'
-        )
 
 def configure(ctx):
     ctx.load('compiler_c compiler_cxx')
@@ -50,8 +38,6 @@ def configure(ctx):
                       mandatory = False)
 
     ctx.check(lib = 'm')
-    ctx.define('ISECT_METHOD', ctx.options.isect, quote = False)
-    ctx.define('SHADING_STYLE', ctx.options.shading, quote = False)
 
 def noinst_program(ctx, source, target, use):
     ctx.program(source = source, target = target,
@@ -114,11 +100,3 @@ def build(ctx):
     if ctx.env['LIB_LLVM']:
         build_program(ctx, 'llvm-wbc.c', ['LLVM'])
         build_program(ctx, 'llvm-rbc.c', ['LLVM'])
-    # Raytracer
-    source = ctx.path.ant_glob('programs/raytrace/*.c')
-    noinst_program(ctx, source, 'rt', [
-        'DT_OBJS',
-        'FILE3D_OBJS',
-        'M',
-        'LINALG_OBJS',
-        'ISECT_OBJS'])
