@@ -1,6 +1,9 @@
 language: c
 script:
   - ./waf configure build
+  - ./build/tests/collectors/collectors
+  - ./build/tests/collectors/mark-sweep
+  - ./build/tests/isect/isect
   - ./build/tests/datatypes/vector
 os:
   - linux
