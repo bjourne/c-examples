@@ -10,7 +10,7 @@
 
 static ptr
 get_stack_pointer() {
-    register ptr stack asm("rsp");
+    register ptr stack asm("rsp") = 0;
     return stack + 16;
 }
 
