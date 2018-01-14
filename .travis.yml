@@ -1,5 +1,8 @@
 language: c
 script: ./waf configure build
+os:
+  - linux
+  - osx
 compiler:
   - clang
   - gcc
