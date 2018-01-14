@@ -6,20 +6,21 @@ def options(ctx):
 def configure(ctx):
     ctx.load('compiler_c compiler_cxx')
     if ctx.env.DEST_OS == 'win32':
-        base_flags = ['/WX', '/W3', '/O2', '/EHsc']
+        base_c_flags = ['/WX', '/W3', '/O2', '/EHsc']
+        base_cxx_flags = base_c_flags
         debug_flags = ['/Zi', '/FS']
         speed_flags = []
     else:
-        base_flags = ['-Wall', '-Werror', '-fPIC']
+        base_c_flags = ['-Wall', '-Werror', '-fPIC', '-std=gnu11']
+        base_cxx_flags = ['-Wall', '-Werror', '-fPIC']
         speed_flags = ['-O3',
                        '-fomit-frame-pointer',
                        '-march=native',
                        '-mtune=native']
         debug_flags = ['-O2', '-g']
     extra_flags = speed_flags
-    ctx.env.append_unique('CFLAGS',
-                          base_flags + extra_flags)
-    ctx.env.append_unique('CXXFLAGS', base_flags + extra_flags)
+    ctx.env.append_unique('CFLAGS', base_c_flags + extra_flags)
+    ctx.env.append_unique('CXXFLAGS', base_cxx_flags + extra_flags)
     ctx.env.append_value('INCLUDES', ['libraries'])
     if ctx.env.DEST_OS != 'win32':
         ctx.check(lib = 'pcre')
