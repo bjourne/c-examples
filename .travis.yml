@@ -1,5 +1,7 @@
 language: c
-script: ./waf configure build
+script:
+  - ./waf configure build
+  - ./build/tests/datatypes/vector
 os:
   - linux
   - osx
