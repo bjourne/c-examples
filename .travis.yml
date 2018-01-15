@@ -5,8 +5,19 @@ script:
   - ./build/tests/collectors/mark-sweep
   - ./build/tests/collectors/mark-sweep-bits
   - ./build/tests/collectors/ref-counting
-  - ./build/tests/isect/isect
+  - ./build/tests/datatypes/bitarray
+  - ./build/tests/datatypes/bits
+  - ./build/tests/datatypes/bstree
+  - ./build/tests/datatypes/common
+  - ./build/tests/datatypes/hashset
+  - ./build/tests/datatypes/heap
+  - ./build/tests/datatypes/onesie
+  - ./build/tests/datatypes/rbtree
   - ./build/tests/datatypes/vector
+  - ./build/tests/isect/isect
+  - ./build/tests/linalg/linalg
+  - ./build/tests/quickfit/quickfit
+
 os:
   - linux
   - osx
