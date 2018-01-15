@@ -120,7 +120,8 @@ qf_print(quick_fit *me) {
     while (iter < end) {
         size_t size = QF_GET_BLOCK_SIZE(iter);
         ptr rel_addr = iter - me->start;
-        printf("@%5" PRIu64 ": %4" PRIu64 "\n", rel_addr, size);
+        printf("@%5" PRIuPTR ": %4llu\n",
+               rel_addr, (unsigned long long)size);
         iter += size;
     }
 }
