@@ -60,11 +60,12 @@ static
 void p_print(int ind, size_t n, ptr p) {
     for (int x = 0; x < ind; x++) { putchar(' '); }
     if (p == 0) {
-        printf("%2" PRId64 ": null\n", n);
+        printf("%2llu: null\n", (unsigned long long)n);
         return;
     }
     unsigned int t = P_GET_TYPE(p);
-    printf("%2" PRId64 ": %s @ 0x%" PRIx64 ": ", n, type_name(t), p);
+    printf("%2llu: %s @ 0x%" PRIxPTR ": ",
+           (unsigned long long)n, type_name(t), p);
     if (t == TYPE_FLOAT) {
         printf("%.3f", *(double*)SLOT_P(p, 0));
     } else if (t == TYPE_INT) {
