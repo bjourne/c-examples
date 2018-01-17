@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
         hs_add(hs, el);
     }
 
-    HS_FOR_EACH_ITEM(hs, { printf("%" PRIu64 "\n", p); });
+    HS_FOR_EACH_ITEM(hs, { printf("%" PRIuPTR "\n", p); });
 
     hs_free(hs);
 
