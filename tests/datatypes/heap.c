@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
     }
 
     while (v->used) {
-        printf("el %" PRIu64 "\n", hp_remove(v));
+        printf("el %" PRIuPTR "\n", hp_remove(v));
     }
     v_free(v);
     return 0;
