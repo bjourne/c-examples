@@ -65,7 +65,7 @@ test_torture_3() {
     for (uint64_t i = 0; i < count; i++) {
         map.erase(v[i]);
     }
-    printf("%" PRIu64 " elements in set\n", map.size());
+    printf("%zu elements in set\n", map.size());
 }
 
 int
