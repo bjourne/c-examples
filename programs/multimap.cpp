@@ -49,7 +49,7 @@ test_torture_2() {
         int key = rand();
         map.insert(std::make_pair(key, key));
     }
-    printf("%" PRIu64 " elements in set\n", map.size());
+    printf("%zu elements in set\n", map.size());
 }
 
 void
