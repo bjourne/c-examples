@@ -2,13 +2,16 @@
 #ifndef LINALG_H
 #define LINALG_H
 
+// Needed to make msvc happy
+#define _USE_MATH_DEFINES
 #include <math.h>
+
 #include <stdbool.h>
 
 // A simple linear algebra library for C.
 
 // Approximations
-#define LINALG_EPSILON 1e-8
+#define LINALG_EPSILON 1e-8f
 
 inline bool
 approx_eq2(float x, float y, float epsilon) {
@@ -23,12 +26,12 @@ approx_eq(float x, float y) {
 // Trigonometry
 inline float
 to_rad(const float deg) {
-    return deg * M_PI / 180;
+    return deg * (float)M_PI / 180;
 }
 
 inline float
 to_deg(const float rad) {
-    return rad * (180.0f / M_PI);
+    return rad * (180.0f / (float)M_PI);
 }
 
 // vec2 type

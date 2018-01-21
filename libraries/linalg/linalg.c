@@ -6,7 +6,11 @@
 static void
 print_float(float f, int n_dec) {
     char buf[256];
+    #ifdef _MSC_VER
+    sprintf_s(buf, 256, "%%.%df", n_dec);
+    #else
     sprintf(buf, "%%.%df", n_dec);
+    #endif
     printf(buf, f);
 }
 
@@ -189,7 +193,7 @@ m4_look_at(vec3 eye, vec3 center, vec3 up) {
 
 mat4
 m4_perspective(float rad, float ar, float near, float far) {
-    float tan_half = tan(rad / 2.0f);
+    float tan_half = (float)tan(rad / 2.0f);
     mat4 res = {
         {{0}}
     };
