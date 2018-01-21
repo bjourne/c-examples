@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -82,9 +83,10 @@ rand_init(unsigned int seed) {
 
 void
 rand_shuffle(void *array, size_t n, size_t size) {
-    char tmp[size];
     char *arr = array;
     size_t stride = size * sizeof(char);
+    char tmp[128];
+    assert(size <= 128);
 
     if (n > 1) {
         size_t i;
