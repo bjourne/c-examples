@@ -1,0 +1,8 @@
+EXPORTS
+    qf_allot_block
+    qf_can_allot_p
+    qf_clear
+    qf_free
+    qf_free_block
+    qf_init
+    qf_space_used

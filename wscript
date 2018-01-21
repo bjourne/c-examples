@@ -40,7 +40,7 @@ def configure(ctx):
                       args = ['libpcre >= 8.33', '--cflags', '--libs'],
                       uselib_store = 'PCRE',
                       mandatory = False)
-    ctx.check(lib = 'm')
+        ctx.check(lib = 'm')
 
 def noinst_program(ctx, source, target, use):
     ctx.program(source = source, target = target,
@@ -64,13 +64,16 @@ def build_program(ctx, fname, use):
     target = 'programs/%s' % splitext(fname)[0]
     noinst_program(ctx, source, target, use)
 
-def build_library(ctx, libname, target, uses = []):
+def build_library(ctx, libname, target, uses):
     path = 'libraries/%s' % libname
+    defs_file = '%s/%s.def' % (path, libname)
     objs = ctx.path.ant_glob('%s/*.c' % path)
+
     ctx(features = 'c', source = objs, target = target)
     ctx(features = 'c cshlib',
         target = libname,
-        use = [target] + uses)
+        use = [target] + uses,
+        defs = defs_file)
 
     # Installation of header files
     ctx.install_files('${PREFIX}/include/' + libname,
@@ -78,8 +81,8 @@ def build_library(ctx, libname, target, uses = []):
 
 def build(ctx):
     build_library(ctx, 'datatypes', 'DT_OBJS', [])
-    build_library(ctx, 'quickfit', 'QF_OBJS', [])
-    build_library(ctx, 'collectors', 'GC_OBJS', [])
+    build_library(ctx, 'quickfit', 'QF_OBJS', ['datatypes'])
+    build_library(ctx, 'collectors', 'GC_OBJS', ['quickfit'])
     build_library(ctx, 'linalg', 'LINALG_OBJS', ['M'])
     build_library(ctx, 'isect', 'ISECT_OBJS', [])
     build_library(ctx, 'file3d', 'FILE3D_OBJS',
@@ -98,6 +101,8 @@ def build(ctx):
     if ctx.env.DEST_OS != 'win32':
         build_program(ctx, 'capstack.c',
                       ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
+    else:
+        build_program(ctx, 'winthreads.c', [])
         build_program(ctx, 'sigsegv.c', [])
     if ctx.env['LIB_PCRE']:
         build_program(ctx, 'pcre.c', ['PCRE'])
