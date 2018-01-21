@@ -12,7 +12,7 @@ msb_init(ptr start, size_t size) {
     mark_sweep_bits_gc *me = malloc(sizeof(mark_sweep_bits_gc));
     me->mark_stack = v_init(16);
     me->qf = qf_init(start, size);
-    me->ba = ba_init(size / QF_DATA_ALIGNMENT);
+    me->ba = ba_init((int)(size / QF_DATA_ALIGNMENT));
     return me;
 }
 
@@ -26,7 +26,7 @@ msb_free(mark_sweep_bits_gc* me) {
 
 static inline int
 msb_address_to_bit(mark_sweep_bits_gc *me, ptr p) {
-    return (p - me->qf->start) / QF_DATA_ALIGNMENT;
+    return (int)((p - me->qf->start) / QF_DATA_ALIGNMENT);
 }
 
 static inline ptr
@@ -41,7 +41,7 @@ msb_mark_step(mark_sweep_bits_gc *me, vector *v, ptr p) {
     assert(bit_addr >= 0);
     if (!ba_get_bit(me->ba, bit_addr)) {
         size_t block_size = QF_GET_BLOCK_SIZE(p);
-        int n_bits = block_size / QF_DATA_ALIGNMENT;
+        int n_bits = (int)(block_size / QF_DATA_ALIGNMENT);
         ba_set_bit_range(me->ba, bit_addr, n_bits);
         v_add(v, p);
     }
