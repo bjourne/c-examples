@@ -26,12 +26,12 @@ approx_eq(float x, float y) {
 // Trigonometry
 inline float
 to_rad(const float deg) {
-    return deg * (float)M_PI / 180;
+    return (float)(deg * M_PI / 180.0);
 }
 
 inline float
 to_deg(const float rad) {
-    return rad * (180.0f / (float)M_PI);
+    return (float)(rad * 180.0 / M_PI);
 }
 
 // vec2 type
