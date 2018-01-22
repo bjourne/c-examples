@@ -66,6 +66,7 @@ void ba_clear(bitarray *me);
 int ba_next_unset_bit(bitarray *me, int start);
 int ba_next_set_bit(bitarray *me, int start);
 
-int ba_bitsum(bitarray *me);
+// Count of the number of lit bits in a bitarray.
+unsigned int ba_bitsum(bitarray *me);
 
 #endif

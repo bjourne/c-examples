@@ -1,5 +1,6 @@
 #include <string.h>
 #include "bitarray.h"
+#include "bits.h"
 
 #define WORD_MASK   (BA_WORD_BITS - 1)
 
@@ -32,7 +33,7 @@ ba_get_bit(bitarray *me, int addr) {
     int word_idx = addr / BA_WORD_BITS;
     int bit_idx = addr & WORD_MASK;
     ptr p = me->bits + word_idx * sizeof(ptr);
-    return AT(p) & (1L << bit_idx);
+    return AT(p) & ((ptr)1 << bit_idx);
 }
 
 void
@@ -40,7 +41,7 @@ ba_set_bit(bitarray *me, int addr) {
     int word_idx = addr / BA_WORD_BITS;
     int bit_idx = addr & WORD_MASK;
     ptr p = me->bits + word_idx * sizeof(ptr);
-    AT(p) |= 1L << bit_idx;
+    AT(p) |= (ptr)1 << bit_idx;
 }
 
 void
@@ -51,8 +52,8 @@ ba_set_bit_range(bitarray *me, int addr, int n) {
     int bit_start_idx = addr & WORD_MASK;
     int bit_end_idx = (addr + n) & WORD_MASK;
 
-    ptr start_mask = (1L << bit_start_idx) - 1L;
-    ptr end_mask = (1L << bit_end_idx) - 1L;
+    ptr start_mask = ((ptr)1 << bit_start_idx) - (ptr)1;
+    ptr end_mask = ((ptr)1 << bit_end_idx) - (ptr)1;
 
     ptr p = me->bits + word_start_idx * sizeof(ptr);
     if (word_start_idx == word_end_idx) {
@@ -115,11 +116,11 @@ ba_next_set_bit(bitarray *me, int addr) {
     return me->n_bits;
 }
 
-int
+unsigned int
 ba_bitsum(bitarray *me) {
-    int sum = 0;
+    unsigned int sum = 0;
     for (int i = 0; i < me->n_words; i++) {
-        ptr count = __builtin_popcountl(AT(me->bits + i * sizeof(ptr)));
+        unsigned int count = BIT_COUNT(AT(me->bits + i * sizeof(ptr)));
         sum += count;
     }
     return sum;
