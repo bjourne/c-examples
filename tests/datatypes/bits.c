@@ -21,7 +21,15 @@ test_mask() {
     assert(BF_GET(m, 0, 4) == 2);
 }
 
+void
+test_float_bits() {
+    float floats[2] = {1.0f, -1.0f};
+    assert(FLOAT_BITS(floats[0]) == 0x3f800000);
+    assert(FLOAT_BITS(floats[1]) == 0xbf800000);
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_mask);
+    PRINT_RUN(test_float_bits);
 }

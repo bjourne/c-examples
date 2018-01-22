@@ -15,4 +15,12 @@
 #define P_GET(p, start, len)        BF_GET(AT(p), start, len)
 #define P_SET(p, n, start, len)     AT(p) = BF_MERGE(AT(p), n, start, len)
 
+// This function is borrowed from math.h in musl.
+inline unsigned FLOAT_BITS(float f)
+{
+	union {float f; unsigned i;} u;
+	u.f = f;
+	return u.i;
+}
+
 #endif
