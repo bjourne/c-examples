@@ -24,8 +24,8 @@ test_mask() {
 void
 test_float_bits() {
     float floats[2] = {1.0f, -1.0f};
-    assert(FLOAT_BITS(floats[0]) == 0x3f800000);
-    assert(FLOAT_BITS(floats[1]) == 0xbf800000);
+    assert(BW_FLOAT_TO_UINT(floats[0]) == 0x3f800000);
+    assert(BW_FLOAT_TO_UINT(floats[1]) == 0xbf800000);
 }
 
 void

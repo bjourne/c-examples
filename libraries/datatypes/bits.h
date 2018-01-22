@@ -16,11 +16,25 @@
 #define P_SET(p, n, start, len)     AT(p) = BF_MERGE(AT(p), n, start, len)
 
 // This function is borrowed from math.h in musl.
+// BW = BitWise
 inline unsigned int
-FLOAT_BITS(float f) {
-	union {float f; unsigned int i;} u;
+BW_FLOAT_TO_UINT(float f) {
+	union {
+            float f;
+            unsigned int u;
+        } u;
 	u.f = f;
-	return u.i;
+	return u.u;
+}
+
+inline float
+BW_PTR_TO_FLOAT(ptr p) {
+    union {
+        float f;
+        ptr p;
+    } u;
+    u.p = p;
+    return u.f;
 }
 
 inline unsigned int
