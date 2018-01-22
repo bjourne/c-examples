@@ -1,8 +1,13 @@
 from glob import glob
-from os import system
+from os import X_OK, access, system, walk
 from os.path import join
 
-all_tests_glob = join('build', 'tests', '**', '*.exe')
+def all_unit_tests():
+    for root, _, files in walk('build/tests'):
+        for name in files:
+            path = join(root, name)
+            if access(path, X_OK):
+                yield path
 
-for fname in glob(all_tests_glob)[:6]:
-    system(fname)
+for test in all_unit_tests():
+    system(test)
