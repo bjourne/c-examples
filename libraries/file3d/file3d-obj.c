@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include <string.h>
 
+#include "datatypes/bits.h"
 #include "datatypes/vector.h"
 #include "file3d/file3d.h"
 
@@ -37,32 +38,32 @@ index_array_pack(vector *a, int n_vecs) {
 
 static vec3 *
 v3_array_pack(vector *a) {
-    int n = a->used / 3;
+    size_t n = a->used / 3;
     vec3 *out = (vec3 *)malloc(sizeof(vec3) * n);
     for (int i = 0; i < n; i++) {
-        out[i].x = ((int_or_float)a->array[3 * i]).f;
-        out[i].y = ((int_or_float)a->array[3 * i + 1]).f;
-        out[i].z = ((int_or_float)a->array[3 * i + 2]).f;
+        out[i].x = BW_PTR_TO_FLOAT(a->array[3 * i]);
+        out[i].y = BW_PTR_TO_FLOAT(a->array[3 * i + 1]);
+        out[i].z = BW_PTR_TO_FLOAT(a->array[3 * i + 2]);
     }
     return out;
 }
 
 static vec2 *
 v2_array_pack(vector *a) {
-    int n = a->used / 2;
+    size_t n = a->used / 2;
     vec2 *out = (vec2 *)malloc(sizeof(vec2) * n);
     for (int i  = 0; i < n; i++) {
-        out[i].x = ((int_or_float)a->array[2 * i]).f;
-        out[i].y = ((int_or_float)a->array[2 * i + 1]).f;
+        out[i].x = BW_PTR_TO_FLOAT(a->array[2 * i]);
+        out[i].y = BW_PTR_TO_FLOAT(a->array[2 * i + 1]);
     }
     return out;
 }
 
 static void
 add_triple(vector *a, int i0, int i1, int i2) {
-    v_add(a, ((int_or_float)i0).p);
-    v_add(a, ((int_or_float)i1).p);
-    v_add(a, ((int_or_float)i2).p);
+    v_add(a, (ptr)i0);
+    v_add(a, (ptr)i1);
+    v_add(a, (ptr)i2);
 }
 
 static bool
@@ -196,9 +197,9 @@ f3d_load_obj(file3d *me, FILE *f) {
         }
     }
 
-    int n_v_indices = vertex_indices->used;
-    int n_n_indices = normal_indices->used;
-    int n_c_indices = coord_indices->used;
+    int n_v_indices = (int)vertex_indices->used;
+    int n_n_indices = (int)normal_indices->used;
+    int n_c_indices = (int)coord_indices->used;
     if ((n_n_indices > 0 && n_n_indices != n_v_indices) ||
         (n_c_indices > 0 && n_c_indices != n_v_indices)) {
         f3d_set_error(me, FILE3D_ERR_OBJ_FACE_VARYING, NULL);
@@ -206,16 +207,15 @@ f3d_load_obj(file3d *me, FILE *f) {
     }
 
     me->n_tris = n_v_indices / 3;
-
-    me->n_verts = verts->used / 3;
+    me->n_verts = (int)verts->used / 3;
     me->verts = v3_array_pack(verts);
     me->vertex_indices = index_array_pack(vertex_indices, me->n_verts);
 
-    me->n_normals = normals->used / 3;
+    me->n_normals = (int)normals->used / 3;
     me->normals = v3_array_pack(normals);
     me->normal_indices = index_array_pack(normal_indices, me->n_normals);
 
-    me->n_coords = coords->used / 2;
+    me->n_coords = (int)coords->used / 2;
     me->coords = v2_array_pack(coords);
     me->coord_indices = index_array_pack(coord_indices, me->n_coords);
  end:

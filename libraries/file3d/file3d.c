@@ -13,7 +13,6 @@ fname_ext(char *fname) {
     return dot + 1;
 }
 
-
 void
 f3d_set_error(file3d *me, int error_code, char *error_line) {
     if (error_line) {
