@@ -4,7 +4,7 @@
 
 #include "file3d/file3d.h"
 
-bool
+static bool
 int_read(FILE *f, int *value) {
     int ret = fscanf(f, "%d", value);
     return ret == 1;
@@ -16,7 +16,7 @@ float_read(FILE *f, float *value) {
     return ret == 1;
 }
 
-int *
+static int *
 int_array_read(FILE *f, int n) {
     int *arr = (int *)malloc(sizeof(int) * n);
     for (int i = 0; i < n; i++) {
@@ -58,7 +58,7 @@ v2_read(vec2 *vec, FILE *f) {
     return true;
 }
 
-vec2 *
+static vec2 *
 v2_array_read(FILE *f, int n) {
     vec2 *arr = (vec2 *)malloc(sizeof(vec2) * n);
     for (int i = 0; i < n; i++) {
@@ -83,7 +83,7 @@ v3_read(vec3 *vec, FILE *f) {
     return true;
 }
 
-vec3 *
+static vec3 *
 v3_array_read(FILE *f, int n) {
     vec3 *arr = (vec3 *)malloc(sizeof(vec3) * n);
     for (int i = 0; i < n; i++) {
