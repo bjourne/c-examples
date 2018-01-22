@@ -308,9 +308,10 @@ isect_shev_ending(float det, float dett,
     uv->x = D->e2v * Du - D->e2u * Dv;
     uv->y = D->e1u * Dv - D->e1v * Du;
     float tmpdet0 = det - uv->x - uv->y;
-    int pdet0 = ((int_or_float)tmpdet0).i;
-    int pdetu = ((int_or_float)uv->x).i;
-    int pdetv = ((int_or_float)uv->y).i;
+
+    int pdet0 = *(int *)&tmpdet0;
+    int pdetu = *(int *)&uv->x;
+    int pdetv = *(int *)&uv->y;
     pdet0 = pdet0 ^ pdetu;
     pdet0 = pdet0 | (pdetu ^ pdetv);
     if (pdet0 & 0x80000000)
@@ -359,9 +360,9 @@ isect_hh(vec3 o, vec3 d, float *t, vec2 *uv, isect_hh_data *D) {
     uv->x = v3_dot(wr, D->n1) + det * D->d1;
     uv->y = v3_dot(wr, D->n2) + det * D->d2;
     float tmpdet0 = det - uv->x - uv->y;
-    int pdet0 = ((int_or_float)tmpdet0).i;
-    int pdetu = ((int_or_float)uv->x).i;
-    int pdetv = ((int_or_float)uv->y).i;
+    int pdet0 = *(int *)&tmpdet0;
+    int pdetu = *(int *)&uv->x;
+    int pdetv = *(int *)&uv->y;
     pdet0 = pdet0 ^ pdetu;
     pdet0 = pdet0 | (pdetu ^ pdetv);
     if (pdet0 & 0x80000000)
