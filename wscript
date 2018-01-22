@@ -5,8 +5,16 @@ def options(ctx):
 
 def configure(ctx):
     ctx.load('compiler_c compiler_cxx')
-    if ctx.env.DEST_OS == 'win32':
-        base_c_flags = ['/WX', '/W3', '/O2', '/EHsc']
+
+    if ctx.env.CC_NAME == 'msvc':
+        print 'MSVC'
+        base_c_flags = [
+            '/WX', '/W3', '/O2', '/EHsc',
+            # Without these flags, msvc generates a billion bullshit
+            # warnings.
+            '/D_CRT_SECURE_NO_WARNINGS',
+            '/D_CRT_NONSTDC_NO_DEPRECATE'
+        ]
         base_cxx_flags = base_c_flags
         debug_flags = ['/Zi', '/FS']
         speed_flags = []
@@ -101,9 +109,10 @@ def build(ctx):
     if ctx.env.DEST_OS != 'win32':
         build_program(ctx, 'capstack.c',
                       ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
+        build_program(ctx, 'sigsegv.c', [])
     else:
         build_program(ctx, 'winthreads.c', [])
-        build_program(ctx, 'sigsegv.c', [])
+
     if ctx.env['LIB_PCRE']:
         build_program(ctx, 'pcre.c', ['PCRE'])
     if ctx.env['LIB_LLVM']:
