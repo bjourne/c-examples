@@ -28,8 +28,18 @@ test_float_bits() {
     assert(FLOAT_BITS(floats[1]) == 0xbf800000);
 }
 
+void
+test_bit_count() {
+    assert(BIT_COUNT(0) == 0);
+    assert(BIT_COUNT(1) == 1);
+    assert(BIT_COUNT(2) == 1);
+    assert(BIT_COUNT(3) == 2);
+    assert(BIT_COUNT(0xffffffffffffffff) == 64);
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_mask);
     PRINT_RUN(test_float_bits);
+    PRINT_RUN(test_bit_count);
 }

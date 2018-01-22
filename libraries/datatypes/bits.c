@@ -1,3 +1,4 @@
 #include "bits.h"
 
-extern inline unsigned FLOAT_BITS(float f);
+extern inline unsigned int FLOAT_BITS(float f);
+inline unsigned int BIT_COUNT(ptr p);

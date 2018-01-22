@@ -16,11 +16,30 @@
 #define P_SET(p, n, start, len)     AT(p) = BF_MERGE(AT(p), n, start, len)
 
 // This function is borrowed from math.h in musl.
-inline unsigned FLOAT_BITS(float f)
-{
-	union {float f; unsigned i;} u;
+inline unsigned int
+FLOAT_BITS(float f) {
+	union {float f; unsigned int i;} u;
 	u.f = f;
 	return u.i;
+}
+
+inline unsigned int
+BIT_COUNT(ptr p) {
+    #ifdef _MSC_VER
+    // How does this work?
+    uint64_t k1 = 0x5555555555555555ll;
+    uint64_t k2 = 0x3333333333333333ll;
+    uint64_t k4 = 0x0f0f0f0f0f0f0f0fll;
+    uint64_t kf = 0x0101010101010101ll;
+    ptr ks = 56;
+    p = p - ((p >> 1) & k1);
+    p = (p & k2) + ((p >> 2) & k2);
+    p = (p + (p >> 4)) & k4;
+    p = (p * kf) >> ks;
+    return (unsigned int)p;
+    #else
+    return __builtin_popcountl(p);
+    #endif
 }
 
 #endif
