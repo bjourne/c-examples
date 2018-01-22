@@ -45,9 +45,9 @@ test_obj() {
 
     f = f3d_load(FILE_BUNNY_2_OBJ);
     assert(f->error_code == FILE3D_ERR_NONE);
-    assert(approx_eq(f->verts[0].x, 0.1102022));
-    assert(approx_eq(f->verts[0].y, 0.74011));
-    assert(approx_eq(f->verts[0].z, 1.132398));
+    assert(approx_eq(f->verts[0].x, 0.1102022f));
+    assert(approx_eq(f->verts[0].y, 0.74011f));
+    assert(approx_eq(f->verts[0].z, 1.132398f));
     f3d_free(f);
 
     f = f3d_load(FILE_HEAD_OBJ);

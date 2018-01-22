@@ -44,7 +44,7 @@ isect_shev_pre(vec3 v0, vec3 v1, vec3 v2, isect_shev_data *D) {
     } else {
         w = 2; u = 0; v = 1;
     }
-    float sign = (w == 1) ? -1.0 : 1.0f;
+    float sign = (w == 1) ? -1.0f : 1.0f;
     float nw = V3_GET(n, w);
     D->nu = V3_GET(n, u) / nw;
     D->nv = V3_GET(n, v) / nw;
