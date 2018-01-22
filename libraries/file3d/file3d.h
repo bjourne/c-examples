@@ -4,12 +4,21 @@
 #include <stdio.h>
 #include "linalg/linalg.h"
 
+// Arbitrary limit of noo more than five million vertices or indices.
+#define FILE3D_MAX_N_VERTS              (5 * 1000 * 1000)
+#define FILE3D_MAX_N_INDICES            (5 * 1000 * 1000)
+
 // A simple library for loading 3d files.
 #define FILE3D_ERR_NONE                 0
 #define FILE3D_ERR_FILE_NOT_FOUND       1
 #define FILE3D_ERR_UNKNOWN_EXTENSION    2
 #define FILE3D_ERR_OBJ_FACE_VARYING     5
+
+// Unable to parse a line in an .obj file
 #define FILE3D_ERR_OBJ_LINE_UNPARSABLE  6
+
+// The model was too big
+#define FILE3D_ERR_TO_BIG               7
 
 typedef struct {
     int n_tris;

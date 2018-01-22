@@ -106,6 +106,10 @@ f3d_load_geo(file3d *me, FILE *f) {
         return;
     }
     int n_indices = int_array_sum(faces, n_faces);
+    if (n_indices > FILE3D_MAX_N_INDICES) {
+        f3d_set_error(me, FILE3D_ERR_TO_BIG, NULL);
+        return;
+    }
 
     int *indices = int_array_read(f, n_indices);
     if (!indices)  {
@@ -113,6 +117,12 @@ f3d_load_geo(file3d *me, FILE *f) {
         return;
     }
     me->n_verts = int_array_max(indices, n_indices) + 1;
+    if (me->n_verts > FILE3D_MAX_N_VERTS) {
+        free(faces);
+        free(indices);
+        f3d_set_error(me, FILE3D_ERR_TO_BIG, NULL);
+        return;
+    }
 
     me->verts = v3_array_read(f, me->n_verts);
     if (!me->verts) {
