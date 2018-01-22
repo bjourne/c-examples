@@ -18,7 +18,7 @@ float_read(FILE *f, float *value) {
 
 static int *
 int_array_read(FILE *f, int n) {
-    int *arr = (int *)malloc(sizeof(int) * n);
+    int *arr = malloc(sizeof(int) * n);
     for (int i = 0; i < n; i++) {
         if (!int_read(f, &arr[i])) {
             return NULL;
@@ -59,7 +59,7 @@ v2_read(vec2 *vec, FILE *f) {
 }
 
 static vec2 *
-v2_array_read(FILE *f, int n) {
+v2_array_read(FILE *f, unsigned int n) {
     vec2 *arr = (vec2 *)malloc(sizeof(vec2) * n);
     for (int i = 0; i < n; i++) {
         if (!v2_read(&arr[i], f)) {
@@ -84,8 +84,8 @@ v3_read(vec3 *vec, FILE *f) {
 }
 
 static vec3 *
-v3_array_read(FILE *f, int n) {
-    vec3 *arr = (vec3 *)malloc(sizeof(vec3) * n);
+v3_array_read(FILE *f, unsigned int n) {
+    vec3 *arr = malloc(sizeof(vec3) * n);
     for (int i = 0; i < n; i++) {
         if (!v3_read(&arr[i], f)) {
             return NULL;
