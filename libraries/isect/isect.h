@@ -1,6 +1,7 @@
 #ifndef ISECT_H
 #define ISECT_H
 
+#include "datatypes/bits.h"
 #include "datatypes/common.h"
 #include "linalg/linalg.h"
 
@@ -309,9 +310,9 @@ isect_shev_ending(float det, float dett,
     uv->y = D->e1u * Dv - D->e1v * Du;
     float tmpdet0 = det - uv->x - uv->y;
 
-    int pdet0 = *(int *)&tmpdet0;
-    int pdetu = *(int *)&uv->x;
-    int pdetv = *(int *)&uv->y;
+    int pdet0 = BW_FLOAT_TO_UINT(tmpdet0);
+    int pdetu = BW_FLOAT_TO_UINT(uv->x);
+    int pdetv = BW_FLOAT_TO_UINT(uv->y);
     pdet0 = pdet0 ^ pdetu;
     pdet0 = pdet0 | (pdetu ^ pdetv);
     if (pdet0 & 0x80000000)
@@ -360,9 +361,9 @@ isect_hh(vec3 o, vec3 d, float *t, vec2 *uv, isect_hh_data *D) {
     uv->x = v3_dot(wr, D->n1) + det * D->d1;
     uv->y = v3_dot(wr, D->n2) + det * D->d2;
     float tmpdet0 = det - uv->x - uv->y;
-    int pdet0 = *(int *)&tmpdet0;
-    int pdetu = *(int *)&uv->x;
-    int pdetv = *(int *)&uv->y;
+    int pdet0 = BW_FLOAT_TO_UINT(tmpdet0);
+    int pdetu = BW_FLOAT_TO_UINT(uv->x);
+    int pdetv = BW_FLOAT_TO_UINT(uv->y);
     pdet0 = pdet0 ^ pdetu;
     pdet0 = pdet0 | (pdetu ^ pdetv);
     if (pdet0 & 0x80000000)
@@ -373,6 +374,5 @@ isect_hh(vec3 o, vec3 d, float *t, vec2 *uv, isect_hh_data *D) {
     *t = dett * rdet;
     return *t >= ISECT_NEAR && *t <= ISECT_FAR;
 }
-
 
 #endif
