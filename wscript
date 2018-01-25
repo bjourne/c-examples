@@ -104,13 +104,13 @@ def build(ctx):
 
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
     build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
-    if ctx.env.DEST_OS != 'win32':
-        build_program(ctx, 'capstack.c',
-                      ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
+
+    if ctx.env.DEST_OS == 'linux':
         build_program(ctx, 'sigsegv.c', [])
+    if ctx.env.DEST_OS != 'win32':
+        build_program(ctx, 'capstack.c', ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
     else:
         build_program(ctx, 'winthreads.c', [])
-
     if ctx.env['LIB_PCRE']:
         build_program(ctx, 'pcre.c', ['PCRE'])
     if ctx.env['LIB_LLVM']:
