@@ -28,6 +28,9 @@ def configure(ctx):
     ctx.env.append_unique('CFLAGS', base_c_flags + extra_flags)
     ctx.env.append_unique('CXXFLAGS', base_cxx_flags + extra_flags)
     ctx.env.append_value('INCLUDES', ['libraries'])
+    if ctx.env.DEST_OS == 'linux':
+        ctx.check(lib = 'X11')
+        ctx.check(lib = 'GL')
     if ctx.env.DEST_OS != 'win32':
         llvm_libs = ['core', 'executionengine', 'mcjit', 'native']
         args = [
@@ -41,7 +44,8 @@ def configure(ctx):
                       args = ' '.join(args),
                       package = '',
                       uselib_store = 'LLVM',
-                      mandatory = False)
+                      mandatory = False,
+                      msg = 'Checking for \'llvm-3.9\'')
         ctx.check_cfg(package = 'libpcre',
                       args = ['libpcre >= 8.33', '--cflags', '--libs'],
                       uselib_store = 'PCRE',
@@ -107,8 +111,10 @@ def build(ctx):
 
     if ctx.env.DEST_OS == 'linux':
         build_program(ctx, 'sigsegv.c', [])
+        build_program(ctx, 'gl-fbconfigs.c', ['GL', 'X11'])
     if ctx.env.DEST_OS != 'win32':
-        build_program(ctx, 'capstack.c', ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
+        build_program(ctx, 'capstack.c',
+                      ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
     else:
         build_program(ctx, 'winthreads.c', [])
     if ctx.env['LIB_PCRE']:
