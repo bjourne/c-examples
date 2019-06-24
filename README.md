@@ -1,11 +1,13 @@
 # C examples
 
-This project contains C code I have written. A lot of it is stuff that
-already exists, that I now have my own versions of. It was written for
-fun because I love C coding. And they say that only the one who
-reinvents the wheel truly understand how it works. So there's that.
+This repository contains C code that I have written. A lot of it is my
+own versions of standard datatypes and algorithms such as my own
+hashset datatype. It was written for fun because I love C coding.
 
-The project consists of the following parts.
+As some smart person once said; only the one who reinvents the wheel
+truly understand how it works. So that's that.
+
+The repository consists of the following parts.
 
 ## Libraries
 Currently six libraries I have developed while writing garbage
