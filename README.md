@@ -5,7 +5,7 @@ own versions of standard datatypes and algorithms such as my own
 hashset datatype. It was written for fun because I love C coding.
 
 As some smart person once said; only the one who reinvents the wheel
-truly understand how it works. So that's that.
+truly understand how it works. So there's that.
 
 The repository consists of the following parts.
 
