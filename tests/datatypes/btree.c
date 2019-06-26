@@ -1,3 +1,4 @@
+// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <stdarg.h>
 #include <string.h>
@@ -96,8 +97,7 @@ test_find_duplicates() {
 
 int
 main(int argc, char *argv[]) {
-    time_t seed = time(NULL);
-    srand(seed);
+    rand_init(0);
     PRINT_RUN(test_linear_search);
     PRINT_RUN(test_find);
     PRINT_RUN(test_find_duplicates);

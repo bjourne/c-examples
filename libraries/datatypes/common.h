@@ -34,9 +34,8 @@ void error(char *fmt, ...);
 #define PRINT_RUN_INT(title, func) printf("=== %s\n", title); timed_run(&func); printf("\n")
 #define PRINT_RUN(func) PRINT_RUN_INT(#func, func)
 
-void timed_run(void (*func)());
-
 // Timing
+void timed_run(void (*func)());
 size_t nano_count();
 
 // Random
