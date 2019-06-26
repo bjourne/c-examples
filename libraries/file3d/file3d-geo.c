@@ -1,3 +1,4 @@
+// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,7 +60,7 @@ v2_read(vec2 *vec, FILE *f) {
 }
 
 static vec2 *
-v2_array_read(FILE *f, unsigned int n) {
+v2_array_read(FILE *f, int n) {
     vec2 *arr = (vec2 *)malloc(sizeof(vec2) * n);
     for (int i = 0; i < n; i++) {
         if (!v2_read(&arr[i], f)) {
@@ -84,7 +85,7 @@ v3_read(vec3 *vec, FILE *f) {
 }
 
 static vec3 *
-v3_array_read(FILE *f, unsigned int n) {
+v3_array_read(FILE *f, int n) {
     vec3 *arr = malloc(sizeof(vec3) * n);
     for (int i = 0; i < n; i++) {
         if (!v3_read(&arr[i], f)) {
