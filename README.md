@@ -57,3 +57,12 @@ Test suites for the various libraries.
 
 ## Programs
 Demo programs of all kinds.
+
+## Compilation
+
+The project is built using the build tool
+[Waf](https://github.com/waf-project/waf) like this:
+
+    ./waf configure build
+
+Windows, Linux and OS X are supported.
