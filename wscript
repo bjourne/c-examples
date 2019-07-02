@@ -109,6 +109,7 @@ def build(ctx):
     build_program(ctx, 'cpu.c', ['DT_OBJS'])
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
     build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
+    build_program(ctx, 'simd.c', [])
 
     if ctx.env.DEST_OS == 'linux':
         build_program(ctx, 'sigsegv.c', [])
