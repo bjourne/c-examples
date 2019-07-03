@@ -1,4 +1,4 @@
-// Copyright (C) 2017 Björn Lindqvist
+// Copyright (C) 2019 Björn Lindqvist
 #ifndef LINALG_SIMD_H
 #define LINALG_SIMD_H
 
@@ -45,10 +45,19 @@ v3x4_mul(vec3x4 a, vec3x4 b) {
         };
 }
 
+inline __m128
+madd(__m128 a, __m128 b, __m128 c) {
+#if defined(__AVX2__)
+    return _mm_fmadd_ps(a, b, c);
+#else
+    return _mm_add_ps(_mm_mul_ps(a, b), c);
+#endif
+}
+
 // Dot product
 inline __m128
 v3x4_dot(vec3x4 a, vec3x4 b) {
-    return _mm_fmadd_ps(a.x, b.x, _mm_fmadd_ps(a.y, b.y, _mm_mul_ps(a.z, b.z)));
+    return madd(a.x, b.x, madd(a.y, b.y, _mm_mul_ps(a.z, b.z)));
 }
 
 
