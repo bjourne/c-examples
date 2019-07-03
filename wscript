@@ -1,3 +1,4 @@
+# Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
 from os.path import splitext
 
 def options(ctx):
@@ -17,12 +18,16 @@ def configure(ctx):
         debug_flags = ['/Zi', '/FS']
         speed_flags = []
     else:
-        base_c_flags = ['-Wall', '-Werror', '-fPIC', '-std=gnu11']
-        base_cxx_flags = ['-Wall', '-Werror', '-fPIC']
-        speed_flags = ['-O3',
-                       '-fomit-frame-pointer',
-                       '-march=native',
-                       '-mtune=native']
+        base_c_flags = [
+            '-Wall', '-Werror', '-fPIC', '-std=gnu11',
+            # Since we are now using SIMD intrinsics
+            '-march=native', '-mtune=native'
+        ]
+        base_cxx_flags = [
+            '-Wall', '-Werror', '-fPIC',
+            '-march=native', '-mtune=native'
+        ]
+        speed_flags = ['-O3', '-fomit-frame-pointer']
         debug_flags = ['-O2', '-g']
     extra_flags = speed_flags
     ctx.env.append_unique('CFLAGS', base_c_flags + extra_flags)
