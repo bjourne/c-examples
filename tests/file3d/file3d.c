@@ -1,14 +1,16 @@
+// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include "datatypes/common.h"
 #include "file3d/file3d.h"
 
-// Not sure how to do this. I don't want to put the models in the
-// repo. Most referenced files comes from:
-// http://graphics.cs.williams.edu/data/meshes.xml
+// The models referenced here originally came from
+// http://graphics.cs.williams.edu/data/meshes.xml. That site has
+// disappeared from the internet and I don't know how to find the
+// anymore... They only exist on my harddrive.
 #define FILE_COW_GEO "/tmp/cow.geo"
 #define FILE_BUNNY_OBJ "/tmp/bunny.obj"
 #define FILE_BUNNY_2_OBJ "/tmp/bunny_2.obj"
-#define FILE_TEAPOT_GEO "/tmp/teapot.obj"
+#define FILE_TEAPOT_GEO "/tmp/teapot.geo"
 #define FILE_HEAD_OBJ "/tmp/head.OBJ"
 
 void
@@ -32,7 +34,8 @@ test_geo() {
     f3d_free(f);
 
     f = f3d_load(FILE_TEAPOT_GEO);
-    assert(f->n_normals == 9468);
+    assert(f->error_code == FILE3D_ERR_NONE);
+    assert(f->n_normals == 18960);
     f3d_free(f);
 }
 

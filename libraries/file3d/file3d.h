@@ -1,3 +1,4 @@
+// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
 #ifndef FILES3D_H
 #define FILES3D_H
 
