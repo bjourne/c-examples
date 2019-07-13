@@ -1,4 +1,5 @@
 #include <assert.h>
+#include "datatypes/bits.h"
 #include "datatypes/common.h"
 #include "linalg/linalg-simd.h"
 
@@ -59,12 +60,22 @@ test_dot() {
 
 void
 test_f4_abs() {
-    __m128 a = { -7.8, 3.2, 0.0, -1.2 };
+    float4 a = { -7.8, 3.2, 0.0, -1.2 };
     float4 b = f4_abs(a);
     assert(approx_eq(b[0], 7.8));
     assert(approx_eq(b[1], 3.2));
     assert(approx_eq(b[2], 0.0));
     assert(approx_eq(b[3], 1.2));
+}
+
+void
+test_f4_signmask() {
+    float4 a = { -7.8, 3.2, 0.0, -1.2 };
+    float4 b = f4_signmask(a);
+    assert(BW_FLOAT_TO_UINT(b[0]) == 0x80000000);
+    assert(BW_FLOAT_TO_UINT(b[1]) == 0);
+    assert(BW_FLOAT_TO_UINT(b[2]) == 0);
+    assert(BW_FLOAT_TO_UINT(b[3]) == 0x80000000);
 }
 
 int
@@ -73,5 +84,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_add);
     PRINT_RUN(test_dot);
     PRINT_RUN(test_f4_abs);
+    PRINT_RUN(test_f4_signmask);
     return 0;
 }

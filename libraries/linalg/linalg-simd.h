@@ -9,14 +9,20 @@
 
 #include "linalg/linalg.h"
 
-
 typedef __m128 float4;
 
 inline float4
 f4_abs(float4 a) {
-    const __m128 signmask =
+    float4 signmask =
         _mm_castsi128_ps(_mm_set1_epi32(0x80000000));
     return _mm_andnot_ps(signmask, a);
+}
+
+inline float4
+f4_signmask(float4 a) {
+    float4 signmask =
+        _mm_castsi128_ps(_mm_set1_epi32(0x80000000));
+    return _mm_and_ps(a, signmask);
 }
 
 
