@@ -9,12 +9,24 @@
 
 #include "linalg/linalg.h"
 
+
+typedef __m128 float4;
+
+inline float4
+f4_abs(float4 a) {
+    const __m128 signmask =
+        _mm_castsi128_ps(_mm_set1_epi32(0x80000000));
+    return _mm_andnot_ps(signmask, a);
+}
+
+
 // vec3x4 type. Four 3d vectors in packed format to exploit SIMD.
 typedef struct {
-    __m128 x;
-    __m128 y;
-    __m128 z;
+    float4 x;
+    float4 y;
+    float4 z;
 } vec3x4;
+
 
 inline vec3x4
 v3x4_from_vecs(vec3 vecs[4]) {
@@ -45,8 +57,8 @@ v3x4_mul(vec3x4 a, vec3x4 b) {
         };
 }
 
-inline __m128
-madd(__m128 a, __m128 b, __m128 c) {
+inline float4
+madd(float4 a, float4 b, float4 c) {
 #if defined(__AVX2__)
     return _mm_fmadd_ps(a, b, c);
 #else
@@ -55,7 +67,7 @@ madd(__m128 a, __m128 b, __m128 c) {
 }
 
 // Dot product
-inline __m128
+inline float4
 v3x4_dot(vec3x4 a, vec3x4 b) {
     return madd(a.x, b.x, madd(a.y, b.y, _mm_mul_ps(a.z, b.z)));
 }

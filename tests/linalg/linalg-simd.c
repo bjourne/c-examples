@@ -57,10 +57,21 @@ test_dot() {
     assert(dp[3] == 365);
 }
 
+void
+test_f4_abs() {
+    __m128 a = { -7.8, 3.2, 0.0, -1.2 };
+    float4 b = f4_abs(a);
+    assert(approx_eq(b[0], 7.8));
+    assert(approx_eq(b[1], 3.2));
+    assert(approx_eq(b[2], 0.0));
+    assert(approx_eq(b[3], 1.2));
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_from_vecs);
     PRINT_RUN(test_add);
     PRINT_RUN(test_dot);
+    PRINT_RUN(test_f4_abs);
     return 0;
 }
