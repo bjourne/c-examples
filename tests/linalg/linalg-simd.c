@@ -82,6 +82,23 @@ test_broadcast() {
     assert(f4_eq(f4_broadcast(a, 2), _mm_set_ps(4, 4, 4, 4)));
 }
 
+void
+test_f4_xor() {
+    float4 a = { BW_UINT_TO_FLOAT(255),
+                 BW_UINT_TO_FLOAT(10),
+                 BW_UINT_TO_FLOAT(0),
+                 BW_UINT_TO_FLOAT(128)
+    };
+    float4 b = { BW_UINT_TO_FLOAT(3),
+                 BW_UINT_TO_FLOAT(7),
+                 BW_UINT_TO_FLOAT(0),
+                 BW_UINT_TO_FLOAT(0x80) };
+    float4 c = f4_xor(a, b);
+    assert(BW_FLOAT_TO_UINT(c[0]) == (255 ^ 3));
+    assert(BW_FLOAT_TO_UINT(c[1]) == (10 ^ 7));
+
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_f4_abs);

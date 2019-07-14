@@ -1,3 +1,4 @@
+// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
 #ifndef DATATYPES_BITS_H
 #define DATATYPES_BITS_H
 
@@ -41,6 +42,17 @@ BW_UINT_TO_FLOAT(unsigned int i) {
 
 // I don't know about this one. sizeof(float) != sizeof(ptr)
 // sometimes...
+inline float
+BW_UINT_TO_FLOAT(unsigned int i) {
+    union {
+        float f;
+        unsigned int u;
+    } u;
+    u.u = i;
+    return u.f;
+}
+
+
 inline float
 BW_PTR_TO_FLOAT(ptr p) {
     union {
