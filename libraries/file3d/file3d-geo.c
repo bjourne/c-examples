@@ -87,7 +87,7 @@ v3_read(vec3 *vec, FILE *f) {
 static vec3 *
 v3_array_read(FILE *f, unsigned int n) {
     vec3 *arr = malloc(sizeof(vec3) * n);
-    for (int i = 0; i < n; i++) {
+    for (unsigned int i = 0; i < n; i++) {
         if (!v3_read(&arr[i], f)) {
             return NULL;
         }
