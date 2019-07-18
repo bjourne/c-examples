@@ -9,10 +9,9 @@ static void
 test_sqrt() {
     __m128 v1 = _mm_set_ps(1.0, 4.0, 9.0, 16.0);
     v1 = _mm_sqrt_ps(v1);
-    assert(v1[0] == 4.0);
-    assert(v1[1] == 3.0);
-    assert(v1[2] == 2.0);
-    assert(v1[3] == 1.0);
+    __m128 v2 = _mm_set_ps(1.0, 2.0, 3.0, 4.0);
+    __m128 cmp = _mm_cmpeq_ps(v1, v2);
+    assert(_mm_movemask_ps(cmp) == 0xf);
 }
 
 static void
@@ -20,10 +19,10 @@ test_max() {
     __m128 v1 = _mm_set_ps(3.0, 4.0, 10.0, -10.0);
     __m128 v2 = _mm_set_ps(-3.0, 8.0, 9.0, 0.0);
     __m128 v3 = _mm_max_ps(v1, v2);
-    assert(v3[0] == 0.0);
-    assert(v3[1] == 10.0);
-    assert(v3[2] == 8.0);
-    assert(v3[3] == 3.0);
+
+    __m128 r = _mm_set_ps(3.0, 8.0, 10.0, 0.0);
+    __m128 cmp = _mm_cmpeq_ps(v3, r);
+    assert(_mm_movemask_ps(cmp) == 0xf);
 }
 
 // According to
