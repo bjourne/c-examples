@@ -1,11 +1,10 @@
-// Copyright (C) 2017 Björn Lindqvist
+// Copyright (C) 2017-2019 Björn Lindqvist <bjourne@gmail.com>
 #ifndef LINALG_H
 #define LINALG_H
 
-// Needed to make msvc happy
+// Define needed to make msvc happy
 #define _USE_MATH_DEFINES
 #include <math.h>
-
 #include <stdbool.h>
 
 // A simple linear algebra library for C.

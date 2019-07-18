@@ -1,4 +1,4 @@
-// Copyright (C) 2017 Björn Lindqvist
+// Copyright (C) 2017-2019 Björn Lindqvist <bjourne@gmail.com>
 #include <stdio.h>
 #include "linalg.h"
 
@@ -21,7 +21,6 @@ extern inline bool approx_eq(float x, float y);
 // Trigonometry
 extern inline float to_rad(const float deg);
 extern inline float to_deg(const float rad);
-
 
 // vec2 type
 extern inline vec2 v2_add(vec2 l, vec2 r);

@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Björn Lindqvist
+// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
 #ifndef LINALG_SIMD_H
 #define LINALG_SIMD_H
 
@@ -10,6 +10,11 @@
 #include "linalg/linalg.h"
 
 typedef __m128 float4;
+
+inline float4
+f4_set_i4(int a, int b, int c, int d) {
+    return _mm_castsi128_ps(_mm_set_epi32(a, b, c, d));
+}
 
 inline float4
 f4_abs(float4 a) {
@@ -25,6 +30,11 @@ f4_signmask(float4 a) {
     return _mm_and_ps(a, signmask);
 }
 
+inline bool
+f4_eq(float4 a, float4 b) {
+    __m128 cmp = _mm_cmpeq_ps(a, b);
+    return _mm_movemask_ps(cmp) == 0xf;
+}
 
 // vec3x4 type. Four 3d vectors in packed format to exploit SIMD.
 typedef struct {
@@ -33,15 +43,18 @@ typedef struct {
     float4 z;
 } vec3x4;
 
-
 inline vec3x4
 v3x4_from_vecs(vec3 vecs[4]) {
-    vec3x4 ret;
+    float x[4], y[4], z[4];
     for (int i = 0; i < 4; i++) {
-        ret.x[i] = vecs[i].x;
-        ret.y[i] = vecs[i].y;
-        ret.z[i] = vecs[i].z;
+        x[i] = vecs[i].x;
+        y[i] = vecs[i].y;
+        z[i] = vecs[i].z;
     }
+    vec3x4 ret;
+    ret.x = _mm_set_ps(x[0], x[1], x[2], x[3]);
+    ret.y = _mm_set_ps(y[0], y[1], y[2], y[3]);
+    ret.z = _mm_set_ps(z[0], z[1], z[2], z[3]);
     return ret;
 }
 
@@ -77,9 +90,6 @@ inline float4
 v3x4_dot(vec3x4 a, vec3x4 b) {
     return madd(a.x, b.x, madd(a.y, b.y, _mm_mul_ps(a.z, b.z)));
 }
-
-
-
 
 
 #endif

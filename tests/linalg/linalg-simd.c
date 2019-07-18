@@ -1,19 +1,40 @@
+// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include "datatypes/bits.h"
 #include "datatypes/common.h"
 #include "linalg/linalg-simd.h"
 
+// f4 tests
+void
+test_f4_abs() {
+    float4 a = _mm_set_ps(-7.8f, 3.2f, 0.0f, -1.2f);
+    float4 r = _mm_set_ps(7.8f, 3.2f, 0.0f, 1.2f);
+    assert(f4_eq(f4_abs(a), r));
+}
+
+void
+test_f4_signmask() {
+    float4 a = _mm_set_ps(-7.8f, 3.2f, 0.0f, -1.2f);
+    float4 b = f4_signmask(a);
+    float4 r = f4_set_i4(0x80000000, 0, 0, 0x80000000);
+    assert(f4_eq(b, r));
+}
+
+// v3x4 tests
 void
 test_from_vecs() {
-    vec3x4 vecs1 = v3x4_from_vecs((vec3[]){
+    vec3x4 v = v3x4_from_vecs((vec3[]){
             {1, 2, 3},
             {4, 5, 6},
             {7, 8, 9},
             {10, 11, 12}
         });
-    assert(vecs1.x[0] == 1);
-    assert(vecs1.y[0] == 2);
-    assert(vecs1.z[0] == 3);
+    float4 x4 = _mm_set_ps(1, 4, 7, 10);
+    float4 y4 = _mm_set_ps(2, 5, 8, 11);
+    float4 z4 = _mm_set_ps(3, 6, 9, 12);
+    assert(f4_eq(v.x, x4));
+    assert(f4_eq(v.y, y4));
+    assert(f4_eq(v.z, z4));
 }
 
 void
@@ -31,10 +52,8 @@ test_add() {
             {10, 11, 12}
         });
     vec3x4 c = v3x4_add(a, b);
-    assert(c.x[0] == 2);
-    assert(c.x[1] == 8);
-    assert(c.x[2] == 14);
-    assert(c.x[3] == 20);
+    float4 x4 = _mm_set_ps(2, 8, 14, 20);
+    assert(f4_eq(c.x, x4));
 }
 
 void
@@ -51,39 +70,18 @@ test_dot() {
             {7, 8, 9},
             {10, 11, 12}
         });
-    __m128 dp = v3x4_dot(a, b);
-    assert(dp[0] == 14);
-    assert(dp[1] == 77);
-    assert(dp[2] == 194);
-    assert(dp[3] == 365);
-}
-
-void
-test_f4_abs() {
-    float4 a = { -7.8, 3.2, 0.0, -1.2 };
-    float4 b = f4_abs(a);
-    assert(approx_eq(b[0], 7.8));
-    assert(approx_eq(b[1], 3.2));
-    assert(approx_eq(b[2], 0.0));
-    assert(approx_eq(b[3], 1.2));
-}
-
-void
-test_f4_signmask() {
-    float4 a = { -7.8, 3.2, 0.0, -1.2 };
-    float4 b = f4_signmask(a);
-    assert(BW_FLOAT_TO_UINT(b[0]) == 0x80000000);
-    assert(BW_FLOAT_TO_UINT(b[1]) == 0);
-    assert(BW_FLOAT_TO_UINT(b[2]) == 0);
-    assert(BW_FLOAT_TO_UINT(b[3]) == 0x80000000);
+    float4 dp = v3x4_dot(a, b);
+    float4 r = _mm_set_ps(14, 77, 194, 365);
+    assert(f4_eq(dp, r));
 }
 
 int
 main(int argc, char *argv[]) {
+    PRINT_RUN(test_f4_abs);
+    PRINT_RUN(test_f4_signmask);
+
     PRINT_RUN(test_from_vecs);
     PRINT_RUN(test_add);
     PRINT_RUN(test_dot);
-    PRINT_RUN(test_f4_abs);
-    PRINT_RUN(test_f4_signmask);
     return 0;
 }
