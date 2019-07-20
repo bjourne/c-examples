@@ -33,7 +33,45 @@ test_mt() {
     float t;
     vec2 uv;
     assert(isect_mt(o, d, v0, v1, v2, &t, &uv));
+    printf("mt says %.2f, %.2f at dist %.2f\n", uv.x, uv.y, t);
 }
+
+void
+test_mt_c() {
+    vec3 o = {
+        24.492475509643554688f,
+        24.006366729736328125f,
+        22.174991607666015625f
+    };
+    vec3 d = {
+        -0.582438647747039795f,
+        -0.430847525596618652f,
+        -0.689300775527954102f
+    };
+    vec3 v0 = {
+        2.079962015151977539f,
+        8.324080467224121094f,
+        -4.233458995819091797f
+    };
+    vec3 v1 = {
+        1.942253947257995605f,
+        8.138879776000976562f,
+        -3.293735027313232422f
+    };
+    vec3 v2 = {
+        2.189547061920166016f,
+        7.210639953613281250f,
+        -4.343578815460205078f
+    };
+    float t;
+    vec2 uv;
+    assert(isect_mt_c(o, d, v0, v1, v2, &t, &uv));
+    assert(t >= 0.0);
+    assert(uv.x >= 0.0);
+    assert(uv.y >= 0.0);
+    printf("mt_c says %.2f, %.2f at dist %.2f\n", uv.x, uv.y, t);
+}
+
 
 void
 test_bw9_pre() {
@@ -269,6 +307,7 @@ int
 main(int argc, char* argv[]) {
     rand_init(0);
     PRINT_RUN(test_mt);
+    PRINT_RUN(test_mt_c);
     PRINT_RUN(test_bw9_pre);
     PRINT_RUN(test_bw12_pre);
     PRINT_RUN(test_diffs_01);

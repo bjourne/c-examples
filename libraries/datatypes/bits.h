@@ -19,12 +19,22 @@
 // BW = BitWise
 inline unsigned int
 BW_FLOAT_TO_UINT(float f) {
-	union {
-            float f;
-            unsigned int u;
-        } u;
-	u.f = f;
-	return u.u;
+    union {
+        float f;
+        unsigned int u;
+    } u;
+    u.f = f;
+    return u.u;
+}
+
+inline float
+BW_UINT_TO_FLOAT(unsigned int i) {
+    union {
+        float f;
+        unsigned int u;
+    } u;
+    u.u = i;
+    return u.f;
 }
 
 inline float

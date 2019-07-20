@@ -5,6 +5,10 @@ extern inline bool
 isect_mt(vec3 o, vec3 d,
          vec3 v0, vec3 v1, vec3 v2,
          float *t, vec2 *uv);
+inline bool
+isect_mt_c(vec3 o, vec3 d,
+           vec3 v0, vec3 v1, vec3 v2,
+           float *t, vec2 *uv);
 
 extern inline bool
 isect_bw9(vec3 o, vec3 d,

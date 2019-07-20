@@ -167,6 +167,35 @@ isect_mt_b(vec3 o, vec3 d,
     return *t >= ISECT_NEAR && *t <= ISECT_FAR;
 }
 
+inline bool
+isect_mt_c(vec3 o, vec3 d,
+           vec3 v0, vec3 v1, vec3 v2,
+           float *t, vec2 *uv) {
+    vec3 e1 = v3_sub(v0, v1);
+    vec3 e2 = v3_sub(v2, v0);
+    vec3 n = v3_cross(e2, e1);
+
+    vec3 c = v3_sub(v0, o);
+    vec3 r = v3_cross(c, d);
+
+    float den = v3_dot(n, d);
+    float abs_den = BW_UINT_TO_FLOAT(BW_FLOAT_TO_UINT(den) & 0x7fffffff);
+    int sgn_den = BW_FLOAT_TO_UINT(den) & 0x80000000;
+    uv->x = BW_UINT_TO_FLOAT(BW_FLOAT_TO_UINT(v3_dot(r, e2)) ^ sgn_den);
+    uv->y = BW_UINT_TO_FLOAT(BW_FLOAT_TO_UINT(v3_dot(r, e1)) ^ sgn_den);
+    if (abs_den == 0.0 ||uv->x < 0 || uv->y < 0 || uv->x + uv->y > abs_den)
+        return false;
+
+    *t = BW_UINT_TO_FLOAT(BW_FLOAT_TO_UINT(v3_dot(n, c)) ^ sgn_den);
+    if (*t <= abs_den * ISECT_NEAR || *t > abs_den * ISECT_FAR)
+        return false;
+    float inv_abs_den = 1.0f / abs_den;
+    *t *= inv_abs_den;
+    uv->x *= inv_abs_den;
+    uv->y *= inv_abs_den;
+    return true;
+}
+
 // Only sets t on intersection.
 inline bool
 isect_bw12(vec3 o, vec3 d, float *t, vec2 *uv, isect_bw12_data *D) {
