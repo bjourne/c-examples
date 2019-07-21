@@ -1,1 +1,4 @@
 EXPORTS
+    f3d_free
+    f3d_get_error_string
+    f3d_load

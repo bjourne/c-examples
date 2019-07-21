@@ -14,13 +14,15 @@ EXPORTS
     hs_init
     hs_remove
     hs_remove_at
-    v_add
-    v_free
-    v_init
-    v_remove
-    v_peek
+    nano_count
+    rand_init
     rbt_add
     rbt_find_lower_bound
     rbt_free
     rbt_iterate
     rbt_remove
+    v_add
+    v_free
+    v_init
+    v_remove
+    v_peek

@@ -1,2 +1,3 @@
 EXPORTS
     m4_identity
+    m4_inverse
