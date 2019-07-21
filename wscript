@@ -85,7 +85,7 @@ def build_library(ctx, libname, target, uses):
     objs = ctx.path.ant_glob('%s/*.c' % path)
 
     ctx(features = 'c', source = objs, target = target)
-    ctx(features = 'c cshlib',
+    ctx(features = 'c cstlib',
         target = libname,
         use = [target] + uses,
         defs = defs_file)
