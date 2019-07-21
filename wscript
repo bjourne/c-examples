@@ -102,6 +102,7 @@ def build(ctx):
     build_library(ctx, 'isect', 'ISECT_OBJS', [])
     build_library(ctx, 'file3d', 'FILE3D_OBJS',
                   ['datatypes', 'linalg'])
+    build_library(ctx, 'paths', 'PATHS_OBJS', [])
 
     build_tests(ctx, 'datatypes', ['DT_OBJS'])
     build_tests(ctx, 'quickfit', ['DT_OBJS', 'QF_OBJS'])
@@ -110,6 +111,8 @@ def build(ctx):
     build_tests(ctx, 'file3d', ['FILE3D_OBJS', 'DT_OBJS'])
     build_tests(ctx, 'isect',
                 ['LINALG_OBJS', 'DT_OBJS', 'M', 'ISECT_OBJS'])
+    build_tests(ctx, 'paths',
+                ['PATHS_OBJS', 'DT_OBJS'])
 
     build_program(ctx, 'cpu.c', ['DT_OBJS'])
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
