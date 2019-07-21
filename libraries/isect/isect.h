@@ -1,6 +1,7 @@
 #ifndef ISECT_H
 #define ISECT_H
 
+#include <math.h>
 #include "datatypes/bits.h"
 #include "datatypes/common.h"
 #include "linalg/linalg.h"
@@ -179,7 +180,7 @@ isect_mt_c(vec3 o, vec3 d,
     vec3 r = v3_cross(c, d);
 
     float den = v3_dot(n, d);
-    float abs_den = BW_UINT_TO_FLOAT(BW_FLOAT_TO_UINT(den) & 0x7fffffff);
+    float abs_den = fabsf(den);
     int sgn_den = BW_FLOAT_TO_UINT(den) & 0x80000000;
     uv->x = BW_UINT_TO_FLOAT(BW_FLOAT_TO_UINT(v3_dot(r, e2)) ^ sgn_den);
     uv->y = BW_UINT_TO_FLOAT(BW_FLOAT_TO_UINT(v3_dot(r, e1)) ^ sgn_den);
