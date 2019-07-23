@@ -35,7 +35,7 @@ def configure(ctx):
     ctx.env.append_value('INCLUDES', ['libraries'])
     if ctx.env.DEST_OS == 'linux':
         ctx.check(lib = 'X11')
-        ctx.check(lib = 'GL')
+        ctx.check(lib = 'GL', mandatory = False)
     if ctx.env.DEST_OS != 'win32':
         llvm_libs = ['core', 'executionengine', 'mcjit', 'native']
         args = [
@@ -121,8 +121,6 @@ def build(ctx):
 
     if ctx.env.DEST_OS == 'linux':
         build_program(ctx, 'sigsegv.c', [])
-        build_program(ctx, 'gl-fbconfigs.c', ['GL', 'X11'])
-    if ctx.env.DEST_OS != 'win32':
         build_program(ctx, 'capstack.c',
                       ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
     else:
@@ -132,3 +130,5 @@ def build(ctx):
     if ctx.env['LIB_LLVM']:
         build_program(ctx, 'llvm-wbc.c', ['LLVM'])
         build_program(ctx, 'llvm-rbc.c', ['LLVM'])
+    if ctx.env['LIB_GL']:
+        build_program(ctx, 'gl-fbconfigs.c', ['GL', 'X11'])
