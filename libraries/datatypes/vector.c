@@ -1,8 +1,10 @@
+// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
 #include <string.h>
 #include "common.h"
 #include "vector.h"
 
-vector *v_init(size_t size) {
+vector *
+v_init(size_t size) {
     vector *v = malloc(sizeof(vector));
     v->array = malloc(NPTRS(size));
     v->size = size;
