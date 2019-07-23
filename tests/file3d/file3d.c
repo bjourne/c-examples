@@ -13,6 +13,9 @@
 #define FILE_TEAPOT_GEO "/tmp/teapot.geo"
 #define FILE_HEAD_OBJ "/tmp/head.OBJ"
 
+// From https://free3d.com/3d-model/angel-lucy-sculpture-46454.html
+#define FILE_LUCY_OBJ "/tmp/Alucy.obj"
+
 void
 test_errors() {
     file3d *f = f3d_load("i dont exist");
@@ -60,9 +63,19 @@ test_obj() {
     f3d_free(f);
 }
 
+void
+test_lucy() {
+    file3d *f = f3d_load(FILE_LUCY_OBJ);
+    assert(f->error_code == FILE3D_ERR_NONE);
+    assert(f->n_verts == 224445);
+    assert(f->n_tris == 448880);
+    f3d_free(f);
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_errors);
     PRINT_RUN(test_geo);
     PRINT_RUN(test_obj);
+    PRINT_RUN(test_lucy);
 }
