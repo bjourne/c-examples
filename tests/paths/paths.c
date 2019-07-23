@@ -1,5 +1,6 @@
 // Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
 #include <assert.h>
+#include <string.h>
 #include "datatypes/common.h"
 #include "paths/paths.h"
 
