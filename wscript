@@ -88,7 +88,8 @@ def build_library(ctx, libname, target, uses):
     ctx(features = 'c cstlib',
         target = libname,
         use = [target] + uses,
-        defs = defs_file)
+        defs = defs_file,
+        install_path = '${LIBDIR}')
 
     # Installation of header files
     ctx.install_files('${PREFIX}/include/' + libname,
