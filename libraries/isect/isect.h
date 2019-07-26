@@ -184,10 +184,10 @@ isect_mt_c(vec3 o, vec3 d,
     int sgn_den = BW_FLOAT_TO_UINT(den) & 0x80000000;
     uv->x = BW_UINT_TO_FLOAT(BW_FLOAT_TO_UINT(v3_dot(r, e2)) ^ sgn_den);
     uv->y = BW_UINT_TO_FLOAT(BW_FLOAT_TO_UINT(v3_dot(r, e1)) ^ sgn_den);
-    if (abs_den == 0.0 ||uv->x < 0 || uv->y < 0 || uv->x + uv->y > abs_den)
+    if (den == 0.0 ||uv->x < 0 || uv->y < 0 || uv->x + uv->y > abs_den)
         return false;
 
-    *t = BW_UINT_TO_FLOAT(BW_FLOAT_TO_UINT(v3_dot(n, c)) ^ sgn_den);
+    *t = fabsf(v3_dot(n, c));
     if (*t <= abs_den * ISECT_NEAR || *t > abs_den * ISECT_FAR)
         return false;
     float inv_abs_den = 1.0f / abs_den;
