@@ -75,6 +75,13 @@ test_dot() {
     assert(f4_eq(dp, r));
 }
 
+void
+test_broadcast() {
+    float4 a = _mm_set_ps(3, 4, 5, 6);
+    assert(f4_eq(f4_broadcast(a, 3), _mm_set_ps(3, 3, 3, 3)));
+    assert(f4_eq(f4_broadcast(a, 2), _mm_set_ps(4, 4, 4, 4)));
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_f4_abs);
@@ -83,5 +90,7 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_from_vecs);
     PRINT_RUN(test_add);
     PRINT_RUN(test_dot);
+
+    PRINT_RUN(test_broadcast);
     return 0;
 }

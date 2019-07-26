@@ -9,6 +9,7 @@
 
 #include "linalg/linalg.h"
 
+// Is this typedef necessary?
 typedef __m128 float4;
 
 inline float4
@@ -35,6 +36,14 @@ f4_eq(float4 a, float4 b) {
     __m128 cmp = _mm_cmpeq_ps(a, b);
     return _mm_movemask_ps(cmp) == 0xf;
 }
+
+// Check if this can be improved.
+inline float4
+f4_broadcast(float4 a, int i) {
+    union { float4 reg; float f[4]; } r = { .reg = a };
+    return _mm_set1_ps(r.f[i]);
+}
+
 
 // vec3x4 type. Four 3d vectors in packed format to exploit SIMD.
 typedef struct {
