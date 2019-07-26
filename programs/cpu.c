@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "datatypes/bits.h"
+
 
 // Very much inspired by https://github.com/Mysticial/FeatureDetector
 #ifdef _WIN32
@@ -80,27 +82,27 @@ cpu_info_get() {
     int n_ids = info[0];
     if (n_ids >= 1) {
         cpuid(info, 1);
-        me->flags[FLAG_MMX] = (info[3] & ((int)1 << 23)) != 0;
-        me->flags[FLAG_SSE] = (info[3] & ((int)1 << 25)) != 0;
-        me->flags[FLAG_SSE2] = (info[3] & ((int)1 << 26)) != 0;
-        me->flags[FLAG_SSE3] = (info[2] & ((int)1 << 0)) != 0;
+        me->flags[FLAG_MMX] = BF_IS_LIT(info[3], 23);
+        me->flags[FLAG_SSE] = BF_IS_LIT(info[3], 25);
+        me->flags[FLAG_SSE2] = BF_IS_LIT(info[3], 26);
+        me->flags[FLAG_SSE3] = BF_IS_LIT(info[2], 0);
 
-        me->flags[FLAG_SSSE3] = (info[2] & ((int)1 <<  9)) != 0;
-        me->flags[FLAG_SSE41] = (info[2] & ((int)1 << 19)) != 0;
-        me->flags[FLAG_SSE42] = (info[2] & ((int)1 << 20)) != 0;
+        me->flags[FLAG_SSSE3] = BF_IS_LIT(info[2], 9);
+        me->flags[FLAG_SSE41] = BF_IS_LIT(info[2], 19);
+        me->flags[FLAG_SSE42] = BF_IS_LIT(info[2], 20);
 
-        me->flags[FLAG_POPCNT] = (info[2] & ((int)1 << 23)) != 0;
-        me->flags[FLAG_AES] = (info[2] & ((int)1 << 25)) != 0;
-        me->flags[FLAG_AVX] = (info[2] & ((int)1 << 28)) != 0;
-        me->flags[FLAG_FMA3] = (info[2] & ((int)1 << 12)) != 0;
-        me->flags[FLAG_RDRAND] = (info[2] & ((int)1 << 30)) != 0;
+        me->flags[FLAG_POPCNT] = BF_IS_LIT(info[2], 23);
+        me->flags[FLAG_AES] = BF_IS_LIT(info[2], 25);
+        me->flags[FLAG_AVX] = BF_IS_LIT(info[2], 28);
+        me->flags[FLAG_FMA3] = BF_IS_LIT(info[2], 12);
+        me->flags[FLAG_RDRAND] = BF_IS_LIT(info[2], 30);
     }
     if (n_ids >= 7) {
         cpuid(info, 7);
         me->flags[FLAG_AVX2] = (info[1] & ((int)1 << 5)) != 0;
 
-        me->flags[FLAG_AVX512_F] = (info[1] & ((int)1 << 16)) != 0;
-        me->flags[FLAG_AVX512_VBMI] = (info[2] & ((int)1 << 1)) != 0;
+        me->flags[FLAG_AVX512_F] = BF_IS_LIT(info[1], 16);
+        me->flags[FLAG_AVX512_VBMI] = BF_IS_LIT(info[2], 1);
     }
     return me;
 }
