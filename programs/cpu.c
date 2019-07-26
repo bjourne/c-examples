@@ -35,6 +35,7 @@ typedef enum {
     FLAG_POPCNT,
     FLAG_AES,
     FLAG_AVX,
+    FLAG_AVX2,
     FLAG_FMA3,
     FLAG_RDRAND,
     FLAG_COUNT
@@ -43,9 +44,8 @@ typedef enum {
 static char* flag_names[FLAG_COUNT] = {
     "MMX",
     "SSE", "SSE2", "SSE3", "SSSE3", "SSE41", "SSE42",
-    "POPCNT", "AES", "AVX", "FMA3", "RDRAND"
+    "POPCNT", "AES", "AVX", "AVX2", "FMA3", "RDRAND"
 };
-
 
 typedef struct {
     char vendor[13];
@@ -84,6 +84,10 @@ cpu_info_get() {
         me->flags[FLAG_AVX] = (info[2] & ((int)1 << 28)) != 0;
         me->flags[FLAG_FMA3] = (info[2] & ((int)1 << 12)) != 0;
         me->flags[FLAG_RDRAND] = (info[2] & ((int)1 << 30)) != 0;
+    }
+    if (n_ids >= 7) {
+        cpuid(info, 7);
+        me->flags[FLAG_AVX2] = (info[1] & ((int)1 << 5)) != 0;
     }
     return me;
 }
