@@ -72,6 +72,14 @@ test_mt_c() {
     printf("mt_c says %.2f, %.2f at dist %.2f\n", uv.x, uv.y, t);
 }
 
+void
+bw9_pre_test(vec3 v0, vec3 v1, vec3 v2, float exp[0]) {
+    float T[10];
+    isect_bw9_pre(v0, v1, v2, (isect_bw9_data *)&T);
+    for (int i = 0; i < 9; i++) {
+        assert(approx_eq2(T[i], exp[i], 1e-6f));
+    }
+}
 
 void
 test_bw9_pre() {
@@ -96,26 +104,32 @@ test_bw9_pre() {
         assert(approx_eq2(T[i], Texp[i], 1e-6f));
     }
 
-
-    v0 = (vec3){4.0, 1.0, 2.0};
-    v1 = (vec3){-4.0, 3.0, 3.0};
-    v2 = (vec3){-10.0, -3.0, 21.5};
-    isect_bw9_pre(v0, v1, v2, (isect_bw9_data *)&T);
-    float Texp2[9] = {
-        -0.137323945761f,
-        -0.098591551185f,
-        0.746478855610f,
-        0.007042253390f,
-        0.056338027120f,
-        -0.140845075250f,
-        0.302816897631f,
-        0.422535210848f,
-        -3.056338071823f
-    };
-    for (int i = 0; i < 9; i++) {
-        assert(approx_eq2(T[i], Texp2[i], 1e-6f));
-    }
+    bw9_pre_test(
+        (vec3){4.0, 1.0, 2.0},
+        (vec3){-4.0, 3.0, 3.0},
+        (vec3){-10.0, -3.0, 21.5},
+        (float[]){
+            -0.137323945761f,
+            -0.098591551185f,
+            0.746478855610f,
+            0.007042253390f,
+            0.056338027120f,
+            -0.140845075250f,
+            0.302816897631f,
+            0.422535210848f,
+            -3.056338071823f
+    });
 }
+
+void
+test_bw9_pre_2() {
+    bw9_pre_test((vec3){1, 0, 1}, (vec3){0, 0, 0}, (vec3){1, 0, 0},
+                 (float[]){-1, 0, 1, 1, -1, 0, 0, 0, 0});
+    bw9_pre_test((vec3){1, 1, -1}, (vec3){1, 0, 0}, (vec3){-1, -1, -1},
+                 (float[]){1, -1, -0, -0.5f, -0, 0.5f, -1, 1, 1});
+}
+
+
 
 void
 test_bw12_pre() {
@@ -309,6 +323,7 @@ main(int argc, char* argv[]) {
     PRINT_RUN(test_mt);
     PRINT_RUN(test_mt_c);
     PRINT_RUN(test_bw9_pre);
+    PRINT_RUN(test_bw9_pre_2);
     PRINT_RUN(test_bw12_pre);
     PRINT_RUN(test_diffs_01);
     PRINT_RUN(test_diffs_02);
