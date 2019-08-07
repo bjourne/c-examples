@@ -12,6 +12,10 @@
 // Approximations
 #define LINALG_EPSILON 1e-8f
 
+// Printing stuff
+void
+la_print_float(float f, int n_dec);
+
 inline bool
 approx_eq2(float x, float y, float epsilon) {
     return fabs(x - y) < epsilon;

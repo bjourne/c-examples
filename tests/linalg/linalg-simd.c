@@ -100,6 +100,13 @@ test_f4_or() {
     assert(f4_eq(c, d));
 }
 
+void
+test_f4_scale() {
+    float4 a = _mm_set_ps(0, 1, 2, 3);
+    float4 b = _mm_set_ps(0, 6, 12, 18);
+    assert(f4_eq(f4_scale(a, 6), b));
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_f4_abs);
@@ -110,6 +117,10 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_from_vecs);
     PRINT_RUN(test_add);
     PRINT_RUN(test_dot);
+
+    PRINT_RUN(test_f4_xor);
+    PRINT_RUN(test_f4_or);
+    PRINT_RUN(test_f4_scale);
 
     PRINT_RUN(test_broadcast);
     return 0;

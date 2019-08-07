@@ -37,11 +37,31 @@ f4_eq(float4 a, float4 b) {
     return _mm_movemask_ps(cmp) == 0xf;
 }
 
+inline float4
+f4_scale(float4 a, float s) {
+    return _mm_mul_ps(a, _mm_set1_ps(s));
+}
+
 // Check if this can be improved.
 inline float4
 f4_broadcast(float4 a, int i) {
     union { float4 reg; float f[4]; } r = { .reg = a };
     return _mm_set1_ps(r.f[i]);
+}
+
+inline void
+f4_print(float4 a, int n_dec) {
+    float r[4];
+    _mm_storeu_ps(r, a);
+    printf("{");
+    la_print_float(r[3], n_dec);
+    printf(", ");
+    la_print_float(r[2], n_dec);
+    printf(", ");
+    la_print_float(r[1], n_dec);
+    printf(", ");
+    la_print_float(r[0], n_dec);
+    printf("}");
 }
 
 // vec3x4 type. Four 3d vectors in packed format to exploit SIMD.
@@ -73,7 +93,7 @@ v3x4_add(vec3x4 a, vec3x4 b) {
         _mm_add_ps(a.x, b.x),
         _mm_add_ps(a.y, b.y),
         _mm_add_ps(a.z, b.z)
-        };
+    };
 }
 inline vec3x4
 v3x4_mul(vec3x4 a, vec3x4 b) {
@@ -81,7 +101,7 @@ v3x4_mul(vec3x4 a, vec3x4 b) {
         _mm_mul_ps(a.x, b.x),
         _mm_mul_ps(a.y, b.y),
         _mm_mul_ps(a.z, b.z)
-        };
+    };
 }
 
 inline float4

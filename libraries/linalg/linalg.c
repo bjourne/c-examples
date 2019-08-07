@@ -3,8 +3,8 @@
 #include "linalg.h"
 
 // Utils
-static void
-print_float(float f, int n_dec) {
+void
+la_print_float(float f, int n_dec) {
     char buf[256];
     #ifdef _MSC_VER
     sprintf_s(buf, 256, "%%.%df", n_dec);
@@ -29,9 +29,9 @@ extern inline vec2 v2_scale(vec2 v, float f);
 void
 v2_print(vec2 v, int n_dec) {
     printf("{");
-    print_float(v.x, n_dec);
+    la_print_float(v.x, n_dec);
     printf(", ");
-    print_float(v.y, n_dec);
+    la_print_float(v.y, n_dec);
     printf("}");
 }
 
@@ -49,11 +49,11 @@ extern inline vec3 v3_from_scalar(float s);
 void
 v3_print(vec3 v, int n_dec) {
     printf("{");
-    print_float(v.x, n_dec);
+    la_print_float(v.x, n_dec);
     printf(", ");
-    print_float(v.y, n_dec);
+    la_print_float(v.y, n_dec);
     printf(", ");
-    print_float(v.z, n_dec);
+    la_print_float(v.z, n_dec);
     printf("}");
 }
 
@@ -85,17 +85,17 @@ m4_print(mat4 m, int n_dec) {
     printf("[");
     for (int y = 0; y < 3; y++) {
         for (int x = 0; x < 3; x++) {
-            print_float(m.d[y][x], n_dec);
+            la_print_float(m.d[y][x], n_dec);
             printf(" ");
         }
-        print_float(m.d[y][3], n_dec);
+        la_print_float(m.d[y][3], n_dec);
         printf(", ");
     }
     for (int x = 0; x < 3; x++) {
-        print_float(m.d[3][x], n_dec);
+        la_print_float(m.d[3][x], n_dec);
         printf(" ");
     }
-    print_float(m.d[3][3], n_dec);
+    la_print_float(m.d[3][3], n_dec);
     printf("]");
 }
 
