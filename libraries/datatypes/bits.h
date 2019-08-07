@@ -30,16 +30,6 @@ BW_FLOAT_TO_UINT(float f) {
     return u.u;
 }
 
-inline float
-BW_UINT_TO_FLOAT(unsigned int i) {
-    union {
-        float f;
-        unsigned int u;
-    } u;
-    u.u = i;
-    return u.f;
-}
-
 // I don't know about this one. sizeof(float) != sizeof(ptr)
 // sometimes...
 inline float
@@ -51,7 +41,6 @@ BW_UINT_TO_FLOAT(unsigned int i) {
     u.u = i;
     return u.f;
 }
-
 
 inline float
 BW_PTR_TO_FLOAT(ptr p) {
