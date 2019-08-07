@@ -93,10 +93,25 @@ test_f4_xor() {
                  BW_UINT_TO_FLOAT(7),
                  BW_UINT_TO_FLOAT(0),
                  BW_UINT_TO_FLOAT(0x80) };
-    float4 c = f4_xor(a, b);
+    float4 c = _mm_xor_ps(a, b);
     assert(BW_FLOAT_TO_UINT(c[0]) == (255 ^ 3));
     assert(BW_FLOAT_TO_UINT(c[1]) == (10 ^ 7));
+}
 
+void
+test_f4_or() {
+    float4 a = { BW_UINT_TO_FLOAT(5),
+                 BW_UINT_TO_FLOAT(6),
+                 BW_UINT_TO_FLOAT(7),
+                 BW_UINT_TO_FLOAT(100)
+    };
+    float4 b = { BW_UINT_TO_FLOAT(3),
+                 BW_UINT_TO_FLOAT(7),
+                 BW_UINT_TO_FLOAT(0),
+                 BW_UINT_TO_FLOAT(0x80) };
+    float4 c = _mm_or_ps(a, b);
+    assert(BW_FLOAT_TO_UINT(c[0]) == (5 | 3));
+    assert(BW_FLOAT_TO_UINT(c[1]) == (6 | 7));
 }
 
 int
