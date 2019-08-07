@@ -42,7 +42,7 @@ inline float4
 f4_broadcast(float4 a, int i) {
     union { float4 reg; float f[4]; } r = { .reg = a };
     return _mm_set1_ps(r.f[i]);
-
+}
 
 // vec3x4 type. Four 3d vectors in packed format to exploit SIMD.
 typedef struct {
