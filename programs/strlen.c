@@ -12,7 +12,7 @@ size_t
 optimized_strlen(const char *str) {
     const char *char_ptr;
     const unsigned long int *longword_ptr;
-    unsigned long int longword, magic_bits, himagic, lomagic;
+    unsigned long int longword, himagic, lomagic;
 
     for (char_ptr = str; ((uintptr_t) char_ptr
                           & (sizeof (longword) - 1)) != 0;
@@ -22,11 +22,9 @@ optimized_strlen(const char *str) {
 
     longword_ptr = (unsigned long int *) char_ptr;
 
-    magic_bits = 0x7efefeffL;
     himagic = 0x80808080L;
     lomagic = 0x01010101L;
     if (sizeof (longword) > 4) {
-        magic_bits = ((0x7efefefeL << 16) << 16) | 0xfefefeffL;
         himagic = ((himagic << 16) << 16) | himagic;
         lomagic = ((lomagic << 16) << 16) | lomagic;
     }
