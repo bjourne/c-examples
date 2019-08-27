@@ -84,40 +84,28 @@ test_broadcast() {
 
 void
 test_f4_xor() {
-    float4 a = { BW_UINT_TO_FLOAT(255),
-                 BW_UINT_TO_FLOAT(10),
-                 BW_UINT_TO_FLOAT(0),
-                 BW_UINT_TO_FLOAT(128)
-    };
-    float4 b = { BW_UINT_TO_FLOAT(3),
-                 BW_UINT_TO_FLOAT(7),
-                 BW_UINT_TO_FLOAT(0),
-                 BW_UINT_TO_FLOAT(0x80) };
+    float4 a = f4_set_i4(255, 10, 0, 8);
+    float4 b = f4_set_i4(3, 7, 0, 0x80);
     float4 c = _mm_xor_ps(a, b);
-    assert(BW_FLOAT_TO_UINT(c[0]) == (255 ^ 3));
-    assert(BW_FLOAT_TO_UINT(c[1]) == (10 ^ 7));
+    float4 d = f4_set_i4(255 ^ 3, 10 ^ 7, 0 ^ 0, 8 ^ 0x80);
+    assert(f4_eq(c, d));
 }
 
 void
 test_f4_or() {
-    float4 a = { BW_UINT_TO_FLOAT(5),
-                 BW_UINT_TO_FLOAT(6),
-                 BW_UINT_TO_FLOAT(7),
-                 BW_UINT_TO_FLOAT(100)
-    };
-    float4 b = { BW_UINT_TO_FLOAT(3),
-                 BW_UINT_TO_FLOAT(7),
-                 BW_UINT_TO_FLOAT(0),
-                 BW_UINT_TO_FLOAT(0x80) };
+    float4 a = f4_set_i4(5, 6, 7, 100);
+    float4 b = f4_set_i4(3, 7, 0, 0x80);
     float4 c = _mm_or_ps(a, b);
-    assert(BW_FLOAT_TO_UINT(c[0]) == (5 | 3));
-    assert(BW_FLOAT_TO_UINT(c[1]) == (6 | 7));
+    float4 d = f4_set_i4(5 | 3, 6 | 7, 7 | 0, 100 | 0x80);
+    assert(f4_eq(c, d));
 }
 
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_f4_abs);
     PRINT_RUN(test_f4_signmask);
+    PRINT_RUN(test_f4_or);
+    PRINT_RUN(test_f4_xor);
 
     PRINT_RUN(test_from_vecs);
     PRINT_RUN(test_add);
