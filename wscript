@@ -119,6 +119,7 @@ def build(ctx):
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
     build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
     build_program(ctx, 'simd.c', [])
+    build_program(ctx, 'strlen.c', ['DT_OBJS'])
 
     # Conditional targets
     if ctx.env.DEST_OS == 'linux':
