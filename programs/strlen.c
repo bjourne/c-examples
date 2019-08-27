@@ -5,6 +5,8 @@
 #include <string.h>
 #include "datatypes/common.h"
 
+#pragma GCC diagnostic ignored "-Wunused-function"
+
 /* #define BUF_SIZE 16 */
 /* #define N_CALLS 10 * 1000 * 1000 */
 
