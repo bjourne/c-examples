@@ -88,7 +88,7 @@ run_test() {
         tot += optimized_strlen(buf);
     }
     free(buf);
-    printf("%lld\n", tot);
+    printf("%zu\n", tot);
 }
 
 int
