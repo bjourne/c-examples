@@ -5,14 +5,16 @@
 #include <string.h>
 #include "datatypes/common.h"
 
-#define BUF_SIZE 1024 * 1024 * 100
-#define N_CALLS 100
+/* #define BUF_SIZE 16 */
+/* #define N_CALLS 10 * 1000 * 1000 */
 
-size_t
+#define BUF_SIZE 500 * 1024 * 1024
+#define N_CALLS 5
+
+static size_t
 optimized_strlen(const char *str) {
     const char *char_ptr;
-    const unsigned long int *longword_ptr;
-    unsigned long int longword, himagic, lomagic;
+    uintptr_t longword;
 
     for (char_ptr = str; ((uintptr_t) char_ptr
                           & (sizeof (longword) - 1)) != 0;
@@ -20,10 +22,10 @@ optimized_strlen(const char *str) {
         if (*char_ptr == '\0')
             return char_ptr - str;
 
-    longword_ptr = (unsigned long int *) char_ptr;
+    uintptr_t *longword_ptr = (uintptr_t *) char_ptr;
 
-    himagic = 0x80808080L;
-    lomagic = 0x01010101L;
+    uintptr_t himagic = 0x80808080L;
+    uintptr_t lomagic = 0x01010101L;
     if (sizeof (longword) > 4) {
         himagic = ((himagic << 16) << 16) | himagic;
         lomagic = ((lomagic << 16) << 16) | lomagic;
@@ -60,7 +62,7 @@ optimized_strlen(const char *str) {
     }
 }
 
-size_t
+static size_t
 naive_strlen(const char *str) {
     const char *s;
     for (s = str; *s; ++s);
@@ -77,20 +79,24 @@ make_buffer(size_t size) {
     return mem;
 }
 
+static char* buf = NULL;
+
 void
 run_test() {
-    char *buf = make_buffer(BUF_SIZE);
     size_t tot = 0;
     for (int i = 0; i < N_CALLS; i++) {
-        //tot += naive_strlen(buf);
-        tot += optimized_strlen(buf);
+        tot += naive_strlen(buf);
+        //tot += optimized_strlen(buf);
     }
-    free(buf);
     printf("%zu\n", tot);
 }
 
 int
 main(int argc, char *argv[]) {
+    buf = make_buffer(BUF_SIZE);
+    // Attempt to flush caches
+    free(make_buffer(BUF_SIZE));
     PRINT_RUN(run_test);
+    free(buf);
     return 0;
 }
