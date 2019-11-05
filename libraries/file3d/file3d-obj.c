@@ -1,8 +1,10 @@
+// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
 #include <ctype.h>
 #include <string.h>
 
 #include "datatypes/bits.h"
 #include "datatypes/vector.h"
+#include "linalg/linalg-io.h"
 #include "file3d/file3d.h"
 
 typedef union {
@@ -34,29 +36,6 @@ index_array_pack(vector *a, int n_vecs) {
         pack[i] = idx;
     }
     return pack;
-}
-
-static vec3 *
-v3_array_pack(vector *a) {
-    size_t n = a->used / 3;
-    vec3 *out = (vec3 *)malloc(sizeof(vec3) * n);
-    for (int i = 0; i < n; i++) {
-        out[i].x = BW_PTR_TO_FLOAT(a->array[3 * i]);
-        out[i].y = BW_PTR_TO_FLOAT(a->array[3 * i + 1]);
-        out[i].z = BW_PTR_TO_FLOAT(a->array[3 * i + 2]);
-    }
-    return out;
-}
-
-static vec2 *
-v2_array_pack(vector *a) {
-    size_t n = a->used / 2;
-    vec2 *out = (vec2 *)malloc(sizeof(vec2) * n);
-    for (int i  = 0; i < n; i++) {
-        out[i].x = BW_PTR_TO_FLOAT(a->array[2 * i]);
-        out[i].y = BW_PTR_TO_FLOAT(a->array[2 * i + 1]);
-    }
-    return out;
 }
 
 static void
@@ -124,29 +103,6 @@ str_to_tri_indices(char *buf,
     return false;
 }
 
-static bool
-str_to_v3(char *buf, const char *fmt, vector *a) {
-    int_or_float x, y, z;
-    if (sscanf(buf, fmt, &x.f, &y.f, &z.f) != 3) {
-        return false;
-    }
-    v_add(a, x.i);
-    v_add(a, y.i);
-    v_add(a, z.i);
-    return true;
-}
-
-static bool
-str_to_v2(char *buf, char *fmt, vector *a) {
-    int_or_float x, y;
-    if (sscanf(buf, fmt, &x.f, &y.f) != 2) {
-        return false;
-    }
-    v_add(a, x.i);
-    v_add(a, y.i);
-    return true;
-}
-
 void
 f3d_load_obj(file3d *me, FILE *f) {
     vector *verts = v_init(10);
@@ -161,11 +117,11 @@ f3d_load_obj(file3d *me, FILE *f) {
             continue;
         }
         if (!strncmp(buf, "v ", 2)) {
-            if (!str_to_v3(buf, "v %f %f %f", verts)) {
+            if (!v3_sscanf(buf, "v %f %f %f", verts)) {
                 goto end;
             }
         } else if (!strncmp(buf, "vn ", 3)) {
-            if (!str_to_v3(buf, "vn %f %f %f", normals)) {
+            if (!v3_sscanf(buf, "vn %f %f %f", normals)) {
                 goto end;
             }
         } else if (!strncmp(buf, "#", 1)) {
@@ -179,7 +135,7 @@ f3d_load_obj(file3d *me, FILE *f) {
         } else if (!strncmp(buf, "s ", 2)) {
             // Skip smooth shading
         } else if (!strncmp(buf, "vt ", 2)) {
-            if (!str_to_v2(buf, "vt %f %f", coords)) {
+            if (!v2_sscanf(buf, "vt %f %f", coords)) {
                 goto end;
             }
         } else if (!strncmp(buf, "f ", 2)) {

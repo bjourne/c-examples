@@ -109,7 +109,9 @@ def build(ctx):
     build_tests(ctx, 'quickfit', ['DT_OBJS', 'QF_OBJS'])
     build_tests(ctx, 'collectors', ['GC_OBJS', 'DT_OBJS', 'QF_OBJS'])
     build_tests(ctx, 'linalg', ['LINALG_OBJS', 'DT_OBJS', 'M'])
-    build_tests(ctx, 'file3d', ['FILE3D_OBJS', 'DT_OBJS'])
+    build_tests(ctx, 'file3d', [
+        'FILE3D_OBJS', 'DT_OBJS', 'LINALG_OBJS', 'M'
+    ])
     build_tests(ctx, 'isect',
                 ['LINALG_OBJS', 'DT_OBJS', 'M', 'ISECT_OBJS'])
     build_tests(ctx, 'paths',
@@ -120,6 +122,7 @@ def build(ctx):
     build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
     build_program(ctx, 'simd.c', [])
     build_program(ctx, 'strlen.c', ['DT_OBJS'])
+    build_program(ctx, 'tour.c', ['DT_OBJS', 'LINALG_OBJS', 'M'])
 
     # Conditional targets
     if ctx.env.DEST_OS == 'linux':
