@@ -1,5 +1,6 @@
 // Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
 #include <assert.h>
+#include <stdlib.h>
 #include "datatypes/int-array.h"
 #include "linalg/linalg-io.h"
 
@@ -111,22 +112,23 @@ typedef struct {
     int *indices;
 } tour;
 
-static tour *
+tour *
 tr_init(int n) {
-    tour *tour = malloc(sizeof(tour));
-    tour->cities = malloc(sizeof(int) * n);
-    tour->indices = malloc(sizeof(int) * n);
+    tour *tr = malloc(sizeof(tour));
+    tr->cities = malloc(sizeof(int) * n);
+    tr->indices = malloc(sizeof(int) * n);
     for (int i = 0; i < n; i++) {
-        tour->cities[i] = i;
-        tour->indices[i] = i;
+        tr->cities[i] = i;
+        tr->indices[i] = i;
     }
-    return tour;
+    return tr;
 }
 
-static void
-tr_free(tour *tour) {
-    free(tour->cities);
-    free(tour->indices);
+void
+tr_free(tour *tr) {
+    free(tr->cities);
+    free(tr->indices);
+    free(tr);
 }
 
 static void
@@ -137,31 +139,10 @@ tr_set_city(tour *tour, int idx, int city) {
 
 typedef struct {
     int *costs;
+    int *neighbors;
     tour *tour;
     int n;
 } tour_optimizer;
-
-static tour_optimizer *
-t_opt_init(FILE *stdin) {
-    tour_optimizer *opt = malloc(sizeof(tour_optimizer));
-
-    int n;
-    vec2 *cities = v2_array_read(stdin, &n);
-
-    // Create cost matrix
-    int *m = malloc(sizeof(int) * n * n);
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            float d = v2_distance(cities[i], cities[j]);
-            m[i * n + j] = (int)(d + 0.5);
-        }
-    }
-    opt->costs = m;
-    opt->n = n;
-    opt->tour = tr_init(n);
-    free(cities);
-    return opt;
-}
 
 static inline int
 t_opt_cost(tour_optimizer *opt, int c1, int c2) {
@@ -185,14 +166,64 @@ t_opt_cost_total(tour_optimizer *opt) {
     return tot;
 }
 
-static void
+typedef struct {
+    tour_optimizer *opt;
+    int city;
+} neighbor_compare_context;
+
+int
+neighbor_cmp(const void *a, const void *b, void *c) {
+    neighbor_compare_context *ctx = (neighbor_compare_context *)c;
+    int c1 = *(int *)a;
+    int c2 = *(int *)b;
+    int cost1 = t_opt_cost(ctx->opt, ctx->city, c1);
+    int cost2 = t_opt_cost(ctx->opt, ctx->city, c2);
+    return cost1 - cost2;
+}
+
+tour_optimizer *
+t_opt_init(FILE *stdin) {
+    tour_optimizer *opt = malloc(sizeof(tour_optimizer));
+
+    int n;
+    vec2 *cities = v2_array_read(stdin, &n);
+
+    // Create cost matrix
+    int *m = malloc(sizeof(int) * n * n);
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            float d = v2_distance(cities[i], cities[j]);
+            m[i * n + j] = (int)(d + 0.5);
+        }
+    }
+    opt->costs = m;
+    opt->n = n;
+    opt->tour = tr_init(n);
+    free(cities);
+
+    // Create neighbor lists
+    m = malloc(sizeof(int) * n * n);
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            m[i * n + j] = j;
+        }
+        neighbor_compare_context ctx = { opt, i };
+        qsort_r(&m[i * n], n, sizeof(int),
+                neighbor_cmp, &ctx);
+    }
+    opt->neighbors = m;
+    return opt;
+}
+
+void
 t_opt_free(tour_optimizer *opt) {
     free(opt->costs);
+    free(opt->neighbors);
     tr_free(opt->tour);
     free(opt);
 }
 
-static void
+void
 t_opt_greedy_tour(tour_optimizer *opt) {
     bool *used = calloc(opt->n, sizeof(bool));
     tour *tour = opt->tour;
@@ -217,13 +248,13 @@ t_opt_greedy_tour(tour_optimizer *opt) {
     free(used);
 }
 
-static void
+void
 t_opt_pretty_print_tour(tour_optimizer *opt, int n_cuts, int cuts[]) {
     printf("%6d ", t_opt_cost_total(opt));
     int1d_pretty_print(opt->tour->cities, opt->n, n_cuts, cuts);
 }
 
-static void
+void
 t_opt_pretty_print_costs(tour_optimizer *opt) {
     // Points of interests
     int n = opt->n;
@@ -236,6 +267,7 @@ t_opt_pretty_print_costs(tour_optimizer *opt) {
     points[2 * (n - 1) + 1] = opt->tour->cities[0];
     int1d_pretty_print_table(opt->costs, n, n, n, points);
     free(points);
+    int1d_pretty_print_table(opt->neighbors, n, n, 0, NULL);
 }
 
 int

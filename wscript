@@ -6,6 +6,7 @@ def options(ctx):
 
 def configure(ctx):
     ctx.load('compiler_c compiler_cxx')
+    ctx.define('_GNU_SOURCE', 1)
     if ctx.env.CC_NAME == 'msvc':
         base_c_flags = [
             '/WX', '/W3', '/O2', '/EHsc',

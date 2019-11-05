@@ -3,7 +3,9 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
+#ifndef _XOPEN_SOURCE
 #define _XOPEN_SOURCE
+#endif
 #include <ucontext.h>
 #include "collectors/mark-sweep.h"
 #include "datatypes/common.h"
