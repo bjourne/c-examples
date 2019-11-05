@@ -43,13 +43,29 @@ v2_scale(vec2 v, float f) {
     return (vec2){v.x * f, v.y * f};
 }
 
-void
-v2_print(vec2 v, int n_dec);
+inline vec2
+v2_sub(vec2 l, vec2 r) {
+    return (vec2){l.x - r.x, l.y - r.y};
+}
 
 inline vec2
 v2_add(vec2 l, vec2 r) {
     return (vec2){l.x + r.x, l.y + r.y};
 }
+
+inline float
+v2_dot(vec2 l, vec2 r) {
+    return l.x * r.x + l.y * r.y;
+}
+
+inline float
+v2_distance(vec2 v1, vec2 v2) {
+    vec2 delta = v2_sub(v1, v2);
+    return sqrtf(v2_dot(delta, delta));
+}
+
+void
+v2_print(vec2 v, int n_dec);
 
 inline bool
 v2_approx_eq2(vec2 l, vec2 r, float epsilon) {
@@ -109,7 +125,7 @@ v3_dot(vec3 l, vec3 r) {
 inline vec3
 v3_normalize(vec3 in) {
     vec3 out = in;
-    float norm = in.x * in.x + in.y * in.y + in.z * in.z;
+    float norm = v3_dot(in, in);
     if (norm > 0) {
         float factor = 1 / sqrtf(norm);
         out.x *= factor;
