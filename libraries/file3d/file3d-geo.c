@@ -4,48 +4,12 @@
 #include <stdlib.h>
 
 #include "file3d/file3d.h"
-
-static bool
-int_read(FILE *f, int *value) {
-    int ret = fscanf(f, "%d", value);
-    return ret == 1;
-}
+#include "datatypes/int-array.h"
 
 static bool
 float_read(FILE *f, float *value) {
     int ret = fscanf(f, "%f", value);
     return ret == 1;
-}
-
-static int *
-int_array_read(FILE *f, int n) {
-    int *arr = malloc(sizeof(int) * n);
-    for (int i = 0; i < n; i++) {
-        if (!int_read(f, &arr[i])) {
-            return NULL;
-        }
-    }
-    return arr;
-}
-
-static int
-int_array_sum(int *a, int len) {
-    int sum = 0;
-    for (int i = 0; i < len; i++) {
-        sum += a[i];
-    }
-    return sum;
-}
-
-static int
-int_array_max(int *a, int len) {
-    int max = INT_MIN;
-    for (int i = 0; i < len; i++) {
-        if (a[i] > max) {
-            max = a[i];
-        }
-    }
-    return max;
 }
 
 static bool
@@ -102,22 +66,22 @@ f3d_load_geo(file3d *me, FILE *f) {
     if (!int_read(f, &n_faces)) {
         return;
     }
-    int *faces = int_array_read(f, n_faces);
+    int *faces = int1d_read(f, n_faces);
     if (!faces) {
         return;
     }
-    int n_indices = int_array_sum(faces, n_faces);
+    int n_indices = int1d_sum(faces, n_faces);
     if (n_indices > FILE3D_MAX_N_INDICES) {
         f3d_set_error(me, FILE3D_ERR_TO_BIG, NULL);
         return;
     }
 
-    int *indices = int_array_read(f, n_indices);
+    int *indices = int1d_read(f, n_indices);
     if (!indices)  {
         free(faces);
         return;
     }
-    me->n_verts = int_array_max(indices, n_indices) + 1;
+    me->n_verts = int1d_max(indices, n_indices) + 1;
     if (me->n_verts > FILE3D_MAX_N_VERTS) {
         free(faces);
         free(indices);

@@ -1,3 +1,4 @@
+// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
 #ifndef DATATYPES_COMMON_H
 #define DATATYPES_COMMON_H
 
@@ -31,7 +32,8 @@ void error(char *fmt, ...);
 #define ARRAY_SIZE(a)       (sizeof((a))/sizeof((a)[0]))
 
 // Debug stuff
-#define PRINT_RUN_INT(title, func) printf("=== %s\n", title); timed_run(&func); printf("\n")
+#define PRINT_RUN_INT(title, func) \
+    printf("=== %s\n", title); timed_run(&func); printf("\n")
 #define PRINT_RUN(func) PRINT_RUN_INT(#func, func)
 
 // Timing
