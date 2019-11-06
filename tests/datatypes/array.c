@@ -1,6 +1,7 @@
 // Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <stdbool.h>
+#include <string.h>
 #include "datatypes/array.h"
 #include "datatypes/common.h"
 
