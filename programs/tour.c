@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "datatypes/array.h"
 #include "datatypes/int-array.h"
 #include "linalg/linalg-io.h"
 
@@ -170,44 +171,13 @@ t_opt_cost_total(tour_optimizer *opt) {
 typedef struct {
     tour_optimizer *opt;
     int city;
-} neighbor_compare_context;
+} neighbor_key_context;
 
 static int
-neighbor_cmp(const void *a, const void *b, const void *c) {
-#if defined(_MSC_VER) || defined(__APPLE__)
-    // (ctx, c1, c2) for these
-    neighbor_compare_context *ctx = (neighbor_compare_context *)a;
-    int c1 = *(int *)b;
-    int c2 = *(int *)c;
-#else
-    // (c1, c2, ctx) for linux
-    neighbor_compare_context *ctx = (neighbor_compare_context *)c;
-    int c1 = *(int *)a;
-    int c2 = *(int *)b;
-#endif
-    int cost1 = t_opt_cost(ctx->opt, ctx->city, c1);
-    int cost2 = t_opt_cost(ctx->opt, ctx->city, c2);
-    return cost1 - cost2;
+neighbor_key_fun(void *ctx, const void *a) {
+    neighbor_key_context *obj = (neighbor_key_context *)ctx;
+    return t_opt_cost(obj->opt, obj->city, *(int *)a);
 }
-
-static void
-qsort_s_wrapper(void *base, size_t nmemb, size_t size,
-                int (*compar)(const void *, const void *, const void *),
-                void *arg) {
-#if defined(_MSC_VER)
-    qsort_s(base, nmemb, size, compar, arg);
-#elif defined(__APPLE__)
-    qsort_r(base, nmemb, size, arg, compar);
-#else
-    qsort_r(base, nmemb, size, compar, arg);
-#endif
-}
-
-#ifdef _MSC_VER
-#define qsort_ctx qsort_s
-#else
-#define qsort_ctx qsort_r
-#endif
 
 tour_optimizer*
 t_opt_init(FILE *inf) {
@@ -235,9 +205,9 @@ t_opt_init(FILE *inf) {
         for (int j = 0; j < n; j++) {
             m[i * n + j] = j;
         }
-        neighbor_compare_context ctx = { opt, i };
-        qsort_s_wrapper(&m[i * n], n, sizeof(int),
-                        neighbor_cmp, (void *)&ctx);
+        neighbor_key_context ctx = { opt, i };
+        array_qsort_with_key(&m[i * n], n, sizeof(int),
+                             neighbor_key_fun, (void *)&ctx);
     }
     opt->neighbors = m;
     return opt;

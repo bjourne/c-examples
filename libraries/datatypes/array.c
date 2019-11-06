@@ -22,3 +22,24 @@ array_shuffle(void *array, size_t n, size_t size) {
         }
     }
 }
+
+typedef struct {
+    void *ctx;
+    int (*key_fun)(void *ctx, const void *a);
+} compare_context;
+
+static int
+cmp_fun(void *ctx, const void *a, const void *b) {
+    compare_context *outer = (compare_context *)ctx;
+    int k1 = outer->key_fun(outer->ctx, a);
+    int k2 = outer->key_fun(outer->ctx, b);
+    return k1 - k2;
+}
+
+void
+array_qsort_with_key(void *base, size_t nmemb, size_t size,
+                     int (*key_fun)(void *ctx, const void *a),
+                     void *ctx) {
+    compare_context outer_ctx = { ctx, key_fun };
+    qsort_s(base, nmemb, size, cmp_fun, (void *)&outer_ctx);
+}
