@@ -1,6 +1,7 @@
 // Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 #include "array.h"
 
 void
