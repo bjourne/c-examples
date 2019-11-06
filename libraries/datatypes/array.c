@@ -30,7 +30,13 @@ typedef struct {
 } compare_context;
 
 static int
-cmp_fun(void *ctx, const void *a, const void *b) {
+cmp_fun(
+#if defined (_MSC_VER)
+    void *ctx, const void *a, const void *b
+#else
+    const void *a, const void *b, void ctx
+#endif
+) {
     compare_context *outer = (compare_context *)ctx;
     int k1 = outer->key_fun(outer->ctx, a);
     int k2 = outer->key_fun(outer->ctx, b);
@@ -42,5 +48,9 @@ array_qsort_with_key(void *base, size_t nmemb, size_t size,
                      int (*key_fun)(void *ctx, const void *a),
                      void *ctx) {
     compare_context outer_ctx = { ctx, key_fun };
+#if defined(_MSC_VER)
     qsort_s(base, nmemb, size, cmp_fun, (void *)&outer_ctx);
+#else
+    qsort_r(base, nmemb, size, cmp_fun, (void *)&outer_ctx);
+#endif
 }
