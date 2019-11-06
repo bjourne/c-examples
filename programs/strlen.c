@@ -5,10 +5,9 @@
 #include <string.h>
 #include "datatypes/common.h"
 
+#ifndef _MSC_VER
 #pragma GCC diagnostic ignored "-Wunused-function"
-
-/* #define BUF_SIZE 16 */
-/* #define N_CALLS 10 * 1000 * 1000 */
+#endif
 
 #define BUF_SIZE 500 * 1024 * 1024
 #define N_CALLS 5
