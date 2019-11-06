@@ -174,18 +174,33 @@ typedef struct {
 
 static int
 neighbor_cmp(const void *a, const void *b, const void *c) {
-    #ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__APPLE__)
+    // (ctx, c1, c2) for these
     neighbor_compare_context *ctx = (neighbor_compare_context *)a;
     int c1 = *(int *)b;
     int c2 = *(int *)c;
-    #else
+#else
+    // (c1, c2, ctx) for linux
     neighbor_compare_context *ctx = (neighbor_compare_context *)c;
     int c1 = *(int *)a;
     int c2 = *(int *)b;
-    #endif
+#endif
     int cost1 = t_opt_cost(ctx->opt, ctx->city, c1);
     int cost2 = t_opt_cost(ctx->opt, ctx->city, c2);
     return cost1 - cost2;
+}
+
+static void
+qsort_s_wrapper(void *base, size_t nmemb, size_t size,
+                int (*compar)(const void *, const void *, const void *),
+                void *arg) {
+#if defined(_MSC_VER)
+    qsort_s(base, nmemb, size, compar, arg);
+#elif defined(__APPLE__)
+    qsort_r(base, nmemb, size, arg, compar);
+#else
+    qsort_r(base, nmemb, size, compar, arg);
+#endif
 }
 
 #ifdef _MSC_VER
@@ -221,8 +236,8 @@ t_opt_init(FILE *inf) {
             m[i * n + j] = j;
         }
         neighbor_compare_context ctx = { opt, i };
-        qsort_ctx(&m[i * n], n, sizeof(int),
-                  neighbor_cmp, (void *)&ctx);
+        qsort_s_wrapper(&m[i * n], n, sizeof(int),
+                        neighbor_cmp, (void *)&ctx);
     }
     opt->neighbors = m;
     return opt;
