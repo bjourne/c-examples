@@ -34,7 +34,7 @@ cmp_fun(
 #if defined (_MSC_VER)
     void *ctx, const void *a, const void *b
 #else
-    const void *a, const void *b, void ctx
+    const void *a, const void *b, void *ctx
 #endif
 ) {
     compare_context *outer = (compare_context *)ctx;
