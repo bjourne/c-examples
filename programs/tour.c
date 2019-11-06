@@ -1,5 +1,6 @@
 // Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "datatypes/int-array.h"
 #include "linalg/linalg-io.h"
@@ -171,18 +172,30 @@ typedef struct {
     int city;
 } neighbor_compare_context;
 
-int
-neighbor_cmp(const void *a, const void *b, void *c) {
+static int
+neighbor_cmp(const void *a, const void *b, const void *c) {
+    #ifdef _MSC_VER
+    neighbor_compare_context *ctx = (neighbor_compare_context *)a;
+    int c1 = *(int *)b;
+    int c2 = *(int *)c;
+    #else
     neighbor_compare_context *ctx = (neighbor_compare_context *)c;
     int c1 = *(int *)a;
     int c2 = *(int *)b;
+    #endif
     int cost1 = t_opt_cost(ctx->opt, ctx->city, c1);
     int cost2 = t_opt_cost(ctx->opt, ctx->city, c2);
     return cost1 - cost2;
 }
 
-tour_optimizer *
-t_opt_init(FILE *stdin) {
+#ifdef _MSC_VER
+#define qsort_ctx qsort_s
+#else
+#define qsort_ctx qsort_r
+#endif
+
+tour_optimizer*
+t_opt_init(FILE *inf) {
     tour_optimizer *opt = malloc(sizeof(tour_optimizer));
 
     int n;
@@ -208,8 +221,8 @@ t_opt_init(FILE *stdin) {
             m[i * n + j] = j;
         }
         neighbor_compare_context ctx = { opt, i };
-        qsort_r(&m[i * n], n, sizeof(int),
-                neighbor_cmp, &ctx);
+        qsort_ctx(&m[i * n], n, sizeof(int),
+                  neighbor_cmp, (void *)&ctx);
     }
     opt->neighbors = m;
     return opt;
