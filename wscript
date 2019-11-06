@@ -123,7 +123,6 @@ def build(ctx):
     build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
     build_program(ctx, 'simd.c', [])
     build_program(ctx, 'strlen.c', ['DT_OBJS'])
-    build_program(ctx, 'tour.c', ['DT_OBJS', 'LINALG_OBJS', 'M'])
 
     # Conditional targets
     if ctx.env.DEST_OS == 'linux':
