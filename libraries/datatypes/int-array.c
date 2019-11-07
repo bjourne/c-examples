@@ -44,6 +44,24 @@ int1d_max(int *a, int n) {
 }
 
 ////////////////////////////////////////////////////////////////////////
+// 2d arrays
+////////////////////////////////////////////////////////////////////////
+int
+int2d_max(int *a, int rows, int cols, int row_stride) {
+    int max = INT_MIN;
+    for (int i = 0; i < rows; i++) {
+        for (int c = 0; c < cols; c++) {
+            int el = a[i * row_stride + c];
+            if (el > max) {
+                max = el;
+            }
+        }
+    }
+    return max;
+}
+
+
+////////////////////////////////////////////////////////////////////////
 // Pretty printing
 ////////////////////////////////////////////////////////////////////////
 #define TERM_WIDTH 167
@@ -65,11 +83,11 @@ n_digits(int v) {
 
 // Pretty prints a 2-dimensional int-array
 void
-int1d_pretty_print_table(int *a, int rows, int cols,
+int1d_pretty_print_table(int *a, int rows, int cols, int row_stride,
                          int n_points, int points[]) {
 
     bool ansi = getenv("TERM") != NULL;
-    int max = int1d_max(a, rows * cols);
+    int max = int2d_max(a, rows, cols, row_stride);
     max = MAX(MAX(max, rows - 1), cols - 1);
     int width = n_digits(max);
     char num_fmt[128], space_fmt[128];
@@ -103,7 +121,7 @@ int1d_pretty_print_table(int *a, int rows, int cols,
                     }
                 }
             }
-            printf(num_fmt, a[i*cols + j]);
+            printf(num_fmt, a[i*row_stride + j]);
             if (ansi) {
                 printf("%c[0;m", '\033');
             }
