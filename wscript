@@ -100,7 +100,7 @@ def build(ctx):
     build_library(ctx, 'datatypes', 'DT_OBJS', [])
     build_library(ctx, 'quickfit', 'QF_OBJS', ['DT_OBJS'])
     build_library(ctx, 'collectors', 'GC_OBJS', ['QF_OBJS'])
-    build_library(ctx, 'linalg', 'LINALG_OBJS', ['M'])
+    build_library(ctx, 'linalg', 'LINALG_OBJS', ['DT_OBJS', 'M'])
     build_library(ctx, 'isect', 'ISECT_OBJS', [])
     build_library(ctx, 'file3d', 'FILE3D_OBJS',
                   ['DT_OBJS', 'LINALG_OBJS'])

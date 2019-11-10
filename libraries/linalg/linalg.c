@@ -25,6 +25,7 @@ extern inline float to_deg(const float rad);
 // vec2 type
 extern inline vec2 v2_add(vec2 l, vec2 r);
 extern inline vec2 v2_scale(vec2 v, float f);
+extern inline float v2_distance(vec2 v1, vec2 v2);
 
 void
 v2_print(vec2 v, int n_dec) {
