@@ -17,11 +17,14 @@ FAST_IO_STDIN = NULL;
 void
 fast_io_init() {
     #ifndef _MSC_VER
+    int flags = MAP_SHARED;
+    #ifndef __APPLE__
+    flags |= MAP_POPULATE
+    #endif
     struct stat sb;
     (void)fstat(STDIN_FILENO, &sb);
     FAST_IO_STDIN = (char*)mmap(0, sb.st_size,
-                              PROT_READ, MAP_SHARED | MAP_POPULATE,
-                              STDIN_FILENO, 0);
+                                PROT_READ, flags, STDIN_FILENO, 0);
     #endif
 }
 
