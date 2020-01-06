@@ -101,6 +101,7 @@ def build(ctx):
     build_library(ctx, 'quickfit', 'QF_OBJS', ['DT_OBJS'])
     build_library(ctx, 'collectors', 'GC_OBJS', ['QF_OBJS'])
     build_library(ctx, 'linalg', 'LINALG_OBJS', ['DT_OBJS', 'M'])
+    build_library(ctx, 'fastio', 'FASTIO_OBJS', [])
     build_library(ctx, 'isect', 'ISECT_OBJS', [])
     build_library(ctx, 'file3d', 'FILE3D_OBJS',
                   ['DT_OBJS', 'LINALG_OBJS'])
@@ -123,6 +124,7 @@ def build(ctx):
     build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
     build_program(ctx, 'simd.c', [])
     build_program(ctx, 'strlen.c', ['DT_OBJS'])
+    build_program(ctx, 'fenwick.c', ['FASTIO_OBJS'])
 
     # Conditional targets
     if ctx.env.DEST_OS == 'linux':

@@ -10,7 +10,7 @@ truly understand how it works. So there's that.
 The repository consists of the following parts.
 
 ## Libraries
-Currently six libraries I have developed while writing garbage
+Currently seven libraries I have developed while writing garbage
 collectors and other projects. They are located in the `libraries`
 directory.
 
@@ -34,9 +34,16 @@ Standard datatypes for C programming like `vector` and
 `hashset`. There is not a lot of documentation for these
 datatypes. Instead, I hope that the code is self-explanatory.
 
+### `libraries/fastio`
+
+Fast IO routines accessing `stdin` and `stdout`. They are useful to
+minimize IO overhead in competitive programming challenges.
+
+
 ### `libraries/isect`
 
-A collection of ray/triangle intersection algorithms. These are used by my raytracer.
+A collection of ray/triangle intersection algorithms. These are used
+by my raytracer.
 
 ### `libraries/linalg`
 
@@ -65,4 +72,4 @@ The project is built using the build tool
 
     ./waf configure build
 
-Windows, Linux and OS X are supported.
+Windows, Linux and OS X is supported.
