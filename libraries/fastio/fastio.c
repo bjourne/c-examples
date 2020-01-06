@@ -12,7 +12,7 @@
 #endif
 
 static char *
-FAST_IO_PTR = NULL;
+FAST_IO_STDIN = NULL;
 
 void
 fast_io_init() {
