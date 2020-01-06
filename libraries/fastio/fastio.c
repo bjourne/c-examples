@@ -19,7 +19,7 @@ fast_io_init() {
     #ifndef _MSC_VER
     int flags = MAP_SHARED;
     #ifndef __APPLE__
-    flags |= MAP_POPULATE
+    flags |= MAP_POPULATE;
     #endif
     struct stat sb;
     (void)fstat(STDIN_FILENO, &sb);
