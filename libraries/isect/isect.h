@@ -1,3 +1,4 @@
+// Copyright (C) 2020 Björn Lindqvist <bjourne@gmail.com>
 #ifndef ISECT_H
 #define ISECT_H
 
@@ -8,11 +9,6 @@
 
 #define ISECT_NEAR 0.0001f
 #define ISECT_FAR 10000.0f
-
-typedef union {
-    int i;
-    float f;
-} int_or_float;
 
 typedef struct {
     vec3 n0; float d0;
