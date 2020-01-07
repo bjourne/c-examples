@@ -118,6 +118,7 @@ def build(ctx):
                 ['LINALG_OBJS', 'DT_OBJS', 'M', 'ISECT_OBJS'])
     build_tests(ctx, 'paths',
                 ['PATHS_OBJS', 'DT_OBJS'])
+    build_tests(ctx, 'fastio', ['FASTIO_OBJS'])
 
     build_program(ctx, 'cpu.c', ['DT_OBJS'])
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
