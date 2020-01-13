@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019-2020 Björn Lindqvist <bjourne@gmail.com>
 #ifndef DATATYPES_COMMON_H
 #define DATATYPES_COMMON_H
 
@@ -38,7 +38,7 @@ void error(char *fmt, ...);
 
 // Timing
 void timed_run(void (*func)());
-size_t nano_count();
+uint64_t nano_count();
 
 // Random
 // I happen to like rand(), but one should also consider

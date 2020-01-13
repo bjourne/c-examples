@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019-2020 Björn Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <inttypes.h>
 #include <stdarg.h>
@@ -19,7 +19,7 @@ error(char *fmt, ...) {
     abort();
 }
 
-size_t
+uint64_t
 nano_count() {
 #ifdef _WIN32
     static double scale_factor;
@@ -56,7 +56,7 @@ nano_count() {
     if (ret != 0) {
         error("clock_gettime failed");
     }
-    return (size_t)t.tv_sec * 1000000000 + t.tv_nsec;
+    return (uint64_t)t.tv_sec * 1000000000 + t.tv_nsec;
 #endif
 }
 
