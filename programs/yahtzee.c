@@ -6,15 +6,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #ifdef _WIN32
 #include <windows.h>
 #else
 #include <fcntl.h>
-#include <pthread.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #endif
+#include "datatypes/common.h"
+#include "threads/threads.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // Range of numbers, number of numbers and number of parser threads.
@@ -28,48 +28,6 @@
 // Timing functions.
 //////////////////////////////////////////////////////////////////////////////
 #define NS_TO_S(x)      ((double)(x) / 1000 / 1000 / 1000)
-
-uint64_t
-nano_count() {
-#ifdef _WIN32
-    static double scale_factor;
-    static uint64_t hi = 0;
-    static uint64_t lo = 0;
-
-    LARGE_INTEGER count;
-    BOOL ret = QueryPerformanceCounter(&count);
-    if (ret == 0) {
-        printf("QueryPerformanceCounter failed.\n");
-        abort();
-    }
-    if (scale_factor == 0.0) {
-        LARGE_INTEGER frequency;
-        BOOL ret = QueryPerformanceFrequency(&frequency);
-        if (ret == 0) {
-            printf("QueryPerformanceFrequency failed.\n");
-            abort();
-        }
-        scale_factor = (1000000000.0 / frequency.QuadPart);
-  }
-#ifdef CPU_64
-    hi = count.HighPart;
-#else
-    if (lo > count.LowPart) {
-        hi++;
-    }
-#endif
-    lo = count.LowPart;
-    return (uint64_t)(((hi << 32) | lo) * scale_factor);
-#else
-    struct timespec t;
-    int ret = clock_gettime(CLOCK_MONOTONIC, &t);
-    if (ret != 0) {
-        printf("clock_gettime failed.\n");
-        abort();
-    }
-    return (uint64_t)t.tv_sec * 1000000000 + t.tv_nsec;
-#endif
-}
 
 //////////////////////////////////////////////////////////////////////////////
 // Generate the data file.
@@ -141,21 +99,12 @@ typedef struct {
     uint64_t *accum;
 } parse_chunk_thread_args;
 
-#ifdef _WIN32
-static DWORD WINAPI
-parse_chunk_thread(LPVOID args) {
-    parse_chunk_thread_args *a = (parse_chunk_thread_args *)args;
-    parse_chunk(a->chunk_start, a->chunk_end, a->accum);
-    return 0;
-}
-#else
 static void*
 parse_chunk_thread(void *args) {
     parse_chunk_thread_args *a = (parse_chunk_thread_args *)args;
     parse_chunk(a->chunk_start, a->chunk_end, a->accum);
     return NULL;
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // Parse the whole file.
@@ -170,7 +119,9 @@ run_test(const char *path) {
     uint64_t n_bytes = ftell(f);
     fseek(f, 0, SEEK_SET);
     char *buf_start = (char *)malloc(sizeof(char) * n_bytes);
-    assert(fread(buf_start, 1, n_bytes, f) == n_bytes);
+    if (fread(buf_start, 1, n_bytes, f) != n_bytes) {
+        return false;
+    }
     fclose(f);
 #else
     int fd = open(path, O_RDONLY);
@@ -201,12 +152,6 @@ run_test(const char *path) {
         }
     }
     uint64_t *accum = calloc(MAX_VALUE, sizeof(uint64_t));
-
-    #if _WIN32
-    HANDLE threads[N_THREADS];
-    #else
-    pthread_t threads[N_THREADS];
-    #endif
     parse_chunk_thread_args args[N_THREADS];
     for (int i = 0; i < N_THREADS; i++) {
         char *chunk_start = chunks[i];
@@ -217,20 +162,17 @@ run_test(const char *path) {
         args[i].chunk_start = chunk_start;
         args[i].chunk_end = chunk_end;
         args[i].accum = accum;
-        #if _WIN32
-        threads[i] = CreateThread(NULL, 0, parse_chunk_thread,
-                                  &args[i], 0, NULL);
-        #else
-        pthread_create(&threads[i], NULL, parse_chunk_thread, &args[i]);
-        #endif
     }
-    for (int i = 0; i < N_THREADS; i++) {
-        #if _WIN32
-        WaitForSingleObject(threads[i], INFINITE);
-        #else
-        pthread_join(threads[i], NULL);
-        #endif
+    thr_handle handles[N_THREADS];
+    if (!thr_create_threads(N_THREADS, handles,
+                            sizeof(parse_chunk_thread_args),
+                            args, parse_chunk_thread)) {
+        return false;
     }
+    if (!thr_wait_for_threads(N_THREADS, handles)) {
+        return false;
+    }
+
     uint64_t max = 0;
     for (int i = 0; i < MAX_VALUE; i++) {
         uint64_t val = accum[i];

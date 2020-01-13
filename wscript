@@ -57,6 +57,7 @@ def configure(ctx):
                       uselib_store = 'PCRE',
                       mandatory = False)
         ctx.check(lib = 'm')
+        ctx.check(lib = 'pthread')
 
 def noinst_program(ctx, source, target, use):
     ctx.program(source = source, target = target,
@@ -107,6 +108,8 @@ def build(ctx):
                   ['DT_OBJS', 'LINALG_OBJS'])
     build_library(ctx, 'paths', 'PATHS_OBJS', [])
 
+    build_library(ctx, 'threads', 'THREADS_OBJS', [])
+
     build_tests(ctx, 'datatypes', ['DT_OBJS'])
     build_tests(ctx, 'quickfit', ['DT_OBJS', 'QF_OBJS'])
     build_tests(ctx, 'collectors', ['GC_OBJS', 'DT_OBJS', 'QF_OBJS'])
@@ -126,7 +129,7 @@ def build(ctx):
     build_program(ctx, 'simd.c', [])
     build_program(ctx, 'strlen.c', ['DT_OBJS'])
     build_program(ctx, 'fenwick.c', ['FASTIO_OBJS'])
-    build_program(ctx, 'yahtzee.c', ['DT_OBJS'])
+    build_program(ctx, 'yahtzee.c', ['DT_OBJS', 'THREADS_OBJS', 'PTHREAD'])
 
     # Conditional targets
     if ctx.env.DEST_OS == 'linux':
