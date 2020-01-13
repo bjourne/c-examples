@@ -10,7 +10,10 @@
 #ifdef _WIN32
 #include <windows.h>
 #else
+#include <fcntl.h>
 #include <pthread.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -30,7 +33,6 @@ uint64_t
 nano_count() {
 #ifdef _WIN32
     static double scale_factor;
-
     static uint64_t hi = 0;
     static uint64_t lo = 0;
 
@@ -40,7 +42,6 @@ nano_count() {
         printf("QueryPerformanceCounter failed.\n");
         abort();
     }
-
     if (scale_factor == 0.0) {
         LARGE_INTEGER frequency;
         BOOL ret = QueryPerformanceFrequency(&frequency);
@@ -95,23 +96,23 @@ run_generate(const char *path) {
 //////////////////////////////////////////////////////////////////////////////
 // Fast number parser using loop unrolling macros.
 //////////////////////////////////////////////////////////////////////////////
-#define PARSE_FIRST_DIGIT               \
-    if (*buf >= '0') {                  \
-        val = *buf++ - '0';             \
-    } else {                            \
-        goto done;                      \
+#define PARSE_FIRST_DIGIT              \
+    if (*at >= '0')         {          \
+        val = *at++ - '0';             \
+    } else {                           \
+        goto done;                     \
     }
-#define PARSE_NEXT_DIGIT                \
-    if (*buf >= '0') {                  \
-        val = val*10 + *buf++ - '0';    \
-    } else {                            \
-        goto done;                      \
+#define PARSE_NEXT_DIGIT               \
+    if (*at >= '0') {                  \
+        val = val*10 + *at++ - '0';    \
+    } else {                           \
+        goto done;                     \
     }
 
 static void
-parse_chunk(char *buf, const char *end, size_t *accum) {
-    size_t val = 0;
-    while (buf < end) {
+parse_chunk(char *at, const char *end, uint64_t *accum) {
+    uint64_t val = 0;
+    while (at < end) {
         // Parse up to 7 digits.
         PARSE_FIRST_DIGIT;
         PARSE_NEXT_DIGIT;
@@ -127,7 +128,7 @@ parse_chunk(char *buf, const char *end, size_t *accum) {
         __sync_fetch_and_add(&accum[val], val);
         #endif
         // Skip newline character.
-        buf++;
+        at++;
     }
 }
 
@@ -137,7 +138,7 @@ parse_chunk(char *buf, const char *end, size_t *accum) {
 typedef struct {
     char *chunk_start;
     char *chunk_end;
-    size_t *accum;
+    uint64_t *accum;
 } parse_chunk_thread_args;
 
 #ifdef _WIN32
@@ -159,18 +160,31 @@ parse_chunk_thread(void *args) {
 //////////////////////////////////////////////////////////////////////////////
 // Parse the whole file.
 //////////////////////////////////////////////////////////////////////////////
-static void
+static bool
 run_test(const char *path) {
     uint64_t time_start = nano_count();
 
+#ifdef _WIN32
     FILE *f = fopen(path, "rb");
     fseek(f, 0, SEEK_END);
-    long int n_bytes = ftell(f);
+    uint64_t n_bytes = ftell(f);
     fseek(f, 0, SEEK_SET);
     char *buf_start = (char *)malloc(sizeof(char) * n_bytes);
-    char *buf_end = buf_start + n_bytes;
     assert(fread(buf_start, 1, n_bytes, f) == n_bytes);
     fclose(f);
+#else
+    int fd = open(path, O_RDONLY);
+    if (fd == -1) {
+        return false;
+    }
+    struct stat sb;
+    if (fstat(fd, &sb) == -1) {
+        return false;
+    }
+    uint64_t n_bytes = sb.st_size;
+    char *buf_start = mmap(NULL, n_bytes, PROT_READ, MAP_PRIVATE, fd, 0);
+#endif
+    char *buf_end = buf_start + n_bytes;
 
     uint64_t time_read = nano_count();
 
@@ -186,7 +200,7 @@ run_test(const char *path) {
             chunks[i]++;
         }
     }
-    size_t *accum = calloc(MAX_VALUE, sizeof(size_t));
+    uint64_t *accum = calloc(MAX_VALUE, sizeof(uint64_t));
 
     #if _WIN32
     HANDLE threads[N_THREADS];
@@ -217,31 +231,33 @@ run_test(const char *path) {
         pthread_join(threads[i], NULL);
         #endif
     }
-
-    uint64_t time_parsed = nano_count();
-    size_t max = 0;
+    uint64_t max = 0;
     for (int i = 0; i < MAX_VALUE; i++) {
-        size_t val = accum[i];
+        uint64_t val = accum[i];
         if (val > max) {
             max = val;
         }
     }
+    uint64_t time_parsed = nano_count();
 
-    uint64_t time_accum = nano_count();
-
-    printf("max = %zu\n", max);
     free(accum);
+    #if _WIN32
     free(buf_start);
+    #else
+    if (munmap(buf_start, n_bytes) == -1) {
+        return false;
+    }
+    #endif
 
     // Print timings.
     double read_secs = NS_TO_S(time_read - time_start);
     double parse_secs = NS_TO_S(time_parsed - time_read);
-    double accum_secs = NS_TO_S(time_accum - time_parsed);
-    double total_secs = NS_TO_S(time_accum - time_start);
-    printf("Read : %.3f seconds\n", read_secs);
-    printf("Parse: %.3f seconds\n", parse_secs);
-    printf("Accum: %.3f seconds\n", accum_secs);
-    printf("Total: %.3f seconds\n", total_secs);
+    double total_secs = NS_TO_S(time_parsed - time_start);
+    printf("Read  : %.3f seconds\n", read_secs);
+    printf("Parse : %.3f seconds\n", parse_secs);
+    printf("Total : %.3f seconds\n", total_secs);
+    printf("-- Max: %zu\n", max);
+    return true;
 }
 
 int
@@ -254,7 +270,10 @@ main(int argc, char *argv[]) {
     if (strcmp(cmd, "generate") == 0) {
         run_generate(argv[2]);
     } else if (strcmp(cmd, "test") == 0) {
-        run_test(argv[2]);
+        if (!run_test(argv[2])) {
+            printf("Test run failed!\n");
+            return EXIT_FAILURE;
+        }
     } else {
         printf("%s: [generate|test] path\n", argv[0]);
         return EXIT_FAILURE;
