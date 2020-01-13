@@ -1,5 +1,5 @@
 // Copyright (C) 2020 Björn Lindqvist <bjourne@gmail.com>
-#include <assert.h>
+#include <inttypes.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -198,7 +198,7 @@ run_test(const char *path) {
     printf("Read  : %.3f seconds\n", read_secs);
     printf("Parse : %.3f seconds\n", parse_secs);
     printf("Total : %.3f seconds\n", total_secs);
-    printf("-- Max: %zu\n", max);
+    printf("-- Max: %" PRIu64 "\n", max);
     return true;
 }
 
