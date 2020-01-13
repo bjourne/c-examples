@@ -2,6 +2,7 @@
 #ifndef FASTIO_H
 #define FASTIO_H
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
