@@ -10,7 +10,8 @@ thr_create_threads(size_t n, thr_handle *handles,
     for (int i = 0; i < n; i++) {
         void *arg = (void *)((char*)args + size * i);
 #if _WIN32
-        handles[i] = CreateThread(NULL, 0, func, arg, 0, NULL);
+        handles[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)func,
+                                  arg, 0, NULL);
         if (!handles[i]) {
             return false;
         }
