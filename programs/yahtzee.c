@@ -68,8 +68,8 @@ run_generate(const char *path) {
     }
 
 static void
-parse_chunk(char *at, const char *end, uint64_t *accum) {
-    uint64_t val = 0;
+parse_chunk(char *at, const char *end, int *accum) {
+    int val = 0;
     while (at < end) {
         // Parse up to 7 digits.
         PARSE_FIRST_DIGIT;
@@ -81,9 +81,9 @@ parse_chunk(char *at, const char *end, uint64_t *accum) {
         PARSE_NEXT_DIGIT;
     done:
         #ifdef _WIN32
-        InterlockedExchangeAdd64(&accum[val], val);
+        InterlockedExchangeAdd32(&accum[val], 1);
         #else
-        __sync_fetch_and_add(&accum[val], val);
+        __sync_fetch_and_add(&accum[val], 1);
         #endif
         // Skip newline character.
         at++;
@@ -96,7 +96,7 @@ parse_chunk(char *at, const char *end, uint64_t *accum) {
 typedef struct {
     char *chunk_start;
     char *chunk_end;
-    uint64_t *accum;
+    int *accum;
 } parse_chunk_thread_args;
 
 static void*
@@ -151,7 +151,7 @@ run_test(const char *path) {
             chunks[i]++;
         }
     }
-    uint64_t *accum = calloc(MAX_VALUE, sizeof(uint64_t));
+    int *accum = calloc(MAX_VALUE, sizeof(int));
     parse_chunk_thread_args args[N_THREADS];
     for (int i = 0; i < N_THREADS; i++) {
         char *chunk_start = chunks[i];
@@ -175,7 +175,7 @@ run_test(const char *path) {
 
     uint64_t max = 0;
     for (int i = 0; i < MAX_VALUE; i++) {
-        uint64_t val = accum[i];
+        uint64_t val = accum[i] * i;
         if (val > max) {
             max = val;
         }
