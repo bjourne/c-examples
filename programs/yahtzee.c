@@ -21,8 +21,8 @@
 //////////////////////////////////////////////////////////////////////////////
 #define MIN_VALUE (1 * 1000 * 1000)
 #define MAX_VALUE (2 * 1000 * 1000)
-#define N_VALUES 400 * 1000 * 1000
-#define N_THREADS 8
+#define N_VALUES 100 * 1000 * 1000
+#define N_THREADS 4
 
 //////////////////////////////////////////////////////////////////////////////
 // Timing functions.
@@ -81,7 +81,7 @@ parse_chunk(char *at, const char *end, int *accum) {
         PARSE_NEXT_DIGIT;
     done:
         #ifdef _WIN32
-        InterlockedExchangeAdd32(&accum[val], 1);
+        InterlockedExchangeAdd(&accum[val], 1);
         #else
         __sync_fetch_and_add(&accum[val], 1);
         #endif
