@@ -51,35 +51,15 @@ enum Refl_t {
 };
 
 struct Sphere {
-    double rad;       // radius
+    double rad_sq;
     Vec p, e, c;      // position, emission, color
     Refl_t refl;      // reflection type (DIFFuse, SPECular, REFRactive)
 
     Sphere(double rad_, Vec p_, Vec e_, Vec c_, Refl_t refl_):
-        rad(rad_), p(p_), e(e_), c(c_), refl(refl_) {
+        p(p_), e(e_), c(c_), refl(refl_) {
+        rad_sq = rad_ * rad_;
     }
 };
-
-static inline double
-sph_intersect(Sphere sph, Ray r) {
-    Vec op = v_sub(sph.p, r.o);
-    double eps = 1e-4;
-    double b = v_dot(op, r.d);
-
-    double det = b * b - v_dot(op, op) + sph.rad * sph.rad;
-    if (det < 0)
-        return 0.0;
-    else
-        det = sqrt(det);
-
-    double t = b - det;
-    if (t > eps)
-        return t;
-    t = b + det;
-    if (t > eps)
-        return t;
-    return 0.0;
-}
 
 Sphere spheres[] = {
     Sphere(1e5, Vec( 1e5+1,40.8,81.6), Vec(),Vec(.75,.25,.25),DIFF),//Left
@@ -92,6 +72,29 @@ Sphere spheres[] = {
     Sphere(16.5,Vec(73,16.5,78),       Vec(),Vec(1,1,1)*.999, REFR),//Glas
     Sphere(600, Vec(50,681.6-.27,81.6),Vec(12,12,12),  Vec(), DIFF) //Lite
 };
+#define N_SPHERES 9
+
+static inline double
+sph_intersect(Vec pos, double rad_sq, Vec ro, Vec rd) {
+    Vec op = v_sub(pos, ro);
+    double eps = 1e-4;
+    double b = v_dot(op, rd);
+
+    double det = b * b - v_dot(op, op) + rad_sq;
+    if (det < 0)
+        return 0.0;
+    det = sqrt(det);
+
+    double t = b - det;
+    if (t > eps)
+        return t;
+    t = b + det;
+    if (t > eps)
+        return t;
+    return 0.0;
+}
+
+
 inline double
 clamp(double x){
     return x < 0 ? 0 : x > 1 ? 1 : x;
@@ -99,11 +102,12 @@ clamp(double x){
 inline int toInt(double x){ return int(pow(clamp(x),1/2.2)*255+.5); }
 
 static inline bool
-intersect(const Ray &r, double &t, int &id) {
-    double n = sizeof(spheres)/sizeof(Sphere);
+intersect(Vec ro, Vec rd, double &t, int &id) {
     double inf = t = 1e20;
-    for(int i = int(n); i--;) {
-        double d = sph_intersect(spheres[i], r);
+    for(int i = N_SPHERES; i--;) {
+        Vec p = spheres[i].p;
+        double rad_sq = spheres[i].rad_sq;
+        double d = sph_intersect(p, rad_sq, ro, rd);
         if (d && d < t) {
             t = d;
             id = i;
@@ -116,8 +120,8 @@ Vec radiance(const Ray &r,
              unsigned short *Xi) {
     double t;
     int id = 0;
-    if (!intersect(r, t, id))
-        return Vec(); // if miss, return black
+    if (!intersect(r.o, r.d, t, id))
+        return Vec();
     const Sphere &obj = spheres[id];        // the hit object
     Vec x = r.o + r.d *t;
     Vec n = (x - obj.p).norm();
