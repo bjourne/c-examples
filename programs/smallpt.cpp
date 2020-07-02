@@ -24,7 +24,9 @@ struct Vec {
     }
     Vec& norm(){ return *this = *this * (1/sqrt(x*x+y*y+z*z)); }
     double dot(const Vec &b) const { return x*b.x+y*b.y+z*b.z; } // cross:
-    Vec operator%(Vec&b){return Vec(y*b.z-z*b.y,z*b.x-x*b.z,x*b.y-y*b.x);}
+    Vec operator%(Vec&b) {
+        return Vec(y*b.z-z*b.y,z*b.x-x*b.z,x*b.y-y*b.x);
+    }
 };
 
 static inline Vec
@@ -94,7 +96,6 @@ sph_intersect(Vec pos, double rad_sq, Vec ro, Vec rd) {
     return 0.0;
 }
 
-
 inline double
 clamp(double x){
     return x < 0 ? 0 : x > 1 ? 1 : x;
@@ -125,11 +126,12 @@ Vec radiance(const Ray &r,
     const Sphere &obj = spheres[id];        // the hit object
     Vec x = r.o + r.d *t;
     Vec n = (x - obj.p).norm();
-    Vec nl = n.dot(r.d) < 0 ? n : n * -1, f=obj.c;
+    Vec nl = n.dot(r.d) < 0 ? n : n * -1;
+    Vec f = obj.c;
     double p = f.x>f.y && f.x>f.z ? f.x : f.y > f.z ? f.y : f.z;
     if (++depth > 5) {
         if (erand48(Xi) < p)
-            f=f*(1/p);
+            f = f  * (1.0 / p);
         else
             return obj.e; //R.R.
     }
@@ -142,19 +144,28 @@ Vec radiance(const Ray &r,
         return obj.e + f.mult(radiance(Ray(x,d),depth,Xi));
     } else if (obj.refl == SPEC)            // Ideal SPECULAR reflection
         return obj.e + f.mult(radiance(Ray(x, r.d-n*2*n.dot(r.d)), depth,Xi));
-  Ray reflRay(x, r.d-n*2*n.dot(r.d));     // Ideal dielectric REFRACTION
-  bool into = n.dot(nl)>0;                // Ray from outside going in?
-  double nc=1, nt=1.5, nnt=into?nc/nt:nt/nc, ddn=r.d.dot(nl), cos2t;
-  if ((cos2t=1-nnt*nnt*(1-ddn*ddn))<0)    // Total internal reflection
-    return obj.e + f.mult(radiance(reflRay,depth,Xi));
-  Vec tdir = (r.d*nnt - n*((into?1:-1)*(ddn*nnt+sqrt(cos2t)))).norm();
-  double a=nt-nc, b=nt+nc, R0=a*a/(b*b), c = 1-(into?-ddn:tdir.dot(n));
-  double Re=R0+(1-R0)*c*c*c*c*c,Tr=1-Re,P=.25+.5*Re,RP=Re/P,TP=Tr/(1-P);
-  return obj.e + f.mult(depth>2 ? (erand48(Xi)<P ?   // Russian roulette
-    radiance(reflRay,depth,Xi)*RP:radiance(Ray(x,tdir),depth,Xi)*TP) :
-    // For determinism due to the RNG: C++ executes the right side first.
-    radiance(reflRay,depth,Xi)*Re+radiance(Ray(x,tdir),depth,Xi)*Tr);
+    Ray reflRay(x, r.d-n*2*n.dot(r.d));     // Ideal dielectric REFRACTION
+    bool into = n.dot(nl)>0;                // Ray from outside going in?
+    double nc=1, nt=1.5, nnt=into?nc/nt:nt/nc, ddn=r.d.dot(nl), cos2t;
+    if ((cos2t=1-nnt*nnt*(1-ddn*ddn))<0)    // Total internal reflection
+        return obj.e + f.mult(radiance(reflRay,depth,Xi));
+    Vec tdir = (r.d*nnt - n*((into?1:-1)*(ddn*nnt+sqrt(cos2t)))).norm();
+    double a=nt-nc, b=nt+nc, R0=a*a/(b*b), c = 1-(into?-ddn:tdir.dot(n));
+    double Re = R0+(1-R0)*c*c*c*c*c,Tr=1-Re,P=.25+.5*Re,RP=Re/P,TP=Tr/(1-P);
+
+    Vec mulVec;
+    if (depth > 2) {
+        if (erand48(Xi) <P) {
+            mulVec = radiance(reflRay, depth, Xi)*RP;
+        } else {
+            mulVec = radiance(Ray(x, tdir), depth, Xi) * TP;
+        }
+    } else {
+        mulVec = radiance(reflRay, depth, Xi) * Re + radiance(Ray(x, tdir), depth, Xi) * Tr;
+    }
+    return obj.e + f.mult(mulVec);
 }
+
 int main(int argc, char *argv[]) {
     int w = 1024;
     int h = 768;
@@ -169,7 +180,7 @@ int main(int argc, char *argv[]) {
         for (unsigned short x = 0, Xi[3] = {0, 0, (unsigned short)(y*y*y)}; x<w; x++) {
             for (int sy=0, i=(h-y-1)*w+x; sy<2; sy++) {
                 for (int sx = 0; sx < 2; sx++, r = Vec()) {
-                    for (int s = 0; s < samps; s++){
+                    for (int s = 0; s < samps; s++) {
                         double r1 = 2 * erand48(Xi);
                         double dx = r1 < 1 ? sqrt(r1) - 1
                                          : 1 - sqrt(2 - r1);
@@ -178,12 +189,11 @@ int main(int argc, char *argv[]) {
                                          : 1 - sqrt(2 - r2);
                         Vec d = cx * (((sx + .5 + dx)/2 + x)/w - .5) +
                                          cy*( ( (sy+.5 + dy)/2 + y)/h - .5) + cam.d;
-                        // Warning: The d in "cam.o+d*140" is actually d.norm()
-                        // due to right to left execution and norm() working
-                        // both in-place and out-place
                         r = r + radiance(Ray(cam.o+d*140, d.norm()), 0, Xi) * (1./ samps);
                     } // Camera rays are pushed ^^^^^ forward to start in interior
-                    c[i] = c[i] + Vec(clamp(r.x), clamp(r.y), clamp(r.z)) * .25;
+                    c[i].x += clamp(r.x) * 0.25;
+                    c[i].y += clamp(r.y) * 0.25;
+                    c[i].z += clamp(r.z) * 0.25;
                 }
             }
         }
