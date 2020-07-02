@@ -75,32 +75,33 @@ Sphere spheres[] = {
     Sphere(600, Vec(50,681.6-.27,81.6),Vec(12,12,12),  Vec(), DIFF) //Lite
 };
 #define N_SPHERES 9
+#define EPS 1e-4
+#define NO_HIT 1e20
 
 static inline double
 sph_intersect(Vec pos, double rad_sq, Vec ro, Vec rd) {
     Vec op = v_sub(pos, ro);
-    double eps = 1e-4;
     double b = v_dot(op, rd);
-
-    double det = b * b - v_dot(op, op) + rad_sq;
+    double det = b * b + rad_sq - v_dot(op, op);
     if (det < 0)
-        return 0.0;
+        return NO_HIT;
     det = sqrt(det);
-
     double t = b - det;
-    if (t > eps)
+    if (t > EPS)
         return t;
     t = b + det;
-    if (t > eps)
+    if (t > EPS)
         return t;
-    return 0.0;
+    return NO_HIT;
 }
 
 inline double
 clamp(double x){
     return x < 0 ? 0 : x > 1 ? 1 : x;
 }
-inline int toInt(double x){ return int(pow(clamp(x),1/2.2)*255+.5); }
+inline int toInt(double x){
+    return int(pow(clamp(x),1/2.2)*255+.5);
+}
 
 static inline bool
 intersect(Vec ro, Vec rd, double &t, int &id) {
@@ -109,7 +110,7 @@ intersect(Vec ro, Vec rd, double &t, int &id) {
         Vec p = spheres[i].p;
         double rad_sq = spheres[i].rad_sq;
         double d = sph_intersect(p, rad_sq, ro, rd);
-        if (d && d < t) {
+        if (d < t) {
             t = d;
             id = i;
         }
