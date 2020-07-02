@@ -1,4 +1,4 @@
-# Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
+# Copyright (C) 2019-2020 Björn Lindqvist <bjourne@gmail.com>
 from os.path import splitext
 
 def options(ctx):
@@ -25,7 +25,7 @@ def configure(ctx):
             '-march=native', '-mtune=native'
         ]
         base_cxx_flags = [
-            '-Wall', '-Werror', '-fPIC',
+            '-Wall', '-Werror', '-fPIC', '-fopenmp',
             '-march=native', '-mtune=native'
         ]
         speed_flags = ['-O3', '-fomit-frame-pointer']
@@ -58,6 +58,7 @@ def configure(ctx):
                       mandatory = False)
         ctx.check(lib = 'm')
         ctx.check(lib = 'pthread')
+        ctx.check(lib = 'gomp')
 
 def noinst_program(ctx, source, target, use):
     ctx.program(source = source, target = target,
@@ -126,6 +127,7 @@ def build(ctx):
     build_program(ctx, 'cpu.c', ['DT_OBJS'])
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
     build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
+    build_program(ctx, 'smallpt.cpp', ['GOMP'])
     build_program(ctx, 'simd.c', [])
     build_program(ctx, 'strlen.c', ['DT_OBJS'])
     build_program(ctx, 'fenwick.c', ['FASTIO_OBJS'])
