@@ -102,12 +102,20 @@ inline int toInt(double x){
     return int(pow(clamp(x),1/2.2)*255+.5);
 }
 
+// Clang appreciates unrolling but gcc doesn't.
+#define BODY(I)                 \
+    { Sphere sp = spheres[I];                            \
+    double d = sph_intersect(sp.p, sp.rad_sq, ro, rd);  \
+    if (d < t) {                \
+        t = d;                  \
+        id = I;                 \
+    }}
+
 static inline bool
 intersect(Vec ro, Vec rd, double &t, int &id) {
     for(int i = N_SPHERES; i--;) {
-        Vec p = spheres[i].p;
-        double rad_sq = spheres[i].rad_sq;
-        double d = sph_intersect(p, rad_sq, ro, rd);
+        Sphere sp = spheres[i];
+        double d = sph_intersect(sp.p, sp.rad_sq, ro, rd);
         if (d < t) {
             t = d;
             id = i;
@@ -127,9 +135,9 @@ radiance(Vec ro, Vec rd,
          unsigned short *Xi) {
     double t = NO_HIT;
     int id = 0;
-    if (!intersect(ro, rd, t, id))
+    if (!intersect(ro, rd, t, id)) {
         return Vec();
-
+    }
     return compute_hit(ro, rd, t, id, depth, Xi);
 }
 
@@ -139,7 +147,7 @@ compute_hit(Vec ro, Vec rd,
             double t, int id,
             int depth, unsigned short *Xi) {
     const Sphere &obj = spheres[id];
-    Vec x = ro + rd * t;
+    Vec x = v_add(ro, rd * t);
     Vec n = v_sub(x, obj.p).norm();
     Vec nl = v_dot(n, rd) < 0 ? n : n * -1;
     Vec f = obj.c;
@@ -176,9 +184,9 @@ compute_hit(Vec ro, Vec rd,
         return obj.e + f.mult(radiance(reflRay.o, reflRay.d, depth, Xi));
     }
     Vec tdir = (rd*nnt - n*((into?1:-1)*(ddn*nnt+sqrt(cos2t)))).norm();
-    double a=nt-nc;
-    double b=nt+nc;
-    double R0=a*a/(b*b);
+    double a = nt-nc;
+    double b = nt+nc;
+    double R0 = a*a/(b*b);
     double c = 1 - (into ? -ddn : v_dot(tdir, n));
     double Re = R0+(1-R0)*c*c*c*c*c;
     double Tr = 1-Re;
