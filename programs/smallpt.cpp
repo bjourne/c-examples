@@ -23,7 +23,6 @@ struct Vec {
         return Vec(x*b.x, y*b.y, z*b.z);
     }
     Vec& norm(){ return *this = *this * (1/sqrt(x*x+y*y+z*z)); }
-    double dot(const Vec &b) const { return x*b.x+y*b.y+z*b.z; } // cross:
     Vec operator%(Vec&b) {
         return Vec(y*b.z-z*b.y,z*b.x-x*b.z,x*b.y-y*b.x);
     }
@@ -105,7 +104,6 @@ inline int toInt(double x){
 
 static inline bool
 intersect(Vec ro, Vec rd, double &t, int &id) {
-    double inf = t = 1e20;
     for(int i = N_SPHERES; i--;) {
         Vec p = spheres[i].p;
         double rad_sq = spheres[i].rad_sq;
@@ -115,54 +113,89 @@ intersect(Vec ro, Vec rd, double &t, int &id) {
             id = i;
         }
     }
-    return t < inf;
+    return t < NO_HIT;
 }
-Vec radiance(const Ray &r,
-             int depth,
-             unsigned short *Xi) {
-    double t;
+
+static Vec
+compute_hit(Vec ro, Vec rd,
+            double t, int id,
+            int depth, unsigned short *Xi);
+
+static inline Vec
+radiance(Vec ro, Vec rd,
+         int depth,
+         unsigned short *Xi) {
+    double t = NO_HIT;
     int id = 0;
-    if (!intersect(r.o, r.d, t, id))
+    if (!intersect(ro, rd, t, id))
         return Vec();
-    const Sphere &obj = spheres[id];        // the hit object
-    Vec x = r.o + r.d *t;
-    Vec n = (x - obj.p).norm();
-    Vec nl = n.dot(r.d) < 0 ? n : n * -1;
+
+    return compute_hit(ro, rd, t, id, depth, Xi);
+}
+
+// Separate function because this should not be inlined.
+static Vec
+compute_hit(Vec ro, Vec rd,
+            double t, int id,
+            int depth, unsigned short *Xi) {
+    const Sphere &obj = spheres[id];
+    Vec x = ro + rd * t;
+    Vec n = v_sub(x, obj.p).norm();
+    Vec nl = v_dot(n, rd) < 0 ? n : n * -1;
     Vec f = obj.c;
-    double p = f.x>f.y && f.x>f.z ? f.x : f.y > f.z ? f.y : f.z;
+    double p = f.x > f.y && f.x > f.z ? f.x : f.y > f.z ? f.y : f.z;
     if (++depth > 5) {
         if (erand48(Xi) < p)
             f = f  * (1.0 / p);
         else
-            return obj.e; //R.R.
+            return obj.e;
     }
     if (obj.refl == DIFF) {                  // Ideal DIFFUSE reflection
         double r1 = 2 * M_PI * erand48(Xi);
         double r2 = erand48(Xi);
         double r2s = sqrt(r2);
-        Vec w=nl, u=((fabs(w.x)>.1?Vec(0,1):Vec(1))%w).norm(), v=w%u;
+        Vec w = nl;
+        Vec u = ((fabs(w.x) > .1 ? Vec(0,1):Vec(1))%w).norm();
+        Vec v = w % u;
         Vec d = (u*cos(r1)*r2s + v*sin(r1)*r2s + w*sqrt(1-r2)).norm();
-        return obj.e + f.mult(radiance(Ray(x,d),depth,Xi));
-    } else if (obj.refl == SPEC)            // Ideal SPECULAR reflection
-        return obj.e + f.mult(radiance(Ray(x, r.d-n*2*n.dot(r.d)), depth,Xi));
-    Ray reflRay(x, r.d-n*2*n.dot(r.d));     // Ideal dielectric REFRACTION
-    bool into = n.dot(nl)>0;                // Ray from outside going in?
-    double nc=1, nt=1.5, nnt=into?nc/nt:nt/nc, ddn=r.d.dot(nl), cos2t;
-    if ((cos2t=1-nnt*nnt*(1-ddn*ddn))<0)    // Total internal reflection
-        return obj.e + f.mult(radiance(reflRay,depth,Xi));
-    Vec tdir = (r.d*nnt - n*((into?1:-1)*(ddn*nnt+sqrt(cos2t)))).norm();
-    double a=nt-nc, b=nt+nc, R0=a*a/(b*b), c = 1-(into?-ddn:tdir.dot(n));
-    double Re = R0+(1-R0)*c*c*c*c*c,Tr=1-Re,P=.25+.5*Re,RP=Re/P,TP=Tr/(1-P);
+        return obj.e + f.mult(radiance(x, d, depth, Xi));
+    } else if (obj.refl == SPEC) {
+        Vec new_rd = rd - n * 2 * v_dot(n, rd);
+        Vec mulVec = radiance(x, new_rd, depth, Xi);
+        return obj.e + f.mult(mulVec);
+    }
+    Vec refl_ray_rd = rd - n*2*v_dot(n, rd);
+    Ray reflRay(x, refl_ray_rd);
+    bool into = v_dot(n, nl) > 0;
+    double nc = 1;
+    double nt = 1.5;
+    double nnt = into ? nc/nt : nt/nc;
+    double ddn = v_dot(rd, nl);
+    double cos2t;
+    if ((cos2t=1-nnt*nnt*(1-ddn*ddn))<0) {
+        return obj.e + f.mult(radiance(reflRay.o, reflRay.d, depth, Xi));
+    }
+    Vec tdir = (rd*nnt - n*((into?1:-1)*(ddn*nnt+sqrt(cos2t)))).norm();
+    double a=nt-nc;
+    double b=nt+nc;
+    double R0=a*a/(b*b);
+    double c = 1 - (into ? -ddn : v_dot(tdir, n));
+    double Re = R0+(1-R0)*c*c*c*c*c;
+    double Tr = 1-Re;
+    double P = .25+.5*Re;
+    double RP = Re/P;
+    double TP = Tr/(1-P);
 
     Vec mulVec;
     if (depth > 2) {
         if (erand48(Xi) <P) {
-            mulVec = radiance(reflRay, depth, Xi)*RP;
+            mulVec = radiance(reflRay.o, reflRay.d, depth, Xi)*RP;
         } else {
-            mulVec = radiance(Ray(x, tdir), depth, Xi) * TP;
+            mulVec = radiance(x, tdir, depth, Xi) * TP;
         }
     } else {
-        mulVec = radiance(reflRay, depth, Xi) * Re + radiance(Ray(x, tdir), depth, Xi) * Tr;
+        mulVec = radiance(reflRay.o, reflRay.d, depth, Xi) * Re
+            + radiance(x, tdir, depth, Xi) * Tr;
     }
     return obj.e + f.mult(mulVec);
 }
@@ -190,8 +223,8 @@ int main(int argc, char *argv[]) {
                                          : 1 - sqrt(2 - r2);
                         Vec d = cx * (((sx + .5 + dx)/2 + x)/w - .5) +
                                          cy*( ( (sy+.5 + dy)/2 + y)/h - .5) + cam.d;
-                        r = r + radiance(Ray(cam.o+d*140, d.norm()), 0, Xi) * (1./ samps);
-                    } // Camera rays are pushed ^^^^^ forward to start in interior
+                        r = r + radiance(cam.o+d*140, d.norm(), 0, Xi) * (1./ samps);
+                    }
                     c[i].x += clamp(r.x) * 0.25;
                     c[i].y += clamp(r.y) * 0.25;
                     c[i].z += clamp(r.z) * 0.25;
