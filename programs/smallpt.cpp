@@ -9,6 +9,11 @@
 //     g++ -o smallpt smallpt.cpp -O3 -march=native -mtune=native
 //
 // Add -fopenmp for multi-threading.
+//
+// For some reason clang puts a white stripe at the top of the image.
+//
+// 40 spp, nim-mt nim-st g++-mt g++-st
+//           2:40   5:00   2:26   4:51
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -40,6 +45,11 @@ v_sub(Vec a, Vec b) {
 static inline double
 v_dot(Vec a, Vec b) {
     return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+static inline Vec
+v_mul(Vec a, Vec b) {
+    return Vec(a.x * b.x, a.y * b.y, a.z * b.z);
 }
 
 struct Ray {
@@ -101,15 +111,6 @@ clamp(double x){
 inline int toInt(double x){
     return int(pow(clamp(x),1/2.2)*255+.5);
 }
-
-// Clang appreciates unrolling but gcc doesn't.
-#define BODY(I)                 \
-    { Sphere sp = spheres[I];                            \
-    double d = sph_intersect(sp.p, sp.rad_sq, ro, rd);  \
-    if (d < t) {                \
-        t = d;                  \
-        id = I;                 \
-    }}
 
 static inline bool
 intersect(Vec ro, Vec rd, double &t, int &id) {
@@ -205,21 +206,22 @@ compute_hit(Vec ro, Vec rd,
         mulVec = radiance(reflRay.o, reflRay.d, depth, Xi) * Re
             + radiance(x, tdir, depth, Xi) * Tr;
     }
-    return obj.e + f.mult(mulVec);
+    return obj.e + v_mul(f, mulVec);
 }
 
 int main(int argc, char *argv[]) {
     int w = 1024;
     int h = 768;
-    int samps = 4;
+    int samps = 40;
     Ray cam(Vec(50, 52, 295.6),
             Vec(0, -0.042612, -1).norm());
     Vec cx = Vec(w * .5135 / h);
     Vec cy = (cx % cam.d).norm()*.5135, r;
     Vec *c = new Vec[w*h];
-    //#pragma omp parallel for schedule(dynamic, 1) private(r)
+    #pragma omp parallel for schedule(dynamic, 1) private(r)
     for (int y = 0; y < h; y++) {
-        for (unsigned short x = 0, Xi[3] = {0, 0, (unsigned short)(y*y*y)}; x<w; x++) {
+        unsigned short Xi[3] = {0, 0, (unsigned short)(y*y*y)};
+        for (unsigned short x = 0; x < w; x++) {
             for (int sy=0, i=(h-y-1)*w+x; sy<2; sy++) {
                 for (int sx = 0; sx < 2; sx++, r = Vec()) {
                     for (int s = 0; s < samps; s++) {
