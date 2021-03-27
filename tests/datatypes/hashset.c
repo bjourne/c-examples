@@ -25,7 +25,8 @@ test_print_stuff() {
         size_t el = rand_n(100);
         hs_add(hs, el);
     }
-    HS_FOR_EACH_ITEM(hs, { printf("%" PRIuPTR "\n", p); });
+    HS_FOR_EACH_ITEM(hs, { printf("%" PRIuPTR " ", p); });
+    printf("\n");
     hs_free(hs);
 }
 
@@ -52,7 +53,6 @@ test_adding_and_deleting() {
     hs_free(hs);
 }
 
-
 void
 test_next_key() {
     hashset *hs = malloc(sizeof(hashset));
@@ -73,8 +73,75 @@ test_next_key() {
         }
         free(seen);
     }
+    free(hs->array);
+    free(hs);
 }
 
+void
+test_congestion() {
+    hashset *hs = hs_init();
+
+    int values[] = {
+        3, 35, 67, 99, 131, 163, 195, 227, 259, 291
+    };
+    int n_values = ARRAY_SIZE(values);
+    for (int i = 0; i < n_values; i++) {
+        assert(hs_add(hs, values[i]));
+    }
+    assert(hs->n_used == n_values);
+    assert(hs->n_items == n_values);
+
+    assert(hs_remove(hs, 3));
+    assert(hs->n_items == n_values - 1);
+    assert(hs->n_used == n_values);
+
+    assert(hs_add(hs, 3));
+    assert(hs->n_items == n_values);
+    assert(hs->n_used == n_values);
+
+    hs_free(hs);
+}
+
+void
+test_growing() {
+    hashset *hs = hs_init();
+    int n_range = 10000000;
+    bool *flags = calloc(n_range, sizeof(bool));
+    assert(hs->n_items == 0);
+    for (int i = 0; i < 10000; i++) {
+        size_t v = 2 + rand_n(n_range - 2);
+        hs_add(hs, v);
+        flags[v] = true;
+    }
+    for (int i = 0; i < n_range; i++) {
+        if (flags[i]) {
+            assert(hs_remove(hs, i));
+            assert(!hs_in_p(hs, i));
+        }
+    }
+    assert(hs->n_items == 0);
+    free(flags);
+    hs_free(hs);
+}
+
+void
+test_rehash() {
+    hashset *hs = hs_init();
+    int first_cap = hs->capacity;
+    size_t max_used = (size_t)(hs->capacity * HS_MAX_FILL);
+    for (int i = 0; i < max_used - 1; i++) {
+        hs_add(hs, i + 2);
+        hs_remove(hs, i + 2);
+        assert(hs->n_items == 0);
+    }
+    // This one causes a rehashing.
+    hs_add(hs, max_used + 2);
+    assert(hs->capacity == 2 * first_cap);
+    for (int i = 0; i < hs->capacity; i++) {
+        assert(hs->array[i] != 1);
+    }
+    hs_free(hs);
+}
 
 int
 main(int argc, char *argv[]) {
@@ -85,7 +152,8 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_print_stuff),
     PRINT_RUN(test_adding_reserved);
     PRINT_RUN(test_adding_and_deleting);
-    PRINT_RUN(test_next_key);
-
+    PRINT_RUN(test_congestion);
+    PRINT_RUN(test_growing);
+    PRINT_RUN(test_rehash);
     return 0;
 }

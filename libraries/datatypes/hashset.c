@@ -8,11 +8,11 @@
  *
  *       http://www.apache.org/licenses/LICENSE-2.0
  *
- *   Unless required by applicable law or agreed to in writing, software
- *   distributed under the License is distributed on an "AS IS" BASIS,
- *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   See the License for the specific language governing permissions and
- *   limitations under the License.
+ *   Unless required by applicable law or agreed to in writing,
+ *   software distributed under the License is distributed on an "AS
+ *   IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *   express or implied.  See the License for the specific language
+ *   governing permissions and limitations under the License.
  */
 /* Copyright (C) 2016-2021 Björn Lindqvist
 
@@ -52,8 +52,8 @@ hs_clear(hashset *hs) {
     hs->n_items = 0;
 }
 
-static
-bool hs_add_member(hashset *hs, size_t item)
+static bool
+hs_add_member(hashset *hs, size_t item)
 {
     if (item <= 1) {
         return false;
@@ -75,8 +75,8 @@ bool hs_add_member(hashset *hs, size_t item)
     return true;
 }
 
-static
-void maybe_rehash(hashset *hs)
+static void
+maybe_rehash(hashset *hs)
 {
     size_t old_cap = hs->capacity;
     size_t max_used = (size_t)((double)old_cap * HS_MAX_FILL);
@@ -86,8 +86,12 @@ void maybe_rehash(hashset *hs)
         hs->mask = hs->capacity - 1;
         hs->array = calloc(hs->capacity, sizeof(size_t));
         hs->n_items = hs->n_used = 0;
-        for (size_t ii = 0; ii < old_cap; ii++) {
-            hs_add_member(hs, old_array[ii]);
+        // Copy over old non-tombstone elements.
+        for (size_t i = 0; i < old_cap; i++) {
+            size_t v = old_array[i];
+            if (v > 1) {
+                hs_add_member(hs, v);
+            }
         }
         free(old_array);
     }
@@ -108,6 +112,20 @@ hs_remove_at(hashset *hs, size_t i) {
 }
 
 bool
+hs_in_p(hashset *hs, size_t item)
+{
+    size_t i = HS_FIRST_KEY(hs, item);
+    while (hs->array[i] != 0) {
+        if (hs->array[i] == item) {
+            return true;
+        } else {
+            i = HS_NEXT_KEY(hs, i);
+        }
+    }
+    return false;
+}
+
+bool
 hs_remove(hashset *hs, size_t item)
 {
     size_t i = HS_FIRST_KEY(hs, item);
@@ -118,20 +136,6 @@ hs_remove(hashset *hs, size_t item)
             return true;
         }
         i = HS_NEXT_KEY(hs, i);
-    }
-    return false;
-}
-
-bool
-hs_in_p(hashset *hs, size_t item)
-{
-    size_t i = HS_FIRST_KEY(hs, item);
-    while (hs->array[i] != 0) {
-        if (hs->array[i] == item) {
-            return true;
-        } else {
-            i = HS_NEXT_KEY(hs, i);
-        }
     }
     return false;
 }
