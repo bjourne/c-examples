@@ -1,3 +1,4 @@
+// Copyright (C) 2021 Björn Lindqvist <bjourne@gmail.com>
 #ifndef HASHSET_H
 #define HASHSET_H
 
@@ -11,7 +12,7 @@
 #define HS_PRIME_1 73
 #define HS_PRIME_2 5009
 
-#define HS_FIRST_KEY(hs, item) (HS_PRIME_1 * item) & hs->mask
+#define HS_FIRST_KEY(hs, item) ((HS_PRIME_1 * item) & hs->mask)
 #define HS_NEXT_KEY(hs, i)  (i + HS_PRIME_2) & hs->mask
 
 #define HS_FOR_EACH_ITEM(hs, body)                          \
@@ -19,7 +20,6 @@
         ptr p = hs->array[_i];                              \
         if (p > 1) { body }                                 \
     }
-
 
 typedef struct {
     size_t mask;

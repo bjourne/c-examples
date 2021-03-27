@@ -14,12 +14,16 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-/* Copyright (C) 2016 Björn Lindqvist
+/* Copyright (C) 2016-2021 Björn Lindqvist
 
    This file comes originally from
    https://github.com/avsej/hashset.c/blob/master/hashset.c.  It has
    been rewritten to my preferred coding style and has had lots of
-   bugs fixed. */
+   bugs fixed.
+
+   The values 0 are 1 are reserved and used to indicate empty buckets
+   and tombstones.
+*/
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
