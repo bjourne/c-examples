@@ -87,7 +87,7 @@ test_f4_xor() {
     float4 a = f4_set_i4(255, 10, 0, 8);
     float4 b = f4_set_i4(3, 7, 0, 0x80);
     float4 c = _mm_xor_ps(a, b);
-    float4 d = f4_set_i4(255 ^ 3, 10 ^ 7, 0 ^ 0, 8 ^ 0x80);
+    float4 d = f4_set_i4(255 ^ 3, 0xa ^ 7, 0 ^ 0, 8 ^ 0x80);
     assert(f4_eq(c, d));
 }
 
