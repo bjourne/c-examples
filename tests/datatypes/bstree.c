@@ -280,7 +280,7 @@ test_torture() {
 void
 test_unbalancing_torture() {
     bstree *t = NULL;
-    for (int i = 0; i < 100000; i++) {
+    for (int i = 0; i < 50000; i++) {
         t = bst_add_key(t, i);
     }
     bst_free(t);
