@@ -34,10 +34,11 @@ def configure(ctx):
     ctx.env.append_unique('CFLAGS', base_c_flags + extra_flags)
     ctx.env.append_unique('CXXFLAGS', base_cxx_flags + extra_flags)
     ctx.env.append_value('INCLUDES', ['libraries'])
-    if ctx.env.DEST_OS == 'linux':
+    dest_os = ctx.env.DEST_OS
+    if dest_os == 'linux':
         ctx.check(lib = 'X11')
         ctx.check(lib = 'GL', mandatory = False)
-    if ctx.env.DEST_OS != 'win32':
+    if dest_os != 'win32':
         llvm_libs = ['core', 'executionengine', 'mcjit', 'native']
         args = [
             '--cflags',
@@ -56,10 +57,10 @@ def configure(ctx):
                       args = ['libpcre >= 8.33', '--cflags', '--libs'],
                       uselib_store = 'PCRE',
                       mandatory = False)
-        if ctx.env.CC_NAME != 'clang':
-            ctx.check(lib = 'm')
-        ctx.check(lib = 'pthread')
         ctx.check(lib = 'gomp')
+        ctx.check(lib = 'm', mandatory = False)
+        ctx.check(lib = 'pthread', mandatory = False)
+
 
 def noinst_program(ctx, source, target, use):
     ctx.program(source = source, target = target,
