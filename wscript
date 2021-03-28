@@ -56,7 +56,8 @@ def configure(ctx):
                       args = ['libpcre >= 8.33', '--cflags', '--libs'],
                       uselib_store = 'PCRE',
                       mandatory = False)
-        ctx.check(lib = 'm')
+        if ctx.env.CC_NAME != 'clang':
+            ctx.check(lib = 'm')
         ctx.check(lib = 'pthread')
         ctx.check(lib = 'gomp')
 
