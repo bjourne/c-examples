@@ -57,7 +57,7 @@ def configure(ctx):
                       args = ['libpcre >= 8.33', '--cflags', '--libs'],
                       uselib_store = 'PCRE',
                       mandatory = False)
-        ctx.check(lib = 'gomp')
+        ctx.check(lib = 'gomp', mandatory = False)
         ctx.check(lib = 'm', mandatory = False)
         ctx.check(lib = 'pthread', mandatory = False)
 
