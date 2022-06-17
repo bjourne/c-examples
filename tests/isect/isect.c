@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2020, 2022 Björn Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <stdio.h>
 #include "isect/isect.h"
@@ -74,7 +74,7 @@ test_mt_c() {
 }
 
 void
-bw9_pre_test(vec3 v0, vec3 v1, vec3 v2, float exp[10]) {
+bw9_pre_test(vec3 v0, vec3 v1, vec3 v2, float exp[9]) {
     float T[10];
     isect_bw9_pre(v0, v1, v2, (isect_bw9_data *)&T);
     for (int i = 0; i < 9; i++) {
