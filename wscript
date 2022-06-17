@@ -112,6 +112,8 @@ def build(ctx):
     build_library(ctx, 'paths', 'PATHS_OBJS', [])
 
     build_library(ctx, 'threads', 'THREADS_OBJS', [])
+    build_library(ctx, 'diophantine', 'DIO_OBJS', [])
+
 
     build_tests(ctx, 'datatypes', ['DT_OBJS'])
     build_tests(ctx, 'quickfit', ['DT_OBJS', 'QF_OBJS'])
@@ -126,6 +128,8 @@ def build(ctx):
                 ['PATHS_OBJS', 'DT_OBJS'])
     build_tests(ctx, 'fastio', ['FASTIO_OBJS'])
 
+    build_tests(ctx, 'diophantine', ['DIO_OBJS', 'DT_OBJS'])
+
     build_program(ctx, 'cpu.c', ['DT_OBJS'])
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
     build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
@@ -134,6 +138,8 @@ def build(ctx):
     build_program(ctx, 'strlen.c', ['DT_OBJS'])
     build_program(ctx, 'fenwick.c', ['FASTIO_OBJS'])
     build_program(ctx, 'yahtzee.c', ['DT_OBJS', 'THREADS_OBJS', 'PTHREAD'])
+
+
 
     # Conditional targets
     if ctx.env.DEST_OS == 'linux':

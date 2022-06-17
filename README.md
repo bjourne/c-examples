@@ -59,6 +59,10 @@ garbage collectors.
 
 A library for loading 3d meshes.
 
+### `libraries/diophantine`
+
+A library for solving linear Diophantine equations.
+
 ## Tests
 Test suites for the various libraries.
 
