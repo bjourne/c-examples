@@ -1,4 +1,4 @@
-# Copyright (C) 2019-2020 Björn Lindqvist <bjourne@gmail.com>
+# Copyright (C) 2019-2020, 2022 Björn A. Lindqvist <bjourne@gmail.com>
 from os.path import splitext
 
 def options(ctx):
@@ -113,6 +113,7 @@ def build(ctx):
 
     build_library(ctx, 'threads', 'THREADS_OBJS', [])
     build_library(ctx, 'diophantine', 'DIO_OBJS', [])
+    build_library(ctx, 'ieee754', 'IEEE754_OBJS', [])
 
 
     build_tests(ctx, 'datatypes', ['DT_OBJS'])
@@ -129,6 +130,7 @@ def build(ctx):
     build_tests(ctx, 'fastio', ['FASTIO_OBJS'])
 
     build_tests(ctx, 'diophantine', ['DIO_OBJS', 'DT_OBJS'])
+    build_tests(ctx, 'ieee754', ['IEEE754_OBJS', 'DT_OBJS'])
 
     build_program(ctx, 'cpu.c', ['DT_OBJS'])
     build_program(ctx, 'memperf.c', ['DT_OBJS'])

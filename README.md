@@ -32,13 +32,12 @@ to teach myself about garbage collection strategies.
 
 Standard datatypes for C programming like `vector` and
 `hashset`. There is not a lot of documentation for these
-datatypes. Instead, I hope that the code is self-explanatory.
+datatypes because the code should be self-explanatory.
 
 ### `libraries/fastio`
 
 Fast IO routines accessing `stdin` and `stdout`. They are useful to
 minimize IO overhead in competitive programming challenges.
-
 
 ### `libraries/isect`
 
@@ -62,6 +61,10 @@ A library for loading 3d meshes.
 ### `libraries/diophantine`
 
 A library for solving linear Diophantine equations.
+
+### `libraries/ieee754`
+
+A library for explicit handling of ieee754 floating point numbers.
 
 ## Tests
 Test suites for the various libraries.
