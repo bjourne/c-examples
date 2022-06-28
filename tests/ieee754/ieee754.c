@@ -4,18 +4,8 @@
 #include "datatypes/common.h"
 #include "ieee754/ieee754.h"
 
-static uint32_t log2ceil(uint32_t n) {
-    uint32_t q = n >> 1;
-    uint32_t r = 0;
-    while (q) {
-        q = q >> 1;
-        r++;
-    }
-    return r;
-}
-
 static void
-test_i32_to_f32() {
+test_f32_to_i32() {
     float floats[] = {
         25.0,
         -25.0, -123456.0,
@@ -39,10 +29,46 @@ test_i32_to_f32() {
 }
 
 static void
-test_f32_to_i32() {
-    assert(ieee754_i32_to_f32(0) == 0);
+test_i32_to_f32() {
+    int ints[] = {
+        5,
+        -5,
+        33,
+        -33,
+        999999,
+        9999999,
+        99999999,
+    };
+    float floats[] = {
+        5.0,
+        -5.0,
+        33.0,
+        -33.0,
+        999999.0f,
+        9999999.0f,
+        99999999.0f
+    };
+    printf("really1 %.2f\n", 99999999.0f);
+    printf("really2 %.2f\n", floats[6]);
+    for (int i = 0; i < ARRAY_SIZE(floats); i++) {
+        float f = floats[i];
+        int v = ints[i];
+        printf("%10d -> %18.6f\n", v, f);
 
-    printf("%d\n", log2ceil(3));
+        uint32_t exp_f32 = BW_FLOAT_TO_UINT(f);
+        uint32_t got_f32 = ieee754_i32_to_f32(v);
+
+        if (exp_f32 != got_f32) {
+            printf("expected ");
+            ieee754_print_bits(exp_f32);
+            printf(" (%18.8f)\n", f);
+            printf("got      ");
+            ieee754_print_bits(got_f32);
+            printf(" (%18.8f)\n", BW_UINT_TO_FLOAT(got_f32));
+            printf("\n");
+        }
+        assert(exp_f32 == got_f32);
+    }
 }
 
 int
