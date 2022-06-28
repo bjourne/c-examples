@@ -4,6 +4,16 @@
 #include "datatypes/common.h"
 #include "ieee754/ieee754.h"
 
+static uint32_t log2ceil(uint32_t n) {
+    uint32_t q = n >> 1;
+    uint32_t r = 0;
+    while (q) {
+        q = q >> 1;
+        r++;
+    }
+    return r;
+}
+
 static void
 test_i32_to_f32() {
     float floats[] = {
@@ -28,7 +38,15 @@ test_i32_to_f32() {
     }
 }
 
+static void
+test_f32_to_i32() {
+    assert(ieee754_i32_to_f32(0) == 0);
+
+    printf("%d\n", log2ceil(3));
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_i32_to_f32);
+    PRINT_RUN(test_f32_to_i32);
 }

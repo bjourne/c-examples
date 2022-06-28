@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
 
 #include "diophantine.h"
 
@@ -20,8 +20,10 @@ gcd_ext(int a, int b, int *g, int *x, int *y) {
 }
 
 
+// Find solution to ax + by = c
 bool
-dio_solve_eq(int a, int b, int c, int  *x0, int *xk, int *y0, int *yk) {
+dio_solve_eq(int a, int b, int c,
+             int *x0, int *xk, int *y0, int *yk) {
 
     int g, x, y;
     gcd_ext(a, b, &g, &x, &y);

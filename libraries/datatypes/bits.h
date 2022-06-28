@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019, 2022 Björn Lindqvist <bjourne@gmail.com>
 #ifndef DATATYPES_BITS_H
 #define DATATYPES_BITS_H
 
@@ -18,7 +18,7 @@
 #define P_GET(p, start, len)        BF_GET(AT(p), start, len)
 #define P_SET(p, n, start, len)     AT(p) = BF_MERGE(AT(p), n, start, len)
 
-// This function is borrowed from math.h in musl.
+// These functions are borrowed from math.h in musl.
 // BW = BitWise
 inline unsigned int
 BW_FLOAT_TO_UINT(float f) {
@@ -29,9 +29,6 @@ BW_FLOAT_TO_UINT(float f) {
     u.f = f;
     return u.u;
 }
-
-// I don't know about this one. sizeof(float) != sizeof(ptr)
-// sometimes...
 inline float
 BW_UINT_TO_FLOAT(unsigned int i) {
     union {
@@ -42,6 +39,8 @@ BW_UINT_TO_FLOAT(unsigned int i) {
     return u.f;
 }
 
+// I don't know about this one. sizeof(float) != sizeof(ptr)
+// sometimes...
 inline float
 BW_PTR_TO_FLOAT(ptr p) {
     union {

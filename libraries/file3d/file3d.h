@@ -1,6 +1,6 @@
-// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
-#ifndef FILES3D_H
-#define FILES3D_H
+// Copyright (C) 2019, 2022 Björn Lindqvist <bjourne@gmail.com>
+#ifndef FILE3D_H
+#define FILE3D_H
 
 #include <stdio.h>
 #include "linalg/linalg.h"
