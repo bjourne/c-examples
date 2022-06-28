@@ -129,7 +129,7 @@ def build(ctx):
                 ['PATHS_OBJS', 'DT_OBJS'])
     build_tests(ctx, 'fastio', ['FASTIO_OBJS'])
 
-    build_tests(ctx, 'diophantine', ['DIO_OBJS', 'DT_OBJS'])
+    build_tests(ctx, 'diophantine', ['DIO_OBJS', 'DT_OBJS', 'M'])
     build_tests(ctx, 'ieee754', ['IEEE754_OBJS', 'DT_OBJS'])
 
     build_program(ctx, 'cpu.c', ['DT_OBJS'])
