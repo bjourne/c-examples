@@ -1,4 +1,4 @@
-// Copyright (C) 2017-2019 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2017-2019, 2022 Björn Lindqvist <bjourne@gmail.com>
 #include <stdio.h>
 #include "linalg.h"
 
@@ -226,3 +226,32 @@ m4_approx_eq(mat4 l, mat4 r) {
 extern inline vec3 m4_mul_v3p(mat4 m, vec3 v);
 extern inline vec3 m4_mul_v3d(mat4 m, vec3 v);
 extern inline mat4 m4_mul_m4(mat4 l, mat4 r);
+
+// Only for simple 2d convolution with unit strides, odd kernel sizes
+// and same padding.
+void
+tensor_convolve(float *src, int d1, int d2,
+                float *kernel, int k1, int k2,
+                float *dst,
+                int stride) {
+    int half_k1 = k1 / 2;
+    int half_k2 = k2 / 2;
+    for (int i1 = 0; i1 < d1; i1++) {
+        for (int i2 = 0; i2 < d2; i2++) {
+            int acc = 0;
+            for  (int i3 = 0; i3 < k1; i3++) {
+                for (int i4 = 0; i4 < k2; i4++)  {
+                    int at1 = i1 + i3 - half_k1;
+                    int at2 = i2 + i4 - half_k2;
+                    int v = 0;
+                    if (at1 >= 0 && at1 < d1 && at2 >= 0 && at2 < d2) {
+                        v = src[at1 * d2 + at2] * kernel[i3 * k2 + i4];
+                    }
+                    acc += v;
+                }
+            }
+            int a = i1 * d2 + i2;
+            dst[a] = acc;
+        }
+    }
+}

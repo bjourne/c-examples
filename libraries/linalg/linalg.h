@@ -1,4 +1,4 @@
-// Copyright (C) 2017-2019 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2017-2019, 2022 Björn Lindqvist <bjourne@gmail.com>
 #ifndef LINALG_H
 #define LINALG_H
 
@@ -206,5 +206,15 @@ m4_mul_m4(mat4 l, mat4 r) {
     }
     return ret;
 }
+
+// Operations on arbitrarily sized tensors.
+
+// Only for simple 2d convolution with unit strides, odd kernel sizes
+// and same padding.
+void
+tensor_convolve(float *src, int d1, int d2,
+                float *kernel, int k1, int k2,
+                float *dst,
+                int stride);
 
 #endif

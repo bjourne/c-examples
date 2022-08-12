@@ -46,8 +46,8 @@ by my raytracer.
 
 ### `libraries/linalg`
 
-Trival linear algebra (3D) library. Contains things like matrix
-multiplication and stuff.
+Trival single-precision linear algebra library. Contains things like
+matrix multiplication and stuff.
 
 ### `libraries/quickfit`
 

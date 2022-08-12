@@ -1,4 +1,6 @@
+// Copyright (C) 2022 Björn Lindqvist <bjourne@gmail.com>
 #include <assert.h>
+#include <stdlib.h>
 #include "datatypes/common.h"
 #include "linalg/linalg.h"
 
@@ -122,6 +124,140 @@ test_get_plane() {
     assert(d == 4);
 }
 
+void
+test_convolve_1() {
+    int d1 = 5;
+    int d2 = 5;
+    float src[5][5] = {
+        {2, 0, 4, 4, 1},
+        {1, 3, 0, 1, 3},
+        {2, 2, 3, 3, 2},
+        {1, 2, 2, 2, 3},
+        {2, 4, 3, 2, 1}
+    };
+    float kernel[3][3] = {
+        {1, 1, 1},
+        {1, 1, 1},
+        {1, 1, 1}
+    };
+    float expected[5][5] = {
+        {6, 10, 12, 13,  9},
+        {10, 17, 20, 21, 14},
+        {11, 16, 18, 19, 14},
+        {13, 21, 23, 21, 13},
+        { 9, 14, 15, 13,  8}
+    };
+    float actual[d1][d2];
+
+    tensor_convolve((float *)src, d1, d2,
+                    (float *)kernel, 3, 3,
+                    (float *)actual,
+                    1);
+
+    for (int i1 = 0; i1 < d1; i1++) {
+        for (int i2 = 0; i2 < d2; i2++) {
+            float v1 = actual[i1][i2];
+            float v2 = expected[i1][i2];
+            if (v1 != v2) {
+                printf("Mismatch: %.2f != %.2f\n", v1, v2);
+                assert(false);
+            }
+        }
+    }
+}
+
+void
+test_convolve_2() {
+    int d1 = 5;
+    int d2 = 5;
+    float src[5][5] = {
+        {0, 1, 3, 2, 2},
+        {3, 3, 4, 0, 4},
+        {4, 1, 2, 1, 2},
+        {0, 0, 0, 0, 2},
+        {0, 2, 2, 4, 1}
+    };
+    float kernel[3][3] = {
+        {1, 1, 1},
+        {1, -0, 1},
+        {1, 1, 1}
+    };
+    float expected[5][5] = {
+        {7, 13, 10, 13,  6},
+        { 9, 18, 13, 20,  7},
+        { 7, 16,  9, 14,  7},
+        { 7, 11, 12, 14,  8},
+        { 2,  2,  6,  5,  6}
+    };
+    float actual[d1][d2];
+    tensor_convolve((float *)src, d1, d2,
+                    (float *)kernel, 3, 3,
+                    (float *)actual,
+                    1);
+    for (int i1 = 0; i1 < d1; i1++) {
+        for (int i2 = 0; i2 < d2; i2++) {
+            float v1 = actual[i1][i2];
+            float v2 = expected[i1][i2];
+            if (v1 != v2) {
+                printf("Mismatch: %.2f != %.2f\n", v1, v2);
+                assert(false);
+            }
+        }
+    }
+}
+
+void
+test_convolve_3() {
+    int d1 = 10;
+    int d2 = 3;
+    float src[10][3] = {
+        {4, 0, 4},
+        {4, 2, 0},
+        {1, 4, 2},
+        {4, 1, 2},
+        {1, 0, 2},
+        {4, 4, 0},
+        {2, 3, 0},
+        {2, 4, 0},
+        {0, 2, 1},
+        {1, 0, 3}
+    };
+    float kernel[3][3] = {
+        {1, 1, 1},
+        {1, 0, 1},
+        {1, 1, 1}
+    };
+    float expected[10][3] = {
+        { 6, 14,  2},
+        {11, 19, 12},
+        {15, 16,  9},
+        { 7, 16,  9},
+        {13, 18,  7},
+        {10, 12,  9},
+        {17, 16, 11},
+        {11, 10, 10},
+        { 9, 11,  9},
+        { 2,  7,  3}
+    };
+    float actual[d1][d2];
+    tensor_convolve((float *)src, d1, d2,
+                    (float *)kernel, 3, 3,
+                    (float *)actual,
+                    1);
+    for (int i1 = 0; i1 < d1; i1++) {
+        for (int i2 = 0; i2 < d2; i2++) {
+            float v1 = actual[i1][i2];
+            float v2 = expected[i1][i2];
+            if (v1 != v2) {
+                printf("Mismatch: %.2f != %.2f\n", v1, v2);
+                assert(false);
+            }
+        }
+    }
+}
+
+
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_sub);
@@ -135,5 +271,8 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_to_deg);
     PRINT_RUN(test_perspective);
     PRINT_RUN(test_get_plane);
+    PRINT_RUN(test_convolve_1);
+    PRINT_RUN(test_convolve_2);
+    PRINT_RUN(test_convolve_3);
     return 0;
 }
