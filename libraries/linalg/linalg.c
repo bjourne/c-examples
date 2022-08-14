@@ -230,10 +230,10 @@ extern inline mat4 m4_mul_m4(mat4 l, mat4 r);
 // Only for simple 2d convolution with unit strides, odd kernel sizes
 // and same padding.
 void
-tensor_convolve(float *src, int d1, int d2,
-                float *kernel, int k1, int k2,
-                float *dst,
-                int stride, int padding) {
+convolve2d(float *src, int d1, int d2,
+           float *kernel, int k1, int k2,
+           float *dst,
+           int stride, int padding) {
     for (int i1 = -padding; i1 < d1 + padding - k1 + 1; i1 += stride) {
         for (int i2 = -padding; i2 < d2 + padding - k2 + 1; i2 += stride) {
             float acc = 0;

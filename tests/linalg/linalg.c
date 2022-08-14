@@ -207,7 +207,7 @@ test_convolve_1() {
     };
     float actual[d1][d2];
     for (int t = 0; t < 3; t++) {
-        tensor_convolve((float *)src[t], d1, d2,
+        convolve2d((float *)src[t], d1, d2,
                         (float *)kernel[t], 3, 3,
                         (float *)actual,
                         1, 1);
@@ -249,7 +249,7 @@ test_convolve_3() {
         { 2,  7,  3}
     };
     float actual[d1][d2];
-    tensor_convolve((float *)src, d1, d2,
+    convolve2d((float *)src, d1, d2,
                     (float *)kernel, 3, 3,
                     (float *)actual,
                     1, 1);
@@ -285,7 +285,7 @@ test_convolve_strided() {
         {18,  8,  0}
     };
     float actual[3][3];
-    tensor_convolve((float *)src, 5, 5,
+    convolve2d((float *)src, 5, 5,
                     (float *)kernel, 3, 3,
                     (float *)actual,
                     2, 1);
@@ -312,10 +312,10 @@ test_convolve_padded() {
         { 8, 13, 27, 16}
     };
     float actual[4][4];
-    tensor_convolve((float *)src, 5, 5,
-                    (float *)kernel, 2, 2,
-                    (float *)actual,
-                    1, 0);
+    convolve2d((float *)src, 5, 5,
+               (float *)kernel, 2, 2,
+               (float *)actual,
+               1, 0);
     mat_equal((float *)actual, (float *)expected, 4, 4);
 }
 
@@ -341,10 +341,10 @@ test_convolve_padded_2() {
         { 6,  8,  2,  8,  8,  0}
     };
     float actual[6][6];
-    tensor_convolve((float *)src, 5, 5,
-                    (float *)kernel, 2, 2,
-                    (float *)actual,
-                    1, 1);
+    convolve2d((float *)src, 5, 5,
+               (float *)kernel, 2, 2,
+               (float *)actual,
+               1, 1);
     mat_equal((float *)actual, (float *)expected, 6, 6);
 }
 

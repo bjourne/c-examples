@@ -208,13 +208,10 @@ m4_mul_m4(mat4 l, mat4 r) {
 }
 
 // Operations on arbitrarily sized tensors.
-
-// Only for simple 2d convolution with unit strides, odd kernel sizes
-// and same padding.
 void
-tensor_convolve(float *src, int d1, int d2,
-                float *kernel, int k1, int k2,
-                float *dst,
-                int stride, int padding);
+convolve2d(float *src, int d1, int d2,
+           float *kernel, int k1, int k2,
+           float *dst,
+           int stride, int padding);
 
 #endif
