@@ -1,6 +1,7 @@
 // Copyright (C) 2022 Björn Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 #include "datatypes/common.h"
 #include "linalg/linalg.h"
 
@@ -124,230 +125,371 @@ test_get_plane() {
     assert(d == 4);
 }
 
-void mat_equal(float *mat1, float *mat2, int d1, int d2) {
-    for (int i = 0; i < d1; i++) {
-        for (int j = 0; j < d2; j++) {
-            float v1 = mat1[i * d2 + j];
-            float v2 = mat2[i * d2 + j];
-            if (v1 != v2) {
-                printf("Mismatch at %d, %d: %.2f != %.2f\n",
-                       i, j, v1, v2);
-                assert(false);
+void
+tensor_check_equal(float *t1, float *t2,
+                   int n_dims, int dims[]) {
+    int dim_counts[n_dims];
+    int tot = dims[0];
+    for (int i = 1; i < n_dims; i++) {
+        tot *= dims[i];
+    }
+    memset(dim_counts, 0, sizeof(int) *  n_dims);
+    for (int i = 0; i < tot; i++) {
+        float v1 = t1[i];
+        float v2 = t2[i];
+        if (v1 != v2) {
+            printf("Mismatch at [");
+            for (int j = 0; j < n_dims - 1; j++) {
+                printf("%d, ", dim_counts[j]);
+            }
+            printf("%d], %.2f != %.2f\n",
+                   dim_counts[n_dims - 1], v1,  v2);
+        }
+        for (int j = n_dims - 1; j >= 0; j--) {
+            dim_counts[j]++;
+            if (dim_counts[j] == dims[j]) {
+                dim_counts[j] = 0;
+            } else {
+                break;
             }
         }
     }
 }
 
-void
-test_convolve_1() {
-    int d1 = 5;
-    int d2 = 5;
-    float src[3][5][5] = {
-        {
-            {2, 0, 4, 4, 1},
-            {1, 3, 0, 1, 3},
-            {2, 2, 3, 3, 2},
-            {1, 2, 2, 2, 3},
-            {2, 4, 3, 2, 1}
-        },
-        {
-            {3, 0, 0, 2, 2},
-            {4, 2, 4, 3, 2},
-            {1, 4, 1, 4, 4},
-            {4, 3, 4, 4, 3},
-            {4, 0, 3, 3, 0}
-        },
-        {
-            {0, 1, 3, 2, 2},
-            {3, 3, 4, 0, 4},
-            {4, 1, 2, 1, 2},
-            {0, 0, 0, 0, 2},
-            {0, 2, 2, 4, 1}
-        }
-    };
-    float kernel[3][3][3] = {
-        {
-            {1, 1, 1},
-            {1, 1, 1},
-            {1, 1, 1}
-        },
-        {
-            {3, 2, 2},
-            {3, 3, 2},
-            {0, 3, 0}
-        },
-        {
-            {1, 1, 1},
-            {1, -0, 1},
-            {1, 1, 1}
-        }
-    };
-    float expected[3][5][5] = {
-        {
-            {6, 10, 12, 13,  9},
-            {10, 17, 20, 21, 14},
-            {11, 16, 18, 19, 14},
-            {13, 21, 23, 21, 13},
-            { 9, 14, 15, 13,  8}
-        },
-        {
-            {21, 15, 16, 19, 18},
-            {25, 47, 31, 45, 37},
-            {35, 50, 55, 57, 46},
-            {40, 42, 60, 58, 41},
-            {26, 44, 40, 44, 27}
-        },
-        {
-            {7, 13, 10, 13,  6},
-            { 9, 18, 13, 20,  7},
-            { 7, 16,  9, 14,  7},
-            { 7, 11, 12, 14,  8},
-            { 2,  2,  6,  5,  6}
-        }
-    };
-    float actual[d1][d2];
-    for (int t = 0; t < 3; t++) {
-        convolve2d((float *)src[t], d1, d2,
-                        (float *)kernel[t], 3, 3,
-                        (float *)actual,
-                        1, 1);
-        mat_equal((float *)actual, (float *)expected[t], d1, d2);
-    }
-}
 
 void
 test_convolve_3() {
     int d1 = 10;
     int d2 = 3;
-    float src[10][3] = {
-        {4, 0, 4},
-        {4, 2, 0},
-        {1, 4, 2},
-        {4, 1, 2},
-        {1, 0, 2},
-        {4, 4, 0},
-        {2, 3, 0},
-        {2, 4, 0},
-        {0, 2, 1},
-        {1, 0, 3}
+    float src[1][10][3] = {
+        {
+            {4, 0, 4},
+            {4, 2, 0},
+            {1, 4, 2},
+            {4, 1, 2},
+            {1, 0, 2},
+            {4, 4, 0},
+            {2, 3, 0},
+            {2, 4, 0},
+            {0, 2, 1},
+            {1, 0, 3}
+        }
     };
-    float kernel[3][3] = {
-        {1, 1, 1},
-        {1, 0, 1},
-        {1, 1, 1}
-    };
-    float expected[10][3] = {
-        { 6, 14,  2},
-        {11, 19, 12},
-        {15, 16,  9},
-        { 7, 16,  9},
-        {13, 18,  7},
-        {10, 12,  9},
-        {17, 16, 11},
-        {11, 10, 10},
-        { 9, 11,  9},
-        { 2,  7,  3}
-    };
-    float actual[d1][d2];
-    convolve2d((float *)src, d1, d2,
-                    (float *)kernel, 3, 3,
-                    (float *)actual,
-                    1, 1);
-    for (int i1 = 0; i1 < d1; i1++) {
-        for (int i2 = 0; i2 < d2; i2++) {
-            float v1 = actual[i1][i2];
-            float v2 = expected[i1][i2];
-            if (v1 != v2) {
-                printf("Mismatch: %.2f != %.2f\n", v1, v2);
-                assert(false);
+    float kernel[1][1][3][3] = {
+        {
+            {
+                {1, 1, 1},
+                {1, 0, 1},
+                {1, 1, 1}
             }
         }
-    }
+    };
+    float expected[1][10][3] = {
+        {
+            { 6, 14,  2},
+            {11, 19, 12},
+            {15, 16,  9},
+            { 7, 16,  9},
+            {13, 18,  7},
+            {10, 12,  9},
+            {17, 16, 11},
+            {11, 10, 10},
+            { 9, 11,  9},
+            { 2,  7,  3}
+        }
+    };
+    float actual[1][d1][d2];
+    convolve2d((float *)src, 1, 10, 3,
+               (float *)kernel, 1, 1, 3, 3,
+               (float *)actual,
+               1, 1);
+    tensor_check_equal((float *)expected,
+                       (float *)actual,
+                       3, (int[]){1, 10, 3});
 }
 
 void
 test_convolve_strided() {
-    float src[5][5] = {
-        {2, 4, 3, 3, 2},
-        {4, 1, 3, 3, 4},
-        {3, 1, 2, 2, 1},
-        {3, 0, 2, 0, 0},
-        {0, 2, 1, 0, 1}
+    float src[1][5][5] = {
+        {
+            {2, 4, 3, 3, 2},
+            {4, 1, 3, 3, 4},
+            {3, 1, 2, 2, 1},
+            {3, 0, 2, 0, 0},
+            {0, 2, 1, 0, 1}
+        }
     };
-    float kernel[3][3] = {
-        {2, 4, 1},
-        {0, 0, 3},
-        {2, 4, 4}
+    float kernel[1][1][3][3] = {
+        {
+            {
+                {2, 4, 1},
+                {0, 0, 3},
+                {2, 4, 4}
+            }
+        }
     };
-    float expected[3][3] = {
-        {32, 35, 22},
-        {32, 31, 22},
-        {18,  8,  0}
+    float expected[1][3][3] = {
+        {
+            {32, 35, 22},
+            {32, 31, 22},
+            {18,  8,  0}
+        }
     };
-    float actual[3][3];
-    convolve2d((float *)src, 5, 5,
-                    (float *)kernel, 3, 3,
-                    (float *)actual,
-                    2, 1);
-    mat_equal((float *)actual, (float *)expected, 3, 3);
+    float actual[1][3][3];
+    convolve2d((float *)src, 1, 5, 5,
+               (float *)kernel, 1, 1, 3, 3,
+               (float *)actual,
+               2, 1);
+    tensor_check_equal((float *)expected,
+                       (float *)actual,
+                       3, (int[]){1, 3, 3});
 }
 
 void
 test_convolve_padded() {
-    float src[5][5] = {
-        {0, 1, 4, 3, 2},
-        {1, 3, 4, 0, 4},
-        {2, 2, 4, 1, 1},
-        {2, 1, 3, 3, 2},
-        {0, 0, 3, 1, 0}
+    float src[1][5][5] = {
+        {
+            {0, 1, 4, 3, 2},
+            {1, 3, 4, 0, 4},
+            {2, 2, 4, 1, 1},
+            {2, 1, 3, 3, 2},
+            {0, 0, 3, 1, 0}
+        }
     };
-    float kernel[2][2] = {
-        {4, 0},
-        {4, 3}
+    float kernel[1][1][2][2] = {
+        {
+            {
+                {4, 0},
+                {4, 3}
+            }
+        }
     };
-    float expected[4][4] = {
-        {13, 28, 32, 24},
-        {18, 32, 35,  7},
-        {19, 21, 37, 22},
-        { 8, 13, 27, 16}
+    float expected[1][4][4] = {
+        {
+            {13, 28, 32, 24},
+            {18, 32, 35,  7},
+            {19, 21, 37, 22},
+            { 8, 13, 27, 16}
+        }
     };
-    float actual[4][4];
-    convolve2d((float *)src, 5, 5,
-               (float *)kernel, 2, 2,
+    float actual[1][4][4];
+
+    convolve2d((float *)src, 1, 5, 5,
+               (float *)kernel, 1, 1, 2, 2,
                (float *)actual,
                1, 0);
-    mat_equal((float *)actual, (float *)expected, 4, 4);
+    tensor_check_equal((float *)expected,
+                       (float *)actual,
+                       3, (int[]){1, 4, 4});
 }
 
 void
 test_convolve_padded_2() {
-    float src[5][5] = {
-        {2, 3, 1, 0, 1},
-        {2, 0, 3, 0, 4},
-        {2, 0, 1, 3, 1},
-        {4, 1, 2, 3, 1},
-        {3, 4, 1, 4, 4}
+    float src[1][5][5] = {
+        {
+            {2, 3, 1, 0, 1},
+            {2, 0, 3, 0, 4},
+            {2, 0, 1, 3, 1},
+            {4, 1, 2, 3, 1},
+            {3, 4, 1, 4, 4}
+        }
     };
-    float kernel[2][2] = {
-        {0, 2},
-        {1, 2}
+    float kernel[1][1][2][2] = {
+        {
+            {
+                {0, 2},
+                {1, 2}
+            }
+        }
     };
-    float expected[6][6] = {
-        { 4,  8,  5,  1,  2,  1},
-        { 8,  8,  8,  3, 10,  4},
-        { 8,  2,  8,  7, 13,  1},
-        {12,  6,  7, 14,  7,  1},
-        {14, 13, 10, 15, 14,  4},
-        { 6,  8,  2,  8,  8,  0}
+    float expected[1][6][6] = {
+        {
+            { 4,  8,  5,  1,  2,  1},
+            { 8,  8,  8,  3, 10,  4},
+            { 8,  2,  8,  7, 13,  1},
+            {12,  6,  7, 14,  7,  1},
+            {14, 13, 10, 15, 14,  4},
+            { 6,  8,  2,  8,  8,  0}
+        }
     };
-    float actual[6][6];
-    convolve2d((float *)src, 5, 5,
-               (float *)kernel, 2, 2,
+    float actual[1][6][6];
+    convolve2d((float *)src, 1, 5, 5,
+               (float *)kernel, 1, 1, 2, 2,
                (float *)actual,
                1, 1);
-    mat_equal((float *)actual, (float *)expected, 6, 6);
+    tensor_check_equal((float *)expected,
+                       (float *)actual,
+                       3, (int[]){1, 6, 6});
 }
 
+void
+test_convolve_2channels() {
+    float src[2][3][6] = {
+        {
+            {4, 2, 2, 2, 4, 4},
+            {4, 0, 3, 0, 0, 3},
+            {2, 3, 1, 0, 2, 4}
+        },
+        {
+            {4, 2, 1, 1, 2, 3},
+            {4, 4, 2, 3, 1, 3},
+            {2, 1, 2, 1, 4, 1}
+        }
+    };
+    float kernel[2][1][1] = {
+        {
+            {2}
+        },
+        {
+            {3}
+        }
+    };
+    float expected[1][3][6] = {
+        {
+            {20, 10,  7,  7, 14, 17},
+            {20, 12, 12,  9,  3, 15},
+            {10,  9,  8,  3, 16, 11},
+        }
+    };
+    float actual[1][3][6];
+    convolve2d((float *)src, 2, 3, 6,
+               (float *)kernel, 1, 2, 1, 1,
+               (float *)actual,
+               1, 0);
+    tensor_check_equal((float *)expected,
+                       (float *)actual,
+                       3, (int[]){1, 3, 6});
+}
+
+void
+test_convolve_2x2channels() {
+    float src[2][2][4] = {
+        {
+            {0, 2, 3, 3},
+            {1, 2, 3, 1}
+        },
+        {
+            {0, 2, 3, 1},
+            {0, 0, 4, 0}
+        }
+    };
+    float kernel[2][2][1][1] = {
+        {
+            {
+                {2}
+            },
+            {
+                {3}
+            }
+        },
+        {
+            {
+                {3}
+            },
+            {
+                {4}
+            }
+        }
+    };
+    float expected[2][2][4] = {
+        {
+            { 0, 10, 15,  9},
+            { 2,  4, 18,  2}
+        },
+        {
+            { 0, 14, 21, 13},
+            { 3,  6, 25,  3}
+        }
+    };
+    float actual[2][2][4];
+    convolve2d((float *)src, 2, 2, 4,
+               (float *)kernel, 2, 2, 1, 1,
+               (float *)actual,
+               1, 0);
+    tensor_check_equal((float *)expected,
+                       (float *)actual,
+                       3, (int[]){2, 2, 4});
+}
+
+void
+test_convolve_uneven() {
+    float src[1][2][4] = {
+        {
+            {4, 1, 4, 0},
+            {0, 0, 0, 2}
+        }
+    };
+    float kernel[2][1][2][2] = {
+        {
+            {
+                {1, 1},
+                {4, 4}
+            }
+        },
+        {
+            {
+                {3, 3},
+                {1, 2}
+            }
+        }
+    };
+    float expected[2][1][3] = {
+        {
+            {5, 5, 12}
+        },
+        {
+            {15, 15, 16}
+        }
+    };
+    float actual[2][1][3];
+    convolve2d((float *)src, 1, 2, 4,
+               (float *)kernel, 2, 1, 2, 2,
+               (float *)actual,
+               1, 0);
+    tensor_check_equal((float *)expected,
+                       (float *)actual,
+                       3, (int[]){2, 1, 3});
+}
+
+void
+test_convolve_uneven_strided() {
+        float src[1][2][4] = {
+        {
+            {3, 0, 3, 1},
+            {3, 4, 2, 2}
+        }
+    };
+    float kernel[2][1][2][2] = {
+        {
+            {
+                {4, 1},
+                {3, 3}
+            }
+        },
+        {
+            {
+                {3, 3},
+                {2, 0}
+            }
+        }
+    };
+    float expected[2][1][2] = {
+        {
+            {33, 25}
+        },
+        {
+            {15, 16}
+        }
+    };
+    float actual[2][1][2];
+    convolve2d((float *)src, 1, 2, 4,
+               (float *)kernel, 2, 1, 2, 2,
+               (float *)actual,
+               2, 0);
+    tensor_check_equal((float *)expected,
+                       (float *)actual,
+                       3, (int[]){2, 1, 2});
+}
 
 int
 main(int argc, char *argv[]) {
@@ -362,10 +504,13 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_to_deg);
     PRINT_RUN(test_perspective);
     PRINT_RUN(test_get_plane);
-    PRINT_RUN(test_convolve_1);
     PRINT_RUN(test_convolve_3);
     PRINT_RUN(test_convolve_strided);
     PRINT_RUN(test_convolve_padded);
     PRINT_RUN(test_convolve_padded_2);
+    PRINT_RUN(test_convolve_2channels);
+    PRINT_RUN(test_convolve_2x2channels);
+    PRINT_RUN(test_convolve_uneven);
+    PRINT_RUN(test_convolve_uneven_strided);
     return 0;
 }

@@ -1,4 +1,5 @@
 // Copyright (C) 2017-2019, 2022 Björn Lindqvist <bjourne@gmail.com>
+#include <assert.h>
 #include <stdio.h>
 #include "linalg.h"
 
@@ -227,32 +228,59 @@ extern inline vec3 m4_mul_v3p(mat4 m, vec3 v);
 extern inline vec3 m4_mul_v3d(mat4 m, vec3 v);
 extern inline mat4 m4_mul_m4(mat4 l, mat4 r);
 
-// Only for simple 2d convolution with unit strides, odd kernel sizes
-// and same padding.
 void
-convolve2d(float *src, int d1, int d2,
-           float *kernel, int k1, int k2,
+convolve2d(float *src, int src_c, int src_h, int src_w,
+           float *kernel,
+           int kernel_c_out, int kernel_c_in,
+           int kernel_h, int kernel_w,
            float *dst,
            int stride, int padding) {
-    for (int i1 = -padding; i1 < d1 + padding - k1 + 1; i1 += stride) {
-        for (int i2 = -padding; i2 < d2 + padding - k2 + 1; i2 += stride) {
-            float acc = 0;
-            float *k0 = kernel;
-            for  (int i3 = 0; i3 < k1; i3++) {
-                for (int i4 = 0; i4 < k2; i4++)  {
-                    int at1 = i1 + i3;
-                    int at2 = i2 + i4;
 
-                    float s = 0;
-                    float w = *k0++;
-                    if (at1 >= 0 && at1 < d1 && at2 >= 0 && at2 < d2) {
-                        s = src[at1 * d2 + at2];
+    assert (src_c == kernel_c_in);
+
+    int h_start = -padding;
+    int h_end = src_h + padding - kernel_h + 1;
+    int w_start = -padding;
+    int w_end = src_w + padding - kernel_w + 1;
+
+    int dst_h = (src_h + 2 * padding - kernel_h) / stride + 1;
+    int dst_w = (src_w + 2 * padding - kernel_w) / stride + 1;
+    int dst_size = dst_h * dst_w;
+
+    int src_size = src_h * src_w;
+    int kernel_size = kernel_w * kernel_h;
+    for (int c_out = 0; c_out < kernel_c_out; c_out++) {
+        float *kernel_ptr = &kernel[c_out * kernel_c_in * kernel_size];
+        for (int c_in = 0; c_in < kernel_c_in; c_in++) {
+            float *dst_ptr = &dst[c_out * dst_size];
+            float *src_ptr = &src[c_in * src_size];
+            for (int h = h_start; h < h_end; h += stride) {
+                for (int w = w_start; w < w_end; w += stride) {
+                    float acc = 0;
+                    if (c_in > 0) {
+                        acc = *dst_ptr;
                     }
-                    acc += s * w;
+                    float *kernel_ptr2 = &kernel_ptr[c_in * kernel_size];
+                    for  (int i3 = 0; i3 < kernel_h; i3++) {
+                        for (int i4 = 0; i4 < kernel_w; i4++)  {
+                            int at1 = h + i3;
+                            int at2 = w + i4;
+
+                            float s = 0;
+                            if (at1 >= 0 && at1 < src_h &&
+                                at2 >= 0 && at2 < src_w) {
+                                s = src_ptr[at1 * src_w + at2];
+                            }
+                            float weight = *kernel_ptr2;
+                            acc += s * weight;
+                            kernel_ptr2++;
+                        }
+                    }
+                    //printf("%d %d %d = %.2f\n", c_out, h, w, acc);
+                    *dst_ptr = acc;
+                    dst_ptr++;
                 }
             }
-            *dst++ = acc;
-            //printf("%d, %d\n", i1, i2);
         }
     }
 }
