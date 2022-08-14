@@ -215,6 +215,6 @@ void
 tensor_convolve(float *src, int d1, int d2,
                 float *kernel, int k1, int k2,
                 float *dst,
-                int stride);
+                int stride, int padding);
 
 #endif

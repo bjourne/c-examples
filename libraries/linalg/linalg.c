@@ -233,25 +233,26 @@ void
 tensor_convolve(float *src, int d1, int d2,
                 float *kernel, int k1, int k2,
                 float *dst,
-                int stride) {
-    int half_k1 = k1 / 2;
-    int half_k2 = k2 / 2;
-    for (int i1 = 0; i1 < d1; i1++) {
-        for (int i2 = 0; i2 < d2; i2++) {
-            int acc = 0;
+                int stride, int padding) {
+    for (int i1 = -padding; i1 < d1 + padding - k1 + 1; i1 += stride) {
+        for (int i2 = -padding; i2 < d2 + padding - k2 + 1; i2 += stride) {
+            float acc = 0;
+            float *k0 = kernel;
             for  (int i3 = 0; i3 < k1; i3++) {
                 for (int i4 = 0; i4 < k2; i4++)  {
-                    int at1 = i1 + i3 - half_k1;
-                    int at2 = i2 + i4 - half_k2;
-                    int v = 0;
+                    int at1 = i1 + i3;
+                    int at2 = i2 + i4;
+
+                    float s = 0;
+                    float w = *k0++;
                     if (at1 >= 0 && at1 < d1 && at2 >= 0 && at2 < d2) {
-                        v = src[at1 * d2 + at2] * kernel[i3 * k2 + i4];
+                        s = src[at1 * d2 + at2];
                     }
-                    acc += v;
+                    acc += s * w;
                 }
             }
-            int a = i1 * d2 + i2;
-            dst[a] = acc;
+            *dst++ = acc;
+            //printf("%d, %d\n", i1, i2);
         }
     }
 }
