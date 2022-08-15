@@ -66,6 +66,10 @@ A library for solving linear Diophantine equations.
 
 A library for explicit handling of ieee754 floating point numbers.
 
+### `libraries/tensors`
+
+A library for dealing with N-dimensional arrays (tensors).
+
 ## Tests
 Test suites for the various libraries.
 
