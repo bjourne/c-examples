@@ -207,13 +207,4 @@ m4_mul_m4(mat4 l, mat4 r) {
     return ret;
 }
 
-// Operations on arbitrarily sized tensors.
-void
-convolve2d(float *src, int src_c, int src_h, int src_w,
-           float *kernel,
-           int kernel_c_out, int kernel_c_in,
-           int kernel_h, int kernel_w,
-           float *dst,
-           int stride, int padding);
-
 #endif

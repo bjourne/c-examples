@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <png.h>
 #include "tensors.h"
 
@@ -14,6 +15,36 @@ tensor_n_elements(tensor *me) {
         tot *= me->dims[i];
     }
     return tot;
+}
+
+// Should check dimensions too, but whatever.
+bool
+tensor_check_equal(tensor *t1, tensor *t2) {
+    assert(t1->n_dims == t2->n_dims);
+    int n = t1->n_dims;
+    int dim_counts[TENSOR_MAX_N_DIMS] = {0};
+    int *dims = t1->dims;
+    for (int i = 0; i < tensor_n_elements(t1); i++) {
+        float v1 = t1->data[i];
+        float v2 = t2->data[i];
+        if (v1 != v2) {
+            printf("Mismatch at [");
+            for (int j = 0; j < n - 1; j++) {
+                printf("%d, ", dim_counts[j]);
+            }
+            printf("%d], %.2f != %.2f\n",
+                   dim_counts[n - 1], v1,  v2);
+        }
+        for (int j = n - 1; j >= 0; j--) {
+            dim_counts[j]++;
+            if (dim_counts[j] == dims[j]) {
+                dim_counts[j] = 0;
+            } else {
+                break;
+            }
+        }
+    }
+    return true;
 }
 
 void
@@ -28,9 +59,6 @@ tensor_conv2d(tensor *src, tensor *kernel, tensor *dst,
     int src_h = src->dims[1];
     int src_w = src->dims[2];
 
-    assert(kernel->n_dims == 4);
-    assert(src->dims[0] == kernel_c_in);
-
     int h_start = -padding;
     int h_end = src_h + padding - kernel_h + 1;
     int w_start = -padding;
@@ -40,8 +68,12 @@ tensor_conv2d(tensor *src, tensor *kernel, tensor *dst,
     int dst_w = (src_w + 2 * padding - kernel_w) / stride + 1;
     int dst_size = dst_h * dst_w;
 
+    assert(dst->n_dims == 3);
+    assert(src->n_dims == 3);
     assert(dst->dims[1] == dst_h);
     assert(dst->dims[2] == dst_w);
+    assert(kernel->n_dims == 4);
+    assert(src->dims[0] == kernel_c_in);
 
     int src_size = src_h * src_w;
     int kernel_size = kernel_w * kernel_h;
@@ -80,11 +112,8 @@ tensor_conv2d(tensor *src, tensor *kernel, tensor *dst,
     }
 }
 
-
-tensor *
-tensor_allocate(int n_dims, ...) {
-    va_list ap;
-    va_start(ap, n_dims);
+static tensor *
+allocate_from_va_list(int n_dims, va_list ap) {
 
     tensor *me = (tensor *)malloc(sizeof(tensor));
     me->n_dims = n_dims;
@@ -92,9 +121,32 @@ tensor_allocate(int n_dims, ...) {
         me->dims[i] = va_arg(ap, int);
     }
     me->data = (float *)malloc(sizeof(float) * tensor_n_elements(me));
+    return me;
+}
+
+tensor *
+tensor_allocate(int n_dims, ...) {
+    va_list ap;
+    va_start(ap, n_dims);
+
+    tensor *me = allocate_from_va_list(n_dims, ap);
+
     va_end(ap);
     return me;
 }
+
+tensor *
+tensor_allocate_from_data(float *data, int n_dims, ...)  {
+    va_list ap;
+    va_start(ap, n_dims);
+
+    tensor *me = allocate_from_va_list(n_dims, ap);
+    memcpy(me->data, data, tensor_n_elements(me) *  sizeof(float));
+
+    va_end(ap);
+    return me;
+}
+
 
 void
 tensor_fill(tensor *me, float v) {
