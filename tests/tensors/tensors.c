@@ -124,7 +124,12 @@ test_conv2d() {
 
 int
 main(int argc, char *argv[]) {
+    if (argc == 1) {
+        printf("Specify a PNG image.\n");
+        return 1;
+    }
     fname = argv[1];
+
     PRINT_RUN(test_from_png);
     PRINT_RUN(test_pick_channel);
     PRINT_RUN(test_conv2d);

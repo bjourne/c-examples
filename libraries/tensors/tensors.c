@@ -103,7 +103,7 @@ tensor_fill(tensor *me, float v) {
     }
 }
 
-// May be a small leak in this.
+// TODO: Check with valgrind if read/write png leaks.
 bool
 tensor_write_png(tensor *me, char *filename) {
     if (me->n_dims != 3 || me->dims[0] != 3) {
@@ -195,94 +195,66 @@ tensor *
 tensor_read_png(char *filename) {
     tensor *me = (tensor *)malloc(sizeof(tensor));
     me->data = NULL;
-    FILE *f = fopen(filename, "rb");
-    if (!f) {
-        me->error_code = TENSOR_ERR_FILE_NOT_FOUND;
-        return me;
-    }
-    unsigned char header[8];
-    fread(header, 1, 8, f);
-    if (png_sig_cmp(header, 0, 8)) {
-        me->error_code = TENSOR_ERR_NOT_A_PNG_FILE;
-        return me;
-    }
-    png_structp png = png_create_read_struct(
-        PNG_LIBPNG_VER_STRING,
-        NULL, NULL, NULL);
+    FILE *f = NULL;
+    png_structp png = NULL;
+
+
+    f = fopen(filename, "rb");
+    png = png_create_read_struct(PNG_LIBPNG_VER_STRING,
+                                 NULL, NULL, NULL);
     if (!png) {
         me->error_code = TENSOR_ERR_PNG_ERROR;
-        return me;
+        goto done;
     }
-
     png_infop info = png_create_info_struct(png);
-    if (!info) {
-        me->error_code = TENSOR_ERR_PNG_ERROR;
-        return me;
-    }
-
-    if (setjmp(png_jmpbuf(png))) {
-        me->error_code = TENSOR_ERR_PNG_ERROR;
-        return me;
-    }
-
     png_init_io(png, f);
-    png_set_sig_bytes(png, 8);
-    png_read_info(png, info);
+    png_read_png(png, info, PNG_TRANSFORM_IDENTITY, NULL);
 
-    png_byte color_type = png_get_color_type(png, info);
-    if  (color_type != PNG_COLOR_TYPE_RGB) {
-        printf("not rgb %d\n", color_type);
+    png_uint_32 width, height;
+    int depth, ctype, interlace_method, compression_method, filter_method;
+    png_get_IHDR(png, info, &width, &height, &depth,
+                 &ctype, &interlace_method, & compression_method,
+                 &filter_method);
+    if  (depth != 8) {
+        me->error_code = TENSOR_ERR_PNG_ERROR;
+        goto done;
+    }
+
+    int bpp;
+    if (ctype == PNG_COLOR_TYPE_RGB) {
+        bpp = 3;
+    } else if (ctype == PNG_COLOR_TYPE_RGBA) {
+        bpp = 4;
+    } else {
         me->error_code = TENSOR_ERR_UNSUPPORTED_PNG_TYPE;
-        return me;
+        goto done;
     }
 
-    png_byte bit_depth = png_get_bit_depth(png, info);
-    if  (bit_depth != 8) {
-        me->error_code = TENSOR_ERR_PNG_ERROR;
-        return me;
-    }
-    if (setjmp(png_jmpbuf(png))) {
-        me->error_code = TENSOR_ERR_PNG_ERROR;
-        return me;
-    }
-
-    int width = png_get_image_width(png, info);
-    int height = png_get_image_height(png, info);
-
-    png_bytep *row_pointers = (png_bytep *)malloc(
-        sizeof(png_bytep) * height);
-
-
-    int bytes_per_row = png_get_rowbytes(png, info);
-    for (int y = 0; y < height; y++) {
-        row_pointers[y] = (png_byte *)malloc(bytes_per_row);
-    }
-
-    png_read_image(png, row_pointers);
-
+    // Skip alpha channel if present.
     me->dims[0] = 3;
     me->dims[1] = height;
     me->dims[2] = width;
     me->n_dims = 3;
     me->data = (float *)malloc(sizeof(float) * 3 * height * width);
+    png_bytepp row_pointers = png_get_rows(png, info);
+
     for (int y = 0; y < height; y++) {
         png_byte *row = row_pointers[y];
         for (int x = 0; x < width; x++) {
-            png_byte *p = &row[x * 3];
             for (int c = 0; c < 3; c++) {
-                int v = p[c];
+                png_byte v = row[c];
                 me->data[c*width*height + y*width + x] = v;
             }
+            row += bpp;
         }
     }
-    for (int y = 0; y < height; y++) {
-        free(row_pointers[y]);
-    }
-    free(row_pointers);
     me->error_code = TENSOR_ERR_NONE;
+ done:
+    if (f)
+        fclose(f);
+    if (png)
+        png_destroy_read_struct(&png, &info, NULL);
 
-    png_destroy_read_struct(&png, &info, 0);
-    fclose(f);
     return me;
 }
 
