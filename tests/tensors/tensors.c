@@ -565,9 +565,9 @@ test_max_pool_1() {
     tensor *src = tensor_init_from_data((float *)src_data,
                                             3, 2, 5, 5);
     tensor *expected1 = tensor_init_from_data((float *)expected1_data,
-                                                 3, 2, 4, 4);
+                                              3, 2, 4, 4);
     tensor *expected2 = tensor_init_from_data((float *)expected2_data,
-                                                  3, 2, 1, 5);
+                                              3, 2, 1, 5);
     tensor *dst1 = tensor_init(3, 2, 4, 4);
     tensor *dst2 = tensor_init(3, 2, 1, 5);
 
@@ -582,6 +582,45 @@ test_max_pool_1() {
     tensor_free(dst2);
     tensor_free(expected1);
     tensor_free(expected2);
+}
+
+void
+test_max_pool_strided() {
+    float src_data[2][5][5] = {
+        {
+            {6, 3, 1, 8, 2},
+            {4, 9, 9, 7, 8},
+            {5, 3, 7, 0, 0},
+            {0, 0, 6, 0, 1},
+            {3, 2, 9, 6, 6}
+        },
+        {
+            {6, 7, 7, 9, 9},
+            {0, 9, 3, 3, 8},
+            {4, 1, 8, 1, 8},
+            {9, 9, 2, 8, 8},
+            {3, 7, 7, 9, 3}
+        }
+    };
+    float expected_data[2][2][2] = {
+        {
+            {9, 9},
+            {5, 7}
+        },
+        {
+            {9, 9},
+            {9, 8}
+        }
+    };
+    tensor *src = tensor_init_from_data((float *)src_data,
+                                        3, 2, 5, 5);
+
+    tensor *expected = tensor_init_from_data((float *)expected_data,
+                                             3, 2, 2, 2);
+    tensor *dst = tensor_max_pool2d_new(src, 2, 2, 2, 0);
+    tensor_check_equal(expected, dst);
+    tensor_free(src);
+    tensor_free(expected);
 }
 
 void
@@ -615,10 +654,117 @@ test_relu() {
     tensor_free(expected);
 }
 
+void
+test_linear() {
+    tensor *src = tensor_init_from_data(
+        (float *)(float[]){
+            0, 2, 4, 5, 0, 1, 4, 4
+        }, 1, 8);
+    tensor *weights = tensor_init_from_data(
+        (float *)(float[4][8]){
+            {5, 6, 7, 6, 9, 3, 1, 9},
+            {4, 9, 5, 0, 9, 9, 8, 7},
+            {6, 8, 7, 4, 1, 9, 3, 1},
+            {4, 1, 4, 8, 2, 0, 1, 1}
+        }, 2, 4, 8);
 
+    tensor *dst = tensor_init(1, 4);
+    tensor *expected = tensor_init_from_data(
+        (float *)(float[]){113, 107, 89, 66}, 1, 4);
+
+    tensor_linear(src, weights, NULL, dst);
+    tensor_check_equal(dst, expected);
+
+    tensor_free(src);
+    tensor_free(dst);
+    tensor_free(weights);
+    tensor_free(expected);
+}
+
+// Copy of the network from
+// https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html
+//
+// Haven't added biases yet.
+void
+test_cifar10() {
+    tensor *conv1 = tensor_init(4, 6, 3, 5, 5);
+    tensor_randrange(conv1, 10);
+
+    tensor *conv2 = tensor_init(4, 16, 6, 5, 5);
+    tensor_randrange(conv2, 10);
+
+    tensor *fc1 = tensor_init(2, 120, 400);
+    tensor_randrange(fc1, 10);
+
+    tensor *fc2 = tensor_init(2, 84, 120);
+    tensor_randrange(fc2, 10);
+
+    tensor *fc3 = tensor_init(2, 10, 84);
+    tensor_randrange(fc3, 10);
+
+    tensor *x0 = tensor_init(3, 3, 32, 32);
+    tensor_randrange(x0, 10);
+
+    tensor *x1 = tensor_conv2d_new(x0, conv1, 1, 0);
+    tensor_relu(x1);
+
+    assert(x1->dims[0] == 6);
+    assert(x1->dims[1] == 28);
+    assert(x1->dims[2] == 28);
+
+    tensor *x2 = tensor_max_pool2d_new(x1, 2, 2, 2, 0);
+
+    assert(x2->dims[0] == 6);
+    assert(x2->dims[1] == 14);
+    assert(x2->dims[2] == 14);
+
+    tensor *x3 = tensor_conv2d_new(x2, conv2, 1, 0);
+    tensor_relu(x3);
+    assert(x3->dims[0] == 16);
+    assert(x3->dims[1] == 10);
+    assert(x3->dims[2] == 10);
+
+    tensor *x4 = tensor_max_pool2d_new(x3, 2, 2, 2, 0);
+    assert(x4->dims[0] == 16);
+    assert(x4->dims[1] == 5);
+    assert(x4->dims[2] == 5);
+
+    tensor_flatten(x4, 0);
+    assert(x4->n_dims == 1);
+    assert(x4->dims[0] == 400);
+
+    tensor *x5 = tensor_linear_new(x4, fc1, NULL);
+    tensor_relu(x5);
+    assert(x5->n_dims == 1);
+    assert(x5->dims[0] == 120);
+
+    tensor *x6 = tensor_linear_new(x5, fc2, NULL);
+    tensor_relu(x6);
+    assert(x6->n_dims == 1);
+    assert(x6->dims[0] == 84);
+
+    tensor *x7 = tensor_linear_new(x6, fc3, NULL);
+    assert(x7->n_dims == 1);
+    assert(x7->dims[0] == 10);
+
+    tensor_free(conv1);
+    tensor_free(conv2);
+    tensor_free(fc1);
+    tensor_free(fc2);
+    tensor_free(fc3);
+    tensor_free(x0);
+    tensor_free(x1);
+    tensor_free(x2);
+    tensor_free(x3);
+    tensor_free(x4);
+    tensor_free(x5);
+    tensor_free(x6);
+    tensor_free(x7);
+}
 
 int
 main(int argc, char *argv[]) {
+    rand_init(1234);
     if (argc == 1) {
         printf("Specify a PNG image.\n");
         return 1;
@@ -636,6 +782,9 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_convolve_uneven);
     PRINT_RUN(test_convolve_uneven_strided);
     PRINT_RUN(test_max_pool_1);
+    PRINT_RUN(test_max_pool_strided);
     PRINT_RUN(test_max_pool_image);
     PRINT_RUN(test_relu);
+    PRINT_RUN(test_linear);
+    PRINT_RUN(test_cifar10);
 }

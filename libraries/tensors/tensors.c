@@ -22,6 +22,15 @@ compute_2d_dims(tensor *src,
     *width = (src->dims[2] + 2 * padding - kernel_w) / stride + 1;
 }
 
+static int
+count_elements_from(tensor *me, int from) {
+    int tot = me->dims[from];
+    for (int i = from + 1; i < me->n_dims; i++) {
+        tot *= me->dims[i];
+    }
+    return tot;
+}
+
 int
 tensor_n_elements(tensor *me) {
     int tot = me->dims[0];
@@ -31,7 +40,12 @@ tensor_n_elements(tensor *me) {
     return tot;
 }
 
-// Should check dimensions too, but whatever.
+void
+tensor_flatten(tensor *me, int from) {
+    int n_els = count_elements_from(me, from);
+    me->n_dims = from + 1;
+    me->dims[from] = n_els;
+}
 
 ////////////////////////////////////////////////////////////////////////
 // Init and Free
@@ -94,6 +108,14 @@ tensor_fill(tensor *me, float v) {
     }
 }
 
+void
+tensor_randrange(tensor *me, int high) {
+    for (int i = 0; i < tensor_n_elements(me); i++) {
+        me->data[i] = rand_n(high);
+    }
+}
+
+// Should check dimensions too, but whatever.
 bool
 tensor_check_equal(tensor *t1, tensor *t2) {
     assert(t1->n_dims == t2->n_dims);
@@ -284,6 +306,17 @@ tensor_read_png(char *filename) {
 ////////////////////////////////////////////////////////////////////////
 // 2D Convolution
 ////////////////////////////////////////////////////////////////////////
+tensor *
+tensor_conv2d_new(tensor *src, tensor *kernel,
+                  int stride, int padding) {
+    int height, width;
+    compute_2d_dims(src, kernel->dims[2], kernel->dims[3], stride, padding,
+                    &height, &width);
+    tensor *dst = tensor_init(3, kernel->dims[0], height, width);
+    tensor_conv2d(src, kernel, dst, stride, padding);
+    return dst;
+}
+
 void
 tensor_conv2d(tensor *src, tensor *kernel, tensor *dst,
               int stride, int padding) {
@@ -423,4 +456,28 @@ tensor_max_pool2d(tensor  *src,
             }
         }
     }
+}
+
+////////////////////////////////////////////////////////////////////////
+// Linear
+////////////////////////////////////////////////////////////////////////
+void
+tensor_linear(tensor *src, tensor *weights, tensor *bias, tensor *dst) {
+    int n_dims = weights->n_dims;
+    int width = weights->dims[n_dims - 1];
+    int height = weights->dims[n_dims - 2];
+    for (int y = 0; y < height; y++) {
+        float acc = 0.0f;
+        for (int x = 0; x < width; x++) {
+            acc += src->data[x] * weights->data[y * width + x];
+        }
+        dst->data[y] = acc;
+    }
+}
+
+tensor *
+tensor_linear_new(tensor *src, tensor *weights, tensor *bias) {
+    tensor *dst = tensor_init(1, weights->dims[0]);
+    tensor_linear(src, weights, bias, dst);
+    return dst;
 }
