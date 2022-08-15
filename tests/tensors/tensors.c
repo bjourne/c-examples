@@ -589,26 +589,30 @@ test_max_pool_image() {
     tensor *src = tensor_read_png(fname);
     assert(src);
     assert(src->error_code == TENSOR_ERR_NONE);
-
-    /* int height = src->dims[1]; */
-    /* int width = src->dims[2]; */
-
-    /* int d_height, d_width; */
-    /* tensor_compute_max_pool2d_dims(src, 3, 3, 1, 0, &d_height, &d_width); */
-
-
-    //tensor *dst = tensor_init(3, 3, src->dims[1] - 3 + 1, src->dims[2] - 3 + 1);
     for (int s = 1; s < 5; s++) {
         tensor *dst = tensor_max_pool2d_new(src, s, s, 1, 0);
 
         char fname_fmt[128];
-        sprintf(fname_fmt, "out-max_pool-%20d.png", s - 1);
+        sprintf(fname_fmt, "out-max_pool-%02d.png", s - 1);
         assert(tensor_write_png(dst, fname_fmt));
         assert(dst->error_code == TENSOR_ERR_NONE);
         tensor_free(dst);
     }
     tensor_free(src);
+}
 
+void
+test_relu() {
+    tensor *src = tensor_init_from_data(
+        (float *)(float[]){-4.0, 0.0, -20.0, 3.0, 2.0}, 1, 5);
+    tensor *expected = tensor_init_from_data(
+        (float *)(float[]){0.0, 0.0, 0.0, 3.0, 2.0}, 1, 5);
+
+    tensor_relu(src);
+    tensor_check_equal(src, expected);
+
+    tensor_free(src);
+    tensor_free(expected);
 }
 
 
@@ -633,4 +637,5 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_convolve_uneven_strided);
     PRINT_RUN(test_max_pool_1);
     PRINT_RUN(test_max_pool_image);
+    PRINT_RUN(test_relu);
 }

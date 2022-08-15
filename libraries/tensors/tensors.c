@@ -7,7 +7,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <png.h>
+#include "datatypes/common.h"
 #include "tensors.h"
+
+////////////////////////////////////////////////////////////////////////
+// Utility
+////////////////////////////////////////////////////////////////////////
+static void
+compute_2d_dims(tensor *src,
+                int kernel_h, int kernel_w,
+                int stride, int padding,
+                int *height, int *width) {
+    *height = (src->dims[1] + 2 * padding - kernel_h) / stride + 1;
+    *width = (src->dims[2] + 2 * padding - kernel_w) / stride + 1;
+}
 
 int
 tensor_n_elements(tensor *me) {
@@ -19,181 +32,10 @@ tensor_n_elements(tensor *me) {
 }
 
 // Should check dimensions too, but whatever.
-bool
-tensor_check_equal(tensor *t1, tensor *t2) {
-    assert(t1->n_dims == t2->n_dims);
-    int n = t1->n_dims;
-    int dim_counts[TENSOR_MAX_N_DIMS] = {0};
-    int *dims = t1->dims;
-    for (int i = 0; i < tensor_n_elements(t1); i++) {
-        float v1 = t1->data[i];
-        float v2 = t2->data[i];
-        if (v1 != v2) {
-            printf("Mismatch at [");
-            for (int j = 0; j < n - 1; j++) {
-                printf("%d, ", dim_counts[j]);
-            }
-            printf("%d], %.2f != %.2f\n",
-                   dim_counts[n - 1], v1,  v2);
-        }
-        for (int j = n - 1; j >= 0; j--) {
-            dim_counts[j]++;
-            if (dim_counts[j] == dims[j]) {
-                dim_counts[j] = 0;
-            } else {
-                break;
-            }
-        }
-    }
-    return true;
-}
 
-void
-tensor_conv2d(tensor *src, tensor *kernel, tensor *dst,
-              int stride, int padding) {
-
-    int kernel_c_out = kernel->dims[0];
-    int kernel_c_in = kernel->dims[1];
-    int kernel_h = kernel->dims[2];
-    int kernel_w = kernel->dims[3];
-
-    int src_h = src->dims[1];
-    int src_w = src->dims[2];
-
-    int h_start = -padding;
-    int h_end = src_h + padding - kernel_h + 1;
-    int w_start = -padding;
-    int w_end = src_w + padding - kernel_w + 1;
-
-    int dst_h = (src_h + 2 * padding - kernel_h) / stride + 1;
-    int dst_w = (src_w + 2 * padding - kernel_w) / stride + 1;
-    int dst_size = dst_h * dst_w;
-
-    assert(dst->n_dims == 3);
-    assert(src->n_dims == 3);
-    assert(dst->dims[1] == dst_h);
-    assert(dst->dims[2] == dst_w);
-    assert(kernel->n_dims == 4);
-    assert(src->dims[0] == kernel_c_in);
-
-    int src_size = src_h * src_w;
-    int kernel_size = kernel_w * kernel_h;
-    for (int c_out = 0; c_out < kernel_c_out; c_out++) {
-        float *kernel_ptr = &kernel->data[c_out * kernel_c_in * kernel_size];
-        for (int c_in = 0; c_in < kernel_c_in; c_in++) {
-            float *dst_ptr = &dst->data[c_out * dst_size];
-            float *src_ptr = &src->data[c_in * src_size];
-            for (int h = h_start; h < h_end; h += stride) {
-                for (int w = w_start; w < w_end; w += stride) {
-                    float acc = 0;
-                    if (c_in > 0) {
-                        acc = *dst_ptr;
-                    }
-                    float *kernel_ptr2 = &kernel_ptr[c_in * kernel_size];
-                    for  (int i3 = 0; i3 < kernel_h; i3++) {
-                        for (int i4 = 0; i4 < kernel_w; i4++)  {
-                            int at1 = h + i3;
-                            int at2 = w + i4;
-
-                            float s = 0;
-                            if (at1 >= 0 && at1 < src_h &&
-                                at2 >= 0 && at2 < src_w) {
-                                s = src_ptr[at1 * src_w + at2];
-                            }
-                            float weight = *kernel_ptr2;
-                            acc += s * weight;
-                            kernel_ptr2++;
-                        }
-                    }
-                    *dst_ptr = acc;
-                    dst_ptr++;
-                }
-            }
-        }
-    }
-}
-
-static void
-compute_max_pool2d_dims(tensor *src,
-                        int kernel_h, int kernel_w,
-                        int stride, int padding,
-                        int *n_channels, int *height, int *width) {
-    *n_channels = src->dims[0];
-    *height = (src->dims[1] + 2 * padding - kernel_h) / stride + 1;
-    *width = (src->dims[2] + 2 * padding - kernel_w) / stride + 1;
-}
-
-tensor *
-tensor_max_pool2d_new(tensor *src,
-                      int kernel_h, int kernel_w,
-                      int stride, int padding) {
-    int n_channels, height, width;
-    compute_max_pool2d_dims(src, kernel_h, kernel_w, stride, padding,
-                            &n_channels, &height, &width);
-    tensor *dst = tensor_init(3, n_channels, height, width);
-    tensor_max_pool2d(src, kernel_h, kernel_w, dst, stride, padding);
-    return dst;
-}
-
-
-void
-tensor_max_pool2d(tensor  *src,
-                  int kernel_h, int kernel_w,
-                  tensor *dst,
-                  int stride, int padding)  {
-
-    int src_h = src->dims[1];
-    int src_w = src->dims[2];
-    int src_n_channels = src->dims[0];
-    int src_size = src_h * src_w;
-
-
-    int dst_h = (src_h + 2 * padding - kernel_h) / stride + 1;
-    int dst_w = (src_w + 2 * padding - kernel_w) / stride + 1;
-    //int dst_size = dst_h * dst_w;
-
-    assert(src->n_dims == 3);
-    assert(dst->n_dims == 3);
-    assert(dst->dims[0] == src_n_channels);
-    assert(dst->dims[1] == dst_h);
-    assert(dst->dims[2] == dst_w);
-
-    // Iteration boundaries
-    int start_y = -padding;
-    int end_y = src_h + padding - kernel_h + 1;
-    int start_x = -padding;
-    int end_x = src_w + padding - kernel_w + 1;
-
-    // Write address
-    float *dst_ptr = dst->data;
-
-    for (int c = 0; c < src_n_channels; c++) {
-        float *src_ptr = &src->data[c * src_size];
-        for (int y = start_y; y < end_y; y += stride) {
-            for (int x = start_x; x < end_x; x += stride) {
-                //printf("-- %d %d %d\n", c, y, x);
-                float max = -FLT_MAX;
-                for (int ky = 0; ky < kernel_h; ky++) {
-                    for (int kx = 0; kx < kernel_w; kx++) {
-                        int at_y = y + ky;
-                        int at_x = x + kx;
-                        if (at_y >= 0 && at_y < src_h &&
-                            at_x >= 0 && at_x < src_w) {
-                            float s = src_ptr[at_y * src_w + at_x];
-                            //printf("got %.2f\n", s);
-                            if (s > max) {
-                                max = s;
-                            }
-                        }
-                    }
-                }
-                *dst_ptr = max;
-                dst_ptr++;
-            }
-        }
-    }
-}
-
+////////////////////////////////////////////////////////////////////////
+// Init and Free
+////////////////////////////////////////////////////////////////////////
 static tensor *
 init_from_va_list(int n_dims, va_list ap) {
 
@@ -227,6 +69,23 @@ tensor_init_from_data(float *data, int n_dims, ...)  {
     return me;
 }
 
+void
+tensor_free(tensor *t) {
+    if (t->data) {
+        free(t->data);
+    }
+    free(t);
+}
+
+////////////////////////////////////////////////////////////////////////
+// Scalar Ops
+////////////////////////////////////////////////////////////////////////
+void
+tensor_relu(tensor *me) {
+    for (int i  = 0; i < tensor_n_elements(me); i++) {
+        me->data[i] = MAX(me->data[i], 0.0f);
+    }
+}
 
 void
 tensor_fill(tensor *me, float v) {
@@ -235,6 +94,38 @@ tensor_fill(tensor *me, float v) {
     }
 }
 
+bool
+tensor_check_equal(tensor *t1, tensor *t2) {
+    assert(t1->n_dims == t2->n_dims);
+    int n = t1->n_dims;
+    int dim_counts[TENSOR_MAX_N_DIMS] = {0};
+    int *dims = t1->dims;
+    for (int i = 0; i < tensor_n_elements(t1); i++) {
+        float v1 = t1->data[i];
+        float v2 = t2->data[i];
+        if (v1 != v2) {
+            printf("Mismatch at [");
+            for (int j = 0; j < n - 1; j++) {
+                printf("%d, ", dim_counts[j]);
+            }
+            printf("%d], %.2f != %.2f\n",
+                   dim_counts[n - 1], v1,  v2);
+        }
+        for (int j = n - 1; j >= 0; j--) {
+            dim_counts[j]++;
+            if (dim_counts[j] == dims[j]) {
+                dim_counts[j] = 0;
+            } else {
+                break;
+            }
+        }
+    }
+    return true;
+}
+
+////////////////////////////////////////////////////////////////////////
+// PNG Support
+////////////////////////////////////////////////////////////////////////
 // TODO: Check with valgrind if read/write png leaks.
 bool
 tensor_write_png(tensor *me, char *filename) {
@@ -390,10 +281,146 @@ tensor_read_png(char *filename) {
     return me;
 }
 
+////////////////////////////////////////////////////////////////////////
+// 2D Convolution
+////////////////////////////////////////////////////////////////////////
 void
-tensor_free(tensor *t) {
-    if (t->data) {
-        free(t->data);
+tensor_conv2d(tensor *src, tensor *kernel, tensor *dst,
+              int stride, int padding) {
+
+    int kernel_c_out = kernel->dims[0];
+    int kernel_c_in = kernel->dims[1];
+    int kernel_h = kernel->dims[2];
+    int kernel_w = kernel->dims[3];
+
+    int src_h = src->dims[1];
+    int src_w = src->dims[2];
+
+    int h_start = -padding;
+    int h_end = src_h + padding - kernel_h + 1;
+    int w_start = -padding;
+    int w_end = src_w + padding - kernel_w + 1;
+
+    int dst_h, dst_w;
+    compute_2d_dims(src, kernel_h, kernel_w, stride, padding,
+                    &dst_h, &dst_w);
+
+    /* int dst_h = (src_h + 2 * padding - kernel_h) / stride + 1; */
+    /* int dst_w = (src_w + 2 * padding - kernel_w) / stride + 1; */
+    int dst_size = dst_h * dst_w;
+
+    assert(dst->n_dims == 3);
+    assert(src->n_dims == 3);
+    assert(dst->dims[0] == kernel_c_out);
+    assert(dst->dims[1] == dst_h);
+    assert(dst->dims[2] == dst_w);
+    assert(kernel->n_dims == 4);
+    assert(src->dims[0] == kernel_c_in);
+
+    int src_size = src_h * src_w;
+    int kernel_size = kernel_w * kernel_h;
+    for (int c_out = 0; c_out < kernel_c_out; c_out++) {
+        float *kernel_ptr = &kernel->data[c_out * kernel_c_in * kernel_size];
+        for (int c_in = 0; c_in < kernel_c_in; c_in++) {
+            float *dst_ptr = &dst->data[c_out * dst_size];
+            float *src_ptr = &src->data[c_in * src_size];
+            for (int h = h_start; h < h_end; h += stride) {
+                for (int w = w_start; w < w_end; w += stride) {
+                    float acc = 0;
+                    if (c_in > 0) {
+                        acc = *dst_ptr;
+                    }
+                    float *kernel_ptr2 = &kernel_ptr[c_in * kernel_size];
+                    for  (int i3 = 0; i3 < kernel_h; i3++) {
+                        for (int i4 = 0; i4 < kernel_w; i4++)  {
+                            int at1 = h + i3;
+                            int at2 = w + i4;
+
+                            float s = 0;
+                            if (at1 >= 0 && at1 < src_h &&
+                                at2 >= 0 && at2 < src_w) {
+                                s = src_ptr[at1 * src_w + at2];
+                            }
+                            float weight = *kernel_ptr2;
+                            acc += s * weight;
+                            kernel_ptr2++;
+                        }
+                    }
+                    *dst_ptr = acc;
+                    dst_ptr++;
+                }
+            }
+        }
     }
-    free(t);
+}
+
+////////////////////////////////////////////////////////////////////////
+// 2D Max Pooling
+////////////////////////////////////////////////////////////////////////
+tensor *
+tensor_max_pool2d_new(tensor *src,
+                      int kernel_h, int kernel_w,
+                      int stride, int padding) {
+    int height, width;
+    compute_2d_dims(src, kernel_h, kernel_w, stride, padding,
+                    &height, &width);
+    tensor *dst = tensor_init(3, src->dims[0], height, width);
+    tensor_max_pool2d(src, kernel_h, kernel_w, dst, stride, padding);
+    return dst;
+}
+
+
+void
+tensor_max_pool2d(tensor  *src,
+                  int kernel_h, int kernel_w,
+                  tensor *dst,
+                  int stride, int padding)  {
+
+    int src_h = src->dims[1];
+    int src_w = src->dims[2];
+    int src_n_channels = src->dims[0];
+    int src_size = src_h * src_w;
+
+    int dst_h, dst_w;
+    compute_2d_dims(src, kernel_h, kernel_w, stride, padding,
+                    &dst_h, &dst_w);
+
+    assert(src->n_dims == 3);
+    assert(dst->n_dims == 3);
+    assert(dst->dims[0] == src_n_channels);
+    assert(dst->dims[1] == dst_h);
+    assert(dst->dims[2] == dst_w);
+
+    // Iteration boundaries
+    int start_y = -padding;
+    int end_y = src_h + padding - kernel_h + 1;
+    int start_x = -padding;
+    int end_x = src_w + padding - kernel_w + 1;
+
+    // Write address
+    float *dst_ptr = dst->data;
+
+    for (int c = 0; c < src_n_channels; c++) {
+        float *src_ptr = &src->data[c * src_size];
+        for (int y = start_y; y < end_y; y += stride) {
+            for (int x = start_x; x < end_x; x += stride) {
+                float max = -FLT_MAX;
+                for (int ky = 0; ky < kernel_h; ky++) {
+                    for (int kx = 0; kx < kernel_w; kx++) {
+                        int at_y = y + ky;
+                        int at_x = x + kx;
+                        if (at_y >= 0 && at_y < src_h &&
+                            at_x >= 0 && at_x < src_w) {
+                            float s = src_ptr[at_y * src_w + at_x];
+                            if (s > max) {
+                                max = s;
+                            }
+                        }
+                    }
+                }
+                *dst_ptr = max;
+                dst_ptr++;
+            }
+        }
+    }
 }

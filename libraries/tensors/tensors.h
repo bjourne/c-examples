@@ -25,11 +25,15 @@ typedef struct {
 tensor *tensor_init(int n_dims, ...);
 tensor *tensor_init_from_data(float *data, int n_dims, ...);
 void tensor_free(tensor *t);
-void tensor_fill(tensor *t, float v);
+
 
 int tensor_n_elements(tensor *me);
+
+// Conv2d
 void tensor_conv2d(tensor *src, tensor *kernel, tensor *dst,
                    int stride, int padding);
+
+// MaxPool2d
 void tensor_max_pool2d(tensor  *src,
                        int kernel_height, int kernel_width,
                        tensor *dst,
@@ -38,8 +42,9 @@ tensor *tensor_max_pool2d_new(tensor *src,
                               int kernel_height, int kernel_width,
                               int stride, int padding);
 
-
-
+// Scalar ops
+void tensor_relu(tensor *src);
+void tensor_fill(tensor *t, float v);
 bool tensor_check_equal(tensor *t1, tensor *t2);
 
 // Png support
