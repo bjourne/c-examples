@@ -21,11 +21,14 @@ typedef struct {
     tensor_err_t error_code;
 } tensor;
 
-tensor *tensor_read_png(char *filename);
+tensor *tensor_allocate(int n_dims, ...);
+void tensor_free(tensor *t);
+void tensor_fill(tensor *t, float v);
 
+// Png support
+tensor *tensor_read_png(char *filename);
 bool tensor_write_png(tensor *me, char *filename);
 
-void tensor_free(tensor *t);
 
 
 

@@ -1,9 +1,41 @@
 // Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <png.h>
 #include "tensors.h"
+
+static int
+count_elements(tensor *me) {
+    int tot = me->dims[0];
+    for (int i = 1; i < me->n_dims; i++) {
+        tot *= me->dims[i];
+    }
+    return tot;
+}
+
+tensor *
+tensor_allocate(int n_dims, ...) {
+    va_list ap;
+    va_start(ap, n_dims);
+
+    tensor *me = (tensor *)malloc(sizeof(tensor));
+    me->n_dims = n_dims;
+    for (int i = 0; i < n_dims; i++) {
+        me->dims[i] = va_arg(ap, int);
+    }
+    me->data = (float *)malloc(sizeof(float) * count_elements(me));
+    va_end(ap);
+    return me;
+}
+
+void
+tensor_fill(tensor *me, float v) {
+    for (int i = 0; i < count_elements(me); i++) {
+        me->data[i] = v;
+    }
+}
 
 // May be a small leak in this.
 bool
@@ -80,8 +112,9 @@ tensor_write_png(tensor *me, char *filename) {
 
     png_destroy_write_struct(&png, &info);
     fclose(f);
-
+    me->error_code = TENSOR_ERR_NONE;
     return true;
+
  error:
     if (f)
         fclose(f);
