@@ -1,4 +1,5 @@
 // Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
+#include <assert.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -6,14 +7,79 @@
 #include <png.h>
 #include "tensors.h"
 
-static int
-count_elements(tensor *me) {
+int
+tensor_n_elements(tensor *me) {
     int tot = me->dims[0];
     for (int i = 1; i < me->n_dims; i++) {
         tot *= me->dims[i];
     }
     return tot;
 }
+
+void
+tensor_conv2d(tensor *src, tensor *kernel, tensor *dst,
+              int stride, int padding) {
+
+    int kernel_c_out = kernel->dims[0];
+    int kernel_c_in = kernel->dims[1];
+    int kernel_h = kernel->dims[2];
+    int kernel_w = kernel->dims[3];
+
+    int src_h = src->dims[1];
+    int src_w = src->dims[2];
+
+    assert(kernel->n_dims == 4);
+    assert(src->dims[0] == kernel_c_in);
+
+    int h_start = -padding;
+    int h_end = src_h + padding - kernel_h + 1;
+    int w_start = -padding;
+    int w_end = src_w + padding - kernel_w + 1;
+
+    int dst_h = (src_h + 2 * padding - kernel_h) / stride + 1;
+    int dst_w = (src_w + 2 * padding - kernel_w) / stride + 1;
+    int dst_size = dst_h * dst_w;
+
+    assert(dst->dims[1] == dst_h);
+    assert(dst->dims[2] == dst_w);
+
+    int src_size = src_h * src_w;
+    int kernel_size = kernel_w * kernel_h;
+    for (int c_out = 0; c_out < kernel_c_out; c_out++) {
+        float *kernel_ptr = &kernel->data[c_out * kernel_c_in * kernel_size];
+        for (int c_in = 0; c_in < kernel_c_in; c_in++) {
+            float *dst_ptr = &dst->data[c_out * dst_size];
+            float *src_ptr = &src->data[c_in * src_size];
+            for (int h = h_start; h < h_end; h += stride) {
+                for (int w = w_start; w < w_end; w += stride) {
+                    float acc = 0;
+                    if (c_in > 0) {
+                        acc = *dst_ptr;
+                    }
+                    float *kernel_ptr2 = &kernel_ptr[c_in * kernel_size];
+                    for  (int i3 = 0; i3 < kernel_h; i3++) {
+                        for (int i4 = 0; i4 < kernel_w; i4++)  {
+                            int at1 = h + i3;
+                            int at2 = w + i4;
+
+                            float s = 0;
+                            if (at1 >= 0 && at1 < src_h &&
+                                at2 >= 0 && at2 < src_w) {
+                                s = src_ptr[at1 * src_w + at2];
+                            }
+                            float weight = *kernel_ptr2;
+                            acc += s * weight;
+                            kernel_ptr2++;
+                        }
+                    }
+                    *dst_ptr = acc;
+                    dst_ptr++;
+                }
+            }
+        }
+    }
+}
+
 
 tensor *
 tensor_allocate(int n_dims, ...) {
@@ -25,14 +91,14 @@ tensor_allocate(int n_dims, ...) {
     for (int i = 0; i < n_dims; i++) {
         me->dims[i] = va_arg(ap, int);
     }
-    me->data = (float *)malloc(sizeof(float) * count_elements(me));
+    me->data = (float *)malloc(sizeof(float) * tensor_n_elements(me));
     va_end(ap);
     return me;
 }
 
 void
 tensor_fill(tensor *me, float v) {
-    for (int i = 0; i < count_elements(me); i++) {
+    for (int i = 0; i < tensor_n_elements(me); i++) {
         me->data[i] = v;
     }
 }
@@ -165,7 +231,8 @@ tensor_read_png(char *filename) {
 
     png_byte color_type = png_get_color_type(png, info);
     if  (color_type != PNG_COLOR_TYPE_RGB) {
-        me->error_code = TENSOR_ERR_PNG_ERROR;
+        printf("not rgb %d\n", color_type);
+        me->error_code = TENSOR_ERR_UNSUPPORTED_PNG_TYPE;
         return me;
     }
 

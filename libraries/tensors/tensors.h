@@ -10,6 +10,7 @@ typedef enum {
     TENSOR_ERR_NONE = 0,
     TENSOR_ERR_FILE_NOT_FOUND,
     TENSOR_ERR_NOT_A_PNG_FILE,
+    TENSOR_ERR_UNSUPPORTED_PNG_TYPE,
     TENSOR_ERR_PNG_ERROR,
     TENSOR_ERR_WRONG_DIMENSIONALITY
 } tensor_err_t;
@@ -24,6 +25,10 @@ typedef struct {
 tensor *tensor_allocate(int n_dims, ...);
 void tensor_free(tensor *t);
 void tensor_fill(tensor *t, float v);
+
+int tensor_n_elements(tensor *me);
+void tensor_conv2d(tensor *src, tensor *kernel, tensor *dst,
+                   int stride, int padding);
 
 // Png support
 tensor *tensor_read_png(char *filename);
