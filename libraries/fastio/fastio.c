@@ -16,8 +16,8 @@ fast_io_init() {
 #endif
     struct stat sb;
     (void)fstat(STDIN_FILENO, &sb);
-    FAST_IO_STDIN = (char*)mmap(0, sb.st_size,
-                                PROT_READ, flags, STDIN_FILENO, 0);
+    FAST_IO_STDIN = (char *)mmap(0, sb.st_size,
+                                 PROT_READ, flags, STDIN_FILENO, 0);
 #endif
 }
 
