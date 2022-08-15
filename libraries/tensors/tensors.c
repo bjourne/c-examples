@@ -1,5 +1,6 @@
 // Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
+#include <float.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -112,8 +113,89 @@ tensor_conv2d(tensor *src, tensor *kernel, tensor *dst,
     }
 }
 
+static void
+compute_max_pool2d_dims(tensor *src,
+                        int kernel_h, int kernel_w,
+                        int stride, int padding,
+                        int *n_channels, int *height, int *width) {
+    *n_channels = src->dims[0];
+    *height = (src->dims[1] + 2 * padding - kernel_h) / stride + 1;
+    *width = (src->dims[2] + 2 * padding - kernel_w) / stride + 1;
+}
+
+tensor *
+tensor_max_pool2d_new(tensor *src,
+                      int kernel_h, int kernel_w,
+                      int stride, int padding) {
+    int n_channels, height, width;
+    compute_max_pool2d_dims(src, kernel_h, kernel_w, stride, padding,
+                            &n_channels, &height, &width);
+    tensor *dst = tensor_init(3, n_channels, height, width);
+    tensor_max_pool2d(src, kernel_h, kernel_w, dst, stride, padding);
+    return dst;
+}
+
+
+void
+tensor_max_pool2d(tensor  *src,
+                  int kernel_h, int kernel_w,
+                  tensor *dst,
+                  int stride, int padding)  {
+
+    int src_h = src->dims[1];
+    int src_w = src->dims[2];
+    int src_n_channels = src->dims[0];
+    int src_size = src_h * src_w;
+
+
+    int dst_h = (src_h + 2 * padding - kernel_h) / stride + 1;
+    int dst_w = (src_w + 2 * padding - kernel_w) / stride + 1;
+    //int dst_size = dst_h * dst_w;
+
+    assert(src->n_dims == 3);
+    assert(dst->n_dims == 3);
+    assert(dst->dims[0] == src_n_channels);
+    assert(dst->dims[1] == dst_h);
+    assert(dst->dims[2] == dst_w);
+
+    // Iteration boundaries
+    int start_y = -padding;
+    int end_y = src_h + padding - kernel_h + 1;
+    int start_x = -padding;
+    int end_x = src_w + padding - kernel_w + 1;
+
+    // Write address
+    float *dst_ptr = dst->data;
+
+    for (int c = 0; c < src_n_channels; c++) {
+        float *src_ptr = &src->data[c * src_size];
+        for (int y = start_y; y < end_y; y += stride) {
+            for (int x = start_x; x < end_x; x += stride) {
+                //printf("-- %d %d %d\n", c, y, x);
+                float max = -FLT_MAX;
+                for (int ky = 0; ky < kernel_h; ky++) {
+                    for (int kx = 0; kx < kernel_w; kx++) {
+                        int at_y = y + ky;
+                        int at_x = x + kx;
+                        if (at_y >= 0 && at_y < src_h &&
+                            at_x >= 0 && at_x < src_w) {
+                            float s = src_ptr[at_y * src_w + at_x];
+                            //printf("got %.2f\n", s);
+                            if (s > max) {
+                                max = s;
+                            }
+                        }
+                    }
+                }
+                *dst_ptr = max;
+                dst_ptr++;
+            }
+        }
+    }
+}
+
 static tensor *
-allocate_from_va_list(int n_dims, va_list ap) {
+init_from_va_list(int n_dims, va_list ap) {
 
     tensor *me = (tensor *)malloc(sizeof(tensor));
     me->n_dims = n_dims;
@@ -125,22 +207,20 @@ allocate_from_va_list(int n_dims, va_list ap) {
 }
 
 tensor *
-tensor_allocate(int n_dims, ...) {
+tensor_init(int n_dims, ...) {
     va_list ap;
     va_start(ap, n_dims);
-
-    tensor *me = allocate_from_va_list(n_dims, ap);
-
+    tensor *me = init_from_va_list(n_dims, ap);
     va_end(ap);
     return me;
 }
 
 tensor *
-tensor_allocate_from_data(float *data, int n_dims, ...)  {
+tensor_init_from_data(float *data, int n_dims, ...)  {
     va_list ap;
     va_start(ap, n_dims);
 
-    tensor *me = allocate_from_va_list(n_dims, ap);
+    tensor *me = init_from_va_list(n_dims, ap);
     memcpy(me->data, data, tensor_n_elements(me) *  sizeof(float));
 
     va_end(ap);

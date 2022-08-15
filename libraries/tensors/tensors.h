@@ -22,14 +22,24 @@ typedef struct {
     tensor_err_t error_code;
 } tensor;
 
-tensor *tensor_allocate(int n_dims, ...);
-tensor *tensor_allocate_from_data(float *data, int n_dims, ...);
+tensor *tensor_init(int n_dims, ...);
+tensor *tensor_init_from_data(float *data, int n_dims, ...);
 void tensor_free(tensor *t);
 void tensor_fill(tensor *t, float v);
 
 int tensor_n_elements(tensor *me);
 void tensor_conv2d(tensor *src, tensor *kernel, tensor *dst,
                    int stride, int padding);
+void tensor_max_pool2d(tensor  *src,
+                       int kernel_height, int kernel_width,
+                       tensor *dst,
+                       int stride, int padding);
+tensor *tensor_max_pool2d_new(tensor *src,
+                              int kernel_height, int kernel_width,
+                              int stride, int padding);
+
+
+
 bool tensor_check_equal(tensor *t1, tensor *t2);
 
 // Png support
