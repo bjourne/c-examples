@@ -649,10 +649,10 @@ test_max_pool_1() {
     tensor *dst1 = tensor_init(3, 2, 4, 4);
     tensor *dst2 = tensor_init(3, 2, 1, 5);
 
-    tensor_max_pool2d(src, 2, 2, dst1, 1, 0);
+    tensor_max_pool2d(2, 2, 1, 0, src, dst1);
     tensor_check_equal(expected1, dst1);
 
-    tensor_max_pool2d(src, 5, 1, dst2, 1, 0);
+    tensor_max_pool2d(5, 1, 1, 0, src, dst2);
     tensor_check_equal(expected2, dst2);
 
     tensor_free(src);
@@ -695,7 +695,7 @@ test_max_pool_strided() {
 
     tensor *expected = tensor_init_from_data((float *)expected_data,
                                              3, 2, 2, 2);
-    tensor *dst = tensor_max_pool2d_new(src, 2, 2, 2, 0);
+    tensor *dst = tensor_max_pool2d_new(2, 2, 2, 0, src);
     tensor_check_equal(expected, dst);
     tensor_free(src);
     tensor_free(expected);
@@ -707,7 +707,7 @@ test_max_pool_image() {
     assert(src);
     assert(src->error_code == TENSOR_ERR_NONE);
     for (int s = 1; s < 5; s++) {
-        tensor *dst = tensor_max_pool2d_new(src, s, s, 1, 0);
+        tensor *dst = tensor_max_pool2d_new(s, s, 1, 0, src);
 
         char fname_fmt[128];
         sprintf(fname_fmt, "out-max_pool-%02d.png", s - 1);
@@ -836,7 +836,7 @@ test_cifar10() {
     assert(x1->dims[1] == 28);
     assert(x1->dims[2] == 28);
 
-    tensor *x2 = tensor_max_pool2d_new(x1, 2, 2, 2, 0);
+    tensor *x2 = tensor_max_pool2d_new(2, 2, 2, 0, x1);
 
     assert(x2->dims[0] == 6);
     assert(x2->dims[1] == 14);
@@ -848,7 +848,7 @@ test_cifar10() {
     assert(x3->dims[1] == 10);
     assert(x3->dims[2] == 10);
 
-    tensor *x4 = tensor_max_pool2d_new(x3, 2, 2, 2, 0);
+    tensor *x4 = tensor_max_pool2d_new(2, 2, 2, 0, x3);
     assert(x4->dims[0] == 16);
     assert(x4->dims[1] == 5);
     assert(x4->dims[2] == 5);
@@ -900,18 +900,60 @@ test_lenet_layers() {
     tensor_layer *conv1 = tensor_layer_init_conv2d(3, 6, 5, 1, 0);
     tensor_layer *conv2 = tensor_layer_init_conv2d(6, 16, 5, 1, 0);
 
-    tensor_layer *max_pool_2d = tensor_layer_init_max_pool_2d(2, 2);
+    tensor_layer *max_pool2d = tensor_layer_init_max_pool2d(2, 2, 2, 0);
     tensor_layer *relu = tensor_layer_init_relu();
     tensor_layer *flatten = tensor_layer_init_flatten(0);
+
+
+    // Run input through layers
+    tensor *x0 = tensor_init(3, 3, 32, 32);
+
+    tensor *x1 = tensor_layer_apply_new(conv1, x0);
+    tensor_check_dims(x1, 3, (float[]){6, 28, 28});
+
+    tensor *x2 = tensor_layer_apply_new(relu, x1);
+    tensor_check_dims(x2, 3, (float[]){6, 28, 28});
+
+    tensor *x3 = tensor_layer_apply_new(max_pool2d, x2);
+    tensor_check_dims(x3, 3, (float[]){6, 14, 14});
+
+    tensor *x4 = tensor_layer_apply_new(conv2, x3);
+    tensor_check_dims(x4, 3, (float[]){16, 10, 10});
+
+    tensor *x5 = tensor_layer_apply_new(max_pool2d, x4);
+    tensor_check_dims(x5, 3, (float[]){16, 5, 5});
+
+    tensor *x6 = tensor_layer_apply_new(flatten, x5);
+    tensor_check_dims(x6, 1, (float[]){400});
+
+    tensor *x7 = tensor_layer_apply_new(fc1, x6);
+    tensor_check_dims(x7, 1, (float[]){120});
+
+    tensor *x8 = tensor_layer_apply_new(fc2, x7);
+    tensor_check_dims(x8, 1, (float[]){84});
+
+    tensor *x9 = tensor_layer_apply_new(fc3, x8);
+    tensor_check_dims(x9, 1, (float[]){10});
 
     tensor_layer_free(fc1);
     tensor_layer_free(fc2);
     tensor_layer_free(fc3);
     tensor_layer_free(conv1);
     tensor_layer_free(conv2);
-    tensor_layer_free(max_pool_2d);
+    tensor_layer_free(max_pool2d);
     tensor_layer_free(relu);
     tensor_layer_free(flatten);
+
+    tensor_free(x0);
+    tensor_free(x1);
+    tensor_free(x2);
+    tensor_free(x3);
+    tensor_free(x4);
+    tensor_free(x5);
+    tensor_free(x6);
+    tensor_free(x7);
+    tensor_free(x8);
+    tensor_free(x9);
 }
 
 int

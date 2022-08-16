@@ -42,6 +42,8 @@ typedef struct {
 typedef struct {
     int kernel_width;
     int kernel_height;
+    int stride;
+    int padding;
 } tensor_layer_max_pool2d;
 
 typedef struct {
@@ -62,9 +64,14 @@ typedef struct {
 } tensor_layer;
 
 tensor *tensor_init(int n_dims, ...);
+tensor *tensor_init_copy(tensor *orig);
 tensor *tensor_init_from_data(float *data, int n_dims, ...);
 tensor *tensor_init_filled(float v, int n_dims, ...);
 void tensor_free(tensor *t);
+
+// Checking
+bool tensor_check_equal(tensor *t1, tensor *t2);
+bool tensor_check_dims(tensor *me, int n_dims, float dims[]);
 
 // Utility
 int tensor_n_elements(tensor *me);
@@ -80,13 +87,12 @@ tensor *tensor_conv2d_new(tensor *weight, tensor *bias,
                           tensor *src);
 
 // MaxPool2d
-void tensor_max_pool2d(tensor *src,
-                       int kernel_height, int kernel_width,
-                       tensor *dst,
-                       int stride, int padding);
-tensor *tensor_max_pool2d_new(tensor *src,
-                              int kernel_height, int kernel_width,
-                              int stride, int padding);
+void tensor_max_pool2d(int kernel_height, int kernel_width,
+                       int stride, int padding,
+                       tensor *src, tensor *dst);
+tensor *tensor_max_pool2d_new(int kernel_height, int kernel_width,
+                              int stride, int padding,
+                              tensor *src);
 
 // Linear
 void tensor_linear(tensor *weights, tensor *bias,
@@ -96,7 +102,6 @@ tensor *tensor_linear_new(tensor *weights, tensor *bias, tensor *src);
 // Scalar ops
 void tensor_relu(tensor *src);
 void tensor_fill(tensor *t, float v);
-bool tensor_check_equal(tensor *t1, tensor *t2);
 void tensor_randrange(tensor *t1, int high);
 
 // Png support
@@ -107,15 +112,15 @@ bool tensor_write_png(tensor *me, char *filename);
 tensor_layer *tensor_layer_init_linear(int in, int out);
 tensor_layer *tensor_layer_init_relu();
 tensor_layer *tensor_layer_init_flatten(int from);
-tensor_layer *tensor_layer_init_max_pool_2d(int kernel_height,
-                                            int kernel_width);
+tensor_layer *tensor_layer_init_max_pool2d(int kernel_height, int kernel_width,
+                                           int stride, int padding);
 tensor_layer *tensor_layer_init_conv2d(int in_chans, int out_chans,
                                        int kernel_size,
                                        int stride,
                                        int padding);
 void tensor_layer_free(tensor_layer *me);
 
-
+tensor *tensor_layer_apply_new(tensor_layer *me, tensor *input);
 
 
 #endif

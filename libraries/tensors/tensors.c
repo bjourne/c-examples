@@ -11,6 +11,50 @@
 #include "tensors.h"
 
 ////////////////////////////////////////////////////////////////////////
+// Checking
+////////////////////////////////////////////////////////////////////////
+
+bool
+tensor_check_dims(tensor *me, int n_dims, float dims[]) {
+    assert(me->n_dims == n_dims);
+    for (int i = 0; i < n_dims; i++) {
+        assert(me->dims[i] == dims[i]);
+    }
+    return true;
+}
+
+bool
+tensor_check_equal(tensor *t1, tensor *t2) {
+    assert(t1->n_dims == t2->n_dims);
+    int n = t1->n_dims;
+    int dim_counts[TENSOR_MAX_N_DIMS] = {0};
+    int *dims = t1->dims;
+    for (int i = 0; i < tensor_n_elements(t1); i++) {
+        float v1 = t1->data[i];
+        float v2 = t2->data[i];
+        if (v1 != v2) {
+            printf("Mismatch at [");
+            for (int j = 0; j < n - 1; j++) {
+                printf("%d, ", dim_counts[j]);
+            }
+            printf("%d], %.2f != %.2f\n",
+                   dim_counts[n - 1], v1,  v2);
+        }
+        for (int j = n - 1; j >= 0; j--) {
+            dim_counts[j]++;
+            if (dim_counts[j] == dims[j]) {
+                dim_counts[j] = 0;
+            } else {
+                break;
+            }
+        }
+    }
+    return true;
+}
+
+
+
+////////////////////////////////////////////////////////////////////////
 // Utility
 ////////////////////////////////////////////////////////////////////////
 static void
@@ -72,6 +116,17 @@ tensor_init(int n_dims, ...) {
 }
 
 tensor *
+tensor_init_copy(tensor *orig) {
+    tensor *me = (tensor *)malloc(sizeof(tensor));
+    me->n_dims = orig->n_dims;
+    memcpy(me->dims, orig->dims, sizeof(int) * TENSOR_MAX_N_DIMS);
+    int n_bytes = sizeof(float) * tensor_n_elements(me);
+    me->data = (float *)malloc(n_bytes);
+    memcpy(me->data, orig->data, n_bytes);
+    return me;
+}
+
+tensor *
 tensor_init_from_data(float *data, int n_dims, ...)  {
     va_list ap;
     va_start(ap, n_dims);
@@ -121,36 +176,6 @@ tensor_randrange(tensor *me, int high) {
     for (int i = 0; i < tensor_n_elements(me); i++) {
         me->data[i] = rand_n(high);
     }
-}
-
-// Should check dimensions too, but whatever.
-bool
-tensor_check_equal(tensor *t1, tensor *t2) {
-    assert(t1->n_dims == t2->n_dims);
-    int n = t1->n_dims;
-    int dim_counts[TENSOR_MAX_N_DIMS] = {0};
-    int *dims = t1->dims;
-    for (int i = 0; i < tensor_n_elements(t1); i++) {
-        float v1 = t1->data[i];
-        float v2 = t2->data[i];
-        if (v1 != v2) {
-            printf("Mismatch at [");
-            for (int j = 0; j < n - 1; j++) {
-                printf("%d, ", dim_counts[j]);
-            }
-            printf("%d], %.2f != %.2f\n",
-                   dim_counts[n - 1], v1,  v2);
-        }
-        for (int j = n - 1; j >= 0; j--) {
-            dim_counts[j]++;
-            if (dim_counts[j] == dims[j]) {
-                dim_counts[j] = 0;
-            } else {
-                break;
-            }
-        }
-    }
-    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -404,23 +429,22 @@ tensor_conv2d(tensor *weight, tensor *bias,
 // 2D Max Pooling
 ////////////////////////////////////////////////////////////////////////
 tensor *
-tensor_max_pool2d_new(tensor *src,
-                      int kernel_h, int kernel_w,
-                      int stride, int padding) {
+tensor_max_pool2d_new(int kernel_h, int kernel_w,
+                      int stride, int padding,
+                      tensor *src) {
     int height, width;
     compute_2d_dims(src, kernel_h, kernel_w, stride, padding,
                     &height, &width);
     tensor *dst = tensor_init(3, src->dims[0], height, width);
-    tensor_max_pool2d(src, kernel_h, kernel_w, dst, stride, padding);
+    tensor_max_pool2d(kernel_h, kernel_w, stride, padding, src, dst);
     return dst;
 }
 
 
 void
-tensor_max_pool2d(tensor  *src,
-                  int kernel_h, int kernel_w,
-                  tensor *dst,
-                  int stride, int padding)  {
+tensor_max_pool2d(int kernel_h, int kernel_w,
+                  int stride, int padding,
+                  tensor *src, tensor *dst)  {
 
     int src_h = src->dims[1];
     int src_w = src->dims[2];
@@ -501,12 +525,14 @@ tensor_linear_new(tensor *weights, tensor *bias, tensor *src) {
 tensor_layer *
 tensor_layer_init_relu() {
     tensor_layer *me = (tensor_layer *)malloc(sizeof(tensor_layer));
+    me->type = TENSOR_LAYER_RELU;
     return me;
 }
 
 tensor_layer *
 tensor_layer_init_flatten(int from) {
     tensor_layer *me = (tensor_layer *)malloc(sizeof(tensor_layer));
+    me->type = TENSOR_LAYER_FLATTEN;
     me->flatten.from = from;
     return me;
 }
@@ -526,13 +552,14 @@ tensor_layer_init_linear(int in, int out) {
 }
 
 tensor_layer *
-tensor_layer_init_max_pool_2d(int kernel_height, int kernel_width) {
+tensor_layer_init_max_pool2d(int kernel_height, int kernel_width,
+                             int stride, int padding) {
     tensor_layer *me = (tensor_layer *)malloc(sizeof(tensor_layer));
     me->type = TENSOR_LAYER_MAX_POOL2D;
-
     me->max_pool2d.kernel_width = kernel_width;
     me->max_pool2d.kernel_height = kernel_height;
-
+    me->max_pool2d.stride = stride;
+    me->max_pool2d.padding = padding;
     return me;
 }
 
@@ -550,7 +577,6 @@ tensor_layer_init_conv2d(int in_chans, int out_chans,
     me->conv2d.bias = bias;
     me->conv2d.stride = stride;
     me->conv2d.padding = padding;
-
     return me;
 }
 
@@ -564,4 +590,31 @@ tensor_layer_free(tensor_layer *me) {
         tensor_free(me->conv2d.bias);
     }
     free(me);
+}
+
+tensor *
+tensor_layer_apply_new(tensor_layer *me, tensor *input) {
+    tensor_layer_type t = me->type;
+    if (t == TENSOR_LAYER_LINEAR) {
+        return tensor_linear_new(me->linear.weight, me->linear.bias, input);
+    } else if (t == TENSOR_LAYER_CONV2D) {
+        return tensor_conv2d_new(me->conv2d.weight, me->conv2d.bias,
+                                 me->conv2d.stride, me->conv2d.padding,
+                                 input);
+    } else if (t == TENSOR_LAYER_RELU) {
+        tensor *output = tensor_init_copy(input);
+        tensor_relu(output);
+        return output;
+    } else if (t == TENSOR_LAYER_MAX_POOL2D) {
+        return tensor_max_pool2d_new(me->max_pool2d.kernel_width,
+                                     me->max_pool2d.kernel_height,
+                                     me->max_pool2d.stride,
+                                     me->max_pool2d.padding, input);
+    } else if (t == TENSOR_LAYER_FLATTEN) {
+        tensor *output = tensor_init_copy(input);
+        tensor_flatten(output, me->flatten.from);
+        return output;
+    } else {
+        assert(false);
+    }
 }
