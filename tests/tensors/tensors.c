@@ -738,24 +738,67 @@ test_linear() {
         (float *)(float[]){
             0, 2, 4, 5, 0, 1, 4, 4
         }, 1, 8);
-    tensor *weights = tensor_init_from_data(
+    tensor *weight = tensor_init_from_data(
         (float *)(float[4][8]){
             {5, 6, 7, 6, 9, 3, 1, 9},
             {4, 9, 5, 0, 9, 9, 8, 7},
             {6, 8, 7, 4, 1, 9, 3, 1},
             {4, 1, 4, 8, 2, 0, 1, 1}
         }, 2, 4, 8);
+    tensor *bias = tensor_init_from_data(
+        (float *)(float[]){0, 0, 0, 0},
+        1,  4);
 
     tensor *dst = tensor_init(1, 4);
     tensor *expected = tensor_init_from_data(
         (float *)(float[]){113, 107, 89, 66}, 1, 4);
 
-    tensor_linear(src, weights, NULL, dst);
+    tensor_linear(src, weight, bias, dst);
     tensor_check_equal(dst, expected);
 
     tensor_free(src);
     tensor_free(dst);
-    tensor_free(weights);
+    tensor_free(weight);
+    tensor_free(bias);
+    tensor_free(expected);
+}
+
+void
+test_linear_with_bias() {
+    tensor *src = tensor_init_from_data(
+        (float *)(float[]){
+            0., 7., 6., 9., 6., 5., 0., 2., 7., 4.,
+            2., 0., 3., 9., 7., 1., 4., 1., 0., 9.,
+            0, 2, 4, 5, 0, 1, 4, 4
+        }, 1, 20);
+    tensor *weight = tensor_init_from_data(
+        (float *)(float[10][20]){
+            {8., 6., 6., 1., 4., 2., 7., 6., 5., 1., 8., 8., 2., 7., 7., 6., 8., 6., 5., 1.},
+            {1., 7., 9., 1., 0., 9., 7., 4., 0., 0., 2., 9., 3., 9., 9., 1., 1., 5., 1., 3.},
+            {6., 2., 7., 8., 8., 9., 7., 1., 1., 3., 1., 0., 5., 7., 4., 8., 4., 5., 4., 6.},
+            {3., 9., 3., 9., 0., 2., 0., 4., 0., 5., 5., 8., 1., 7., 7., 7., 7., 5., 8., 1.},
+            {4., 2., 1., 9., 6., 8., 9., 3., 9., 1., 2., 2., 0., 5., 3., 2., 1., 9., 6., 3.},
+            {9., 6., 1., 3., 6., 3., 5., 3., 8., 8., 1., 4., 0., 7., 6., 4., 4., 9., 0., 2.},
+            {5., 2., 4., 1., 5., 5., 3., 4., 7., 0., 4., 2., 4., 0., 1., 6., 9., 8., 4., 1.},
+            {3., 5., 7., 9., 2., 8., 7., 0., 1., 2., 5., 6., 6., 6., 2., 4., 6., 0., 3., 2.},
+            {5., 4., 4., 7., 3., 6., 4., 7., 7., 5., 0., 5., 5., 5., 3., 0., 2., 2., 1., 8.},
+            {4., 9., 7., 0., 8., 8., 7., 6., 5., 9., 7., 0., 8., 5., 3., 6., 0., 4., 3., 2.}
+        }, 2, 10, 20);
+    tensor *bias = tensor_init_from_data(
+        (float *)(float[10]){
+            6., 8., 5., 2., 8., 7., 6., 2., 4., 9.
+        }, 1, 10);
+    tensor *expected = tensor_init_from_data(
+        (float *)(float[10]){
+            365., 367., 438., 376., 370., 381., 251., 369., 413., 417.
+        }, 1, 10);
+
+    tensor *dst  = tensor_linear_new(src, weight, bias);
+    tensor_check_equal(dst, expected);
+
+    tensor_free(src);
+    tensor_free(weight);
+    tensor_free(bias);
     tensor_free(expected);
 }
 
@@ -773,12 +816,15 @@ test_cifar10() {
 
     tensor *fc1 = tensor_init(2, 120, 400);
     tensor_randrange(fc1, 10);
+    tensor *fc1_bias = tensor_init(1, 120);
 
     tensor *fc2 = tensor_init(2, 84, 120);
     tensor_randrange(fc2, 10);
+    tensor *fc2_bias = tensor_init(1, 84);
 
     tensor *fc3 = tensor_init(2, 10, 84);
     tensor_randrange(fc3, 10);
+    tensor *fc3_bias = tensor_init(1, 10);
 
     tensor *x0 = tensor_init(3, 3, 32, 32);
     tensor_randrange(x0, 10);
@@ -811,17 +857,17 @@ test_cifar10() {
     assert(x4->n_dims == 1);
     assert(x4->dims[0] == 400);
 
-    tensor *x5 = tensor_linear_new(x4, fc1, NULL);
+    tensor *x5 = tensor_linear_new(x4, fc1, fc1_bias);
     tensor_relu(x5);
     assert(x5->n_dims == 1);
     assert(x5->dims[0] == 120);
 
-    tensor *x6 = tensor_linear_new(x5, fc2, NULL);
+    tensor *x6 = tensor_linear_new(x5, fc2, fc2_bias);
     tensor_relu(x6);
     assert(x6->n_dims == 1);
     assert(x6->dims[0] == 84);
 
-    tensor *x7 = tensor_linear_new(x6, fc3, NULL);
+    tensor *x7 = tensor_linear_new(x6, fc3, fc3_bias);
     assert(x7->n_dims == 1);
     assert(x7->dims[0] == 10);
 
@@ -830,8 +876,11 @@ test_cifar10() {
     tensor_free(conv2);
     tensor_free(conv2_bias);
     tensor_free(fc1);
+    tensor_free(fc1_bias);
     tensor_free(fc2);
+    tensor_free(fc2_bias);
     tensor_free(fc3);
+    tensor_free(fc3_bias);
     tensor_free(x0);
     tensor_free(x1);
     tensor_free(x2);
@@ -867,5 +916,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_max_pool_image);
     PRINT_RUN(test_relu);
     PRINT_RUN(test_linear);
+    PRINT_RUN(test_linear_with_bias);
     PRINT_RUN(test_cifar10);
 }

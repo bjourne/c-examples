@@ -484,7 +484,7 @@ tensor_linear(tensor *src, tensor *weights, tensor *bias, tensor *dst) {
         for (int x = 0; x < width; x++) {
             acc += src->data[x] * weights->data[y * width + x];
         }
-        dst->data[y] = acc;
+        dst->data[y] = acc + bias->data[y];
     }
 }
 
