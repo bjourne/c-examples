@@ -75,11 +75,19 @@ tensor *
 tensor_init_from_data(float *data, int n_dims, ...)  {
     va_list ap;
     va_start(ap, n_dims);
-
     tensor *me = init_from_va_list(n_dims, ap);
-    memcpy(me->data, data, tensor_n_elements(me) *  sizeof(float));
-
     va_end(ap);
+    memcpy(me->data, data, tensor_n_elements(me) *  sizeof(float));
+    return me;
+}
+
+tensor *
+tensor_init_filled(float v, int n_dims, ...)  {
+    va_list ap;
+    va_start(ap, n_dims);
+    tensor *me = init_from_va_list(n_dims, ap);
+    va_end(ap);
+    tensor_fill(me, v);
     return me;
 }
 
@@ -307,65 +315,70 @@ tensor_read_png(char *filename) {
 // 2D Convolution
 ////////////////////////////////////////////////////////////////////////
 tensor *
-tensor_conv2d_new(tensor *src, tensor *kernel,
-                  int stride, int padding) {
+tensor_conv2d_new(tensor *weight, tensor *bias,
+                  int stride, int padding, tensor *src) {
     int height, width;
-    compute_2d_dims(src, kernel->dims[2], kernel->dims[3], stride, padding,
+    compute_2d_dims(src, weight->dims[2], weight->dims[3], stride, padding,
                     &height, &width);
-    tensor *dst = tensor_init(3, kernel->dims[0], height, width);
-    tensor_conv2d(src, kernel, dst, stride, padding);
+    tensor *dst = tensor_init(3, weight->dims[0], height, width);
+    tensor_conv2d(weight, bias, stride, padding, src, dst);
     return dst;
 }
 
 void
-tensor_conv2d(tensor *src, tensor *kernel, tensor *dst,
-              int stride, int padding) {
+tensor_conv2d(tensor *weight, tensor *bias,
+              int stride, int padding,
+              tensor *src, tensor *dst) {
 
-    int kernel_c_out = kernel->dims[0];
-    int kernel_c_in = kernel->dims[1];
-    int kernel_h = kernel->dims[2];
-    int kernel_w = kernel->dims[3];
+    int weight_c_out = weight->dims[0];
+    int weight_c_in = weight->dims[1];
+    int weight_h = weight->dims[2];
+    int weight_w = weight->dims[3];
 
     int src_h = src->dims[1];
     int src_w = src->dims[2];
 
     int h_start = -padding;
-    int h_end = src_h + padding - kernel_h + 1;
+    int h_end = src_h + padding - weight_h + 1;
     int w_start = -padding;
-    int w_end = src_w + padding - kernel_w + 1;
+    int w_end = src_w + padding - weight_w + 1;
 
     int dst_h, dst_w;
-    compute_2d_dims(src, kernel_h, kernel_w, stride, padding,
+    compute_2d_dims(src, weight_h, weight_w, stride, padding,
                     &dst_h, &dst_w);
 
-    /* int dst_h = (src_h + 2 * padding - kernel_h) / stride + 1; */
-    /* int dst_w = (src_w + 2 * padding - kernel_w) / stride + 1; */
     int dst_size = dst_h * dst_w;
 
+    assert(weight->n_dims == 4);
+    assert(bias->n_dims == 1);
+    assert(bias->dims[0] == weight_c_out);
+
     assert(dst->n_dims == 3);
-    assert(src->n_dims == 3);
-    assert(dst->dims[0] == kernel_c_out);
+    assert(dst->dims[0] == weight_c_out);
     assert(dst->dims[1] == dst_h);
     assert(dst->dims[2] == dst_w);
-    assert(kernel->n_dims == 4);
-    assert(src->dims[0] == kernel_c_in);
+
+    assert(src->n_dims == 3);
+    assert(src->dims[0] == weight_c_in);
 
     int src_size = src_h * src_w;
-    int kernel_size = kernel_w * kernel_h;
-    for (int c_out = 0; c_out < kernel_c_out; c_out++) {
-        float *kernel_ptr = &kernel->data[c_out * kernel_c_in * kernel_size];
-        for (int c_in = 0; c_in < kernel_c_in; c_in++) {
+    int weight_size = weight_w * weight_h;
+    for (int c_out = 0; c_out < weight_c_out; c_out++) {
+        float *weight_ptr = &weight->data[c_out * weight_c_in * weight_size];
+        for (int c_in = 0; c_in < weight_c_in; c_in++) {
             float *dst_ptr = &dst->data[c_out * dst_size];
             float *src_ptr = &src->data[c_in * src_size];
             for (int h = h_start; h < h_end; h += stride) {
                 for (int w = w_start; w < w_end; w += stride) {
-                    float acc = 0;
+                    float acc;
                     if (c_in > 0) {
                         acc = *dst_ptr;
+                    } else {
+                        acc = bias->data[c_out];
                     }
-                    float *kernel_ptr2 = &kernel_ptr[c_in * kernel_size];
-                    for  (int i3 = 0; i3 < kernel_h; i3++) {
-                        for (int i4 = 0; i4 < kernel_w; i4++)  {
+                    float *weight_ptr2 = &weight_ptr[c_in * weight_size];
+                    for  (int i3 = 0; i3 < weight_h; i3++) {
+                        for (int i4 = 0; i4 < weight_w; i4++)  {
                             int at1 = h + i3;
                             int at2 = w + i4;
 
@@ -374,9 +387,9 @@ tensor_conv2d(tensor *src, tensor *kernel, tensor *dst,
                                 at2 >= 0 && at2 < src_w) {
                                 s = src_ptr[at1 * src_w + at2];
                             }
-                            float weight = *kernel_ptr2;
+                            float weight = *weight_ptr2;
                             acc += s * weight;
-                            kernel_ptr2++;
+                            weight_ptr2++;
                         }
                     }
                     *dst_ptr = acc;

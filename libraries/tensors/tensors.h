@@ -24,6 +24,7 @@ typedef struct {
 
 tensor *tensor_init(int n_dims, ...);
 tensor *tensor_init_from_data(float *data, int n_dims, ...);
+tensor *tensor_init_filled(float v, int n_dims, ...);
 void tensor_free(tensor *t);
 
 // Utility
@@ -31,10 +32,13 @@ int tensor_n_elements(tensor *me);
 void tensor_flatten(tensor *me, int from);
 
 // Conv2d
-void tensor_conv2d(tensor *src, tensor *kernel, tensor *dst,
-                   int stride, int padding);
-tensor *tensor_conv2d_new(tensor *src, tensor *kernel,
-                          int stride, int padding);
+void tensor_conv2d(tensor *weight, tensor *bias,
+                   int stride, int padding,
+                   tensor *src, tensor *dst);
+
+tensor *tensor_conv2d_new(tensor *weight, tensor *bias,
+                          int stride, int padding,
+                          tensor  *src);
 
 // MaxPool2d
 void tensor_max_pool2d(tensor *src,

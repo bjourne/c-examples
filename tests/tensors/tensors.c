@@ -46,14 +46,10 @@ test_conv2d() {
     assert(t1);
     assert(t1->error_code == TENSOR_ERR_NONE);
 
-    int height = t1->dims[1];
-    int width = t1->dims[2];
-    tensor *t2 = tensor_init(3, 3, height, width);
-
     float w = 1/8.0;
 
     // Blur red and green channels and filter blue channel.
-    float kernel_data[3][3][3][3] = {
+    float weight_data[3][3][3][3] = {
         {
             {
                 {w, w, w},
@@ -106,19 +102,20 @@ test_conv2d() {
             }
         }
     };
-    tensor *kernel = tensor_init_from_data((float *)kernel_data,
-                                               4, 3, 3, 3, 3);
-    tensor_conv2d(t1, kernel, t2, 1, 1);
+    tensor *weight = tensor_init_from_data((float *)weight_data,
+                                           4, 3, 3, 3, 3);
+    tensor *bias = tensor_init_filled(0, 1, 3);
+    tensor *t2 = tensor_conv2d_new(weight, bias, 1, 1, t1);
 
     assert(tensor_write_png(t2, "out_04.png"));
     assert(t2->error_code == TENSOR_ERR_NONE);
     tensor_free(t2);
     tensor_free(t1);
-    tensor_free(kernel);
+    tensor_free(weight);
 }
 
 void
-test_convolve_padded() {
+test_conv2d_padded() {
     float src_data[1][5][5] = {
         {
             {0, 1, 4, 3, 2},
@@ -128,7 +125,7 @@ test_convolve_padded() {
             {0, 0, 3, 1, 0}
         }
     };
-    float kernel_data[1][1][2][2] = {
+    float weight_data[1][1][2][2] = {
         {
             {
                 {4, 0},
@@ -145,25 +142,26 @@ test_convolve_padded() {
         }
     };
     tensor *src = tensor_init_from_data((float *)src_data,
-                                            3, 1, 5, 5);
-    tensor *kernel = tensor_init_from_data((float *)kernel_data,
-                                               4, 1, 1, 2, 2);
+                                        3, 1, 5, 5);
+    tensor *weight = tensor_init_from_data((float *)weight_data,
+                                           4, 1, 1, 2, 2);
     tensor *expected = tensor_init_from_data((float *)expected_data,
-                                                 3, 1, 4, 4);
-    tensor *dst = tensor_init(3, 1, 4, 4);
+                                             3, 1, 4, 4);
+    tensor *bias = tensor_init_filled(0, 1, 1);
 
-    tensor_conv2d(src, kernel, dst, 1, 0);
+    tensor *dst = tensor_conv2d_new(weight, bias, 1, 0, src);
 
     tensor_check_equal(expected, dst);
 
     tensor_free(src);
     tensor_free(dst);
-    tensor_free(kernel);
+    tensor_free(weight);
+    tensor_free(bias);
     tensor_free(expected);
 }
 
 void
-test_convolve_padded_2() {
+test_conv2d_padded_2() {
     float src_data[1][5][5] = {
         {
             {2, 3, 1, 0, 1},
@@ -173,7 +171,7 @@ test_convolve_padded_2() {
             {3, 4, 1, 4, 4}
         }
     };
-    float kernel_data[1][1][2][2] = {
+    float weight_data[1][1][2][2] = {
         {
             {
                 {0, 2},
@@ -192,26 +190,27 @@ test_convolve_padded_2() {
         }
     };
     tensor *src = tensor_init_from_data((float *)src_data,
-                                            3, 1, 5, 5);
-    tensor *kernel = tensor_init_from_data((float *)kernel_data,
-                                               4, 1, 1, 2, 2);
-    tensor *dst = tensor_init(3, 1, 6, 6);
+                                        3, 1, 5, 5);
+    tensor *weight = tensor_init_from_data((float *)weight_data,
+                                           4, 1, 1, 2, 2);
+    tensor *bias = tensor_init_filled(0, 1, 1);
 
     tensor *expected = tensor_init_from_data((float *)expected_data,
-                                                 3, 1, 6, 6);
+                                             3, 1, 6, 6);
 
-    tensor_conv2d(src, kernel, dst, 1, 1);
+    tensor *dst = tensor_conv2d_new(weight, bias, 1, 1, src);
 
     tensor_check_equal(expected, dst);
 
     tensor_free(src);
     tensor_free(dst);
-    tensor_free(kernel);
+    tensor_free(weight);
+    tensor_free(bias);
     tensor_free(expected);
 }
 
 void
-test_convolve_2channels() {
+test_conv2d_2channels() {
     float src_data[2][3][6] = {
         {
             {4, 2, 2, 2, 4, 4},
@@ -224,7 +223,7 @@ test_convolve_2channels() {
             {2, 1, 2, 1, 4, 1}
         }
     };
-    float kernel_data[1][2][1][1] = {
+    float weight_data[1][2][1][1] = {
         {
             {
                 {2}
@@ -243,25 +242,26 @@ test_convolve_2channels() {
     };
     tensor *src = tensor_init_from_data((float *)src_data,
                                             3, 2, 3, 6);
-    tensor *kernel = tensor_init_from_data((float *)kernel_data,
+    tensor *weight = tensor_init_from_data((float *)weight_data,
                                                4, 1, 2, 1, 1);
-    tensor *dst = tensor_init(3, 1, 3, 6);
+    tensor *bias = tensor_init_filled(0, 1, 1);
 
     tensor *expected = tensor_init_from_data((float *)expected_data,
                                                  3, 1, 3, 6);
 
-    tensor_conv2d(src, kernel, dst, 1, 0);
+    tensor *dst = tensor_conv2d_new(weight, bias, 1, 0, src);
 
     tensor_check_equal(expected, dst);
 
     tensor_free(src);
     tensor_free(dst);
-    tensor_free(kernel);
+    tensor_free(weight);
+    tensor_free(bias);
     tensor_free(expected);
 }
 
 void
-test_convolve_2x2channels() {
+test_conv2d_2x2channels() {
     float src_data[2][2][4] = {
         {
             {0, 2, 3, 3},
@@ -272,7 +272,7 @@ test_convolve_2x2channels() {
             {0, 0, 4, 0}
         }
     };
-    float kernel_data[2][2][1][1] = {
+    float weight_data[2][2][1][1] = {
         {
             {
                 {2}
@@ -301,26 +301,27 @@ test_convolve_2x2channels() {
         }
     };
     tensor *src = tensor_init_from_data((float *)src_data,
-                                            3, 2, 2, 4);
-    tensor *kernel = tensor_init_from_data((float *)kernel_data,
-                                               4, 2, 2, 1, 1);
-    tensor *dst = tensor_init(3, 2, 2, 4);
+                                        3, 2, 2, 4);
+    tensor *weight = tensor_init_from_data((float *)weight_data,
+                                           4, 2, 2, 1, 1);
+    tensor *bias = tensor_init_filled(0, 1, 2);
 
     tensor *expected = tensor_init_from_data((float *)expected_data,
-                                                 3, 2, 2, 4);
+                                             3, 2, 2, 4);
 
-    tensor_conv2d(src, kernel, dst, 1, 0);
+    tensor *dst = tensor_conv2d_new(weight, bias, 1, 0, src);
 
     tensor_check_equal(expected, dst);
 
     tensor_free(src);
     tensor_free(dst);
-    tensor_free(kernel);
+    tensor_free(weight);
+    tensor_free(bias);
     tensor_free(expected);
 }
 
 void
-test_convolve_strided() {
+test_conv2d_strided() {
     float src_data[1][5][5] = {
         {
             {2, 4, 3, 3, 2},
@@ -330,7 +331,7 @@ test_convolve_strided() {
             {0, 2, 1, 0, 1}
         }
     };
-    float kernel_data[1][1][3][3] = {
+    float weight_data[1][1][3][3] = {
         {
             {
                 {2, 4, 1},
@@ -348,25 +349,26 @@ test_convolve_strided() {
     };
     tensor *src = tensor_init_from_data((float *)src_data,
                                             3, 1, 5, 5);
-    tensor *kernel = tensor_init_from_data((float *)kernel_data,
-                                               4, 1, 1,  3, 3);
+    tensor *weight = tensor_init_from_data((float *)weight_data,
+                                           4, 1, 1, 3, 3);
     tensor *expected = tensor_init_from_data((float *)expected_data,
                                                  3, 1, 3, 3);
-    tensor *dst = tensor_init(3, 1, 3, 3);
+    tensor *bias = tensor_init_filled(0, 1, 1);
 
-    tensor_conv2d(src, kernel, dst, 2, 1);
+    tensor *dst = tensor_conv2d_new(weight, bias, 2, 1, src);
 
     tensor_check_equal(expected, dst);
 
     tensor_free(src);
     tensor_free(dst);
-    tensor_free(kernel);
+    tensor_free(weight);
+    tensor_free(bias);
     tensor_free(expected);
 }
 
 
 void
-test_convolve_3() {
+test_conv2d_3() {
     float src_data[1][10][3] = {
         {
             {4, 0, 4},
@@ -381,7 +383,7 @@ test_convolve_3() {
             {1, 0, 3}
         }
     };
-    float kernel_data[1][1][3][3] = {
+    float weight_data[1][1][3][3] = {
         {
             {
                 {1, 1, 1},
@@ -407,32 +409,33 @@ test_convolve_3() {
 
     tensor *src = tensor_init_from_data((float *)src_data,
                                             3, 1, 10, 3);
-    tensor *kernel = tensor_init_from_data((float *)kernel_data,
+    tensor *weight = tensor_init_from_data((float *)weight_data,
                                                4, 1, 1, 3, 3);
+    tensor *bias = tensor_init_filled(0, 1, 1);
     tensor *dst = tensor_init(3, 1, 10, 3);
-
     tensor *expected = tensor_init_from_data((float *)expected_data,
-                                                 3, 1, 10, 3);
+                                             3, 1, 10, 3);
 
-    tensor_conv2d(src, kernel, dst, 1, 1);
+    tensor_conv2d(weight, bias, 1, 1, src, dst);
 
     tensor_check_equal(expected, dst);
 
     tensor_free(src);
     tensor_free(dst);
-    tensor_free(kernel);
+    tensor_free(weight);
+    tensor_free(bias);
     tensor_free(expected);
 }
 
 void
-test_convolve_uneven() {
+test_conv2d_uneven() {
     float src_data[1][2][4] = {
         {
             {4, 1, 4, 0},
             {0, 0, 0, 2}
         }
     };
-    float kernel_data[2][1][2][2] = {
+    float weight_data[2][1][2][2] = {
         {
             {
                 {1, 1},
@@ -455,33 +458,32 @@ test_convolve_uneven() {
         }
     };
     tensor *src = tensor_init_from_data((float *)src_data,
-                                            3, 1, 2, 4);
-    tensor *kernel = tensor_init_from_data((float *)kernel_data,
-                                               4, 2, 1, 2, 2);
-    tensor *dst = tensor_init(3, 2, 1, 3);
-
+                                        3, 1, 2, 4);
+    tensor *weight = tensor_init_from_data((float *)weight_data,
+                                           4, 2, 1, 2, 2);
     tensor *expected = tensor_init_from_data((float *)expected_data,
-                                                 3, 2, 1, 3);
-
-    tensor_conv2d(src, kernel, dst, 1, 0);
+                                             3, 2, 1, 3);
+    tensor *bias = tensor_init_filled(0, 1, 2);
+    tensor *dst = tensor_conv2d_new(weight, bias, 1, 0, src);
 
     tensor_check_equal(expected, dst);
 
     tensor_free(src);
     tensor_free(dst);
-    tensor_free(kernel);
+    tensor_free(weight);
+    tensor_free(bias);
     tensor_free(expected);
 }
 
 void
-test_convolve_uneven_strided() {
+test_conv2d_uneven_strided() {
     float src_data[1][2][4] = {
         {
             {3, 0, 3, 1},
             {3, 4, 2, 2}
         }
     };
-    float kernel_data[2][1][2][2] = {
+    float weight_data[2][1][2][2] = {
         {
             {
                 {4, 1},
@@ -504,21 +506,97 @@ test_convolve_uneven_strided() {
         }
     };
     tensor *src = tensor_init_from_data((float *)src_data,
-                                            3, 1, 2, 4);
-    tensor *kernel = tensor_init_from_data((float *)kernel_data,
-                                               4, 2, 1, 2, 2);
+                                        3, 1, 2, 4);
     tensor *dst = tensor_init(3, 2, 1, 2);
-
+    tensor *weight = tensor_init_from_data((float *)weight_data,
+                                           4, 2, 1, 2, 2);
+    tensor *bias = tensor_init_filled(0, 1, 2);
     tensor *expected = tensor_init_from_data((float *)expected_data,
                                                  3, 2, 1, 2);
 
-    tensor_conv2d(src, kernel, dst, 2, 0);
+    tensor_conv2d(weight, bias, 2, 0, src, dst);
 
     tensor_check_equal(expected, dst);
 
     tensor_free(src);
     tensor_free(dst);
-    tensor_free(kernel);
+    tensor_free(weight);
+    tensor_free(bias);
+    tensor_free(expected);
+}
+
+void
+test_conv2d_with_bias() {
+    float src_data[2][5][5] = {
+        {
+            {5., 1., 1., 1., 8.},
+            {6., 4., 6., 2., 5.},
+            {0., 8., 7., 7., 4.},
+            {8., 1., 2., 2., 0.},
+            {0., 5., 4., 3., 0.},
+        },
+        {
+            {9., 5., 8., 3., 0.},
+            {0., 7., 7., 0., 5.},
+            {8., 3., 7., 9., 2.},
+            {5., 1., 1., 7., 8.},
+            {5., 9., 9., 6., 0.}
+        }
+    };
+    float weight_data[2][2][3][3] = {
+        {
+            {
+                {3., 6., 2.},
+                {9., 0., 6.},
+                {7., 2., 2.}
+            },
+            {
+                {7., 0., 2.},
+                {6., 5., 1.},
+                {6., 5., 9.}
+            }
+        },
+        {
+            {
+                {7., 1., 4.},
+                {1., 7., 4.},
+                {3., 2., 5.}
+            },
+            {
+                {2., 9., 6.},
+                {0., 7., 8.},
+                {8., 4., 4.}
+            }
+        }
+    };
+    float bias_data[2] = {7., 9.};
+    float expected_data[2][3][3] = {
+        {
+            {397., 402., 395.},
+            {293., 373., 413.},
+            {433., 367., 316.}
+        },
+        {
+            {478., 385., 327.},
+            {429., 391., 346.},
+            {310., 479., 431.}
+        }
+    };
+    tensor *src = tensor_init_from_data((float *)src_data,
+                                        3, 2, 5, 5);
+    tensor *weight = tensor_init_from_data((float *)weight_data,
+                                           4, 2, 2, 3, 3);
+    tensor *expected = tensor_init_from_data((float *)expected_data,
+                                             3, 2, 3, 3);
+    tensor *bias = tensor_init_from_data((float *)bias_data, 1, 2);
+    tensor *dst = tensor_conv2d_new(weight, bias, 1, 0, src);
+
+    tensor_check_equal(expected, dst);
+
+
+    tensor_free(src);
+    tensor_free(dst);
+    tensor_free(weight);
     tensor_free(expected);
 }
 
@@ -563,7 +641,7 @@ test_max_pool_1() {
         }
     };
     tensor *src = tensor_init_from_data((float *)src_data,
-                                            3, 2, 5, 5);
+                                        3, 2, 5, 5);
     tensor *expected1 = tensor_init_from_data((float *)expected1_data,
                                               3, 2, 4, 4);
     tensor *expected2 = tensor_init_from_data((float *)expected2_data,
@@ -683,15 +761,15 @@ test_linear() {
 
 // Copy of the network from
 // https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html
-//
-// Haven't added biases yet.
 void
 test_cifar10() {
     tensor *conv1 = tensor_init(4, 6, 3, 5, 5);
     tensor_randrange(conv1, 10);
+    tensor *conv1_bias = tensor_init_filled(0, 1, 6);
 
     tensor *conv2 = tensor_init(4, 16, 6, 5, 5);
     tensor_randrange(conv2, 10);
+    tensor *conv2_bias = tensor_init_filled(0, 1, 16);
 
     tensor *fc1 = tensor_init(2, 120, 400);
     tensor_randrange(fc1, 10);
@@ -705,7 +783,7 @@ test_cifar10() {
     tensor *x0 = tensor_init(3, 3, 32, 32);
     tensor_randrange(x0, 10);
 
-    tensor *x1 = tensor_conv2d_new(x0, conv1, 1, 0);
+    tensor *x1 = tensor_conv2d_new(conv1, conv1_bias, 1, 0, x0);
     tensor_relu(x1);
 
     assert(x1->dims[0] == 6);
@@ -718,7 +796,7 @@ test_cifar10() {
     assert(x2->dims[1] == 14);
     assert(x2->dims[2] == 14);
 
-    tensor *x3 = tensor_conv2d_new(x2, conv2, 1, 0);
+    tensor *x3 = tensor_conv2d_new(conv2, conv2_bias, 1, 0, x2);
     tensor_relu(x3);
     assert(x3->dims[0] == 16);
     assert(x3->dims[1] == 10);
@@ -748,7 +826,9 @@ test_cifar10() {
     assert(x7->dims[0] == 10);
 
     tensor_free(conv1);
+    tensor_free(conv1_bias);
     tensor_free(conv2);
+    tensor_free(conv2_bias);
     tensor_free(fc1);
     tensor_free(fc2);
     tensor_free(fc3);
@@ -773,14 +853,15 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_from_png);
     PRINT_RUN(test_pick_channel);
     PRINT_RUN(test_conv2d);
-    PRINT_RUN(test_convolve_3);
-    PRINT_RUN(test_convolve_strided);
-    PRINT_RUN(test_convolve_padded);
-    PRINT_RUN(test_convolve_padded_2);
-    PRINT_RUN(test_convolve_2channels);
-    PRINT_RUN(test_convolve_2x2channels);
-    PRINT_RUN(test_convolve_uneven);
-    PRINT_RUN(test_convolve_uneven_strided);
+    PRINT_RUN(test_conv2d_3);
+    PRINT_RUN(test_conv2d_strided);
+    PRINT_RUN(test_conv2d_padded);
+    PRINT_RUN(test_conv2d_padded_2);
+    PRINT_RUN(test_conv2d_2channels);
+    PRINT_RUN(test_conv2d_2x2channels);
+    PRINT_RUN(test_conv2d_uneven);
+    PRINT_RUN(test_conv2d_uneven_strided);
+    PRINT_RUN(test_conv2d_with_bias);
     PRINT_RUN(test_max_pool_1);
     PRINT_RUN(test_max_pool_strided);
     PRINT_RUN(test_max_pool_image);
