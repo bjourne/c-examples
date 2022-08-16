@@ -753,7 +753,7 @@ test_linear() {
     tensor *expected = tensor_init_from_data(
         (float *)(float[]){113, 107, 89, 66}, 1, 4);
 
-    tensor_linear(src, weight, bias, dst);
+    tensor_linear(weight, bias, src, dst);
     tensor_check_equal(dst, expected);
 
     tensor_free(src);
@@ -793,7 +793,7 @@ test_linear_with_bias() {
             365., 367., 438., 376., 370., 381., 251., 369., 413., 417.
         }, 1, 10);
 
-    tensor *dst  = tensor_linear_new(src, weight, bias);
+    tensor *dst = tensor_linear_new(weight, bias, src);
     tensor_check_equal(dst, expected);
 
     tensor_free(src);
@@ -857,17 +857,17 @@ test_cifar10() {
     assert(x4->n_dims == 1);
     assert(x4->dims[0] == 400);
 
-    tensor *x5 = tensor_linear_new(x4, fc1, fc1_bias);
+    tensor *x5 = tensor_linear_new(fc1, fc1_bias, x4);
     tensor_relu(x5);
     assert(x5->n_dims == 1);
     assert(x5->dims[0] == 120);
 
-    tensor *x6 = tensor_linear_new(x5, fc2, fc2_bias);
+    tensor *x6 = tensor_linear_new(fc2, fc2_bias, x5);
     tensor_relu(x6);
     assert(x6->n_dims == 1);
     assert(x6->dims[0] == 84);
 
-    tensor *x7 = tensor_linear_new(x6, fc3, fc3_bias);
+    tensor *x7 = tensor_linear_new(fc3, fc3_bias, x6);
     assert(x7->n_dims == 1);
     assert(x7->dims[0] == 10);
 
@@ -889,6 +889,29 @@ test_cifar10() {
     tensor_free(x5);
     tensor_free(x6);
     tensor_free(x7);
+}
+
+void
+test_lenet_layers() {
+    tensor_layer *fc1 = tensor_layer_init_linear(400, 120);
+    tensor_layer *fc2 = tensor_layer_init_linear(120, 84);
+    tensor_layer *fc3 = tensor_layer_init_linear(84, 10);
+
+    tensor_layer *conv1 = tensor_layer_init_conv2d(3, 6, 5, 1, 0);
+    tensor_layer *conv2 = tensor_layer_init_conv2d(6, 16, 5, 1, 0);
+
+    tensor_layer *max_pool_2d = tensor_layer_init_max_pool_2d(2, 2);
+    tensor_layer *relu = tensor_layer_init_relu();
+    tensor_layer *flatten = tensor_layer_init_flatten(0);
+
+    tensor_layer_free(fc1);
+    tensor_layer_free(fc2);
+    tensor_layer_free(fc3);
+    tensor_layer_free(conv1);
+    tensor_layer_free(conv2);
+    tensor_layer_free(max_pool_2d);
+    tensor_layer_free(relu);
+    tensor_layer_free(flatten);
 }
 
 int
@@ -918,4 +941,5 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_linear);
     PRINT_RUN(test_linear_with_bias);
     PRINT_RUN(test_cifar10);
+    PRINT_RUN(test_lenet_layers);
 }

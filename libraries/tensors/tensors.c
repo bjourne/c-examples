@@ -475,7 +475,7 @@ tensor_max_pool2d(tensor  *src,
 // Linear
 ////////////////////////////////////////////////////////////////////////
 void
-tensor_linear(tensor *src, tensor *weights, tensor *bias, tensor *dst) {
+tensor_linear(tensor *weights, tensor *bias, tensor *src, tensor *dst) {
     int n_dims = weights->n_dims;
     int width = weights->dims[n_dims - 1];
     int height = weights->dims[n_dims - 2];
@@ -489,8 +489,79 @@ tensor_linear(tensor *src, tensor *weights, tensor *bias, tensor *dst) {
 }
 
 tensor *
-tensor_linear_new(tensor *src, tensor *weights, tensor *bias) {
+tensor_linear_new(tensor *weights, tensor *bias, tensor *src) {
     tensor *dst = tensor_init(1, weights->dims[0]);
-    tensor_linear(src, weights, bias, dst);
+    tensor_linear(weights, bias, src, dst);
     return dst;
+}
+
+////////////////////////////////////////////////////////////////////////
+// Layer abstraction
+////////////////////////////////////////////////////////////////////////
+tensor_layer *
+tensor_layer_init_relu() {
+    tensor_layer *me = (tensor_layer *)malloc(sizeof(tensor_layer));
+    return me;
+}
+
+tensor_layer *
+tensor_layer_init_flatten(int from) {
+    tensor_layer *me = (tensor_layer *)malloc(sizeof(tensor_layer));
+    me->flatten.from = from;
+    return me;
+}
+
+tensor_layer *
+tensor_layer_init_linear(int in, int out) {
+    tensor_layer *me = (tensor_layer *)malloc(sizeof(tensor_layer));
+    me->type = TENSOR_LAYER_LINEAR;
+
+    tensor *weight = tensor_init(2, out, in);
+    tensor *bias = tensor_init(1, out);
+
+    me->linear.weight = weight;
+    me->linear.bias = bias;
+
+    return me;
+}
+
+tensor_layer *
+tensor_layer_init_max_pool_2d(int kernel_height, int kernel_width) {
+    tensor_layer *me = (tensor_layer *)malloc(sizeof(tensor_layer));
+    me->type = TENSOR_LAYER_MAX_POOL2D;
+
+    me->max_pool2d.kernel_width = kernel_width;
+    me->max_pool2d.kernel_height = kernel_height;
+
+    return me;
+}
+
+tensor_layer *
+tensor_layer_init_conv2d(int in_chans, int out_chans,
+                         int kernel_size,
+                         int stride, int padding) {
+    tensor_layer *me = (tensor_layer *)malloc(sizeof(tensor_layer));
+    me->type = TENSOR_LAYER_CONV2D;
+
+    tensor *weight = tensor_init(4, out_chans, in_chans,
+                                 kernel_size, kernel_size);
+    tensor *bias = tensor_init(1, out_chans);
+    me->conv2d.weight = weight;
+    me->conv2d.bias = bias;
+    me->conv2d.stride = stride;
+    me->conv2d.padding = padding;
+
+    return me;
+}
+
+void
+tensor_layer_free(tensor_layer *me) {
+    if (me->type == TENSOR_LAYER_LINEAR)  {
+        tensor_free(me->linear.weight);
+        tensor_free(me->linear.bias);
+    }  else if (me->type == TENSOR_LAYER_CONV2D) {
+        tensor_free(me->conv2d.weight);
+        tensor_free(me->conv2d.bias);
+    }
+    free(me);
 }
