@@ -119,9 +119,12 @@ void tensor_linear(tensor *weights, tensor *bias,
 tensor *tensor_linear_new(tensor *weights, tensor *bias, tensor *src);
 
 // Scalar ops
-void tensor_relu(tensor *src);
+void tensor_relu(tensor *t);
 void tensor_fill(tensor *t, float v);
-void tensor_randrange(tensor *t1, int high);
+void tensor_randrange(tensor *t, int high);
+void tensor_softmax(tensor *t);
+
+//void tensor_softmax(tensor *src);
 
 // Png support
 tensor *tensor_read_png(char *filename);

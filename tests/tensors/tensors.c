@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <string.h>
 #include "datatypes/common.h"
+#include "linalg/linalg.h"
 #include "tensors/tensors.h"
 
 char *fname = NULL;
@@ -1128,6 +1129,18 @@ test_layer_stack_apply_conv2d() {
     tensor_free(expected);
 }
 
+void
+test_softmax() {
+    tensor *t = tensor_init_from_data((float *)(float[]){-1, 0, 3, 5}, 1, 4);
+    tensor_softmax(t);
+    assert(approx_eq(t->data[0], 0.00216569646006f));
+    assert(approx_eq(t->data[1], 0.00588697333334f));
+    assert(approx_eq(t->data[2], 0.11824302025266f));
+    assert(approx_eq(t->data[3], 0.87370430995393f));
+
+    tensor_free(t);
+}
+
 
 
 
@@ -1163,4 +1176,5 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_lenet_layer_stack_apply_relu);
     PRINT_RUN(test_layer_stack_apply_conv2d);
     PRINT_RUN(test_layer_stack_apply_lenet);
+    PRINT_RUN(test_softmax);
 }

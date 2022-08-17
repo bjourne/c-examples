@@ -1,6 +1,7 @@
 // Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <float.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -194,6 +195,19 @@ void
 tensor_randrange(tensor *me, int high) {
     for (int i = 0; i < tensor_n_elements(me); i++) {
         me->data[i] = rand_n(high);
+    }
+}
+
+void
+tensor_softmax(tensor *t) {
+    float tot = 0.0;
+    for (int i = 0; i < tensor_n_elements(t); i++) {
+        float v = exp(t->data[i]);
+        t->data[i] = v;
+        tot += v;
+    }
+    for (int i = 0; i < tensor_n_elements(t); i++) {
+        t->data[i] /= tot;
     }
 }
 

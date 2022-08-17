@@ -135,7 +135,7 @@ def build(ctx):
 
     build_tests(ctx, 'diophantine', ['DIO_OBJS', 'DT_OBJS', 'M'])
     build_tests(ctx, 'ieee754', ['IEEE754_OBJS', 'DT_OBJS'])
-    build_tests(ctx, 'tensors', ['TENSORS_OBJS', 'DT_OBJS', 'PNG'])
+    build_tests(ctx, 'tensors', ['TENSORS_OBJS', 'DT_OBJS', 'PNG', 'M'])
 
     build_program(ctx, 'cpu.c', ['DT_OBJS'])
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
