@@ -72,7 +72,13 @@ typedef struct {
     int input_dims[TENSOR_MAX_N_DIMS];
 
     int *layers_n_dims;
-    int *layers_dims;
+    int **layers_dims;
+
+    // Two buffers are needed to propagate the tensors through the
+    // stack since some layers can't process in place.
+    tensor *src_buf;
+    tensor *dst_buf;
+
 } tensor_layer_stack;
 
 tensor *tensor_init(int n_dims, ...);
@@ -84,7 +90,7 @@ void tensor_free(tensor *t);
 
 // Checking
 bool tensor_check_equal(tensor *t1, tensor *t2);
-bool tensor_check_dims(tensor *me, int n_dims, float dims[]);
+bool tensor_check_dims(tensor *me, int n_dims, int dims[]);
 
 // Utility
 int tensor_n_elements(tensor *me);
@@ -131,6 +137,12 @@ tensor_layer *tensor_layer_init_conv2d(int in_chans, int out_chans,
                                        int kernel_size,
                                        int stride,
                                        int padding);
+tensor_layer *tensor_layer_init_conv2d_from_data(int in_chans, int out_chans,
+                                                 int kernel_size,
+                                                 int stride, int padding,
+                                                 float *weight_data, float *bias_data);
+
+
 void tensor_layer_free(tensor_layer *me);
 
 tensor *tensor_layer_apply_new(tensor_layer *me, tensor *input);

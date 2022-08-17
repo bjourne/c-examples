@@ -15,7 +15,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 bool
-tensor_check_dims(tensor *me, int n_dims, float dims[]) {
+tensor_check_dims(tensor *me, int n_dims, int dims[]) {
     assert(me->n_dims == n_dims);
     for (int i = 0; i < n_dims; i++) {
         assert(me->dims[i] == dims[i]);
@@ -65,6 +65,12 @@ tensor_check_equal(tensor *t1, tensor *t2) {
 // Utility
 ////////////////////////////////////////////////////////////////////////
 static void
+copy_dims(int src_n_dims, int *src_dims, int *dst_n_dims, int *dst_dims) {
+    *dst_n_dims = src_n_dims;
+    memcpy(dst_dims, src_dims, sizeof(int) * TENSOR_MAX_N_DIMS);
+}
+
+static void
 compute_2d_dims(tensor *src,
                 int kernel_h, int kernel_w,
                 int stride, int padding,
@@ -74,26 +80,22 @@ compute_2d_dims(tensor *src,
 }
 
 static int
-count_elements_from(tensor *me, int from) {
-    int tot = me->dims[from];
-    for (int i = from + 1; i < me->n_dims; i++) {
-        tot *= me->dims[i];
+count_elements_from(int n_dims, int *dims, int from) {
+    int tot = dims[from];
+    for (int i = from + 1; i < n_dims; i++) {
+        tot *= dims[i];
     }
     return tot;
 }
 
 int
 tensor_n_elements(tensor *me) {
-    int tot = me->dims[0];
-    for (int i = 1; i < me->n_dims; i++) {
-        tot *= me->dims[i];
-    }
-    return tot;
+    return count_elements_from(me->n_dims, me->dims, 0);
 }
 
 void
 tensor_flatten(tensor *me, int from) {
-    int n_els = count_elements_from(me, from);
+    int n_els = count_elements_from(me->n_dims, me->dims, from);
     me->n_dims = from + 1;
     me->dims[from] = n_els;
 }
@@ -114,6 +116,7 @@ init_from_va_list(int n_dims, va_list ap) {
     return me;
 }
 
+// To fix: va_args was more trouble than it was worth.
 tensor *
 tensor_init(int n_dims, ...) {
     va_list ap;
@@ -126,8 +129,7 @@ tensor_init(int n_dims, ...) {
 tensor *
 tensor_init_copy(tensor *orig) {
     tensor *me = (tensor *)malloc(sizeof(tensor));
-    me->n_dims = orig->n_dims;
-    memcpy(me->dims, orig->dims, sizeof(int) * TENSOR_MAX_N_DIMS);
+    copy_dims(orig->n_dims, orig->dims, &me->n_dims, me->dims);
     int n_bytes = sizeof(float) * tensor_n_elements(me);
     me->data = (float *)malloc(n_bytes);
     memcpy(me->data, orig->data, n_bytes);
@@ -137,8 +139,7 @@ tensor_init_copy(tensor *orig) {
 tensor *
 tensor_init_from_dims(int n_dims, int *dims)  {
     tensor *me = (tensor *)malloc(sizeof(tensor));
-    me->n_dims = n_dims;
-    memcpy(me->dims, dims, sizeof(int) * n_dims);
+    copy_dims(n_dims, dims, &me->n_dims, me->dims);
     int n_bytes = sizeof(float) * tensor_n_elements(me);
     me->data = (float *)malloc(n_bytes);
     return me;
@@ -599,6 +600,21 @@ tensor_layer_init_conv2d(int in_chans, int out_chans,
     return me;
 }
 
+tensor_layer *
+tensor_layer_init_conv2d_from_data(int in_chans, int out_chans,
+                                   int kernel_size,
+                                   int stride, int padding,
+                                   float *weight_data, float *bias_data) {
+    tensor_layer *l = tensor_layer_init_conv2d(in_chans, out_chans,
+                                               kernel_size,
+                                               stride, padding);
+    tensor *weight = l->conv2d.weight;
+    tensor *bias = l->conv2d.bias;
+    memcpy(weight->data, weight_data, tensor_n_elements(weight) * sizeof(float));
+    memcpy(bias->data, bias_data, tensor_n_elements(bias) * sizeof(float));
+    return l;
+}
+
 void
 tensor_layer_free(tensor_layer *me) {
     if (me->type == TENSOR_LAYER_LINEAR)  {
@@ -654,22 +670,25 @@ tensor_layer_stack_init(int n_layers, tensor_layer **layers,
 
     int n_bytes_dims = sizeof(int) * TENSOR_MAX_N_DIMS;
 
-    // Input dims
-    me->input_n_dims = input->n_dims;
-    memcpy(me->input_dims, input->dims, n_bytes_dims);
+    copy_dims(input->n_dims, input->dims, &me->input_n_dims, me->input_dims);
 
     // Layers' dims
     me->layers_n_dims = (int *)malloc(sizeof(int) * n_layers);
-    me->layers_dims = (int *)malloc(n_layers * n_bytes_dims);
+    me->layers_dims = (int **)malloc(sizeof(int *) * n_layers);
+    int buf_size = count_elements_from(input_n_dims, input_dims, 0);
     for (int i = 0; i < n_layers; i++) {
         tensor *output = tensor_layer_apply_new(me->layers[i], input);
-        me->layers_n_dims[i] = output->n_dims;
-        memcpy(&me->layers_dims[TENSOR_MAX_N_DIMS * i], output->dims,
-               n_bytes_dims);
+        int n_dims = output->n_dims;
+        int *dims = output->dims;
+        buf_size = MAX(buf_size, count_elements_from(n_dims, dims, 0));
+        me->layers_dims[i] = (int *)malloc(n_bytes_dims);
+        copy_dims(n_dims, dims, &me->layers_n_dims[i], me->layers_dims[i]);
         tensor_free(input);
         input = output;
     }
     tensor_free(input);
+    me->src_buf = tensor_init(1, buf_size);
+    me->dst_buf = tensor_init(1, buf_size);
     return me;
 }
 
@@ -677,18 +696,63 @@ void
 tensor_layer_stack_free(tensor_layer_stack *me) {
     for (int i = 0; i < me->n_layers; i++) {
         tensor_layer_free(me->layers[i]);
+        free(me->layers_dims[i]);
     }
-    free(me->layers_n_dims);
+    tensor_free(me->src_buf);
+    tensor_free(me->dst_buf);
     free(me->layers_dims);
+    free(me->layers_n_dims);
     free(me);
 }
 
+// The point is to avoid redundant mallocs and copies.
 tensor *
 tensor_layer_stack_apply_new(tensor_layer_stack *me, tensor *input) {
-    return tensor_init_copy(input);
-    /* for (int i = 0; i < me->n_layers; i++) { */
-    /*     tensor_layer *layer = me->layers[i]; */
-    /* } */
+    tensor_check_dims(input, me->input_n_dims, me->input_dims);
+    tensor *src = me->src_buf;
+    tensor *dst = me->dst_buf;
+    copy_dims(input->n_dims, input->dims, &src->n_dims, src->dims);
+    memcpy(src->data, input->data, tensor_n_elements(src) * sizeof(float));
+
+    for (int i = 0; i < me->n_layers; i++) {
+        tensor_layer *l = me->layers[i];
+        tensor_layer_type t = l->type;
+
+        copy_dims(me->layers_n_dims[i], me->layers_dims[i],
+                  &dst->n_dims, dst->dims);
+
+        // Content is in dst after
+        bool swap = false;
+        if (t == TENSOR_LAYER_RELU) {
+            tensor_relu(src);
+        } else if (t == TENSOR_LAYER_CONV2D) {
+            tensor_conv2d(l->conv2d.weight, l->conv2d.bias,
+                          l->conv2d.stride, l->conv2d.padding,
+                          src, dst);
+            swap = true;
+        } else if (t == TENSOR_LAYER_MAX_POOL2D) {
+            tensor_max_pool2d(l->max_pool2d.kernel_width,
+                              l->max_pool2d.kernel_height,
+                              l->max_pool2d.stride,
+                              l->max_pool2d.padding,
+                              src, dst);
+            swap = true;
+        } else if (t == TENSOR_LAYER_FLATTEN) {
+            tensor_flatten(src, l->flatten.from);
+        } else if (t == TENSOR_LAYER_LINEAR) {
+            tensor_linear(l->linear.weight, l->linear.bias,
+                          src, dst);
+            swap = true;
+        } else {
+            assert(false);
+        }
+        if (swap) {
+            tensor *tmp = src;
+            src = dst;
+            dst = tmp;
+        }
+    }
+    return tensor_init_copy(src);
 }
 
 static const char *
@@ -709,13 +773,14 @@ layer_name(tensor_layer_type t) {
 
 void
 tensor_layer_stack_print(tensor_layer_stack *me) {
+    int n_layers = me->n_layers;
     printf("Input: ");
     print_dims(me->input_n_dims, me->input_dims);
-    printf(", Layers: %d\n", me->n_layers);
-    for (int i = 0; i < me->n_layers; i++) {
+    printf(", Layers: %d\n", n_layers);
+    for (int i = 0; i < n_layers; i++) {
         tensor_layer_type t = me->layers[i]->type;
         printf("  %-10s: ", layer_name(t));
-        print_dims(me->layers_n_dims[i], (int *)&me->layers_dims[i * TENSOR_MAX_N_DIMS]);
+        print_dims(me->layers_n_dims[i], me->layers_dims[i]);
         printf("\n");
     }
 }
