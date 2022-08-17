@@ -347,15 +347,17 @@ test_conv2d_strided() {
             {18,  8,  0}
         }
     };
-    tensor *src = tensor_init_from_data((float *)src_data,
-                                            3, 1, 5, 5);
+
     tensor *weight = tensor_init_from_data((float *)weight_data,
                                            4, 1, 1, 3, 3);
-    tensor *expected = tensor_init_from_data((float *)expected_data,
-                                                 3, 1, 3, 3);
     tensor *bias = tensor_init_filled(0, 1, 1);
-
+    tensor *expected = tensor_init_from_data((float *)expected_data,
+                                             3, 1, 3, 3);
+    tensor *src = tensor_init_from_data((float *)src_data,
+                                        3, 1, 5, 5);
     tensor *dst = tensor_conv2d_new(weight, bias, 2, 1, src);
+
+
 
     tensor_check_equal(expected, dst);
 
@@ -854,8 +856,7 @@ test_cifar10() {
     assert(x4->dims[2] == 5);
 
     tensor_flatten(x4, 0);
-    assert(x4->n_dims == 1);
-    assert(x4->dims[0] == 400);
+    tensor_check_dims(x4, 1, (float[]){400});
 
     tensor *x5 = tensor_linear_new(fc1, fc1_bias, x4);
     tensor_relu(x5);
@@ -956,6 +957,32 @@ test_lenet_layers() {
     tensor_free(x9);
 }
 
+void
+test_lenet_layer_stack() {
+    tensor_layer *layers[] = {
+        tensor_layer_init_conv2d(3, 6, 5, 1, 0),
+        tensor_layer_init_relu(),
+        tensor_layer_init_max_pool2d(2, 2, 2, 0),
+        tensor_layer_init_conv2d(6, 16, 5, 1, 0),
+        tensor_layer_init_relu(),
+        tensor_layer_init_max_pool2d(2, 2, 2, 0),
+        tensor_layer_init_flatten(0),
+        tensor_layer_init_linear(400, 120),
+        tensor_layer_init_relu(),
+        tensor_layer_init_linear(120, 84),
+        tensor_layer_init_relu(),
+        tensor_layer_init_linear(84, 10)
+    };
+    tensor_layer_stack *stack = tensor_layer_stack_init(
+        ARRAY_SIZE(layers), layers,
+        3, (int[]){3, 32, 32}
+    );
+    tensor_layer_stack_print(stack);
+    tensor_layer_stack_free(stack);
+}
+
+
+
 int
 main(int argc, char *argv[]) {
     rand_init(1234);
@@ -984,4 +1011,5 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_linear_with_bias);
     PRINT_RUN(test_cifar10);
     PRINT_RUN(test_lenet_layers);
+    PRINT_RUN(test_lenet_layer_stack);
 }

@@ -63,8 +63,21 @@ typedef struct {
     };
 } tensor_layer;
 
+typedef struct {
+    int n_layers;
+    tensor_layer **layers;
+
+    // Need to record input and output dimensions somewhere.
+    int input_n_dims;
+    int input_dims[TENSOR_MAX_N_DIMS];
+
+    int *layers_n_dims;
+    int *layers_dims;
+} tensor_layer_stack;
+
 tensor *tensor_init(int n_dims, ...);
 tensor *tensor_init_copy(tensor *orig);
+tensor *tensor_init_from_dims(int n_dims, int *dims);
 tensor *tensor_init_from_data(float *data, int n_dims, ...);
 tensor *tensor_init_filled(float v, int n_dims, ...);
 void tensor_free(tensor *t);
@@ -121,6 +134,17 @@ tensor_layer *tensor_layer_init_conv2d(int in_chans, int out_chans,
 void tensor_layer_free(tensor_layer *me);
 
 tensor *tensor_layer_apply_new(tensor_layer *me, tensor *input);
+
+// Stack abstraction
+
+// The stack takes ownership of the layers.
+tensor_layer_stack *
+tensor_layer_stack_init(int n_layers, tensor_layer *layers[],
+                        int input_n_dims, int *input_dims);
+tensor *tensor_layer_stack_apply_new(tensor_layer_stack *me, tensor *input);
+void tensor_layer_stack_free(tensor_layer_stack *me);
+
+void tensor_layer_stack_print(tensor_layer_stack *me);
 
 
 #endif

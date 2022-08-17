@@ -23,6 +23,16 @@ tensor_check_dims(tensor *me, int n_dims, float dims[]) {
     return true;
 }
 
+static void
+print_dims(int n_dims, int dims[]) {
+    printf("[");
+    for (int i = 0; i < n_dims - 1; i++) {
+        printf("%d, ", dims[i]);
+    }
+    printf("%d", dims[n_dims - 1]);
+    printf("]");
+}
+
 bool
 tensor_check_equal(tensor *t1, tensor *t2) {
     assert(t1->n_dims == t2->n_dims);
@@ -33,12 +43,9 @@ tensor_check_equal(tensor *t1, tensor *t2) {
         float v1 = t1->data[i];
         float v2 = t2->data[i];
         if (v1 != v2) {
-            printf("Mismatch at [");
-            for (int j = 0; j < n - 1; j++) {
-                printf("%d, ", dim_counts[j]);
-            }
-            printf("%d], %.2f != %.2f\n",
-                   dim_counts[n - 1], v1,  v2);
+            printf("Mismatch at ");
+            print_dims(n, dim_counts);
+            printf(", %.2f != %.2f\n", v1,  v2);
         }
         for (int j = n - 1; j >= 0; j--) {
             dim_counts[j]++;
@@ -102,7 +109,8 @@ init_from_va_list(int n_dims, va_list ap) {
     for (int i = 0; i < n_dims; i++) {
         me->dims[i] = va_arg(ap, int);
     }
-    me->data = (float *)malloc(sizeof(float) * tensor_n_elements(me));
+    int n_bytes = sizeof(float) * tensor_n_elements(me);
+    me->data = (float *)malloc(n_bytes);
     return me;
 }
 
@@ -123,6 +131,16 @@ tensor_init_copy(tensor *orig) {
     int n_bytes = sizeof(float) * tensor_n_elements(me);
     me->data = (float *)malloc(n_bytes);
     memcpy(me->data, orig->data, n_bytes);
+    return me;
+}
+
+tensor *
+tensor_init_from_dims(int n_dims, int *dims)  {
+    tensor *me = (tensor *)malloc(sizeof(tensor));
+    me->n_dims = n_dims;
+    memcpy(me->dims, dims, sizeof(int) * n_dims);
+    int n_bytes = sizeof(float) * tensor_n_elements(me);
+    me->data = (float *)malloc(n_bytes);
     return me;
 }
 
@@ -432,6 +450,7 @@ tensor *
 tensor_max_pool2d_new(int kernel_h, int kernel_w,
                       int stride, int padding,
                       tensor *src) {
+
     int height, width;
     compute_2d_dims(src, kernel_h, kernel_w, stride, padding,
                     &height, &width);
@@ -616,5 +635,87 @@ tensor_layer_apply_new(tensor_layer *me, tensor *input) {
         return output;
     } else {
         assert(false);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+// Stack abstraction
+////////////////////////////////////////////////////////////////////////
+tensor_layer_stack *
+tensor_layer_stack_init(int n_layers, tensor_layer **layers,
+                        int input_n_dims, int *input_dims) {
+
+    tensor *input = tensor_init_from_dims(input_n_dims, input_dims);
+
+    tensor_layer_stack *me = (tensor_layer_stack *)
+        malloc(sizeof(tensor_layer_stack));
+    me->n_layers = n_layers;
+    me->layers = layers;
+
+    int n_bytes_dims = sizeof(int) * TENSOR_MAX_N_DIMS;
+
+    // Input dims
+    me->input_n_dims = input->n_dims;
+    memcpy(me->input_dims, input->dims, n_bytes_dims);
+
+    // Layers' dims
+    me->layers_n_dims = (int *)malloc(sizeof(int) * n_layers);
+    me->layers_dims = (int *)malloc(n_layers * n_bytes_dims);
+    for (int i = 0; i < n_layers; i++) {
+        tensor *output = tensor_layer_apply_new(me->layers[i], input);
+        me->layers_n_dims[i] = output->n_dims;
+        memcpy(&me->layers_dims[TENSOR_MAX_N_DIMS * i], output->dims,
+               n_bytes_dims);
+        tensor_free(input);
+        input = output;
+    }
+    tensor_free(input);
+    return me;
+}
+
+void
+tensor_layer_stack_free(tensor_layer_stack *me) {
+    for (int i = 0; i < me->n_layers; i++) {
+        tensor_layer_free(me->layers[i]);
+    }
+    free(me->layers_n_dims);
+    free(me->layers_dims);
+    free(me);
+}
+
+tensor *
+tensor_layer_stack_apply_new(tensor_layer_stack *me, tensor *input) {
+    return tensor_init_copy(input);
+    /* for (int i = 0; i < me->n_layers; i++) { */
+    /*     tensor_layer *layer = me->layers[i]; */
+    /* } */
+}
+
+static const char *
+layer_name(tensor_layer_type t) {
+    if (t == TENSOR_LAYER_LINEAR) {
+        return "Linear";
+    } else if (t == TENSOR_LAYER_RELU) {
+        return "ReLU";
+    } else if (t == TENSOR_LAYER_MAX_POOL2D) {
+        return "MaxPool2D";
+    } else if (t == TENSOR_LAYER_CONV2D) {
+        return "Conv2D";
+    } else if (t == TENSOR_LAYER_FLATTEN)  {
+        return "Flatten";
+    }
+    return "Unknown";
+}
+
+void
+tensor_layer_stack_print(tensor_layer_stack *me) {
+    printf("Input: ");
+    print_dims(me->input_n_dims, me->input_dims);
+    printf(", Layers: %d\n", me->n_layers);
+    for (int i = 0; i < me->n_layers; i++) {
+        tensor_layer_type t = me->layers[i]->type;
+        printf("  %-10s: ", layer_name(t));
+        print_dims(me->layers_n_dims[i], (int *)&me->layers_dims[i * TENSOR_MAX_N_DIMS]);
+        printf("\n");
     }
 }
