@@ -124,8 +124,6 @@ void tensor_fill(tensor *t, float v);
 void tensor_randrange(tensor *t, int high);
 void tensor_softmax(tensor *t);
 
-//void tensor_softmax(tensor *src);
-
 // Png support
 tensor *tensor_read_png(char *filename);
 bool tensor_write_png(tensor *me, char *filename);
@@ -160,6 +158,5 @@ tensor *tensor_layer_stack_apply_new(tensor_layer_stack *me, tensor *input);
 void tensor_layer_stack_free(tensor_layer_stack *me);
 
 void tensor_layer_stack_print(tensor_layer_stack *me);
-
 
 #endif

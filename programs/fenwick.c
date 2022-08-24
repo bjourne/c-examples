@@ -1,3 +1,4 @@
+// Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -36,8 +37,6 @@ fenwick_solve(int n, int q) {
     free(arr);
     return 0;
 }
-
-
 
 int
 main(int argc, char *argv[]) {

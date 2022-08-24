@@ -7,15 +7,17 @@ hashset datatype. It was written for fun because I love C coding.
 As some smart person once said; only the one who reinvents the wheel
 truly understand how it works. So there's that.
 
-The repository consists of the following parts.
+This repository consists of the following directories:
 
 ## Libraries
-Currently seven libraries I have developed while writing garbage
-collectors and other projects. They are located in the `libraries`
-directory.
+
+Ten small libraries I have written while learning about algorithms,
+data structures and APIs. They are located in the `libraries`
+directory. They are designed to be self-contained and thus easy to
+borrow by copying the files.
 
 No guarantee that the libraries are, or ever will be, complete. They
-were written because I personally needed them.
+were written because I wanted to.
 
 ### `libraries/collectors`
 
@@ -74,7 +76,9 @@ A library for dealing with N-dimensional arrays (tensors).
 Test suites for the various libraries.
 
 ## Programs
-Demo programs of all kinds.
+Demo programs of all kinds:
+
+* `opencl.c`: Lists installed OpenCL platforms.
 
 ## Compilation
 
