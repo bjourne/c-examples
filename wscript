@@ -120,6 +120,7 @@ def build(ctx):
     build_library(ctx, 'diophantine', 'DIO_OBJS', [])
     build_library(ctx, 'ieee754', 'IEEE754_OBJS', [])
     build_library(ctx, 'tensors', 'TENSORS_OBJS', ['PNG'])
+    build_library(ctx, 'opencl', 'OPENCL_OBJS', ['OPENCL'])
 
     build_tests(ctx, 'datatypes', ['DT_OBJS'])
     build_tests(ctx, 'quickfit', ['DT_OBJS', 'QF_OBJS'])
@@ -152,7 +153,7 @@ def build(ctx):
     # Conditional targets
     if ctx.env.DEST_OS == 'linux':
         build_program(ctx, 'sigsegv.c', [])
-        build_program(ctx, 'opencl.c', ['OPENCL'])
+        build_program(ctx, 'opencl.c', ['OPENCL', 'OPENCL_OBJS'])
     if ctx.env.DEST_OS != 'win32':
         build_program(ctx, 'capstack.c',
                       ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])

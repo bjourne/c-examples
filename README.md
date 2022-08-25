@@ -72,6 +72,10 @@ A library for explicit handling of ieee754 floating point numbers.
 
 A library for dealing with N-dimensional arrays (tensors).
 
+### `libraries/opencl`
+
+A library containing OpenCL utility functions.
+
 ## Tests
 Test suites for the various libraries.
 

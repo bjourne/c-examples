@@ -4,57 +4,10 @@
 // from https://gist.github.com/courtneyfaulkner/7919509
 #include <stdio.h>
 #include <stdlib.h>
-
-#define CL_TARGET_OPENCL_VERSION 300
-
-#ifdef __APPLE__
-#include <OpenCL/opencl.h>
-#else
-#include <CL/cl.h>
-#endif
-
-#define MAX_SOURCE_SIZE (0x100000)
-#define LIST_SIZE 1024
-
-static void
-print_prefix(int ind) {
-    for (int i = 0; i < ind; i++) {
-        printf(" ");
-    }
-}
-
-static void
-print_device_info(cl_device_id id, int attr, char *attr_name) {
-    size_t n_bytes;
-    clGetDeviceInfo(id, attr, 0, NULL, &n_bytes);
-    char *bytes = (char *)malloc(n_bytes);
-    clGetDeviceInfo(id, attr, n_bytes, bytes, NULL);
-    printf("%-15s: %s\n", attr_name, bytes);
-    free(bytes);
-}
-
-static void
-print_device_infos(cl_device_id id) {
-    char *attr_names[] = {"Name", "Version", "Driver", "C Version"};
-    int attr_types[] = {
-        CL_DEVICE_NAME, CL_DEVICE_VERSION, CL_DRIVER_VERSION,
-        CL_DEVICE_OPENCL_C_VERSION
-    };
-    for (int i = 0; i < 4; i++) {
-        print_prefix(2);
-        print_device_info(id, attr_types[i], attr_names[i]);
-    }
-    cl_uint n_compute_units;
-    clGetDeviceInfo(id, CL_DEVICE_MAX_COMPUTE_UNITS,
-                    sizeof(cl_uint), &n_compute_units, NULL);
-    print_prefix(2);
-    printf("%-15s: %d\n", "Compute units", n_compute_units);
-}
-
+#include "opencl/opencl.h"
 
 static void
 list_platforms() {
-
     const char *attr_names[] = {
         "Name", "Vendor",
         "Version", "Profile", "Extensions"
@@ -65,12 +18,9 @@ list_platforms() {
     };
 
     cl_uint n_platforms;
-    clGetPlatformIDs(0, NULL, &n_platforms);
+    cl_platform_id *platforms;
+    ocl_get_platforms(&n_platforms, &platforms);
 
-    cl_platform_id *platforms = (cl_platform_id *)malloc(
-        sizeof(cl_platform_id) * n_platforms);
-
-    clGetPlatformIDs(n_platforms, platforms, NULL);
     for (int i  = 0; i < n_platforms; i++) {
         for (int j = 0; j < 5; j++) {
             size_t n_bytes;
@@ -88,7 +38,7 @@ list_platforms() {
         clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, n_devices, devices, NULL);
         printf("%-15s: %d\n", "Devices", n_devices);
         for (int j = 0; j < n_devices; j++) {
-            print_device_infos(devices[j]);
+            ocl_print_device_details(devices[j], 2);
         }
         free(devices);
         printf("\n");

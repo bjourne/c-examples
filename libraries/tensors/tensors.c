@@ -556,7 +556,7 @@ tensor_multiply(tensor *a, tensor *b, tensor *c) {
     assert(a_cols == b_rows);
     assert(tensor_n_elements(c) == a_rows * b_cols);
 
-    for  (int i = 0; i < a_rows; i++) {
+    for (int i = 0; i < a_rows; i++) {
         for (int j = 0; j < b_cols; j++) {
             float s = 0;
             for (int k = 0; k < b_rows; k++) {
