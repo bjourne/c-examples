@@ -2,6 +2,8 @@
 #ifndef OPENCL_H
 #define OPENCL_H
 
+#include <stdbool.h>
+
 #define CL_TARGET_OPENCL_VERSION 300
 
 #ifdef __APPLE__
@@ -11,7 +13,14 @@
 #endif
 
 void ocl_get_platforms(cl_uint *n_platforms, cl_platform_id **platforms);
+void ocl_get_devices(cl_platform_id platform,
+                     cl_uint *n_devices, cl_device_id **devices);
 
 void ocl_print_device_details(cl_device_id dev, int ind);
+void ocl_check_err(cl_int err);
+
+bool
+ocl_load_kernel(cl_context ctx, cl_device_id dev, const char *fname,
+                cl_program *program, cl_kernel *kernel);
 
 #endif

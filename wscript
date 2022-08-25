@@ -138,6 +138,13 @@ def build(ctx):
     build_tests(ctx, 'diophantine', ['DIO_OBJS', 'DT_OBJS', 'M'])
     build_tests(ctx, 'ieee754', ['IEEE754_OBJS', 'DT_OBJS'])
     build_tests(ctx, 'tensors', ['TENSORS_OBJS', 'DT_OBJS', 'PNG', 'M'])
+    build_tests(ctx, 'opencl', [
+        'OPENCL_OBJS',
+        'DT_OBJS',
+        'PATHS_OBJS',
+        'TENSORS_OBJS',
+        'OPENCL', 'PNG', 'M'
+    ])
 
     build_program(ctx, 'cpu.c', ['DT_OBJS'])
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
@@ -148,12 +155,10 @@ def build(ctx):
     build_program(ctx, 'fenwick.c', ['FASTIO_OBJS'])
     build_program(ctx, 'yahtzee.c', ['DT_OBJS', 'THREADS_OBJS', 'PTHREAD'])
 
-
-
     # Conditional targets
     if ctx.env.DEST_OS == 'linux':
         build_program(ctx, 'sigsegv.c', [])
-        build_program(ctx, 'opencl.c', ['OPENCL', 'OPENCL_OBJS'])
+        build_program(ctx, 'opencl.c', ['OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS'])
     if ctx.env.DEST_OS != 'win32':
         build_program(ctx, 'capstack.c',
                       ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])

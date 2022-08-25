@@ -31,11 +31,9 @@ list_platforms() {
             free(info);
         }
         cl_uint n_devices;
-        clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, 0, NULL, &n_devices);
+        cl_device_id *devices;
 
-        cl_device_id *devices = (cl_device_id *)malloc(
-            sizeof(cl_device_id) * n_devices);
-        clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, n_devices, devices, NULL);
+        ocl_get_devices(platforms[i], &n_devices, &devices);
         printf("%-15s: %d\n", "Devices", n_devices);
         for (int j = 0; j < n_devices; j++) {
             ocl_print_device_details(devices[j], 2);

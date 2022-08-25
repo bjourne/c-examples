@@ -2,7 +2,9 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include "datatypes/common.h"
+#include "paths/paths.h"
 #include "opencl.h"
 
 #define CL_ERR_RETURN_STRING(x) case x: return #x;
@@ -72,8 +74,8 @@ err_str(cl_int err) {
     }
 }
 
-static void
-check_err(cl_uint err) {
+void
+ocl_check_err(cl_int err) {
     if (err == CL_SUCCESS)  {
         return;
     }
@@ -103,13 +105,29 @@ ocl_get_platforms(cl_uint *n_platforms, cl_platform_id **platforms) {
     cl_int err;
 
     err = clGetPlatformIDs(0, NULL, n_platforms);
-    check_err(err);
+    ocl_check_err(err);
 
     *platforms = (cl_platform_id *)malloc(
         sizeof(cl_platform_id) * *n_platforms);
 
     err = clGetPlatformIDs(*n_platforms, *platforms, NULL);
-    check_err(err);
+    ocl_check_err(err);
+}
+
+void
+ocl_get_devices(cl_platform_id platform,
+                cl_uint *n_devices, cl_device_id **devices) {
+
+    cl_int err;
+    err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, NULL, n_devices);
+    ocl_check_err(err);
+
+    *devices = (cl_device_id *)malloc(
+        sizeof(cl_device_id) * *n_devices);
+
+    err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL,
+                         *n_devices, *devices, NULL);
+    ocl_check_err(err);
 }
 
 void
@@ -128,4 +146,54 @@ ocl_print_device_details(cl_device_id dev, int ind) {
                     sizeof(cl_uint), &n_compute_units, NULL);
     print_prefix(ind);
     printf("%-15s: %d\n", "Compute units", n_compute_units);
+}
+
+bool
+ocl_load_kernel(cl_context ctx, cl_device_id dev, const char *fname,
+                cl_program *program, cl_kernel *kernel) {
+
+    FILE *fp = fopen(fname, "r");
+    assert(fp);
+
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+    rewind(fp);
+
+    char *source = (char*)malloc(sizeof(char)*(size + 1));
+    fread(source, 1, size * sizeof(char), fp);
+    source[size] = '\0';
+    fclose(fp);
+
+    size_t n_source = strlen(source);
+    cl_int err;
+    *program = clCreateProgramWithSource(
+        ctx, 1,
+        (const char **)&source,
+        (const size_t *)&n_source, &err);
+    ocl_check_err(err);
+
+    err = clBuildProgram(*program, 1, &dev, NULL, NULL, NULL);
+    if (err != CL_SUCCESS) {
+        printf("Build failed: %s\n", err_str(err));
+        size_t n_bytes;
+        clGetProgramBuildInfo(*program, dev, CL_PROGRAM_BUILD_LOG, 0, NULL, &n_bytes);
+
+        // Allocate memory for the log
+        char *log = (char *) malloc(n_bytes);
+
+        // Get the log
+        clGetProgramBuildInfo(*program, dev, CL_PROGRAM_BUILD_LOG, n_bytes, log, NULL);
+
+        // Print the log
+        printf("%s\n", log);
+        assert(false);
+        return false;
+    }
+    free(source);
+
+    char *stem = paths_stem(fname);
+    *kernel = clCreateKernel(*program, stem, &err);
+    free(stem);
+    ocl_check_err(err);
+    return true;
 }
