@@ -28,7 +28,7 @@ test_pick_channel() {
     int height = t1->dims[1];
     int width = t1->dims[2];
 
-    tensor *t2 = tensor_init(3, 3, height, width);
+    tensor *t2 = tensor_init(3, (int[]){3, height, width});
     tensor_fill(t2, 0.0);
     for (int c = 0; c < 1; c++) {
         float *dst = &t2->data[c * height * width];
@@ -415,7 +415,7 @@ test_conv2d_3() {
     tensor *weight = tensor_init_from_data((float *)weight_data,
                                            4, (int[]){1, 1, 3, 3});
     tensor *bias = tensor_init_filled(0, 1, 1);
-    tensor *dst = tensor_init(3, 1, 10, 3);
+    tensor *dst = tensor_init(3, (int[]){1, 10, 3});
     tensor *expected = tensor_init_from_data((float *)expected_data,
                                              3, (int[]){1, 10, 3});
 
@@ -510,7 +510,7 @@ test_conv2d_uneven_strided() {
     };
     tensor *src = tensor_init_from_data((float *)src_data,
                                         3, (int[]){1, 2, 4});
-    tensor *dst = tensor_init(3, 2, 1, 2);
+    tensor *dst = tensor_init(3, (int[]){2, 1, 2});
     tensor *weight = tensor_init_from_data((float *)weight_data,
                                            4, (int[]){2, 1, 2, 2});
     tensor *bias = tensor_init_filled(0, 1, 2);
@@ -650,8 +650,8 @@ test_max_pool_1() {
                                               3, (int[]){2, 4, 4});
     tensor *expected2 = tensor_init_from_data((float *)expected2_data,
                                               3, (int[]){2, 1, 5});
-    tensor *dst1 = tensor_init(3, 2, 4, 4);
-    tensor *dst2 = tensor_init(3, 2, 1, 5);
+    tensor *dst1 = tensor_init(3, (int[]){2, 4, 4});
+    tensor *dst2 = tensor_init(3, (int[]){2, 1, 5});
 
     tensor_max_pool2d(2, 2, 1, 0, src, dst1);
     tensor_check_equal(expected1, dst1);
@@ -755,7 +755,7 @@ test_linear() {
         (float *)(float[]){0, 0, 0, 0},
         1, (int[]){4});
 
-    tensor *dst = tensor_init(1, 4);
+    tensor *dst = tensor_init(1, (int[]){4});
     tensor *expected = tensor_init_from_data(
         (float *)(float[]){113, 107, 89, 66},
         1, (int[]){4});
@@ -813,27 +813,27 @@ test_linear_with_bias() {
 // https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html
 void
 test_cifar10() {
-    tensor *conv1 = tensor_init(4, 6, 3, 5, 5);
+    tensor *conv1 = tensor_init(4, (int[]){6, 3, 5, 5});
     tensor_randrange(conv1, 10);
     tensor *conv1_bias = tensor_init_filled(0, 1, 6);
 
-    tensor *conv2 = tensor_init(4, 16, 6, 5, 5);
+    tensor *conv2 = tensor_init(4, (int[]){16, 6, 5, 5});
     tensor_randrange(conv2, 10);
     tensor *conv2_bias = tensor_init_filled(0, 1, 16);
 
-    tensor *fc1 = tensor_init(2, 120, 400);
+    tensor *fc1 = tensor_init(2, (int[]){120, 400});
     tensor_randrange(fc1, 10);
-    tensor *fc1_bias = tensor_init(1, 120);
+    tensor *fc1_bias = tensor_init(1, (int[]){120});
 
-    tensor *fc2 = tensor_init(2, 84, 120);
+    tensor *fc2 = tensor_init(2, (int[]){84, 120});
     tensor_randrange(fc2, 10);
-    tensor *fc2_bias = tensor_init(1, 84);
+    tensor *fc2_bias = tensor_init(1, (int[]){84});
 
-    tensor *fc3 = tensor_init(2, 10, 84);
+    tensor *fc3 = tensor_init(2, (int[]){10, 84});
     tensor_randrange(fc3, 10);
-    tensor *fc3_bias = tensor_init(1, 10);
+    tensor *fc3_bias = tensor_init(1, (int[]){10});
 
-    tensor *x0 = tensor_init(3, 3, 32, 32);
+    tensor *x0 = tensor_init(3, (int[]){3, 32, 32});
     tensor_randrange(x0, 10);
 
     tensor *x1 = tensor_conv2d_new(conv1, conv1_bias, 1, 0, x0);
@@ -911,7 +911,7 @@ test_lenet_layers() {
 
 
     // Run input through layers
-    tensor *x0 = tensor_init(3, 3, 32, 32);
+    tensor *x0 = tensor_init(3, (int[]){3, 32, 32});
 
     tensor *x1 = tensor_layer_apply_new(conv1, x0);
     tensor_check_dims(x1, 3, (int[]){6, 28, 28});
@@ -1035,7 +1035,7 @@ test_layer_stack_apply_lenet() {
         3, (int[]){3, 32, 32}
     );
 
-    tensor *x0 = tensor_init(3, 3, 32, 32);
+    tensor *x0 = tensor_init(3, (int[]){3, 32, 32});
 
     tensor *x1 = tensor_layer_stack_apply_new(stack, x0);
     assert(x1);
@@ -1151,7 +1151,15 @@ void
 test_multiply() {
     tensor *a = tensor_init_from_data((float *)(float[]){-1, 0, 3, 5},
                                       2, (int[]){2, 2});
+    tensor *b = tensor_init_from_data((float *)(float[]){-1, 0, 3, 5},
+                                      2, (int[]){2, 2});
+    tensor *c = tensor_init(2, (int[]){2, 2});
+
+    tensor_multiply(a, b, c);
+
     tensor_free(a);
+    tensor_free(b);
+    tensor_free(c);
 }
 
 int

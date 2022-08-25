@@ -60,8 +60,6 @@ tensor_check_equal(tensor *t1, tensor *t2) {
     return true;
 }
 
-
-
 ////////////////////////////////////////////////////////////////////////
 // Utility
 ////////////////////////////////////////////////////////////////////////
@@ -118,11 +116,13 @@ init_from_va_list(int n_dims, va_list ap) {
 
 // To fix: va_args was more trouble than it was worth.
 tensor *
-tensor_init(int n_dims, ...) {
-    va_list ap;
-    va_start(ap, n_dims);
-    tensor *me = init_from_va_list(n_dims, ap);
-    va_end(ap);
+tensor_init(int n_dims, int dims[]) {
+    tensor *me = (tensor *)malloc(sizeof(tensor));
+    me->n_dims = n_dims;
+    memcpy(me->dims, dims, n_dims * sizeof(int));
+
+    int n_bytes = sizeof(float) * tensor_n_elements(me);
+    me->data = (float *)malloc(n_bytes);
     return me;
 }
 
@@ -137,24 +137,9 @@ tensor_init_copy(tensor *orig) {
 }
 
 tensor *
-tensor_init_from_dims(int n_dims, int *dims)  {
-    tensor *me = (tensor *)malloc(sizeof(tensor));
-    copy_dims(n_dims, dims, &me->n_dims, me->dims);
-    int n_bytes = sizeof(float) * tensor_n_elements(me);
-    me->data = (float *)malloc(n_bytes);
-    return me;
-}
-
-tensor *
 tensor_init_from_data(float *data, int n_dims, int dims[])  {
-
-    tensor *me = (tensor *)malloc(sizeof(tensor));
-    me->n_dims = n_dims;
-    memcpy(me->dims, dims, n_dims * sizeof(int));
-
-    int n_bytes = sizeof(float) * tensor_n_elements(me);
-    me->data = (float *)malloc(n_bytes);
-    memcpy(me->data, data, n_bytes);
+    tensor *me = tensor_init(n_dims, dims);
+    memcpy(me->data, data, sizeof(float) * tensor_n_elements(me));
     return me;
 }
 
@@ -380,7 +365,7 @@ tensor_conv2d_new(tensor *weight, tensor *bias,
     int height, width;
     compute_2d_dims(src, weight->dims[2], weight->dims[3], stride, padding,
                     &height, &width);
-    tensor *dst = tensor_init(3, weight->dims[0], height, width);
+    tensor *dst = tensor_init(3, (int[]){weight->dims[0], height, width});
     tensor_conv2d(weight, bias, stride, padding, src, dst);
     return dst;
 }
@@ -471,7 +456,7 @@ tensor_max_pool2d_new(int kernel_h, int kernel_w,
     int height, width;
     compute_2d_dims(src, kernel_h, kernel_w, stride, padding,
                     &height, &width);
-    tensor *dst = tensor_init(3, src->dims[0], height, width);
+    tensor *dst = tensor_init(3, (int[]){src->dims[0], height, width});
     tensor_max_pool2d(kernel_h, kernel_w, stride, padding, src, dst);
     return dst;
 }
@@ -550,7 +535,7 @@ tensor_linear(tensor *weights, tensor *bias, tensor *src, tensor *dst) {
 
 tensor *
 tensor_linear_new(tensor *weights, tensor *bias, tensor *src) {
-    tensor *dst = tensor_init(1, weights->dims[0]);
+    tensor *dst = tensor_init(1, (int[]){weights->dims[0]});
     tensor_linear(weights, bias, src, dst);
     return dst;
 }
@@ -588,8 +573,8 @@ tensor_layer_init_linear(int in, int out) {
     tensor_layer *me = (tensor_layer *)malloc(sizeof(tensor_layer));
     me->type = TENSOR_LAYER_LINEAR;
 
-    tensor *weight = tensor_init(2, out, in);
-    tensor *bias = tensor_init(1, out);
+    tensor *weight = tensor_init(2, (int[]){out, in});
+    tensor *bias = tensor_init(1, (int[]){out});
 
     me->linear.weight = weight;
     me->linear.bias = bias;
@@ -616,9 +601,9 @@ tensor_layer_init_conv2d(int in_chans, int out_chans,
     tensor_layer *me = (tensor_layer *)malloc(sizeof(tensor_layer));
     me->type = TENSOR_LAYER_CONV2D;
 
-    tensor *weight = tensor_init(4, out_chans, in_chans,
-                                 kernel_size, kernel_size);
-    tensor *bias = tensor_init(1, out_chans);
+    tensor *weight = tensor_init(4, (int[]){out_chans, in_chans,
+                                            kernel_size, kernel_size});
+    tensor *bias = tensor_init(1, (int[]){out_chans});
     me->conv2d.weight = weight;
     me->conv2d.bias = bias;
     me->conv2d.stride = stride;
@@ -687,7 +672,7 @@ tensor_layer_stack *
 tensor_layer_stack_init(int n_layers, tensor_layer **layers,
                         int input_n_dims, int *input_dims) {
 
-    tensor *input = tensor_init_from_dims(input_n_dims, input_dims);
+    tensor *input = tensor_init(input_n_dims, input_dims);
 
     tensor_layer_stack *me = (tensor_layer_stack *)
         malloc(sizeof(tensor_layer_stack));
@@ -713,8 +698,8 @@ tensor_layer_stack_init(int n_layers, tensor_layer **layers,
         input = output;
     }
     tensor_free(input);
-    me->src_buf = tensor_init(1, buf_size);
-    me->dst_buf = tensor_init(1, buf_size);
+    me->src_buf = tensor_init(1, (int[]){buf_size});
+    me->dst_buf = tensor_init(1, (int[]){buf_size});
     return me;
 }
 
