@@ -84,7 +84,7 @@ typedef struct {
 tensor *tensor_init(int n_dims, ...);
 tensor *tensor_init_copy(tensor *orig);
 tensor *tensor_init_from_dims(int n_dims, int *dims);
-tensor *tensor_init_from_data(float *data, int n_dims, ...);
+tensor *tensor_init_from_data(float *data, int n_dims, int dims[]);
 tensor *tensor_init_filled(float v, int n_dims, ...);
 void tensor_free(tensor *t);
 

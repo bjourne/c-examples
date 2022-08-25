@@ -104,7 +104,7 @@ test_conv2d() {
         }
     };
     tensor *weight = tensor_init_from_data((float *)weight_data,
-                                           4, 3, 3, 3, 3);
+                                           4, (int[]){3, 3, 3, 3});
     tensor *bias = tensor_init_filled(0, 1, 3);
     tensor *t2 = tensor_conv2d_new(weight, bias, 1, 1, t1);
 
@@ -143,11 +143,11 @@ test_conv2d_padded() {
         }
     };
     tensor *src = tensor_init_from_data((float *)src_data,
-                                        3, 1, 5, 5);
+                                        3, (int[]){1, 5, 5});
     tensor *weight = tensor_init_from_data((float *)weight_data,
-                                           4, 1, 1, 2, 2);
+                                           4, (int[]){1, 1, 2, 2});
     tensor *expected = tensor_init_from_data((float *)expected_data,
-                                             3, 1, 4, 4);
+                                             3, (int[]){1, 4, 4});
     tensor *bias = tensor_init_filled(0, 1, 1);
 
     tensor *dst = tensor_conv2d_new(weight, bias, 1, 0, src);
@@ -191,13 +191,13 @@ test_conv2d_padded_2() {
         }
     };
     tensor *src = tensor_init_from_data((float *)src_data,
-                                        3, 1, 5, 5);
+                                        3, (int[]){1, 5, 5});
     tensor *weight = tensor_init_from_data((float *)weight_data,
-                                           4, 1, 1, 2, 2);
+                                           4, (int[]){1, 1, 2, 2});
     tensor *bias = tensor_init_filled(0, 1, 1);
 
     tensor *expected = tensor_init_from_data((float *)expected_data,
-                                             3, 1, 6, 6);
+                                             3, (int[]){1, 6, 6});
 
     tensor *dst = tensor_conv2d_new(weight, bias, 1, 1, src);
 
@@ -242,13 +242,13 @@ test_conv2d_2channels() {
         }
     };
     tensor *src = tensor_init_from_data((float *)src_data,
-                                            3, 2, 3, 6);
+                                        3, (int[]){2, 3, 6});
     tensor *weight = tensor_init_from_data((float *)weight_data,
-                                               4, 1, 2, 1, 1);
+                                           4, (int[]){1, 2, 1, 1});
     tensor *bias = tensor_init_filled(0, 1, 1);
 
     tensor *expected = tensor_init_from_data((float *)expected_data,
-                                                 3, 1, 3, 6);
+                                             3, (int[]){1, 3, 6});
 
     tensor *dst = tensor_conv2d_new(weight, bias, 1, 0, src);
 
@@ -302,13 +302,13 @@ test_conv2d_2x2channels() {
         }
     };
     tensor *src = tensor_init_from_data((float *)src_data,
-                                        3, 2, 2, 4);
+                                        3, (int[]){2, 2, 4});
     tensor *weight = tensor_init_from_data((float *)weight_data,
-                                           4, 2, 2, 1, 1);
+                                           4, (int[]){2, 2, 1, 1});
     tensor *bias = tensor_init_filled(0, 1, 2);
 
     tensor *expected = tensor_init_from_data((float *)expected_data,
-                                             3, 2, 2, 4);
+                                             3, (int[]){2, 2, 4});
 
     tensor *dst = tensor_conv2d_new(weight, bias, 1, 0, src);
 
@@ -350,12 +350,12 @@ test_conv2d_strided() {
     };
 
     tensor *weight = tensor_init_from_data((float *)weight_data,
-                                           4, 1, 1, 3, 3);
+                                           4, (int[]){1, 1, 3, 3});
     tensor *bias = tensor_init_filled(0, 1, 1);
     tensor *expected = tensor_init_from_data((float *)expected_data,
-                                             3, 1, 3, 3);
+                                             3, (int[]){1, 3, 3});
     tensor *src = tensor_init_from_data((float *)src_data,
-                                        3, 1, 5, 5);
+                                        3, (int[]){1, 5, 5});
     tensor *dst = tensor_conv2d_new(weight, bias, 2, 1, src);
 
 
@@ -411,13 +411,13 @@ test_conv2d_3() {
     };
 
     tensor *src = tensor_init_from_data((float *)src_data,
-                                            3, 1, 10, 3);
+                                        3, (int[]){1, 10, 3});
     tensor *weight = tensor_init_from_data((float *)weight_data,
-                                               4, 1, 1, 3, 3);
+                                           4, (int[]){1, 1, 3, 3});
     tensor *bias = tensor_init_filled(0, 1, 1);
     tensor *dst = tensor_init(3, 1, 10, 3);
     tensor *expected = tensor_init_from_data((float *)expected_data,
-                                             3, 1, 10, 3);
+                                             3, (int[]){1, 10, 3});
 
     tensor_conv2d(weight, bias, 1, 1, src, dst);
 
@@ -461,11 +461,11 @@ test_conv2d_uneven() {
         }
     };
     tensor *src = tensor_init_from_data((float *)src_data,
-                                        3, 1, 2, 4);
+                                        3, (int[]){1, 2, 4});
     tensor *weight = tensor_init_from_data((float *)weight_data,
-                                           4, 2, 1, 2, 2);
+                                           4, (int[]){2, 1, 2, 2});
     tensor *expected = tensor_init_from_data((float *)expected_data,
-                                             3, 2, 1, 3);
+                                             3, (int[]){2, 1, 3});
     tensor *bias = tensor_init_filled(0, 1, 2);
     tensor *dst = tensor_conv2d_new(weight, bias, 1, 0, src);
 
@@ -509,13 +509,13 @@ test_conv2d_uneven_strided() {
         }
     };
     tensor *src = tensor_init_from_data((float *)src_data,
-                                        3, 1, 2, 4);
+                                        3, (int[]){1, 2, 4});
     tensor *dst = tensor_init(3, 2, 1, 2);
     tensor *weight = tensor_init_from_data((float *)weight_data,
-                                           4, 2, 1, 2, 2);
+                                           4, (int[]){2, 1, 2, 2});
     tensor *bias = tensor_init_filled(0, 1, 2);
     tensor *expected = tensor_init_from_data((float *)expected_data,
-                                                 3, 2, 1, 2);
+                                             3, (int[]){2, 1, 2});
 
     tensor_conv2d(weight, bias, 2, 0, src, dst);
 
@@ -586,12 +586,13 @@ test_conv2d_with_bias() {
         }
     };
     tensor *src = tensor_init_from_data((float *)src_data,
-                                        3, 2, 5, 5);
+                                        3, (int[]){2, 5, 5});
     tensor *weight = tensor_init_from_data((float *)weight_data,
-                                           4, 2, 2, 3, 3);
+                                           4, (int[]){2, 2, 3, 3});
     tensor *expected = tensor_init_from_data((float *)expected_data,
-                                             3, 2, 3, 3);
-    tensor *bias = tensor_init_from_data((float *)bias_data, 1, 2);
+                                             3, (int[]){2, 3, 3});
+    tensor *bias = tensor_init_from_data((float *)bias_data,
+                                         1, (int[]){2});
     tensor *dst = tensor_conv2d_new(weight, bias, 1, 0, src);
 
     tensor_check_equal(expected, dst);
@@ -644,11 +645,11 @@ test_max_pool_1() {
         }
     };
     tensor *src = tensor_init_from_data((float *)src_data,
-                                        3, 2, 5, 5);
+                                        3, (int[]){2, 5, 5});
     tensor *expected1 = tensor_init_from_data((float *)expected1_data,
-                                              3, 2, 4, 4);
+                                              3, (int[]){2, 4, 4});
     tensor *expected2 = tensor_init_from_data((float *)expected2_data,
-                                              3, 2, 1, 5);
+                                              3, (int[]){2, 1, 5});
     tensor *dst1 = tensor_init(3, 2, 4, 4);
     tensor *dst2 = tensor_init(3, 2, 1, 5);
 
@@ -694,10 +695,10 @@ test_max_pool_strided() {
         }
     };
     tensor *src = tensor_init_from_data((float *)src_data,
-                                        3, 2, 5, 5);
+                                        3, (int[]){2, 5, 5});
 
     tensor *expected = tensor_init_from_data((float *)expected_data,
-                                             3, 2, 2, 2);
+                                             3, (int[]){2, 2, 2});
     tensor *dst = tensor_max_pool2d_new(2, 2, 2, 0, src);
     tensor_check_equal(expected, dst);
     tensor_free(src);
@@ -724,9 +725,11 @@ test_max_pool_image() {
 void
 test_relu() {
     tensor *src = tensor_init_from_data(
-        (float *)(float[]){-4.0, 0.0, -20.0, 3.0, 2.0}, 1, 5);
+        (float *)(float[]){-4.0, 0.0, -20.0, 3.0, 2.0},
+        1, (int[]){5});
     tensor *expected = tensor_init_from_data(
-        (float *)(float[]){0.0, 0.0, 0.0, 3.0, 2.0}, 1, 5);
+        (float *)(float[]){0.0, 0.0, 0.0, 3.0, 2.0},
+        1, (int[]){5});
 
     tensor_relu(src);
     tensor_check_equal(src, expected);
@@ -740,21 +743,22 @@ test_linear() {
     tensor *src = tensor_init_from_data(
         (float *)(float[]){
             0, 2, 4, 5, 0, 1, 4, 4
-        }, 1, 8);
+        }, 1, (int[]){8});
     tensor *weight = tensor_init_from_data(
         (float *)(float[4][8]){
             {5, 6, 7, 6, 9, 3, 1, 9},
             {4, 9, 5, 0, 9, 9, 8, 7},
             {6, 8, 7, 4, 1, 9, 3, 1},
             {4, 1, 4, 8, 2, 0, 1, 1}
-        }, 2, 4, 8);
+        }, 2, (int[]){4, 8});
     tensor *bias = tensor_init_from_data(
         (float *)(float[]){0, 0, 0, 0},
-        1,  4);
+        1, (int[]){4});
 
     tensor *dst = tensor_init(1, 4);
     tensor *expected = tensor_init_from_data(
-        (float *)(float[]){113, 107, 89, 66}, 1, 4);
+        (float *)(float[]){113, 107, 89, 66},
+        1, (int[]){4});
 
     tensor_linear(weight, bias, src, dst);
     tensor_check_equal(dst, expected);
@@ -773,7 +777,7 @@ test_linear_with_bias() {
             0., 7., 6., 9., 6., 5., 0., 2., 7., 4.,
             2., 0., 3., 9., 7., 1., 4., 1., 0., 9.,
             0, 2, 4, 5, 0, 1, 4, 4
-        }, 1, 20);
+        }, 1, (int[]){20});
     tensor *weight = tensor_init_from_data(
         (float *)(float[10][20]){
             {8., 6., 6., 1., 4., 2., 7., 6., 5., 1., 8., 8., 2., 7., 7., 6., 8., 6., 5., 1.},
@@ -786,15 +790,15 @@ test_linear_with_bias() {
             {3., 5., 7., 9., 2., 8., 7., 0., 1., 2., 5., 6., 6., 6., 2., 4., 6., 0., 3., 2.},
             {5., 4., 4., 7., 3., 6., 4., 7., 7., 5., 0., 5., 5., 5., 3., 0., 2., 2., 1., 8.},
             {4., 9., 7., 0., 8., 8., 7., 6., 5., 9., 7., 0., 8., 5., 3., 6., 0., 4., 3., 2.}
-        }, 2, 10, 20);
+        }, 2, (int[]){10, 20});
     tensor *bias = tensor_init_from_data(
         (float *)(float[10]){
             6., 8., 5., 2., 8., 7., 6., 2., 4., 9.
-        }, 1, 10);
+        }, 1, (int[]){10});
     tensor *expected = tensor_init_from_data(
         (float *)(float[10]){
             365., 367., 438., 376., 370., 381., 251., 369., 413., 417.
-        }, 1, 10);
+        }, 1, (int[]){10});
 
     tensor *dst = tensor_linear_new(weight, bias, src);
     tensor_check_equal(dst, expected);
@@ -994,14 +998,14 @@ test_lenet_layer_stack_apply_relu() {
     tensor *x0 = tensor_init_from_data(
         (float *)(float[8]){
             -1, 8., 5., 2., 8., -7, 6., 2.
-        }, 1, 8);
+        }, 1, (int[]){8});
 
     tensor *x1 = tensor_layer_stack_apply_new(stack, x0);
 
     tensor *expected = tensor_init_from_data(
         (float *)(float[8]){
             0, 8., 5., 2., 8., 0, 6., 2.
-        }, 1, 8);
+        }, 1, (int[]){8});
     assert(x1->n_dims == 1);
     tensor_check_equal(x1, expected);
     tensor_layer_stack_free(stack);
@@ -1115,8 +1119,9 @@ test_layer_stack_apply_conv2d() {
     );
     assert(tensor_n_elements(stack->src_buf) == 128);
 
-    tensor *x0 = tensor_init_from_data((float *)x0_data, 3, 2, 8, 8);
-    tensor *expected = tensor_init_from_data((float *)expected_data, 3, 2, 4, 4);
+    tensor *x0 = tensor_init_from_data((float *)x0_data, 3, (int[]){2, 8, 8});
+    tensor *expected = tensor_init_from_data((float *)expected_data,
+                                             3, (int[]){2, 4, 4});
     tensor *x1 = tensor_layer_stack_apply_new(stack, x0);
     assert(x1);
 
@@ -1131,7 +1136,8 @@ test_layer_stack_apply_conv2d() {
 
 void
 test_softmax() {
-    tensor *t = tensor_init_from_data((float *)(float[]){-1, 0, 3, 5}, 1, 4);
+    tensor *t = tensor_init_from_data((float *)(float[]){-1, 0, 3, 5},
+                                      1, (int[]){4});
     tensor_softmax(t);
     assert(approx_eq(t->data[0], 0.00216569646006f));
     assert(approx_eq(t->data[1], 0.00588697333334f));
@@ -1143,7 +1149,8 @@ test_softmax() {
 
 void
 test_multiply() {
-    tensor *a = tensor_init_from_data((float *)(float[]){-1, 0, 3, 5}, 2, 2);
+    tensor *a = tensor_init_from_data((float *)(float[]){-1, 0, 3, 5},
+                                      2, (int[]){2, 2});
     tensor_free(a);
 }
 

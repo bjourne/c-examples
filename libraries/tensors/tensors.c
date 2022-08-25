@@ -106,7 +106,6 @@ tensor_flatten(tensor *me, int from) {
 ////////////////////////////////////////////////////////////////////////
 static tensor *
 init_from_va_list(int n_dims, va_list ap) {
-
     tensor *me = (tensor *)malloc(sizeof(tensor));
     me->n_dims = n_dims;
     for (int i = 0; i < n_dims; i++) {
@@ -147,12 +146,15 @@ tensor_init_from_dims(int n_dims, int *dims)  {
 }
 
 tensor *
-tensor_init_from_data(float *data, int n_dims, ...)  {
-    va_list ap;
-    va_start(ap, n_dims);
-    tensor *me = init_from_va_list(n_dims, ap);
-    va_end(ap);
-    memcpy(me->data, data, tensor_n_elements(me) *  sizeof(float));
+tensor_init_from_data(float *data, int n_dims, int dims[])  {
+
+    tensor *me = (tensor *)malloc(sizeof(tensor));
+    me->n_dims = n_dims;
+    memcpy(me->dims, dims, n_dims * sizeof(int));
+
+    int n_bytes = sizeof(float) * tensor_n_elements(me);
+    me->data = (float *)malloc(n_bytes);
+    memcpy(me->data, data, n_bytes);
     return me;
 }
 
