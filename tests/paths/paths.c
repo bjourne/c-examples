@@ -14,7 +14,7 @@ test_basename() {
         {"", ""}
     };
     for (int i = 0; i < ARRAY_SIZE(tests); i++) {
-        char *res = paths_basename(tests[i][0]);
+        const char *res = paths_basename(tests[i][0]);
         assert(!strcmp(tests[i][1], res));
     }
 }
@@ -39,8 +39,21 @@ test_dirname() {
     }
 }
 
+void
+test_stem() {
+    char* tests[][2] = {
+        {"libraries/opencl/matmul.cl", "matmul"}
+    };
+    for (int i = 0; i < ARRAY_SIZE(tests); i++) {
+        char *res = paths_stem(tests[i][0]);
+        assert(!strcmp(tests[i][1], res));
+        free(res);
+    }
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_basename);
     PRINT_RUN(test_dirname);
+    PRINT_RUN(test_stem);
 }

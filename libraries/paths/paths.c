@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019, 2022 Björn Lindqvist <bjourne@gmail.com>
 #include <string.h>
 #include "datatypes/common.h"
 #include "paths.h"
@@ -8,8 +8,8 @@
 // they support backslashes which are used on Windows. On Unix, a
 // backslash can be part of a filename so they are technically not
 // correct.
-char *
-paths_basename(char *path) {
+const char *
+paths_basename(const char *path) {
     char *p1 = strrchr(path, '\\');
     char *p2 = strrchr(path, '/');
     char *p = MAX(p1, p2);
@@ -17,6 +17,17 @@ paths_basename(char *path) {
         return path;
     }
     return ++p;
+}
+
+char *
+paths_stem(const char *path) {
+    const char *path2 = paths_basename(path);
+    char *str = strdup(path2);
+    char *p = strchr(str, '.');
+    if (p) {
+        *p = '\0';
+    }
+    return str;
 }
 
 // There are some weird edge cases which I just ignore here.
