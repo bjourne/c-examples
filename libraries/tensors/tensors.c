@@ -546,8 +546,25 @@ tensor_linear_new(tensor *weights, tensor *bias, tensor *src) {
 void
 tensor_multiply(tensor *a, tensor *b, tensor *c) {
     assert(a->n_dims == b->n_dims);
-    assert(a->n_dims == c->n_dims);
     assert(a->n_dims == 2);
+
+    int a_rows = a->dims[0];
+    int a_cols = a->dims[1];
+    int b_rows = b->dims[0];
+    int b_cols = b->dims[1];
+
+    assert(a_cols == b_rows);
+    assert(tensor_n_elements(c) == a_rows * b_cols);
+
+    for  (int i = 0; i < a_rows; i++) {
+        for (int j = 0; j < b_cols; j++) {
+            float s = 0;
+            for (int k = 0; k < b_rows; k++) {
+                s += a->data[a_cols * i + k] * b->data[k * b_cols + j];
+            }
+            c->data[b_cols * i + j] = s;
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////

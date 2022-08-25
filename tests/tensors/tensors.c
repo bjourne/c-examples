@@ -1149,17 +1149,83 @@ test_softmax() {
 
 void
 test_multiply() {
-    tensor *a = tensor_init_from_data((float *)(float[]){-1, 0, 3, 5},
-                                      2, (int[]){2, 2});
-    tensor *b = tensor_init_from_data((float *)(float[]){-1, 0, 3, 5},
-                                      2, (int[]){2, 2});
-    tensor *c = tensor_init(2, (int[]){2, 2});
-
-    tensor_multiply(a, b, c);
-
-    tensor_free(a);
-    tensor_free(b);
-    tensor_free(c);
+    tensor *as[] = {
+        tensor_init_from_data(
+            (float *)(float[]){-1, 0, 3, 5},
+            2, (int[]){2, 2}
+        ),
+        tensor_init_from_data(
+            (float *)(float[]){15, 2, 3, 4, 5, 6, 7, 8, 9},
+            2, (int[]){3, 3}
+        ),
+        tensor_init_from_data(
+            (float *)(float[]){0, 1, 2, 3, 4, 5, 6, 7},
+            2, (int[]){4, 2}
+        ),
+        tensor_init_from_data(
+            (float *)(float[]){0, 1, 2, 3, 4, 5, 6, 7},
+            2, (int[]){2, 4}
+        )
+    };
+    tensor *bs[] = {
+        tensor_init_from_data(
+            (float *)(float[]){-1, 0, 3, 5},
+            2, (int[]){2, 2}
+        ),
+        tensor_init_from_data(
+            (float *)(float[]){10, 11, 12, 13, 14, 15, 16, 17, 18},
+            2, (int[]){3, 3}
+        ),
+        tensor_init_from_data(
+            (float *)(float[]){0, 1, 2, 3, 4, 5, 6, 7},
+            2, (int[]){2, 4}
+        ),
+        tensor_init_from_data(
+            (float *)(float[]){0, 1, 2, 3, 4, 5, 6, 7},
+            2, (int[]){4, 2}
+        ),
+    };
+    tensor *cs[] = {
+        tensor_init(2, (int[]){2, 2}),
+        tensor_init(2, (int[]){3, 3}),
+        tensor_init(2, (int[]){4, 4}),
+        tensor_init(2, (int[]){2, 2})
+    };
+    tensor *c_exps[] = {
+        tensor_init_from_data(
+            (float *)(float[]){1, 0, 12, 25},
+            2, (int[]){2, 2}
+        ),
+        tensor_init_from_data(
+            (float *)(float[]){224, 244, 264, 201, 216, 231, 318, 342, 366},
+            2, (int[]){3, 3}
+        ),
+        tensor_init_from_data(
+            (float *)(float[]){
+                4, 5, 6, 7,
+                12, 17, 22, 27,
+                20, 29, 38, 47,
+                28, 41, 54, 67
+            },
+            2, (int[]){4, 4}
+        ),
+        tensor_init_from_data(
+            (float *)(float[]){28, 34, 76, 98},
+            2, (int[]){2, 2}
+        )
+    };
+    for (int i = 0; i < ARRAY_SIZE(as); i++) {
+        tensor *a = as[i];
+        tensor *b = bs[i];
+        tensor *c = cs[i];
+        tensor *c_exp = c_exps[i];
+        tensor_multiply(a, b, c);
+        tensor_check_equal(c, c_exp);
+        tensor_free(a);
+        tensor_free(b);
+        tensor_free(c);
+        tensor_free(c_exp);
+    }
 }
 
 int
