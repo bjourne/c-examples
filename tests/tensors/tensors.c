@@ -1141,8 +1141,11 @@ test_softmax() {
     tensor_free(t);
 }
 
-
-
+void
+test_multiply() {
+    tensor *a = tensor_init_from_data((float *)(float[]){-1, 0, 3, 5}, 2, 2);
+    tensor_free(a);
+}
 
 int
 main(int argc, char *argv[]) {
@@ -1177,4 +1180,5 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_layer_stack_apply_conv2d);
     PRINT_RUN(test_layer_stack_apply_lenet);
     PRINT_RUN(test_softmax);
+    PRINT_RUN(test_multiply);
 }
