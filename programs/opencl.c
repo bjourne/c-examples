@@ -16,24 +16,39 @@
 #define MAX_SOURCE_SIZE (0x100000)
 #define LIST_SIZE 1024
 
-static int ind = 0;
-
 static void
-print_prefix() {
+print_prefix(int ind) {
     for (int i = 0; i < ind; i++) {
         printf(" ");
     }
 }
 
 static void
-print_device_info(cl_device_id id, int attr, const char *attr_name) {
+print_device_info(cl_device_id id, int attr, char *attr_name) {
     size_t n_bytes;
     clGetDeviceInfo(id, attr, 0, NULL, &n_bytes);
     char *bytes = (char *)malloc(n_bytes);
     clGetDeviceInfo(id, attr, n_bytes, bytes, NULL);
-    print_prefix();
     printf("%-15s: %s\n", attr_name, bytes);
     free(bytes);
+}
+
+static void
+print_device_infos(cl_device_id id) {
+    char *attr_names[] = {"Name", "Version", "Driver", "C Version"};
+    int attr_types[] = {
+        CL_DEVICE_NAME, CL_DEVICE_VERSION, CL_DRIVER_VERSION,
+        CL_DEVICE_OPENCL_C_VERSION
+    };
+    for (int i = 0; i < 4; i++) {
+        print_prefix(2);
+        print_device_info(id, attr_types[i], attr_names[i]);
+    }
+    cl_uint n_compute_units;
+    clGetDeviceInfo(id, CL_DEVICE_MAX_COMPUTE_UNITS,
+                    sizeof(cl_uint), &n_compute_units, NULL);
+    print_prefix(2);
+    printf("%-15s: %d\n", "Compute units", n_compute_units);
 }
 
 
@@ -72,22 +87,9 @@ list_platforms() {
             sizeof(cl_device_id) * n_devices);
         clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, n_devices, devices, NULL);
         printf("%-15s: %d\n", "Devices", n_devices);
-        ind += 2;
         for (int j = 0; j < n_devices; j++) {
-            cl_device_id id = devices[j];
-            print_device_info(id, CL_DEVICE_NAME, "Name");
-            print_device_info(id, CL_DEVICE_VERSION, "Version");
-            print_device_info(id, CL_DRIVER_VERSION, "Driver");
-            print_device_info(id, CL_DEVICE_OPENCL_C_VERSION, "C Version");
-
-            cl_uint n_compute_units;
-            clGetDeviceInfo(id, CL_DEVICE_MAX_COMPUTE_UNITS,
-                            sizeof(cl_uint), &n_compute_units, NULL);
-            print_prefix();
-            printf("%-15s: %d\n", "Compute units", n_compute_units);
-
+            print_device_infos(devices[j]);
         }
-        ind -= 2;
         free(devices);
         printf("\n");
     }
