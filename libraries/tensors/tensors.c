@@ -556,13 +556,17 @@ tensor_multiply(tensor *a, tensor *b, tensor *c) {
     assert(a_cols == b_rows);
     assert(tensor_n_elements(c) == a_rows * b_cols);
 
+    float *a_buf = a->data;
+    float *b_buf = b->data;
+    float *c_buf = c->data;
+
+    memset(c_buf, 0, sizeof(float) * tensor_n_elements(c));
+    #pragma omp parallel for schedule(static, 1)
     for (int i = 0; i < a_rows; i++) {
-        for (int j = 0; j < b_cols; j++) {
-            float s = 0;
-            for (int k = 0; k < b_rows; k++) {
-                s += a->data[a_cols * i + k] * b->data[k * b_cols + j];
+        for (int k = 0; k < b_rows; k++) {
+            for (int j = 0; j < b_cols; j++) {
+                c_buf[b_cols * i + j] += a_buf[a_cols * i + k] * b_buf[k * b_cols + j];
             }
-            c->data[b_cols * i + j] = s;
         }
     }
 }
