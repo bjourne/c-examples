@@ -25,13 +25,24 @@ tensor_check_dims(tensor *me, int n_dims, int dims[]) {
 }
 
 static void
-print_dims(int n_dims, int dims[]) {
-    printf("[");
+str_dims(char *buf, int n_dims, int dims[])  {
+    strcat(buf, "[");
+    char buf2[256];
     for (int i = 0; i < n_dims - 1; i++) {
-        printf("%d, ", dims[i]);
+
+        sprintf(buf2, "%d, ", dims[i]);
+        strcat(buf, buf2);
     }
-    printf("%d", dims[n_dims - 1]);
-    printf("]");
+    sprintf(buf2, "%d", dims[n_dims - 1]);
+    strcat(buf, buf2);
+    strcat(buf, "]");
+}
+
+static void
+print_dims(int n_dims, int dims[]) {
+    char buf[256] = {0};
+    str_dims(buf, n_dims, dims);
+    printf("%s", buf);
 }
 
 bool
@@ -647,6 +658,23 @@ tensor_layer_init_conv2d_from_data(int in_chans, int out_chans,
     return l;
 }
 
+int
+tensor_layer_n_params(tensor_layer *me) {
+    tensor_layer_type t = me->type;
+    if (t == TENSOR_LAYER_CONV2D || t == TENSOR_LAYER_LINEAR) {
+        tensor *w, *b;
+        if (t == TENSOR_LAYER_CONV2D) {
+            w = me->conv2d.weight;
+            b = me->conv2d.bias;
+        } else {
+            w = me->linear.weight;
+            b = me->linear.bias;
+        }
+        return tensor_n_elements(w) + tensor_n_elements(b);
+    }
+    return 0;
+}
+
 void
 tensor_layer_free(tensor_layer *me) {
     if (me->type == TENSOR_LAYER_LINEAR)  {
@@ -803,15 +831,40 @@ layer_name(tensor_layer_type t) {
     return "Unknown";
 }
 
+static void
+layer_details(char *buf, tensor_layer *l) {
+    tensor_layer_type t = l->type;
+    if (t == TENSOR_LAYER_CONV2D || t == TENSOR_LAYER_LINEAR) {
+        tensor *w, *b;
+        if (t == TENSOR_LAYER_CONV2D) {
+            w = l->conv2d.weight;
+            b = l->conv2d.bias;
+        } else {
+            w = l->linear.weight;
+            b = l->linear.bias;
+        }
+        str_dims(buf, w->n_dims, w->dims);
+        strcat(buf, ", ");
+        str_dims(buf, b->n_dims, b->dims);
+    }
+}
+
 void
 tensor_layer_stack_print(tensor_layer_stack *me) {
     int n_layers = me->n_layers;
+    int n_params = 0;
+    for (int i = 0; i < n_layers; i++) {
+        n_params += tensor_layer_n_params(me->layers[i]);
+    }
     printf("Input: ");
     print_dims(me->input_n_dims, me->input_dims);
-    printf(", Layers: %d\n", n_layers);
+    printf(", Layers: %d, Params: %d\n", n_layers, n_params);
     for (int i = 0; i < n_layers; i++) {
-        tensor_layer_type t = me->layers[i]->type;
-        printf("  %-10s: ", layer_name(t));
+        char buf[256] =  {0};
+        tensor_layer *l = me->layers[i];
+        tensor_layer_type t = l->type;
+        layer_details(buf, l);
+        printf("  %-10s %-20s: ", layer_name(t), buf);
         print_dims(me->layers_n_dims[i], me->layers_dims[i]);
         printf("\n");
     }
