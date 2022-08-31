@@ -88,7 +88,7 @@ tensor *tensor_init_filled(float v, int n_dims, ...);
 void tensor_free(tensor *t);
 
 // Checking
-bool tensor_check_equal(tensor *t1, tensor *t2);
+bool tensor_check_equal(tensor *t1, tensor *t2, float eps);
 bool tensor_check_dims(tensor *me, int n_dims, int dims[]);
 
 // Utility
@@ -119,6 +119,10 @@ tensor *tensor_linear_new(tensor *weights, tensor *bias, tensor *src);
 
 // Matrix multiply
 void tensor_multiply(tensor *a, tensor *b, tensor *c);
+
+// DCT
+void tensor_dct2d(tensor *src, tensor *dst);
+void tensor_idct2d(tensor *src, tensor *dst);
 
 // Scalar ops
 void tensor_relu(tensor *t);
@@ -155,7 +159,8 @@ tensor *tensor_layer_apply_new(tensor_layer *me, tensor *input);
 // The stack takes ownership of the layers.
 tensor_layer_stack *
 tensor_layer_stack_init(int n_layers, tensor_layer *layers[],
-                        int input_n_dims, int *input_dims);
+                        int input_n_dims,
+                        int *input_dims);
 tensor *tensor_layer_stack_apply_new(tensor_layer_stack *me, tensor *input);
 void tensor_layer_stack_free(tensor_layer_stack *me);
 

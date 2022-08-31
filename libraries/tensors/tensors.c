@@ -46,7 +46,7 @@ print_dims(int n_dims, int dims[]) {
 }
 
 bool
-tensor_check_equal(tensor *t1, tensor *t2) {
+tensor_check_equal(tensor *t1, tensor *t2, float epsilon) {
     assert(t1->n_dims == t2->n_dims);
     int n = t1->n_dims;
     int dim_counts[TENSOR_MAX_N_DIMS] = {0};
@@ -54,7 +54,8 @@ tensor_check_equal(tensor *t1, tensor *t2) {
     for (int i = 0; i < tensor_n_elements(t1); i++) {
         float v1 = t1->data[i];
         float v2 = t2->data[i];
-        if (v1 != v2) {
+        float diff = fabs(v2 - v1);
+        if (diff >= epsilon) {
             printf("Mismatch at ");
             print_dims(n, dim_counts);
             printf(", %.2f != %.2f\n", v1,  v2);
@@ -75,7 +76,8 @@ tensor_check_equal(tensor *t1, tensor *t2) {
 // Utility
 ////////////////////////////////////////////////////////////////////////
 static void
-copy_dims(int src_n_dims, int *src_dims, int *dst_n_dims, int *dst_dims) {
+copy_dims(int src_n_dims, int *src_dims,
+          int *dst_n_dims, int *dst_dims) {
     *dst_n_dims = src_n_dims;
     memcpy(dst_dims, src_dims, sizeof(int) * TENSOR_MAX_N_DIMS);
 }
@@ -556,7 +558,7 @@ tensor_linear_new(tensor *weights, tensor *bias, tensor *src) {
 ////////////////////////////////////////////////////////////////////////
 void
 tensor_multiply(tensor *a, tensor *b, tensor *c) {
-    assert(a->n_dims == b->n_dims);
+    assert(a->n_dims == b->n_dims  && a->n_dims == 2);
     assert(a->n_dims == 2);
 
     int a_rows = a->dims[0];
@@ -572,12 +574,79 @@ tensor_multiply(tensor *a, tensor *b, tensor *c) {
     float *c_buf = c->data;
 
     memset(c_buf, 0, sizeof(float) * tensor_n_elements(c));
+
+    // TODO: Replace with pthreads
     #pragma omp parallel for schedule(static, 1)
     for (int i = 0; i < a_rows; i++) {
         for (int k = 0; k < b_rows; k++) {
             for (int j = 0; j < b_cols; j++) {
                 c_buf[b_cols * i + j] += a_buf[a_cols * i + k] * b_buf[k * b_cols + j];
             }
+        }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+// DCT
+////////////////////////////////////////////////////////////////////////
+static float SQRT2 = sqrt(2.0);
+
+void
+tensor_dct2d(tensor *src, tensor *dst) {
+    assert(src->n_dims == dst->n_dims  && src->n_dims == 2);
+    assert(src->dims[0] == dst->dims[0]);
+    assert(src->dims[1] == dst->dims[1]);
+
+    int n_rows = src->dims[0];
+    int n_cols = src->dims[1];
+
+    float sqrt2inv = 1.0f / SQRT2;
+    float pi_div_2rows = 0.5 * M_PI / n_rows;
+    float pi_div_2cols = 0.5 * M_PI / n_cols;
+
+    float coeff = 2.0 / sqrt(n_rows * n_cols);
+    for (int u = 0; u < n_rows; u++) {
+        for (int v = 0; v < n_cols; v++) {
+            float o = 0.0f;
+            for (int y = 0; y < n_rows; y++) {
+                for (int x = 0; x < n_cols; x++) {
+                    float cos_y = cos((2 * y + 1) * u * pi_div_2rows);
+                    float cos_x = cos((2 * x + 1) * v * pi_div_2cols);
+                    o += src->data[n_cols * y + x] * cos_y * cos_x;
+                }
+            }
+            float c_u = u == 0 ? sqrt2inv : 1;
+            float c_v = v == 0 ? sqrt2inv : 1;
+            dst->data[n_cols * u + v] = coeff * c_u * c_v * o;
+        }
+    }
+}
+
+void
+tensor_idct2d(tensor *src, tensor *dst) {
+    assert(src->n_dims == dst->n_dims  && src->n_dims == 2);
+    assert(src->dims[0] == dst->dims[0]);
+    assert(src->dims[1] == dst->dims[1]);
+
+    int n_rows = src->dims[0];
+    int n_cols = src->dims[1];
+
+    float pi_div_2rows = 0.5 * M_PI / n_rows;
+    float pi_div_2cols = 0.5 * M_PI / n_cols;
+    float denom = sqrt(n_rows * n_cols);
+    for  (unsigned int u = 0; u < n_rows; u++) {
+        for (unsigned int v = 0; v < n_cols; v++) {
+            float o = 0.0f;
+            for (unsigned int y = 0; y < n_rows; y++) {
+                for (unsigned int x = 0; x < n_cols; x++) {
+                    float a_y = y == 0 ? 1.0 : SQRT2;
+                    float a_x = x == 0 ? 1.0 : SQRT2;
+                    float cos_y = cos((2 * u + 1) * y * pi_div_2rows);
+                    float cos_x = cos((2 * v + 1) * x * pi_div_2cols);
+                    o += src->data[n_cols * y + x] * a_y * a_x * cos_y * cos_x / denom;
+                }
+            }
+            dst->data[n_cols * u + v] = o;
         }
     }
 }

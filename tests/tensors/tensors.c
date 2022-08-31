@@ -152,7 +152,7 @@ test_conv2d_padded() {
 
     tensor *dst = tensor_conv2d_new(weight, bias, 1, 0, src);
 
-    tensor_check_equal(expected, dst);
+    tensor_check_equal(expected, dst, LINALG_EPSILON);
 
     tensor_free(src);
     tensor_free(dst);
@@ -201,7 +201,7 @@ test_conv2d_padded_2() {
 
     tensor *dst = tensor_conv2d_new(weight, bias, 1, 1, src);
 
-    tensor_check_equal(expected, dst);
+    tensor_check_equal(expected, dst, LINALG_EPSILON);
 
     tensor_free(src);
     tensor_free(dst);
@@ -252,7 +252,7 @@ test_conv2d_2channels() {
 
     tensor *dst = tensor_conv2d_new(weight, bias, 1, 0, src);
 
-    tensor_check_equal(expected, dst);
+    tensor_check_equal(expected, dst, LINALG_EPSILON);
 
     tensor_free(src);
     tensor_free(dst);
@@ -312,7 +312,7 @@ test_conv2d_2x2channels() {
 
     tensor *dst = tensor_conv2d_new(weight, bias, 1, 0, src);
 
-    tensor_check_equal(expected, dst);
+    tensor_check_equal(expected, dst, LINALG_EPSILON);
 
     tensor_free(src);
     tensor_free(dst);
@@ -360,7 +360,7 @@ test_conv2d_strided() {
 
 
 
-    tensor_check_equal(expected, dst);
+    tensor_check_equal(expected, dst, LINALG_EPSILON);
 
     tensor_free(src);
     tensor_free(dst);
@@ -421,7 +421,7 @@ test_conv2d_3() {
 
     tensor_conv2d(weight, bias, 1, 1, src, dst);
 
-    tensor_check_equal(expected, dst);
+    tensor_check_equal(expected, dst, LINALG_EPSILON);
 
     tensor_free(src);
     tensor_free(dst);
@@ -469,7 +469,7 @@ test_conv2d_uneven() {
     tensor *bias = tensor_init_filled(0, 1, 2);
     tensor *dst = tensor_conv2d_new(weight, bias, 1, 0, src);
 
-    tensor_check_equal(expected, dst);
+    tensor_check_equal(expected, dst, LINALG_EPSILON);
 
     tensor_free(src);
     tensor_free(dst);
@@ -519,7 +519,7 @@ test_conv2d_uneven_strided() {
 
     tensor_conv2d(weight, bias, 2, 0, src, dst);
 
-    tensor_check_equal(expected, dst);
+    tensor_check_equal(expected, dst, LINALG_EPSILON);
 
     tensor_free(src);
     tensor_free(dst);
@@ -595,7 +595,7 @@ test_conv2d_with_bias() {
                                          1, (int[]){2});
     tensor *dst = tensor_conv2d_new(weight, bias, 1, 0, src);
 
-    tensor_check_equal(expected, dst);
+    tensor_check_equal(expected, dst, LINALG_EPSILON);
 
 
     tensor_free(src);
@@ -654,10 +654,10 @@ test_max_pool_1() {
     tensor *dst2 = tensor_init(3, (int[]){2, 1, 5});
 
     tensor_max_pool2d(2, 2, 1, 0, src, dst1);
-    tensor_check_equal(expected1, dst1);
+    tensor_check_equal(expected1, dst1, LINALG_EPSILON);
 
     tensor_max_pool2d(5, 1, 1, 0, src, dst2);
-    tensor_check_equal(expected2, dst2);
+    tensor_check_equal(expected2, dst2, LINALG_EPSILON);
 
     tensor_free(src);
     tensor_free(dst1);
@@ -700,7 +700,7 @@ test_max_pool_strided() {
     tensor *expected = tensor_init_from_data((float *)expected_data,
                                              3, (int[]){2, 2, 2});
     tensor *dst = tensor_max_pool2d_new(2, 2, 2, 0, src);
-    tensor_check_equal(expected, dst);
+    tensor_check_equal(expected, dst, LINALG_EPSILON);
     tensor_free(src);
     tensor_free(expected);
 }
@@ -732,7 +732,7 @@ test_relu() {
         1, (int[]){5});
 
     tensor_relu(src);
-    tensor_check_equal(src, expected);
+    tensor_check_equal(src, expected, LINALG_EPSILON);
 
     tensor_free(src);
     tensor_free(expected);
@@ -761,7 +761,7 @@ test_linear() {
         1, (int[]){4});
 
     tensor_linear(weight, bias, src, dst);
-    tensor_check_equal(dst, expected);
+    tensor_check_equal(dst, expected, LINALG_EPSILON);
 
     tensor_free(src);
     tensor_free(dst);
@@ -801,7 +801,7 @@ test_linear_with_bias() {
         }, 1, (int[]){10});
 
     tensor *dst = tensor_linear_new(weight, bias, src);
-    tensor_check_equal(dst, expected);
+    tensor_check_equal(dst, expected, LINALG_EPSILON);
 
     tensor_free(src);
     tensor_free(weight);
@@ -1007,7 +1007,7 @@ test_lenet_layer_stack_apply_relu() {
             0, 8., 5., 2., 8., 0, 6., 2.
         }, 1, (int[]){8});
     assert(x1->n_dims == 1);
-    tensor_check_equal(x1, expected);
+    tensor_check_equal(x1, expected, LINALG_EPSILON);
     tensor_layer_stack_free(stack);
     tensor_free(x0);
     tensor_free(x1);
@@ -1125,7 +1125,7 @@ test_layer_stack_apply_conv2d() {
     tensor *x1 = tensor_layer_stack_apply_new(stack, x0);
     assert(x1);
 
-    tensor_check_equal(x1, expected);
+    tensor_check_equal(x1, expected, LINALG_EPSILON);
 
 
     tensor_layer_stack_free(stack);
@@ -1220,11 +1220,34 @@ test_multiply() {
         tensor *c = cs[i];
         tensor *c_exp = c_exps[i];
         tensor_multiply(a, b, c);
-        tensor_check_equal(c, c_exp);
+        tensor_check_equal(c, c_exp, LINALG_EPSILON);
         tensor_free(a);
         tensor_free(b);
         tensor_free(c);
         tensor_free(c_exp);
+    }
+}
+
+void
+test_dct() {
+    int dims[][2] = {
+        {8, 8},
+        {16, 16},
+        {8, 16},
+    };
+    float tot[] = {2040, 4080, 2885};
+    for (int i = 0; i < ARRAY_SIZE(dims); i++) {
+        tensor *a = tensor_init(2, dims[i]);
+        tensor *b = tensor_init(2, dims[i]);
+        tensor *c = tensor_init(2, dims[i]);
+        tensor_fill(a, 255.0);
+        tensor_dct2d(a, b);
+        assert(approx_eq2(b->data[0], tot[i], 0.005));
+        tensor_idct2d(b, c);
+        tensor_check_equal(a, c, 0.001);
+        tensor_free(a);
+        tensor_free(b);
+        tensor_free(c);
     }
 }
 
@@ -1262,4 +1285,5 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_layer_stack_apply_lenet);
     PRINT_RUN(test_softmax);
     PRINT_RUN(test_multiply);
+    PRINT_RUN(test_dct);
 }
