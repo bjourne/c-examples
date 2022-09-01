@@ -358,8 +358,6 @@ test_conv2d_strided() {
                                         3, (int[]){1, 5, 5});
     tensor *dst = tensor_conv2d_new(weight, bias, 2, 1, src);
 
-
-
     tensor_check_equal(expected, dst, LINALG_EPSILON);
 
     tensor_free(src);
@@ -1127,7 +1125,6 @@ test_layer_stack_apply_conv2d() {
 
     tensor_check_equal(x1, expected, LINALG_EPSILON);
 
-
     tensor_layer_stack_free(stack);
     tensor_free(x0);
     tensor_free(x1);
@@ -1352,8 +1349,7 @@ test_multiply_big() {
         }
     }
     tensor_multiply(a, b, c);
-    tensor_check_equal(c, c_exp);
-
+    tensor_check_equal(c, c_exp, LINALG_EPSILON);
 
     tensor_free(a);
     tensor_free(b);

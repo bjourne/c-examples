@@ -639,7 +639,8 @@ tensor_multiply(tensor *a, tensor *b, tensor *c) {
 ////////////////////////////////////////////////////////////////////////
 // DCT
 ////////////////////////////////////////////////////////////////////////
-static float SQRT2 = sqrt(2.0);
+static float SQRT2 = 1.4142135623730951f;
+static float SQRT2INV = 0.7071067811865475f;
 
 void
 tensor_dct2d_rect(tensor *src, tensor *dst, int sy, int sx, int height, int width) {
@@ -648,7 +649,6 @@ tensor_dct2d_rect(tensor *src, tensor *dst, int sy, int sx, int height, int widt
     assert(src->dims[1] == dst->dims[1]);
 
     int n_cols = src->dims[1];
-    float sqrt2inv = 1.0f / SQRT2;
     float pi_div_2rows = 0.5 * M_PI / height;
     float pi_div_2cols = 0.5 * M_PI / width;
     float coeff = 2.0 / sqrt(height * width);
@@ -664,8 +664,8 @@ tensor_dct2d_rect(tensor *src, tensor *dst, int sy, int sx, int height, int widt
                     o  += src->data[r_addr] * cos_y * cos_x;
                 }
             }
-            float c_u = u == 0 ? sqrt2inv : 1;
-            float c_v = v == 0 ? sqrt2inv : 1;
+            float c_u = u == 0 ? SQRT2INV : 1;
+            float c_v = v == 0 ? SQRT2INV : 1;
             int w_addr = n_cols * (u + sy) + v + sx;
             dst->data[w_addr] = coeff * c_u * c_v * o;
         }
