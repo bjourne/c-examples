@@ -70,7 +70,8 @@ err_str(cl_int err) {
         CL_ERR_RETURN_STRING(CL_INVALID_COMPILER_OPTIONS       )
         CL_ERR_RETURN_STRING(CL_INVALID_LINKER_OPTIONS         )
         CL_ERR_RETURN_STRING(CL_INVALID_DEVICE_PARTITION_COUNT )
-        default: return "Unknown OpenCL error code";
+    default:
+        return NULL;
     }
 }
 
@@ -79,7 +80,12 @@ ocl_check_err(cl_int err) {
     if (err == CL_SUCCESS)  {
         return;
     }
-    printf("OpenCL error: %s\n", err_str(err));
+    const char *s = err_str(err);
+    if (s) {
+        printf("OpenCL error: %s\n", s);
+    } else {
+        printf("Unknown OpenCL error: %d\n", err);
+    }
     assert(false);
 }
 

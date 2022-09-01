@@ -8,7 +8,7 @@
 void
 test_load_kernel() {
     // Create tensor matrices.
-    int SIZE = 4096;
+    int SIZE = 2048;
 
     int a_rows = SIZE;
     int a_cols = SIZE;
