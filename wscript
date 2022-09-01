@@ -160,6 +160,11 @@ def build(ctx):
     if ctx.env.DEST_OS == 'linux':
         build_program(ctx, 'sigsegv.c', [])
         build_program(ctx, 'opencl.c', ['OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS'])
+        build_program(ctx, 'opencl-dct.c', [
+            'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS',
+            'TENSORS_OBJS', 'PNG', 'M', 'GOMP',
+            'DT_OBJS'
+        ])
     if ctx.env.DEST_OS != 'win32':
         build_program(ctx, 'capstack.c',
                       ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
