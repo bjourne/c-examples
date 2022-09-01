@@ -1331,6 +1331,36 @@ test_dct2() {
     tensor_free(output);
 }
 
+void
+test_multiply_big() {
+    int dim = 1024;
+    tensor *a = tensor_init(2, (int[]){dim, dim});
+    tensor *b = tensor_init(2, (int[]){dim, dim});
+    tensor *c = tensor_init(2, (int[]){dim, dim});
+    tensor *c_exp = tensor_init(2, (int[]){dim, dim});
+
+    tensor_randrange(a, 10.0);
+    tensor_randrange(b, 10.0);
+
+    for (int i = 0; i < dim; i++) {
+        for (int j = 0; j < dim; j++) {
+            for (int k = 0; k < dim; k++) {
+                float av = a->data[dim * i + k];
+                float bv = b->data[dim * k + j];
+                c_exp->data[dim * i + j] += av * bv;
+            }
+        }
+    }
+    tensor_multiply(a, b, c);
+    tensor_check_equal(c, c_exp);
+
+
+    tensor_free(a);
+    tensor_free(b);
+    tensor_free(c);
+    tensor_free(c_exp);
+}
+
 int
 main(int argc, char *argv[]) {
     rand_init(1234);
@@ -1365,6 +1395,8 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_layer_stack_apply_lenet);
     PRINT_RUN(test_softmax);
     PRINT_RUN(test_multiply);
+    PRINT_RUN(test_multiply_big);
     PRINT_RUN(test_dct);
     PRINT_RUN(test_dct2);
+
 }
