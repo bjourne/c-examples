@@ -124,7 +124,10 @@ tensor *tensor_linear_new(tensor *weights, tensor *bias, tensor *src);
 void tensor_multiply(tensor *a, tensor *b, tensor *c);
 
 // DCT
-void tensor_dct2d(tensor *src, tensor *dst);
+void tensor_dct2d_rect(tensor *src, tensor *dst,
+                       int sy, int sx, int height, int width);
+void tensor_dct2d_blocked(tensor *src, tensor *dst,
+                          int block_height, int block_width);
 void tensor_idct2d(tensor *src, tensor *dst);
 
 // Scalar ops

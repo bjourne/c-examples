@@ -86,7 +86,7 @@ tensor_print(tensor *me, const char *fmt, bool py_fmt) {
     int height = dims[n_dims - 2];
     int width = dims[n_dims - 1];
 
-    printf("Dimensions: ");
+    printf("Dims: ");
     print_dims(n_dims, dims);
     printf("\n");
     for (int y = 0; y < height; y++) {
@@ -642,32 +642,52 @@ tensor_multiply(tensor *a, tensor *b, tensor *c) {
 static float SQRT2 = sqrt(2.0);
 
 void
-tensor_dct2d(tensor *src, tensor *dst) {
+tensor_dct2d_rect(tensor *src, tensor *dst, int sy, int sx, int height, int width) {
     assert(src->n_dims == dst->n_dims  && src->n_dims == 2);
     assert(src->dims[0] == dst->dims[0]);
     assert(src->dims[1] == dst->dims[1]);
 
-    int n_rows = src->dims[0];
     int n_cols = src->dims[1];
-
     float sqrt2inv = 1.0f / SQRT2;
-    float pi_div_2rows = 0.5 * M_PI / n_rows;
-    float pi_div_2cols = 0.5 * M_PI / n_cols;
+    float pi_div_2rows = 0.5 * M_PI / height;
+    float pi_div_2cols = 0.5 * M_PI / width;
+    float coeff = 2.0 / sqrt(height * width);
 
-    float coeff = 2.0 / sqrt(n_rows * n_cols);
-    for (int u = 0; u < n_rows; u++) {
-        for (int v = 0; v < n_cols; v++) {
+    for (int u = 0; u < height; u++) {
+        for (int v = 0; v < width; v++) {
             float o = 0.0f;
-            for (int y = 0; y < n_rows; y++) {
-                for (int x = 0; x < n_cols; x++) {
+            for (int y = 0; y < height;  y++) {
+                for (int x = 0; x < width; x++) {
                     float cos_y = cos((2 * y + 1) * u * pi_div_2rows);
                     float cos_x = cos((2 * x + 1) * v * pi_div_2cols);
-                    o += src->data[n_cols * y + x] * cos_y * cos_x;
+                    int r_addr = n_cols * (y + sy) + x + sx;
+                    o  += src->data[r_addr] * cos_y * cos_x;
                 }
             }
             float c_u = u == 0 ? sqrt2inv : 1;
             float c_v = v == 0 ? sqrt2inv : 1;
-            dst->data[n_cols * u + v] = coeff * c_u * c_v * o;
+            int w_addr = n_cols * (u + sy) + v + sx;
+            dst->data[w_addr] = coeff * c_u * c_v * o;
+        }
+    }
+}
+
+void
+tensor_dct2d_blocked(tensor *src, tensor *dst, int block_height, int block_width) {
+    assert(src->n_dims == dst->n_dims  && src->n_dims == 2);
+    assert(src->dims[0] == dst->dims[0]);
+    assert(src->dims[1] == dst->dims[1]);
+
+    int height = src->dims[0];
+    int width = src->dims[1];
+
+    // Lazyness
+    assert(width % block_width == 0);
+    assert(height % block_height == 0);
+
+    for (int y = 0; y < height; y += block_height) {
+        for (int x = 0; x < width; x += block_width) {
+            tensor_dct2d_rect(src, dst, y, x, block_height, block_width);
         }
     }
 }
