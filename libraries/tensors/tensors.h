@@ -91,6 +91,9 @@ void tensor_free(tensor *t);
 bool tensor_check_equal(tensor *t1, tensor *t2, float eps);
 bool tensor_check_dims(tensor *me, int n_dims, int dims[]);
 
+// Printing
+void tensor_print(tensor *me, const char *fmt, bool py_fmt);
+
 // Utility
 int tensor_n_elements(tensor *me);
 void tensor_flatten(tensor *me, int from);

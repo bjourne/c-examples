@@ -73,6 +73,56 @@ tensor_check_equal(tensor *t1, tensor *t2, float epsilon) {
 }
 
 ////////////////////////////////////////////////////////////////////////
+// Printing
+////////////////////////////////////////////////////////////////////////
+void
+tensor_print(tensor *me, const char *fmt, bool py_fmt) {
+    int n_dims = me->n_dims;
+    int *dims = me->dims;
+
+    // Will improve this later
+    assert(n_dims == 2);
+
+    int height = dims[n_dims - 2];
+    int width = dims[n_dims - 1];
+
+    printf("Dimensions: ");
+    print_dims(n_dims, dims);
+    printf("\n");
+    for (int y = 0; y < height; y++) {
+        if (py_fmt) {
+            if (y == 0) {
+                printf("[");
+            } else {
+                printf(" ");
+            }
+            printf("[");
+        }
+        for (int x = 0; x < width; x++) {
+            printf(fmt, me->data[width * y + x]);
+            if (x < width - 1) {
+                if (py_fmt) {
+                    printf(",");
+                }
+                printf(" ");
+            }
+            //printf(" ");
+        }
+        if (py_fmt) {
+            printf("]");
+            if (y < height - 1) {
+                printf(",");
+            } else {
+                printf("]");
+            }
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
+
+
+////////////////////////////////////////////////////////////////////////
 // Utility
 ////////////////////////////////////////////////////////////////////////
 static void
