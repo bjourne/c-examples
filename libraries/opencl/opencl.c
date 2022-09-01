@@ -91,7 +91,7 @@ print_prefix(int ind) {
 }
 
 static void
-print_device_info(cl_device_id dev, int attr, char *attr_name) {
+print_device_info_str(cl_device_id dev, int attr, char *attr_name) {
     size_t n_bytes;
     clGetDeviceInfo(dev, attr, 0, NULL, &n_bytes);
     char *bytes = (char *)malloc(n_bytes);
@@ -132,20 +132,31 @@ ocl_get_devices(cl_platform_id platform,
 
 void
 ocl_print_device_details(cl_device_id dev, int ind) {
-    char *attr_names[] = {"Name", "Version", "Driver", "C Version"};
+    char *attr_names[] = {
+        "Name", "Version", "Driver", "C Version"
+    };
     int attr_types[] = {
         CL_DEVICE_NAME, CL_DEVICE_VERSION, CL_DRIVER_VERSION,
         CL_DEVICE_OPENCL_C_VERSION
     };
     for (int i = 0; i < ARRAY_SIZE(attr_types); i++) {
         print_prefix(ind);
-        print_device_info(dev, attr_types[i], attr_names[i]);
+        print_device_info_str(dev, attr_types[i], attr_names[i]);
     }
     cl_uint n_compute_units;
     clGetDeviceInfo(dev, CL_DEVICE_MAX_COMPUTE_UNITS,
                     sizeof(cl_uint), &n_compute_units, NULL);
     print_prefix(ind);
     printf("%-15s: %d\n", "Compute units", n_compute_units);
+
+    print_prefix(ind);
+    size_t n_bytes;
+    clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES,
+                    0, NULL, &n_bytes);
+    size_t *d = (size_t *)malloc(n_bytes);
+    clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES, n_bytes, d, NULL);
+    printf("%-15s: %ld, %ld, %ld\n", "Max work items", d[0], d[1], d[2]);
+    free(d);
 }
 
 bool
