@@ -1,5 +1,6 @@
 // Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -213,4 +214,33 @@ ocl_load_kernel(cl_context ctx, cl_device_id dev, const char *fname,
     free(stem);
     ocl_check_err(err);
     return true;
+}
+
+void
+ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
+                  cl_uint work_dim,
+                  const size_t *global,
+                  const size_t *local,
+                  int n_args, ...) {
+    va_list ap;
+    cl_int err;
+
+    va_start(ap, n_args);
+    // Divide by 2 here is lame.
+    for (int i = 0; i < n_args / 2; i++) {
+        size_t arg_size = va_arg(ap, size_t);
+        void *arg_value = va_arg(ap, void *);
+        err = clSetKernelArg(kernel, i, arg_size, arg_value);
+        ocl_check_err(err);
+    }
+    va_end(ap);
+
+    //size_t start = nano_count();
+    cl_event event;
+    err = clEnqueueNDRangeKernel(queue, kernel, 2, NULL,
+                                 global, local, 0, NULL, &event);
+    ocl_check_err(err);
+    err = clWaitForEvents(1, &event);
+    ocl_check_err(err);
+    //return (double)(end - start) / 1000 / 1000 / 1000;
 }

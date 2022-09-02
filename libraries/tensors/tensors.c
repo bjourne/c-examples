@@ -106,7 +106,6 @@ tensor_print(tensor *me, const char *fmt, bool py_fmt) {
                 }
                 printf(" ");
             }
-            //printf(" ");
         }
         if (py_fmt) {
             printf("]");

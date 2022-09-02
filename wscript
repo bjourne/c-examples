@@ -121,7 +121,7 @@ def build(ctx):
     build_library(ctx, 'diophantine', 'DIO_OBJS', [])
     build_library(ctx, 'ieee754', 'IEEE754_OBJS', [])
     build_library(ctx, 'tensors', 'TENSORS_OBJS', ['PNG', 'GOMP'])
-    build_library(ctx, 'opencl', 'OPENCL_OBJS', ['OPENCL'])
+    build_library(ctx, 'opencl', 'OPENCL_OBJS', ['OPENCL', 'DT_OBJS'])
 
     build_tests(ctx, 'datatypes', ['DT_OBJS'])
     build_tests(ctx, 'quickfit', ['DT_OBJS', 'QF_OBJS'])
@@ -141,10 +141,10 @@ def build(ctx):
     build_tests(ctx, 'tensors', ['TENSORS_OBJS', 'DT_OBJS', 'PNG', 'M', 'GOMP'])
     build_tests(ctx, 'opencl', [
         'OPENCL_OBJS',
-        'DT_OBJS',
         'PATHS_OBJS',
         'TENSORS_OBJS',
-        'OPENCL', 'PNG', 'M', 'GOMP'
+        'OPENCL', 'PNG', 'M', 'GOMP',
+        'DT_OBJS'
     ])
 
     build_program(ctx, 'cpu.c', ['DT_OBJS'])
@@ -159,7 +159,9 @@ def build(ctx):
     # Conditional targets
     if ctx.env.DEST_OS == 'linux':
         build_program(ctx, 'sigsegv.c', [])
-        build_program(ctx, 'opencl.c', ['OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS'])
+        build_program(ctx, 'opencl.c', [
+            'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS'
+        ])
         build_program(ctx, 'opencl-dct.c', [
             'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS',
             'TENSORS_OBJS', 'PNG', 'M', 'GOMP',
