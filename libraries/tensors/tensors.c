@@ -58,7 +58,7 @@ tensor_check_equal(tensor *t1, tensor *t2, float epsilon) {
         if (diff >= epsilon) {
             printf("Mismatch at ");
             print_dims(n, dim_counts);
-            printf(", %.2f != %.2f\n", v1,  v2);
+            printf(", %10.6f != %10.6f\n", v1,  v2);
         }
         for (int j = n - 1; j >= 0; j--) {
             dim_counts[j]++;

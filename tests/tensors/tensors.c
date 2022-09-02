@@ -1226,6 +1226,35 @@ test_multiply() {
 }
 
 void
+test_multiply_big() {
+    int dim = 1024;
+    tensor *a = tensor_init(2, (int[]){dim, dim});
+    tensor *b = tensor_init(2, (int[]){dim, dim});
+    tensor *c = tensor_init(2, (int[]){dim, dim});
+    tensor *c_exp = tensor_init(2, (int[]){dim, dim});
+
+    tensor_randrange(a, 10.0);
+    tensor_randrange(b, 10.0);
+
+    for (int i = 0; i < dim; i++) {
+        for (int j = 0; j < dim; j++) {
+            for (int k = 0; k < dim; k++) {
+                float av = a->data[dim * i + k];
+                float bv = b->data[dim * k + j];
+                c_exp->data[dim * i + j] += av * bv;
+            }
+        }
+    }
+    tensor_multiply(a, b, c);
+    tensor_check_equal(c, c_exp, LINALG_EPSILON);
+
+    tensor_free(a);
+    tensor_free(b);
+    tensor_free(c);
+    tensor_free(c_exp);
+}
+
+void
 test_dct() {
     int dims[][2] = {
         {8, 8},
@@ -1329,32 +1358,45 @@ test_dct2() {
 }
 
 void
-test_multiply_big() {
-    int dim = 1024;
-    tensor *a = tensor_init(2, (int[]){dim, dim});
-    tensor *b = tensor_init(2, (int[]){dim, dim});
-    tensor *c = tensor_init(2, (int[]){dim, dim});
-    tensor *c_exp = tensor_init(2, (int[]){dim, dim});
+test_dct_nonsquare() {
+    float image_data[5][16] = {
+        {0.96, 0.67, 0.89, 0.02, 0.69, 0.66, 0.73, 0.34,
+         0.23, 0.59, 0.88, 0.28, 0.6 , 0.57, 0.96, 0.42},
+        {0.29, 0.21, 0.19, 0.33, 0.17, 0.71, 0.47, 0.50,
+         0.40, 0.55, 0.30, 0.62, 0.65, 0.72, 0.24, 0.12},
+        {0.89, 0.53, 0.79, 0.16, 0.12, 0.21, 0.88, 0.26,
+         0.87, 0.01, 0.13, 0.51, 0.56, 0.23, 0.51, 0.68},
+        {0.14, 0.79, 0.45, 0.79, 0.91, 0.3 , 0.22, 0.09,
+         0.62, 0.06, 0.13, 0.68, 0.7 , 0.28, 0.09, 0.68},
+        {0.73, 0.06, 0.28, 0.47, 0.4 , 0.63, 0.72, 0.14,
+         0.79, 0.01, 0.99, 0.72, 0.73, 0.56, 0.64, 0.96}
+    };
+    float ref_data[5][16] = {
+        {4.37, -0.14,  0.31,  0.03, -0.06,  0.4 ,  0.2 , -0.2 ,
+         0.15, -0.27,  0.06,  0.34,  0.14, -0.19,  0.02,  0.62},
+        { 0.05,  0.21, -0.09,  0.21,  0.2 ,  0.3 , -0.1 ,  0.24,
+          -0.76, 0.11,  0.02, -0.1 , -0.07,  0.61,  0.16, -0.27},
+        { 0.52, -0.29,  0.03, -0.01, -0.15, -0.02,  0.53,  0.28,
+          -0.39, 0.36, -0.02, -0.15,  0.26,  0.25, -0.16,  0.17},
+        { 0.13,  0.5 ,  0.45, -0.07, -0.12, -0.37, -0.06, -0.07,
+          0.07, -0.25, -0.28, -0.29, -0.3 ,  0.11,  0.13,  0.24},
+        { 0.34,  0.03,  0.34,  0.09,  0.71,  0.18,  0.17, -0.24,
+          -0.2 , 0.24,  0.1 ,  0.38,  0.15,  0.19,  0.09,  0.62}
+    };
+    int dims[] = {5, 16};
+    tensor *image = tensor_init_from_data((float *)image_data, 2, dims);
+    tensor *output = tensor_init(2, dims);
+    tensor *ref = tensor_init_from_data((float *)ref_data, 2, dims);
 
-    tensor_randrange(a, 10.0);
-    tensor_randrange(b, 10.0);
+    tensor_dct2d_rect(image, output, 0, 0, 5, 16);
 
-    for (int i = 0; i < dim; i++) {
-        for (int j = 0; j < dim; j++) {
-            for (int k = 0; k < dim; k++) {
-                float av = a->data[dim * i + k];
-                float bv = b->data[dim * k + j];
-                c_exp->data[dim * i + j] += av * bv;
-            }
-        }
-    }
-    tensor_multiply(a, b, c);
-    tensor_check_equal(c, c_exp, LINALG_EPSILON);
+    tensor_check_equal(output, ref, 0.01);
 
-    tensor_free(a);
-    tensor_free(b);
-    tensor_free(c);
-    tensor_free(c_exp);
+
+
+    tensor_free(image);
+    tensor_free(ref);
+    tensor_free(output);
 }
 
 int
@@ -1392,7 +1434,10 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_softmax);
     PRINT_RUN(test_multiply);
     PRINT_RUN(test_multiply_big);
+
+    // DCT
     PRINT_RUN(test_dct);
     PRINT_RUN(test_dct2);
+    PRINT_RUN(test_dct_nonsquare);
 
 }
