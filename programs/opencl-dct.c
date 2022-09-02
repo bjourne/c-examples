@@ -58,7 +58,7 @@ main(int argc, char *argv[]) {
     tensor_randrange(image, 100);
 
     // Compute reference results
-    //tensor_dct2d(image, ref);
+    tensor_dct2d_blocked(image, ref, BLOCKDIM_Y, BLOCKDIM_X);
 
     // Allocate and write to OpenCL buffers
     cl_mem mem_image = clCreateBuffer(ctx, CL_MEM_READ_ONLY, IMAGE_N_BYTES, NULL, &err);
@@ -105,11 +105,11 @@ main(int argc, char *argv[]) {
     ocl_check_err(err);
 
     printf("* Input:\n");
-    tensor_print(image, "%3.0f", true);
+    tensor_print(image, "%4.0f", false);
     printf("* Reference:\n");
-    tensor_print(ref, "%3.0f", false);
+    tensor_print(ref, "%4.0f", false);
     printf("* Output:\n");
-    tensor_print(output, "%3.0f", false);
+    tensor_print(output, "%4.0f", false);
 
     // Free tensors
     tensor_free(image);

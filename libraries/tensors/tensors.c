@@ -625,12 +625,11 @@ tensor_multiply(tensor *a, tensor *b, tensor *c) {
 
     memset(c_buf, 0, sizeof(float) * tensor_n_elements(c));
 
-    // TODO: Replace with pthreads
-    #pragma omp parallel for schedule(static, 1)
     for (int i = 0; i < a_rows; i++) {
         for (int k = 0; k < b_rows; k++) {
             for (int j = 0; j < b_cols; j++) {
-                c_buf[b_cols * i + j] += a_buf[a_cols * i + k] * b_buf[k * b_cols + j];
+                c_buf[b_cols * i + j] +=
+                    a_buf[a_cols * i + k] * b_buf[k * b_cols + j];
             }
         }
     }
