@@ -46,7 +46,7 @@ __attribute__((num_simd_work_items(SIMD_WI)))
 __attribute__((num_compute_units(COMP_U)))
 __kernel __attribute__((reqd_work_group_size(BLOCKDIM_Y / BLOCK_SIZE,
                                              BLOCKDIM_X / SIMD_LOC, 1)))
-void dct(
+void dct8x8(
     __global float * restrict src,
     __global float * restrict dst,
     uint height,
@@ -55,20 +55,18 @@ void dct(
     __local float   transp[BLOCKDIM_Y][BLOCKDIM_X + 1];
     const uint      local_y = BLOCK_SIZE * get_local_id(0);
     const uint      local_x = get_local_id(1) * SIMD_LOC;
-    const uint      modLocalX = local_x & (BLOCK_SIZE - 1);
+    const uint      mod_local_x = local_x & (BLOCK_SIZE - 1);
     const uint      global_y = get_group_id(0) * BLOCKDIM_Y + local_y;
     const uint      global_x = get_group_id(1) * BLOCKDIM_X + local_x;
-    if ((global_x - modLocalX + BLOCK_SIZE - 1 >= width) ||
+    if ((global_x - mod_local_x + BLOCK_SIZE - 1 >= width) ||
         (global_y + BLOCK_SIZE - 1 >= height) )
         return;
 
     __local float *l_V = &transp[local_y +         0][local_x +         0];
-    __local float *l_H = &transp[local_y + modLocalX][local_x  - modLocalX];
+    __local float *l_H = &transp[local_y + mod_local_x][local_x  - mod_local_x];
 
     src += global_y * width + global_x;
     dst += global_y * width + global_x;
-
-    //printf("at %d %d\n", global_y, global_x);
 
     float D_0[BLOCK_SIZE];
     float D_1[BLOCK_SIZE];

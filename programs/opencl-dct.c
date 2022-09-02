@@ -30,7 +30,7 @@ main(int argc, char *argv[]) {
 
     cl_uint n_devices;
     cl_device_id *devices;
-    ocl_get_devices(platforms[1], &n_devices, &devices);
+    ocl_get_devices(platforms[0], &n_devices, &devices);
 
     cl_device_id dev = devices[0];
     ocl_print_device_details(dev, 0);
@@ -46,7 +46,7 @@ main(int argc, char *argv[]) {
     cl_program program;
     cl_kernel kernel;
     printf("* Loading kernel\n");
-    assert(ocl_load_kernel(ctx, dev, "libraries/opencl/dct.cl",
+    assert(ocl_load_kernel(ctx, dev, "libraries/opencl/dct8x8.cl",
                            &program, &kernel));
 
     // Allocate and initialize tensors
@@ -110,6 +110,8 @@ main(int argc, char *argv[]) {
     tensor_print(ref, "%4.0f", false);
     printf("* Output:\n");
     tensor_print(output, "%4.0f", false);
+
+    tensor_check_equal(output, ref, 0.01);
 
     // Free tensors
     tensor_free(image);
