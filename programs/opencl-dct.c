@@ -7,6 +7,7 @@
 #include "datatypes/common.h"
 #include "opencl/opencl.h"
 #include "tensors/tensors.h"
+#include "tensors/tensors-dct.h"
 
 #define SQRT2 (1.4142135623730951f)
 
