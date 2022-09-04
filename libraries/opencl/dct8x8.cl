@@ -79,40 +79,33 @@ void dct8x8(
     float D_2[BLOCK_SIZE];
     float D_3[BLOCK_SIZE];
 
-    for(uint i = 0; i < BLOCK_SIZE; i++)
-    {
+    for(uint i = 0; i < BLOCK_SIZE; i++) {
         lv[i * (BLOCKDIM_X + 1)] = src[i * width];
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    for(uint i = 0; i < BLOCK_SIZE; i++)
-    {
+    for(uint i = 0; i < BLOCK_SIZE; i++) {
         D_0[i] = lh[i];
     }
 
-    for (uint i = 0; i < BLOCK_SIZE_F; i++)
-    {
+    for (uint i = 0; i < BLOCK_SIZE_F; i++) {
     	dct8(&D_0[i * 8], &D_1[i * 8]);
     }
 
-    for(uint i = 0; i < BLOCK_SIZE; i++)
-    {
+    for(uint i = 0; i < BLOCK_SIZE; i++) {
         lh[i] = D_1[i];
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    for(uint i = 0; i < BLOCK_SIZE; i++)
-    {
+    for(uint i = 0; i < BLOCK_SIZE; i++) {
         D_2[i] = lv[i * (BLOCKDIM_X + 1)];
     }
 
-    for(uint i = 0; i < BLOCK_SIZE_F; i++)
-    {
+    for(uint i = 0; i < BLOCK_SIZE_F; i++) {
     	dct8(&D_2[i * 8], &D_3[i * 8]);
     }
 
-    for(uint i = 0; i < BLOCK_SIZE; i++)
-    {
+    for(uint i = 0; i < BLOCK_SIZE; i++) {
         dst[i * width] = D_3[i];
     }
 }
