@@ -1,6 +1,8 @@
 // Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "tensors-dct.h"
 
@@ -62,6 +64,61 @@ tensor_dct2d_blocked(tensor *src, tensor *dst,
         }
     }
 }
+
+static void
+transpose(float mat[8][8]) {
+    for (int i = 0; i < 8; i++) {
+        for (int j = i + 1; j < 8; j++) {
+            float t = mat[i][j];
+            mat[i][j] = mat[j][i];
+            mat[j][i] = t;
+
+        }
+    }
+}
+
+static void
+tensor_dct2d_8x8_loeffler(float *src, float *dst, int stride) {
+    float tmp[8][8], tmp_io[8][8];
+    for (int i = 0; i < 8; i++) {
+        tensor_dct8_nvidia(&src[i * stride], tmp[i]);
+    }
+    transpose(tmp);
+    for (int i = 0; i < 8; i++) {
+        tensor_dct8_nvidia(tmp[i], tmp_io[i]);
+    }
+    transpose(tmp_io);
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            dst[i * stride + j] = tmp_io[i][j];
+        }
+    }
+}
+
+void
+tensor_dct2d_blocked_8x8_loeffler(tensor *src, tensor *dst) {
+    assert(src->n_dims == dst->n_dims  && src->n_dims == 2);
+    assert(src->dims[0] == dst->dims[0]);
+    assert(src->dims[1] == dst->dims[1]);
+
+    int height = src->dims[0];
+    int width = src->dims[1];
+
+    // Lazyness
+    assert(width % 8 == 0);
+    assert(height % 8 == 0);
+
+    float *src_data = src->data;
+    float *dst_data = dst->data;
+    for (int y = 0; y < height; y += 8) {
+        for (int x = 0; x < width; x += 8) {
+            tensor_dct2d_8x8_loeffler(&src_data[y * width + x],
+                                      &dst_data[y * width + x],
+                                      width);
+        }
+    }
+                        }
+
 
 void
 tensor_idct2d(tensor *src, tensor *dst) {

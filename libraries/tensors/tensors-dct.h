@@ -25,7 +25,7 @@ void tensor_idct2d(tensor *src, tensor *dst);
 #define TENSOR_DCT8_LOEFFLER_C3_C \
     0.831469612302545237078788377617905756738560811987249963446
 #define TENSOR_DCT8_LOEFFLER_C6_A \
-    (0.765366864730179543456919968060797733522689124971254082867)
+    0.765366864730179543456919968060797733522689124971254082867
 #define TENSOR_DCT8_LOEFFLER_C6_B \
     -1.84775906502257351225636637879357657364483325172728497223
 #define TENSOR_DCT8_LOEFFLER_C6_C \
@@ -101,7 +101,6 @@ tensor_dct8_nvidia(float x[8], float y[8]) {
     float s11 = x[1] + x[6];
     float s12 = x[2] + x[5];
     float s13 = x[3] + x[4];
-
     float s14 = x[0] - x[7];
     float s15 = x[2] - x[5];
     float s16 = x[4] - x[3];
@@ -119,7 +118,6 @@ tensor_dct8_nvidia(float x[8], float y[8]) {
     y[2] = norm * (TENSOR_DCT8_NVIDIA_CB * s21 + TENSOR_DCT8_NVIDIA_CE * s23);
     y[4] = norm * (s20 - s22);
     y[6] = norm * (TENSOR_DCT8_NVIDIA_CE * s21 - TENSOR_DCT8_NVIDIA_CB * s23);
-
     y[1] = norm * (
         TENSOR_DCT8_NVIDIA_CA * s14 -
         TENSOR_DCT8_NVIDIA_CC * s17 +
@@ -145,6 +143,8 @@ tensor_dct8_nvidia(float x[8], float y[8]) {
         TENSOR_DCT8_NVIDIA_CA * s16
     );
 }
+
+void tensor_dct2d_blocked_8x8_loeffler(tensor *src, tensor *dst);
 
 
 #endif
