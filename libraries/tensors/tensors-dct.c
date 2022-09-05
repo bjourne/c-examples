@@ -7,6 +7,9 @@
 static float SQRT2 = 1.4142135623730951f;
 static float SQRT2INV = 0.7071067811865475f;
 
+extern inline void tensor_dct8_loeffler(float x[8], float y[8]);
+extern inline void tensor_dct8_nvidia(float x[8], float y[8]);
+
 void
 tensor_dct2d_rect(tensor *src, tensor *dst,
                   int sy, int sx,

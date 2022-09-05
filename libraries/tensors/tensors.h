@@ -123,7 +123,6 @@ tensor *tensor_linear_new(tensor *weights, tensor *bias, tensor *src);
 // Matrix multiply
 void tensor_multiply(tensor *a, tensor *b, tensor *c);
 
-// DCT
 // Scalar ops
 void tensor_relu(tensor *t);
 void tensor_fill(tensor *t, float v);
