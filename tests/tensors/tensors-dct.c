@@ -161,7 +161,18 @@ test_dct_nonsquare() {
 
 void
 test_dct8() {
-
+    float x[8] = {20, 9, 10, 11, 12, 13, 14, 15};
+    float y[8], y2[8];
+    float y_exp[8] = {
+        36.77, -0.56, 5.54, 4.32,
+        4.24, 3.13, 2.30, 1.12
+    };
+    tensor_dct8_nvidia(x, y);
+    tensor_dct8_loeffler(x, y2);
+    for (int i = 0; i < 8; i++) {
+        assert(approx_eq2(y_exp[i], y[i], 0.01));
+        assert(approx_eq2(y_exp[i], y2[i], 0.01));
+    }
 }
 
 int
