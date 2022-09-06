@@ -2,6 +2,8 @@
 #ifndef TENSORS_DCT_H
 #define TENSORS_DCT_H
 
+#include <immintrin.h>
+
 #include "tensors/tensors.h"
 
 // Constants for 8 point dct. Are these long names really necessary?
@@ -88,7 +90,8 @@ tensor_dct8_loeffler(float x[8], float y[8]) {
 
 // Nvidia's variant of the algorithm. This one is way faster.
 inline void
-tensor_dct8_nvidia(float x[8], float y[8]) {
+tensor_dct8_nvidia(float * restrict x,
+                   float * restrict y) {
 
     // Stage 1 reflectors
     float s10 = x[0] + x[7];
@@ -108,35 +111,38 @@ tensor_dct8_nvidia(float x[8], float y[8]) {
 
     float norm = TENSOR_DCT8_NVIDIA_NORM;
 
-    y[0] = norm * (s20 + s22);
-    y[2] = norm * (TENSOR_DCT8_NVIDIA_CB * s21 + TENSOR_DCT8_NVIDIA_CE * s23);
-    y[4] = norm * (s20 - s22);
-    y[6] = norm * (TENSOR_DCT8_NVIDIA_CE * s21 - TENSOR_DCT8_NVIDIA_CB * s23);
-    y[1] = norm * (
-        TENSOR_DCT8_NVIDIA_CA * s14 -
+    y[0] = s20 + s22;
+    y[1] = TENSOR_DCT8_NVIDIA_CA * s14 -
         TENSOR_DCT8_NVIDIA_CC * s17 +
         TENSOR_DCT8_NVIDIA_CD * s15 -
-        TENSOR_DCT8_NVIDIA_CF * s16
-    );
-    y[3] = norm * (
-        TENSOR_DCT8_NVIDIA_CC * s14 +
+        TENSOR_DCT8_NVIDIA_CF * s16;
+    y[2] = TENSOR_DCT8_NVIDIA_CB * s21 + TENSOR_DCT8_NVIDIA_CE * s23;
+    y[3] = TENSOR_DCT8_NVIDIA_CC * s14 +
         TENSOR_DCT8_NVIDIA_CF * s17 -
         TENSOR_DCT8_NVIDIA_CA * s15 +
-        TENSOR_DCT8_NVIDIA_CD * s16
-    );
-    y[5] = norm * (
-        TENSOR_DCT8_NVIDIA_CD * s14 +
+        TENSOR_DCT8_NVIDIA_CD * s16;
+    y[4] = s20 - s22;
+    y[5] = TENSOR_DCT8_NVIDIA_CD * s14 +
         TENSOR_DCT8_NVIDIA_CA * s17 +
         TENSOR_DCT8_NVIDIA_CF * s15 -
-        TENSOR_DCT8_NVIDIA_CC * s16
-    );
-    y[7] = norm * (
-        TENSOR_DCT8_NVIDIA_CF * s14 +
+        TENSOR_DCT8_NVIDIA_CC * s16;
+    y[6] = TENSOR_DCT8_NVIDIA_CE * s21 - TENSOR_DCT8_NVIDIA_CB * s23;
+    y[7] = TENSOR_DCT8_NVIDIA_CF * s14 +
         TENSOR_DCT8_NVIDIA_CD * s17 +
         TENSOR_DCT8_NVIDIA_CC * s15 +
-        TENSOR_DCT8_NVIDIA_CA * s16
-    );
+        TENSOR_DCT8_NVIDIA_CA * s16;
+
+    y[0] = y[0] * norm;
+    y[1] = y[1] * norm;
+    y[2] = y[2] * norm;
+    y[3] = y[3] * norm;
+    y[4] = y[4] * norm;
+    y[5] = y[5] * norm;
+    y[6] = y[6] * norm;
+    y[7] = y[7] * norm;
 }
+
+//void tensor_dct8_nvidia_avx256(float * restrict x, float * restrict y);
 
 
 void tensor_dct2d_rect(tensor *src, tensor *dst,

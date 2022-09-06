@@ -280,6 +280,37 @@ test_8x8_nvidia() {
     tensor_free(output2);
 }
 
+/* void */
+/* test_8x8_simd() { */
+/*     int dims[] = {8,  8}; */
+/*     tensor *image = tensor_init_from_data((float *)IMAGE_DATA8X8, 2, dims); */
+/*     tensor *output = tensor_init(2, dims); */
+/*     tensor *output2 = tensor_init(2, dims); */
+
+/*     float *image_data = image->data; */
+/*     //float *output_data = output->data; */
+/*     float *output2_data = output2->data; */
+
+/*     tensor_dct2d_8x8_blocks_nvidia(image, output); */
+
+
+/*     /\* float *output2_data = output2->data; *\/ */
+/*     /\* for (int i = 0; i < 8; i++) { *\/ */
+/*     /\*     tensor_dct8_nvidia(&image_data[8 * i], &output_data[8 * i]); *\/ */
+/*     /\* } *\/ */
+/*     tensor_print(output, "%6.2f", false); */
+/*     tensor_dct8_nvidia_avx256(image_data, output2_data); */
+/*     tensor_print(output2, "%6.2f", false); */
+
+/*     //assert(tensor_check_equal(output, output2, 0.1)); */
+
+/*     tensor_free(image); */
+/*     tensor_free(output); */
+/*     tensor_free(output2); */
+
+
+/* } */
+
 void
 test_8x8_nvidia_benchmark() {
     int dims[] = {1024, 1024};
@@ -304,5 +335,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_dct_nonsquare);
     PRINT_RUN(test_dct8);
     PRINT_RUN(test_8x8_nvidia);
+    //PRINT_RUN(test_8x8_simd);
     PRINT_RUN(test_8x8_nvidia_benchmark);
 }
