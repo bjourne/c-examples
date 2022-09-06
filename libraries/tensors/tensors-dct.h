@@ -2,8 +2,6 @@
 #ifndef TENSORS_DCT_H
 #define TENSORS_DCT_H
 
-#include <immintrin.h>
-
 #include "tensors/tensors.h"
 
 // Constants for 8 point dct. Are these long names really necessary?
@@ -142,9 +140,6 @@ tensor_dct8_nvidia(float * restrict x,
     y[7] = y[7] * norm;
 }
 
-//void tensor_dct8_nvidia_avx256(float * restrict x, float * restrict y);
-
-
 void tensor_dct2d_rect(tensor *src, tensor *dst,
                        int sy, int sx, int height, int width);
 
@@ -153,8 +148,12 @@ void tensor_idct2d(tensor *src, tensor *dst);
 // DCT in blocks
 void tensor_dct2d_blocks(tensor *src, tensor *dst,
                          int block_height, int block_width);
-void tensor_dct2d_8x8_blocks_nvidia(tensor *src, tensor *dst);
+void tensor_dct2d_8x8_blocks_nvidia_avx256(tensor *src, tensor *dst);
 
+// AVX256
+void
+tensor_dct8x8_nvidia_avx256_impl(float * restrict src, float * restrict dst,
+                                 int width, int height);
 
 
 #endif
