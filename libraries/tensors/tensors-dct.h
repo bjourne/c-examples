@@ -86,7 +86,7 @@ tensor_dct8_loeffler(float x[8], float y[8]) {
 
 #define TENSOR_DCT8_NVIDIA_NORM 0.35355339059327376220042218105242f
 
-// Nvidia's variant of the algorithm.
+// Nvidia's variant of the algorithm. This one is way faster.
 inline void
 tensor_dct8_nvidia(float x[8], float y[8]) {
 
@@ -147,7 +147,7 @@ void tensor_idct2d(tensor *src, tensor *dst);
 // DCT in blocks
 void tensor_dct2d_blocks(tensor *src, tensor *dst,
                          int block_height, int block_width);
-void tensor_dct2d_8x8_blocks_loeffler(tensor *src, tensor *dst);
+void tensor_dct2d_8x8_blocks_nvidia(tensor *src, tensor *dst);
 
 
 

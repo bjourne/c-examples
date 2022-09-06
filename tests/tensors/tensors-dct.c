@@ -89,8 +89,12 @@ static float IMAGE_DATA32X32[32][32] = {
         32,  55,  94,   4,  79,  69,  73,  76,
         50,  55,  60,  42,  79,  84,  93,   5
     },
-    { 21,  67,   4,  13,  61,  54,  26,  59,  44,   2,   2,   6,  84,  21,  42,  68,
-      28,  89,  72,   8,  58,  98,  36,   8,  53,  48,   3,  33,  33,  48,  90,  54},
+    {
+        21,  67,   4,  13,  61,  54,  26,  59,
+        44,   2,   2,   6,  84,  21,  42,  68,
+        28,  89,  72,   8,  58,  98,  36,   8,
+        53,  48,   3,  33,  33,  48,  90,  54
+    },
     { 67,  46,  68,  29,   0,  46,  88,  97,  49,  90,   3,  33,  63,  97,  53,  92,
       86,  25,  52,  96,  75,  88,  57,  29,  36,  60,  14,  21,  60,   4,  28,  27},
     { 50,  48,  56,   2,  94,  97,  99,  43,  39,   2,  28,   3,   0,  81,  47,  38,
@@ -239,7 +243,7 @@ test_dct8() {
 }
 
 void
-test_8x8_loeffler() {
+test_8x8_nvidia() {
     int dims[] = {8,  8};
     tensor *image = tensor_init_from_data((float *)IMAGE_DATA8X8, 2, dims);
     tensor *output = tensor_init(2, dims);
@@ -253,7 +257,7 @@ test_8x8_loeffler() {
     for (int i = 0; i < 8; i++) {
         assert(approx_eq2(y[i], y_exp[i], 0.1));
     }
-    tensor_dct2d_8x8_blocks_loeffler(image, output);
+    tensor_dct2d_8x8_blocks_nvidia(image, output);
     tensor_dct2d_blocks(image, output2, 8, 8);
     assert(tensor_check_equal(output, output2, 0.1));
 
@@ -267,13 +271,29 @@ test_8x8_loeffler() {
     output = tensor_init(2, dims);
     output2 = tensor_init(2, dims);
 
-    tensor_dct2d_8x8_blocks_loeffler(image, output);
+    tensor_dct2d_8x8_blocks_nvidia(image, output);
     tensor_dct2d_blocks(image, output2, 8, 8);
     assert(tensor_check_equal(output, output2, 0.1));
 
     tensor_free(image);
     tensor_free(output);
     tensor_free(output2);
+}
+
+void
+test_8x8_nvidia_benchmark() {
+    int dims[] = {1024, 1024};
+    tensor *image = tensor_init(2, dims);
+    tensor *output = tensor_init(2, dims);
+    tensor_randrange(image, 200);
+
+    for (int i = 0; i < 10000; i++) {
+        tensor_dct2d_8x8_blocks_nvidia(image, output);
+    }
+
+
+    tensor_free(image);
+    tensor_free(output);
 }
 
 int
@@ -283,5 +303,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_dct2);
     PRINT_RUN(test_dct_nonsquare);
     PRINT_RUN(test_dct8);
-    PRINT_RUN(test_8x8_loeffler);
+    PRINT_RUN(test_8x8_nvidia);
+    PRINT_RUN(test_8x8_nvidia_benchmark);
 }

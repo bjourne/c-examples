@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "tensors-dct.h"
 
@@ -66,37 +67,38 @@ tensor_dct2d_blocks(tensor *src, tensor *dst,
 }
 
 static void
-transpose(float mat[8][8]) {
+transpose8x8(float *mat) {
     for (int i = 0; i < 8; i++) {
         for (int j = i + 1; j < 8; j++) {
-            float t = mat[i][j];
-            mat[i][j] = mat[j][i];
-            mat[j][i] = t;
-
+            float t = mat[i * 8 + j];
+            mat[i * 8 + j] = mat[j * 8 + i];
+            mat[j * 8 + i] = t;
         }
     }
 }
 
+
+// 6.28
 static void
-dct8x8_loeffler(float *src, float *dst, int stride) {
-    float tmp[8][8], tmp_io[8][8];
+dct8x8_nvidia(float * restrict src, float * restrict dst, int stride) {
+    float tmp[64], tmp_io[64];
     for (int i = 0; i < 8; i++) {
-        tensor_dct8_nvidia(&src[i * stride], tmp[i]);
+        tensor_dct8_nvidia(&src[stride * i], &tmp[8 * i]);
     }
-    transpose(tmp);
+    transpose8x8(tmp);
     for (int i = 0; i < 8; i++) {
-        tensor_dct8_nvidia(tmp[i], tmp_io[i]);
+        tensor_dct8_nvidia(&tmp[8 * i], &tmp_io[8 * i]);
     }
-    transpose(tmp_io);
+    transpose8x8(tmp_io);
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
-            dst[i * stride + j] = tmp_io[i][j];
+            dst[i * stride + j] = tmp_io[8 * i + j];
         }
     }
 }
 
 void
-tensor_dct2d_8x8_blocks_loeffler(tensor *src, tensor *dst) {
+tensor_dct2d_8x8_blocks_nvidia(tensor *src, tensor *dst) {
     assert(src->n_dims == dst->n_dims  && src->n_dims == 2);
     assert(src->dims[0] == dst->dims[0]);
     assert(src->dims[1] == dst->dims[1]);
@@ -112,9 +114,9 @@ tensor_dct2d_8x8_blocks_loeffler(tensor *src, tensor *dst) {
     float *dst_data = dst->data;
     for (int y = 0; y < height; y += 8) {
         for (int x = 0; x < width; x += 8) {
-            dct8x8_loeffler(&src_data[y * width + x],
-                            &dst_data[y * width + x],
-                            width);
+            dct8x8_nvidia(&src_data[y * width + x],
+                          &dst_data[y * width + x],
+                          width);
         }
     }
 }
