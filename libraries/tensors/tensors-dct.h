@@ -148,12 +148,19 @@ void tensor_idct2d(tensor *src, tensor *dst);
 // DCT in blocks
 void tensor_dct2d_blocks(tensor *src, tensor *dst,
                          int block_height, int block_width);
-void tensor_dct2d_8x8_blocks_nvidia_avx256(tensor *src, tensor *dst);
 
-// AVX256
+// Dispatches to the best impl
+void tensor_dct2d_8x8_blocks(tensor *src, tensor *dst);
+
 void
-tensor_dct8x8_nvidia_avx256_impl(float * restrict src, float * restrict dst,
+tensor_dct8x8_blocks_scalar_impl(float * restrict src,
+                                 float * restrict dst,
                                  int width, int height);
+#ifdef __AVX2__
+void tensor_dct2d_8x8_blocks_avx256_impl(float * restrict src,
+                                         float * restrict dst,
+                                         int width, int height);
+#endif
 
 
 #endif

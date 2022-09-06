@@ -67,8 +67,50 @@ tensor_dct2d_blocks(tensor *src, tensor *dst,
     }
 }
 
+static void
+transpose8x8(float *mat) {
+    for (int i = 0; i < 8; i++) {
+        for (int j = i + 1; j < 8; j++) {
+            float t = mat[i * 8 + j];
+            mat[i * 8 + j] = mat[j * 8 + i];
+            mat[j * 8 + i] = t;
+        }
+    }
+}
+
+static void
+dct8x8_nvidia(float * restrict src, float * restrict dst, int stride) {
+    float tmp[64], tmp_io[64];
+    for (int i = 0; i < 8; i++) {
+        tensor_dct8_nvidia(&src[stride * i], &tmp[8 * i]);
+    }
+    transpose8x8(tmp);
+    for (int i = 0; i < 8; i++) {
+        tensor_dct8_nvidia(&tmp[8 * i], &tmp_io[8 * i]);
+    }
+    transpose8x8(tmp_io);
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            dst[i * stride + j] = tmp_io[8 * i + j];
+        }
+    }
+}
+
 void
-tensor_dct2d_8x8_blocks_nvidia_avx256(tensor *src, tensor *dst) {
+tensor_dct8x8_blocks_scalar_impl(float * restrict src,
+                                 float * restrict dst,
+                                 int width, int height) {
+    for (int y = 0; y < height; y += 8) {
+        for (int x = 0; x < width; x += 8) {
+            dct8x8_nvidia(&src[y * width + x],
+                          &dst[y * width + x],
+                          width);
+        }
+    }
+}
+
+void
+tensor_dct2d_8x8_blocks(tensor *src, tensor *dst) {
     assert(src->n_dims == dst->n_dims  && src->n_dims == 2);
     assert(src->dims[0] == dst->dims[0]);
     assert(src->dims[1] == dst->dims[1]);
@@ -76,7 +118,18 @@ tensor_dct2d_8x8_blocks_nvidia_avx256(tensor *src, tensor *dst) {
     int height = src->dims[0];
     int width = src->dims[1];
 
-    tensor_dct8x8_nvidia_avx256_impl(src->data, dst->data, width, height);
+    assert(width % 8 == 0);
+    assert(height % 8 == 0);
+
+    #ifdef __AVX2__
+    tensor_dct8x8_blocks_avx256_impl(src->data, dst->data,
+                                     width, height);
+    #else
+
+    tensor_dct8x8_blocks_scalar_impl(src->data, dst->data,
+                                     width, height);
+
+    #endif
 }
 
 void

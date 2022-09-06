@@ -6,6 +6,8 @@
 
 #include "tensors/tensors-dct.h"
 
+#ifdef __AVX2__
+
 // Reduces typing
 #define BCAST   _mm256_broadcast_ss
 #define MUL     _mm256_mul_ps
@@ -14,7 +16,6 @@
 #define LOAD    _mm256_load_ps
 #define LOADU   _mm256_loadu_ps
 #define STORE   _mm256_store_ps
-#define STOREU  _mm256_storeu_ps
 
 static void
 transpose(__m256 src[8], __m256 dst[8]) {
@@ -78,13 +79,17 @@ nvidia_block(float * restrict src,
     __m256 s23 = SUB(s11, s12);
 
     ya[0] = ADD(s20, s22);
-    ya[1] = SUB(ADD(SUB(MUL(ca, s14), MUL(cc, s17)), MUL(cd, s15)), MUL(cf, s16));
+    ya[1] = SUB(ADD(SUB(MUL(ca, s14), MUL(cc, s17)),
+                    MUL(cd, s15)), MUL(cf, s16));
     ya[2] = ADD(MUL(cb, s21), MUL(ce, s23));
-    ya[3] = ADD(SUB(ADD(MUL(cc, s14), MUL(cf, s17)), MUL(ca, s15)), MUL(cd, s16));
+    ya[3] = ADD(SUB(ADD(MUL(cc, s14), MUL(cf, s17)),
+                    MUL(ca, s15)), MUL(cd, s16));
     ya[4] = SUB(s20, s22);
-    ya[5] = SUB(ADD(ADD(MUL(cd, s14), MUL(ca, s17)), MUL(cf, s15)), MUL(cc, s16));
+    ya[5] = SUB(ADD(ADD(MUL(cd, s14), MUL(ca, s17)),
+                    MUL(cf, s15)), MUL(cc, s16));
     ya[6] = SUB(MUL(ce, s21), MUL(cb, s23));
-    ya[7] = ADD(ADD(ADD(MUL(cf, s14), MUL(cd, s17)), MUL(cc, s15)), MUL(ca, s16));
+    ya[7] = ADD(ADD(ADD(MUL(cf, s14), MUL(cd, s17)),
+                    MUL(cc, s15)), MUL(ca, s16));
 
     ya[0] = MUL(ya[0], norm);
     ya[1] = MUL(ya[1], norm);
@@ -112,13 +117,17 @@ nvidia_block(float * restrict src,
     s23 = SUB(s11, s12);
 
     ya[0] = ADD(s20, s22);
-    ya[1] = SUB(ADD(SUB(MUL(ca, s14), MUL(cc, s17)), MUL(cd, s15)), MUL(cf, s16));
+    ya[1] = SUB(ADD(SUB(MUL(ca, s14), MUL(cc, s17)),
+                    MUL(cd, s15)), MUL(cf, s16));
     ya[2] = ADD(MUL(cb, s21), MUL(ce, s23));
-    ya[3] = ADD(SUB(ADD(MUL(cc, s14), MUL(cf, s17)), MUL(ca, s15)), MUL(cd, s16));
+    ya[3] = ADD(SUB(ADD(MUL(cc, s14), MUL(cf, s17)),
+                    MUL(ca, s15)), MUL(cd, s16));
     ya[4] = SUB(s20, s22);
-    ya[5] = SUB(ADD(ADD(MUL(cd, s14), MUL(ca, s17)), MUL(cf, s15)), MUL(cc, s16));
+    ya[5] = SUB(ADD(ADD(MUL(cd, s14), MUL(ca, s17)),
+                    MUL(cf, s15)), MUL(cc, s16));
     ya[6] = SUB(MUL(ce, s21), MUL(cb, s23));
-    ya[7] = ADD(ADD(ADD(MUL(cf, s14), MUL(cd, s17)), MUL(cc, s15)), MUL(ca, s16));
+    ya[7] = ADD(ADD(ADD(MUL(cf, s14), MUL(cd, s17)),
+                    MUL(cc, s15)), MUL(ca, s16));
 
     ya[0] = MUL(ya[0], norm);
     ya[1] = MUL(ya[1], norm);
@@ -142,9 +151,6 @@ nvidia_block(float * restrict src,
 void
 tensor_dct8x8_nvidia_avx256_impl(float * restrict src, float * restrict dst,
                                  int width, int height) {
-    assert(width % 8 == 0);
-    assert(height % 8 == 0);
-
     const float c_norm = TENSOR_DCT8_NVIDIA_NORM;
     const float c_ca = TENSOR_DCT8_NVIDIA_CA;
     const float c_cb = TENSOR_DCT8_NVIDIA_CB;
@@ -174,6 +180,6 @@ tensor_dct8x8_nvidia_avx256_impl(float * restrict src, float * restrict dst,
             }
         }
     }
-
-
 }
+
+#endif
