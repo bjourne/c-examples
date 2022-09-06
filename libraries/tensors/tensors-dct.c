@@ -45,8 +45,8 @@ tensor_dct2d_rect(tensor *src, tensor *dst,
 }
 
 void
-tensor_dct2d_blocked(tensor *src, tensor *dst,
-                     int block_height, int block_width) {
+tensor_dct2d_blocks(tensor *src, tensor *dst,
+                    int block_height, int block_width) {
     assert(src->n_dims == dst->n_dims  && src->n_dims == 2);
     assert(src->dims[0] == dst->dims[0]);
     assert(src->dims[1] == dst->dims[1]);
@@ -78,7 +78,7 @@ transpose(float mat[8][8]) {
 }
 
 static void
-tensor_dct2d_8x8_loeffler(float *src, float *dst, int stride) {
+dct8x8_loeffler(float *src, float *dst, int stride) {
     float tmp[8][8], tmp_io[8][8];
     for (int i = 0; i < 8; i++) {
         tensor_dct8_nvidia(&src[i * stride], tmp[i]);
@@ -96,7 +96,7 @@ tensor_dct2d_8x8_loeffler(float *src, float *dst, int stride) {
 }
 
 void
-tensor_dct2d_blocked_8x8_loeffler(tensor *src, tensor *dst) {
+tensor_dct2d_8x8_blocks_loeffler(tensor *src, tensor *dst) {
     assert(src->n_dims == dst->n_dims  && src->n_dims == 2);
     assert(src->dims[0] == dst->dims[0]);
     assert(src->dims[1] == dst->dims[1]);
@@ -112,12 +112,12 @@ tensor_dct2d_blocked_8x8_loeffler(tensor *src, tensor *dst) {
     float *dst_data = dst->data;
     for (int y = 0; y < height; y += 8) {
         for (int x = 0; x < width; x += 8) {
-            tensor_dct2d_8x8_loeffler(&src_data[y * width + x],
-                                      &dst_data[y * width + x],
-                                      width);
+            dct8x8_loeffler(&src_data[y * width + x],
+                            &dst_data[y * width + x],
+                            width);
         }
     }
-                        }
+}
 
 
 void

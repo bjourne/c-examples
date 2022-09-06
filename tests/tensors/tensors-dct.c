@@ -71,12 +71,24 @@ static float IMAGE_DATA32X32[32][32] = {
         52,  99,  79,  50,  68,  71,  73,  31,
         81,  30,  33,  94,  60,  63,  99,  81
     },
-    { 99,  96,  59,  73,  13,  68,  90,  95,  26,  66,  84,  40,  90,  84,  76,  42,
-      36,   7,  45,  56,  79,  18,  87,  12,  48,  72,  59,   9,  36,  10,  42,  87},
-    {  6,   1,  13,  72,  21,  55,  19,  99,  21,   4,  39,  11,  40,  67,   5,  28,
-       27,  50,  84,  58,  20,  24,  22,  69,  96,  81,  30,  84,  92,  72,  72,  50},
-    { 25,  85,  22,  99,  40,  42,  98,  13,  98,  90,  24,  90,   9,  81,  19,  36,
-      32,  55,  94,   4,  79,  69,  73,  76,  50,  55,  60,  42,  79,  84,  93,   5},
+    {
+        99,  96,  59,  73,  13,  68,  90,  95,
+        26,  66,  84,  40,  90,  84,  76,  42,
+        36,   7,  45,  56,  79,  18,  87,  12,
+        48,  72,  59,   9,  36,  10,  42,  87
+    },
+    {
+        6,   1,  13,  72,  21,  55,  19,  99,
+        21,   4,  39,  11,  40,  67,   5,  28,
+        27,  50,  84,  58,  20,  24,  22,  69,
+        96,  81,  30,  84,  92,  72,  72,  50
+    },
+    {
+        25,  85,  22,  99,  40,  42,  98,  13,
+        98,  90,  24,  90,   9,  81,  19,  36,
+        32,  55,  94,   4,  79,  69,  73,  76,
+        50,  55,  60,  42,  79,  84,  93,   5
+    },
     { 21,  67,   4,  13,  61,  54,  26,  59,  44,   2,   2,   6,  84,  21,  42,  68,
       28,  89,  72,   8,  58,  98,  36,   8,  53,  48,   3,  33,  33,  48,  90,  54},
     { 67,  46,  68,  29,   0,  46,  88,  97,  49,  90,   3,  33,  63,  97,  53,  92,
@@ -148,7 +160,7 @@ void
 test_dct2() {
     tensor *image = tensor_init_from_data((float *)IMAGE_DATA32X32, 2, (int[]){32, 32});
     tensor *output = tensor_init(2, (int[]){32,  32});
-    tensor_dct2d_blocked(image, output, 8, 8);
+    tensor_dct2d_blocks(image, output, 8, 8);
     assert(approx_eq2(output->data[   0], 433.62, 0.01));
     assert(approx_eq2(output->data[   1], -16.54, 0.01));
     assert(approx_eq2(output->data[1023], -49.20, 0.01));
@@ -241,8 +253,8 @@ test_8x8_loeffler() {
     for (int i = 0; i < 8; i++) {
         assert(approx_eq2(y[i], y_exp[i], 0.1));
     }
-    tensor_dct2d_blocked_8x8_loeffler(image, output);
-    tensor_dct2d_blocked(image, output2, 8, 8);
+    tensor_dct2d_8x8_blocks_loeffler(image, output);
+    tensor_dct2d_blocks(image, output2, 8, 8);
     assert(tensor_check_equal(output, output2, 0.1));
 
     tensor_free(image);
@@ -255,8 +267,8 @@ test_8x8_loeffler() {
     output = tensor_init(2, dims);
     output2 = tensor_init(2, dims);
 
-    tensor_dct2d_blocked_8x8_loeffler(image, output);
-    tensor_dct2d_blocked(image, output2, 8, 8);
+    tensor_dct2d_8x8_blocks_loeffler(image, output);
+    tensor_dct2d_blocks(image, output2, 8, 8);
     assert(tensor_check_equal(output, output2, 0.1));
 
     tensor_free(image);

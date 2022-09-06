@@ -4,12 +4,6 @@
 
 #include "tensors/tensors.h"
 
-void tensor_dct2d_rect(tensor *src, tensor *dst,
-                       int sy, int sx, int height, int width);
-void tensor_dct2d_blocked(tensor *src, tensor *dst,
-                          int block_height, int block_width);
-void tensor_idct2d(tensor *src, tensor *dst);
-
 // Constants for 8 point dct. Are these long names really necessary?
 // Yes they are.
 #define TENSOR_DCT8_LOEFFLER_C1_A \
@@ -144,7 +138,17 @@ tensor_dct8_nvidia(float x[8], float y[8]) {
     );
 }
 
-void tensor_dct2d_blocked_8x8_loeffler(tensor *src, tensor *dst);
+
+void tensor_dct2d_rect(tensor *src, tensor *dst,
+                       int sy, int sx, int height, int width);
+
+void tensor_idct2d(tensor *src, tensor *dst);
+
+// DCT in blocks
+void tensor_dct2d_blocks(tensor *src, tensor *dst,
+                         int block_height, int block_width);
+void tensor_dct2d_8x8_blocks_loeffler(tensor *src, tensor *dst);
+
 
 
 #endif

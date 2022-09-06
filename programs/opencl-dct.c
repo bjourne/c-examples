@@ -69,7 +69,7 @@ main(int argc, char *argv[]) {
     tensor_randrange(image, 100);
 
     // Compute reference results
-    tensor_dct2d_blocked(image, ref, 8, 8);
+    tensor_dct2d_blocks(image, ref, 8, 8);
 
     // Allocate and write to OpenCL buffers
     cl_mem mem_image = clCreateBuffer(ctx, CL_MEM_READ_ONLY,
