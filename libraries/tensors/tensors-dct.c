@@ -122,8 +122,8 @@ tensor_dct2d_8x8_blocks(tensor *src, tensor *dst) {
     assert(height % 8 == 0);
 
     #ifdef __AVX2__
-    tensor_dct8x8_blocks_avx256_impl(src->data, dst->data,
-                                     width, height);
+    tensor_dct2d_8x8_blocks_avx256_impl(src->data, dst->data,
+                                        width, height);
     #else
 
     tensor_dct8x8_blocks_scalar_impl(src->data, dst->data,

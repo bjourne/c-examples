@@ -149,8 +149,8 @@ nvidia_block(float * restrict src,
 }
 
 void
-tensor_dct8x8_nvidia_avx256_impl(float * restrict src, float * restrict dst,
-                                 int width, int height) {
+tensor_dct2d_8x8_blocks_avx256_impl(float * restrict src, float * restrict dst,
+                                    int width, int height) {
     const float c_norm = TENSOR_DCT8_NVIDIA_NORM;
     const float c_ca = TENSOR_DCT8_NVIDIA_CA;
     const float c_cb = TENSOR_DCT8_NVIDIA_CB;
