@@ -178,7 +178,8 @@ ocl_load_kernel(cl_context ctx, cl_device_id dev, const char *fname,
     rewind(fp);
 
     char *source = (char*)malloc(sizeof(char)*(size + 1));
-    fread(source, 1, size * sizeof(char), fp);
+    size_t n_bytes = size * sizeof(char);
+    assert(fread(source, 1, n_bytes, fp) == n_bytes);
     source[size] = '\0';
     fclose(fp);
 
