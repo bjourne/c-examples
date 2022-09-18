@@ -167,6 +167,10 @@ def build(ctx):
             'TENSORS_OBJS', 'PNG', 'M', 'GOMP',
             'DT_OBJS'
         ])
+        build_program(ctx, 'opencl-fpga.c', [
+            'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS',
+            'TENSORS_OBJS', 'PNG', 'M', 'DT_OBJS'
+        ])
     if ctx.env.DEST_OS != 'win32':
         build_program(ctx, 'capstack.c',
                       ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
