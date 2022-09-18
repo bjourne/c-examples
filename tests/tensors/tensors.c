@@ -9,6 +9,7 @@ char *fname = NULL;
 
 void
 test_from_png() {
+    #ifdef HAVE_PNG
     tensor *t = tensor_read_png(fname);
     assert(t);
     assert(t->error_code == TENSOR_ERR_NONE);
@@ -17,10 +18,12 @@ test_from_png() {
     assert(t->error_code == TENSOR_ERR_NONE);
 
     tensor_free(t);
+    #endif
 }
 
 void
 test_pick_channel() {
+    #ifdef HAVE_PNG
     tensor *t1 = tensor_read_png(fname);
     assert(t1);
     assert(t1->error_code == TENSOR_ERR_NONE);
@@ -39,10 +42,12 @@ test_pick_channel() {
 
     tensor_free(t1);
     tensor_free(t2);
+    #endif
 }
 
 void
 test_conv2d() {
+    #ifdef HAVE_PNG
     tensor *t1 = tensor_read_png(fname);
     assert(t1);
     assert(t1->error_code == TENSOR_ERR_NONE);
@@ -113,6 +118,7 @@ test_conv2d() {
     tensor_free(t2);
     tensor_free(t1);
     tensor_free(weight);
+    #endif
 }
 
 void
@@ -705,6 +711,7 @@ test_max_pool_strided() {
 
 void
 test_max_pool_image() {
+    #ifdef HAVE_PNG
     tensor *src = tensor_read_png(fname);
     assert(src);
     assert(src->error_code == TENSOR_ERR_NONE);
@@ -718,6 +725,7 @@ test_max_pool_image() {
         tensor_free(dst);
     }
     tensor_free(src);
+    #endif
 }
 
 void

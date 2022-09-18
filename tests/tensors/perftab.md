@@ -42,3 +42,12 @@
 | Phenom II | 2048 | 6.19  | clang    | O2  | 32        |          |                                     |      |
 | Phenom II | 2048 | 11.59 | clang    | O2  | 16        |          |                                     |      |
 |           |      |       |          |     |           |          |                                     |      |
+| Phenom II | 4096 | 4.88  | clang    | O3  | 32        | Yes      | 2x16 kernel                         |      |
+| Phenom II | 4096 | 4.20  | clang    | O3  | 64        | Yes      | 2x16 kernel                         |      |
+| Phenom II | 4096 | 3.04  | clang    | O3  | 128       | Yes      | 2x16 kernel                         |      |
+| Phenom II | 4096 | 2.23  | clang    | O3  | 256       | Yes      | 2x16 kernel                         |      |
+|           |      |       |          |     |           |          |                                     |      |
+|           |      |       |          |     |           |          |                                     |      |
+|           |      |       |          |     |           |          |                                     |      |
+|           |      |       |          |     |           |          |                                     |      |
+|           |      |       |          |     |           |          |                                     |      |

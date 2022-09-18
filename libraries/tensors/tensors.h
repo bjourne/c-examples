@@ -129,9 +129,11 @@ void tensor_fill(tensor *t, float v);
 void tensor_randrange(tensor *t, int high);
 void tensor_softmax(tensor *t);
 
+#ifdef HAVE_PNG
 // Png support
 tensor *tensor_read_png(char *filename);
 bool tensor_write_png(tensor *me, char *filename);
+#endif
 
 // Layer abstraction
 tensor_layer *tensor_layer_init_linear(int in, int out);

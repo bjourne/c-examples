@@ -61,7 +61,7 @@ def configure(ctx):
         ctx.check_cfg(package = 'libpng',
                       args = ['--libs', '--cflags'],
                       uselib_store = 'PNG',
-                      mandatory = True)
+                      mandatory = False)
         ctx.check(lib = 'gomp', mandatory = True, uselib_store = 'GOMP')
         ctx.check(lib = 'm', mandatory = False)
         ctx.check(lib = 'pthread', mandatory = False)
