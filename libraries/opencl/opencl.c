@@ -220,7 +220,10 @@ ocl_load_kernel(cl_context ctx, cl_device_id dev, const char *fname,
     if (err != CL_SUCCESS) {
         printf("Build failed: %s\n", err_str(err));
         size_t n_bytes;
-        clGetProgramBuildInfo(*program, dev, CL_PROGRAM_BUILD_LOG, 0, NULL, &n_bytes);
+        err = clGetProgramBuildInfo(*program, dev, CL_PROGRAM_BUILD_LOG,
+                                    0, NULL, &n_bytes);
+        ocl_check_err(err);
+        assert(n_bytes > 0);
 
         // Allocate memory for the log
         char *log = (char *) malloc(n_bytes);
@@ -261,12 +264,10 @@ ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
     }
     va_end(ap);
 
-    //size_t start = nano_count();
     cl_event event;
     err = clEnqueueNDRangeKernel(queue, kernel, 2, NULL,
                                  global, local, 0, NULL, &event);
     ocl_check_err(err);
     err = clWaitForEvents(1, &event);
     ocl_check_err(err);
-    //return (double)(end - start) / 1000 / 1000 / 1000;
 }
