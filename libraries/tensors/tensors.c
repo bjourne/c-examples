@@ -2,7 +2,6 @@
 #include <assert.h>
 #include <float.h>
 #include <math.h>
-#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -163,19 +162,6 @@ tensor_flatten(tensor *me, int from) {
 ////////////////////////////////////////////////////////////////////////
 // Init and Free
 ////////////////////////////////////////////////////////////////////////
-static tensor *
-init_from_va_list(int n_dims, va_list ap) {
-    tensor *me = (tensor *)malloc(sizeof(tensor));
-    me->n_dims = n_dims;
-    for (int i = 0; i < n_dims; i++) {
-        me->dims[i] = va_arg(ap, int);
-    }
-    int n_bytes = sizeof(float) * tensor_n_elements(me);
-    me->data = (float *)malloc(n_bytes);
-    return me;
-}
-
-// To fix: va_args was more trouble than it was worth.
 tensor *
 tensor_init(int n_dims, int dims[]) {
     tensor *me = (tensor *)malloc(sizeof(tensor));
@@ -201,16 +187,6 @@ tensor *
 tensor_init_from_data(float *data, int n_dims, int dims[])  {
     tensor *me = tensor_init(n_dims, dims);
     memcpy(me->data, data, sizeof(float) * tensor_n_elements(me));
-    return me;
-}
-
-tensor *
-tensor_init_filled(float v, int n_dims, ...)  {
-    va_list ap;
-    va_start(ap, n_dims);
-    tensor *me = init_from_va_list(n_dims, ap);
-    va_end(ap);
-    tensor_fill(me, v);
     return me;
 }
 
