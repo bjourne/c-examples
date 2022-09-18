@@ -6,6 +6,10 @@
 
 #define TENSOR_MAX_N_DIMS   10
 
+// Address alignment for data buffers. Since tensors are supposed to
+// be pretty big, wasting a few bytes shouldn't matter much.
+#define TENSOR_ADDRESS_ALIGNMENT    64
+
 typedef enum {
     TENSOR_ERR_NONE = 0,
     TENSOR_ERR_FILE_NOT_FOUND,

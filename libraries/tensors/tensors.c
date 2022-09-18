@@ -162,6 +162,13 @@ tensor_flatten(tensor *me, int from) {
 ////////////////////////////////////////////////////////////////////////
 // Init and Free
 ////////////////////////////////////////////////////////////////////////
+static void *
+malloc_aligned(size_t n_bytes) {
+    void *p = NULL;
+    posix_memalign(&p, TENSOR_ADDRESS_ALIGNMENT, n_bytes);
+    return p;
+}
+
 tensor *
 tensor_init(int n_dims, int dims[]) {
     tensor *me = (tensor *)malloc(sizeof(tensor));
@@ -169,16 +176,14 @@ tensor_init(int n_dims, int dims[]) {
     memcpy(me->dims, dims, n_dims * sizeof(int));
 
     int n_bytes = sizeof(float) * tensor_n_elements(me);
-    me->data = (float *)malloc(n_bytes);
+    me->data = (float *)malloc_aligned(n_bytes);
     return me;
 }
 
 tensor *
 tensor_init_copy(tensor *orig) {
-    tensor *me = (tensor *)malloc(sizeof(tensor));
-    copy_dims(orig->n_dims, orig->dims, &me->n_dims, me->dims);
+    tensor *me = tensor_init(orig->n_dims, orig->dims);
     int n_bytes = sizeof(float) * tensor_n_elements(me);
-    me->data = (float *)malloc(n_bytes);
     memcpy(me->data, orig->data, n_bytes);
     return me;
 }
@@ -373,7 +378,8 @@ tensor_read_png(char *filename) {
     me->dims[1] = height;
     me->dims[2] = width;
     me->n_dims = 3;
-    me->data = (float *)malloc(sizeof(float) * 3 * height * width);
+    size_t n_bytes = sizeof(float) * 3 * height * width;
+    me->data = (float *)malloc_aligned(n_bytes);
     png_bytepp row_pointers = png_get_rows(png, info);
 
     for (int y = 0; y < height; y++) {
