@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <png.h>
 #include "datatypes/common.h"
 #include "tensors.h"
 
@@ -261,6 +260,8 @@ tensor_softmax(tensor *t) {
 }
 
 #ifdef HAVE_PNG
+#include <png.h>
+
 ////////////////////////////////////////////////////////////////////////
 // PNG Support
 ////////////////////////////////////////////////////////////////////////
