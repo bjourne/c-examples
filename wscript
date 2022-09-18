@@ -37,7 +37,7 @@ def configure(ctx):
     ctx.env.append_value('INCLUDES', ['libraries'])
     dest_os = ctx.env.DEST_OS
     if dest_os == 'linux':
-        ctx.check(lib = 'X11')
+        ctx.check(lib = 'X11', mandatory = False)
         ctx.check(lib = 'GL', mandatory = False)
     if dest_os != 'win32':
         llvm_libs = ['core', 'executionengine', 'mcjit', 'native']
@@ -178,5 +178,5 @@ def build(ctx):
     if ctx.env['LIB_LLVM']:
         build_program(ctx, 'llvm-wbc.c', ['LLVM'])
         build_program(ctx, 'llvm-rbc.c', ['LLVM'])
-    if ctx.env['LIB_GL']:
+    if ctx.env['LIB_GL'] and ctx.env['LIB_X11']:
         build_program(ctx, 'gl-fbconfigs.c', ['GL', 'X11'])
