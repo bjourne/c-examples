@@ -23,10 +23,8 @@ list_platforms() {
 
     for (int i  = 0; i < n_platforms; i++) {
         for (int j = 0; j < 5; j++) {
-            size_t n_bytes;
-            clGetPlatformInfo(platforms[i], attr_types[j], 0, NULL, &n_bytes);
-            char *info = (char *)malloc(n_bytes);
-            clGetPlatformInfo(platforms[i], attr_types[j], n_bytes, info, NULL);
+            char *info = (char *)ocl_get_platform_info(platforms[i],
+                                                       attr_types[j]);
             printf("%-15s: %s\n", attr_names[j], info);
             free(info);
         }

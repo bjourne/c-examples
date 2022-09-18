@@ -131,6 +131,21 @@ ocl_get_platforms(cl_uint *n_platforms, cl_platform_id **platforms) {
     ocl_check_err(err);
 }
 
+void *
+ocl_get_platform_info(cl_platform_id platform,
+                      cl_platform_info info) {
+    size_t n_bytes;
+    cl_int err;
+    err = clGetPlatformInfo(platform, info,
+                            0, NULL, &n_bytes);
+    ocl_check_err(err);
+    void *ptr = (void *)malloc(n_bytes);
+    clGetPlatformInfo(platform, info,
+                      n_bytes, ptr, NULL);
+    ocl_check_err(err);
+    return ptr;
+}
+
 void
 ocl_get_devices(cl_platform_id platform,
                 cl_uint *n_devices, cl_device_id **devices) {
