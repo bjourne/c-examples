@@ -168,18 +168,32 @@ ocl_print_device_details(cl_device_id dev, int ind) {
         "Name", "Version", "Driver", "C Version"
     };
     int attr_types[] = {
-        CL_DEVICE_NAME, CL_DEVICE_VERSION, CL_DRIVER_VERSION,
+        CL_DEVICE_NAME,
+        CL_DEVICE_VERSION, CL_DRIVER_VERSION,
         CL_DEVICE_OPENCL_C_VERSION
     };
     for (int i = 0; i < ARRAY_SIZE(attr_types); i++) {
         print_prefix(ind);
         print_device_info_str(dev, attr_types[i], attr_names[i]);
     }
+
+    print_prefix(ind);
     cl_uint n_compute_units;
     clGetDeviceInfo(dev, CL_DEVICE_MAX_COMPUTE_UNITS,
                     sizeof(cl_uint), &n_compute_units, NULL);
-    print_prefix(ind);
     printf("%-15s: %d\n", "Compute units", n_compute_units);
+
+    print_prefix(ind);
+    cl_ulong n_mem;
+    clGetDeviceInfo(dev, CL_DEVICE_GLOBAL_MEM_SIZE,
+                    sizeof(cl_ulong), &n_mem, NULL);
+    printf("%-15s: %ld\n", "Global memory", n_mem);
+
+    print_prefix(ind);
+    cl_ulong n_alloc;
+    clGetDeviceInfo(dev, CL_DEVICE_MAX_MEM_ALLOC_SIZE,
+                    sizeof(cl_ulong), &n_alloc, NULL);
+    printf("%-15s: %ld\n", "Max allocation", n_alloc);
 
     print_prefix(ind);
     size_t n_bytes;
