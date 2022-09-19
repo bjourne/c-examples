@@ -49,14 +49,18 @@ tensor_check_equal(tensor *t1, tensor *t2, float epsilon) {
     int n = t1->n_dims;
     int dim_counts[TENSOR_MAX_N_DIMS] = {0};
     int *dims = t1->dims;
+    int n_mismatches = 0;
     for (int i = 0; i < tensor_n_elements(t1); i++) {
         float v1 = t1->data[i];
         float v2 = t2->data[i];
         float diff = fabs(v2 - v1);
         if (diff >= epsilon) {
-            printf("Mismatch at ");
-            print_dims(n, dim_counts);
-            printf(", %10.6f != %10.6f\n", v1,  v2);
+            n_mismatches++;
+            if (n_mismatches < 100) {
+                printf("Mismatch at ");
+                print_dims(n, dim_counts);
+                printf(", %10.6f != %10.6f\n", v1,  v2);
+            }
         }
         for (int j = n - 1; j >= 0; j--) {
             dim_counts[j]++;
@@ -66,6 +70,9 @@ tensor_check_equal(tensor *t1, tensor *t2, float epsilon) {
                 break;
             }
         }
+    }
+    if (n_mismatches > 0) {
+        printf("%d mismatches in total.\n", n_mismatches);
     }
     return true;
 }

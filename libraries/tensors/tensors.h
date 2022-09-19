@@ -123,7 +123,7 @@ void tensor_linear(tensor *weights, tensor *bias,
                    tensor *src, tensor *dst);
 tensor *tensor_linear_new(tensor *weights, tensor *bias, tensor *src);
 
-// Matrix multiply
+// Matrix multiply and transpose
 void tensor_multiply(tensor *a, tensor *b, tensor *c);
 
 // Scalar ops
