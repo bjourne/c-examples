@@ -210,8 +210,9 @@ ocl_load_kernel(cl_context ctx, cl_device_id dev, const char *fname,
                 cl_program *program, cl_kernel *kernel) {
 
     FILE *fp = fopen(fname, "r");
-    assert(fp);
-
+    if (!fp) {
+        return false;
+    }
     fseek(fp, 0, SEEK_END);
     long size = ftell(fp);
     rewind(fp);
