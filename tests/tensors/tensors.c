@@ -7,6 +7,27 @@
 
 char *fname = NULL;
 
+static float
+matrix_5x5_1[5][5] = {
+    {0, 1, 4, 3, 2},
+    {1, 3, 4, 0, 4},
+    {2, 2, 4, 1, 1},
+    {2, 1, 3, 3, 2},
+    {0, 0, 3, 1, 0}
+};
+
+// Transposed 5x5_1
+static float
+matrix_5x5_2[5][5] = {
+    {0, 1, 2, 2, 0},
+    {1, 3, 2, 1, 0},
+    {4, 4, 4, 3, 3},
+    {3, 0, 1, 3, 1},
+    {2, 4, 1, 2, 0}
+};
+
+
+
 void
 test_from_png() {
     #ifdef HAVE_PNG
@@ -125,15 +146,6 @@ test_conv2d() {
 
 void
 test_conv2d_padded() {
-    float src_data[1][5][5] = {
-        {
-            {0, 1, 4, 3, 2},
-            {1, 3, 4, 0, 4},
-            {2, 2, 4, 1, 1},
-            {2, 1, 3, 3, 2},
-            {0, 0, 3, 1, 0}
-        }
-    };
     float weight_data[1][1][2][2] = {
         {
             {
@@ -150,7 +162,7 @@ test_conv2d_padded() {
             { 8, 13, 27, 16}
         }
     };
-    tensor *src = tensor_init_from_data((float *)src_data,
+    tensor *src = tensor_init_from_data((float *)matrix_5x5_1,
                                         3, (int[]){1, 5, 5});
     tensor *weight = tensor_init_from_data((float *)weight_data,
                                            4, (int[]){1, 1, 2, 2});
@@ -1278,6 +1290,21 @@ test_multiply_big() {
     tensor_free(c_exp);
 }
 
+void
+test_transpose() {
+    tensor *src = tensor_init_from_data((float *)matrix_5x5_1,
+                                        2, (int[]){5, 5});
+    tensor *dst = tensor_init(2, (int[]){5, 5});
+    tensor *dst_ref = tensor_init_from_data((float *)matrix_5x5_2,
+                                            2, (int[]){5, 5});
+    tensor_transpose(src, dst);
+    tensor_check_equal(dst, dst_ref, LINALG_EPSILON);
+
+    tensor_free(dst);
+    tensor_free(dst_ref);
+    tensor_free(src);
+}
+
 
 int
 main(int argc, char *argv[]) {
@@ -1314,4 +1341,5 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_softmax);
     PRINT_RUN(test_multiply);
     PRINT_RUN(test_multiply_big);
+    PRINT_RUN(test_transpose);
 }

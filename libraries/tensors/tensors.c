@@ -626,6 +626,22 @@ tensor_multiply(tensor *a, tensor *b, tensor *c) {
     }
 }
 
+void
+tensor_transpose(tensor *src, tensor *dst) {
+    assert(src->n_dims == 2 &&  src->n_dims == dst->n_dims);
+    int src_height = src->dims[0];
+    int src_width = src->dims[1];
+    int dst_height = dst->dims[0];
+    int dst_width = dst->dims[1];
+    assert(src_height == dst_width);
+    assert(src_width == dst_height);
+    for (int i = 0; i < src_height; i++) {
+        for  (int j = 0; j < src_width; j++) {
+            dst->data[j * dst_width + i] = src->data[i * src_width + j];
+        }
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////
 // Layer abstraction
 ////////////////////////////////////////////////////////////////////////
