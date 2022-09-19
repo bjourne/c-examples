@@ -24,6 +24,19 @@
 /*     C is a N x M matrix */
 #include "libraries/opencl/matmul_fpga_config.h"
 
+struct nvec_float_t {
+    vec_float_t data[LVEC];
+};
+
+struct nvec_float_t_bool {
+    vec_float_t data[LVEC];
+    bool c;  // indicates a new row/column pair
+};
+
+struct cols_floats {
+    float drain_data[PE_COLS];
+};
+
 #pragma OPENCL EXTENSION cl_intel_channels : enable
 
 channel struct nvec_float_t_bool loadAChannel __attribute__((depth(64)));
@@ -67,14 +80,16 @@ kernel void loadA(global volatile vec_float_t* restrict A,
         for (int i = 0; i < LVEC; i++) {
             if (feed_zeros_to_flush_last_C_block) {
                 A_local.data[i] = VECTOR_ZERO;
-                // Under host control, disable loading data from memory to avoid
-                // being bandwidth limited
-                // Generate instead numbers in a range above 1.0f, where the actual
-                // value is an FP converted uint between 0x3F800000 and 0x3F81000F
+                // Under host control, disable loading data from
+                // memory to avoid being bandwidth limited. Generate
+                // instead numbers in a range above 1.0f, where the
+                // actual value is an FP converted uint between
+                // 0x3F800000 and 0x3F81000F
             } else if (disable) {
                 #pragma unroll
                 for (int j = 0; j < VEC; j++) {
-                    uint tmp = (0x3F800000 + j) + ((vector_id_global * LVEC + i) & 0xFFFF);
+                    uint tmp = (0x3F800000 + j)
+                        + ((vector_id_global * LVEC + i) & 0xFFFF);
                     A_local.data[i][j] = *(float *)&tmp;
                 }
             } else {
@@ -87,8 +102,9 @@ kernel void loadA(global volatile vec_float_t* restrict A,
 
         if (vector_id_in_block == (MAT_A_BLOCK_NUM_VECTORS / LVEC - 1)) {
             vector_id_in_block = 0;
-            // we keep new_row_col_pair=true for only the first block in the row of blocks
-            // (feeders in the daisy chain expect this functionality)
+            // we keep new_row_col_pair=true for only the first block
+            // in the row of blocks (feeders in the daisy chain expect
+            // this functionality)
             new_row_col_pair = false;
 
         } else {

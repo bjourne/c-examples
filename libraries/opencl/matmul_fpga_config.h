@@ -94,19 +94,6 @@ struct vec_float_t_bool {
    #define LVEC 1
 #endif
 
-struct nvec_float_t {
-    vec_float_t data[LVEC];
-};
-
-struct nvec_float_t_bool {
-    vec_float_t data[LVEC];
-    bool  c;  // indicates a new row/column pair
-};
-
-struct cols_floats {
-    float drain_data[PE_COLS];
-};
-
 // The number of rows rounded up to the next power of 2
 #if ROWS <= 1
     #define BANKROWS 1

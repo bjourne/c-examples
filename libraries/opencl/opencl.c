@@ -248,7 +248,6 @@ ocl_load_kernel(cl_context ctx, cl_device_id dev, const char *fname,
 
         // Print the log
         printf("%s\n", log);
-        assert(false);
         return false;
     }
     free(source);
