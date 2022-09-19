@@ -1255,6 +1255,7 @@ test_multiply_big() {
     tensor *b = tensor_init(2, (int[]){dim, dim});
     tensor *c = tensor_init(2, (int[]){dim, dim});
     tensor *c_exp = tensor_init(2, (int[]){dim, dim});
+    tensor_fill(c_exp, 0.0);
 
     tensor_randrange(a, 10.0);
     tensor_randrange(b, 10.0);
