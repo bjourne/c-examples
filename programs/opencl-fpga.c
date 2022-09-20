@@ -6,6 +6,9 @@
 #include <stdio.h>
 #include <string.h>
 #include "opencl/opencl.h"
+
+#define HOST
+#include "opencl/matmul_fpga_config.h"
 #include "tensors/tensors.h"
 
 #define PE_ROWS                  2
@@ -19,6 +22,14 @@
 
 #define MAT_A_BLOCK_WIDTH           (16 * DOT_PROD_VECTOR_SIZE)
 #define MAT_A_BLOCK_HEIGHT          (ROWS_INTERLEAVED   * PE_ROWS)
+
+#define MAT_A_NUM_BLOCKS_IN_ROW             (WA / MAT_A_BLOCK_WIDTH)
+#define MAT_A_NUM_BLOCKS_IN_COL             (HA / MAT_A_BLOCK_HEIGHT)
+#define MAT_A_NUM_VECTORS_IN_ROW_OF_BLOCKS  (MAT_A_NUM_BLOCKS_IN_ROW * MAT_A_BLOCK_NUM_VECTORS)
+
+#define MAT_B_NUM_BLOCKS_IN_ROW             (WB / MAT_B_BLOCK_WIDTH)
+#define MAT_B_NUM_BLOCKS_IN_COL             (HB / MAT_B_BLOCK_HEIGHT)
+#define MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS  (MAT_B_NUM_BLOCKS_IN_COL * MAT_B_BLOCK_NUM_VECTORS)
 
 #define MAT_B_BLOCK_HEIGHT          MAT_A_BLOCK_WIDTH
 #define MAT_B_BLOCK_WIDTH           (COLUMNS_INTERLEAVED * PE_COLS)
@@ -107,7 +118,8 @@ main(int argc, char *argv[]) {
     block_wise_reformat(b_transpose->data, b_transpose_blocked->data, WB, HB,
                         MAT_B_BLOCK_WIDTH, MAT_B_BLOCK_HEIGHT);
 
-    cl_platform_id platform_id = platform_by_needle("Intel");
+    cl_platform_id platform_id = platform_by_needle(
+        emu ? "FPGA Emulation" : "FPGA SDK");
     assert(platform_id);
 
     cl_device_id dev_id = device_first(platform_id);
@@ -183,13 +195,27 @@ main(int argc, char *argv[]) {
     ocl_check_err(err);
 
     // Create the three kernels.
-
     const char *names[] = {"loadA", "loadB", "store"};
     cl_kernel kernels[3];
     for(int i = 0; i < 3; i++) {
         kernels[i] = clCreateKernel(program, (const char*)names[i], &err);
         ocl_check_err(err);
     }
+
+    // LoadA kernel
+    unsigned int mat_a_num_vectors_in_row_of_blocks =
+        MAT_A_NUM_VECTORS_IN_ROW_OF_BLOCKS;
+    unsigned char mat_a_num_blocks_in_col = MAT_A_NUM_BLOCKS_IN_COL;
+    unsigned char mat_b_num_blocks_in_row = MAT_B_NUM_BLOCKS_IN_ROW;
+    unsigned char disableA = 0;
+
+    ocl_set_kernel_arguments(
+        kernels[0], 10,
+        sizeof(cl_mem), (void *)&dev_a,
+        sizeof(unsigned int), (void *)&mat_a_num_vectors_in_row_of_blocks,
+        sizeof(unsigned char), (void *)&mat_a_num_blocks_in_col,
+        sizeof(unsigned char), (void *)&mat_b_num_blocks_in_row,
+        sizeof(unsigned char), (void *)&disableA);
 
     // Release OpenCL
     clReleaseMemObject(dev_a);
