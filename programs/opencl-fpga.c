@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include "datatypes/common.h"
 #include "opencl/opencl.h"
 
 #define HOST
@@ -43,6 +44,12 @@
 
 #define HC HA                                   // Matrix C height
 #define WC WB                                   // Matrix C width
+
+// Gold stuff
+#define COMPUTE_GOLD_BLOCK_SIZE 64
+
+#define HA_trim (2 *  MAT_A_BLOCK_HEIGHT)
+#define WB_trim WB
 
 static void
 block_wise_reformat(float * restrict src, float * restrict dst,
@@ -90,6 +97,49 @@ device_first(cl_platform_id platform_id) {
     return device_id;
 }
 
+static void
+compute_gold_blocked(float* C, const float* A, const float* B,
+                     unsigned int hA, unsigned int wA,
+                     unsigned int wB, unsigned int hB)
+{
+    const int block_size = COMPUTE_GOLD_BLOCK_SIZE;
+    for(unsigned int i0 = 0; i0 < hA ; i0 += block_size) {
+        for(unsigned int j0 = 0; j0 < wB; j0 += block_size) {
+            for(unsigned int k0=0; k0 < wA ; k0 += block_size ) {
+                for(unsigned int i = i0; i < MIN(hA, i0 + block_size); i++) {
+                    for(unsigned int j = j0; j < MIN(wB, j0 + block_size); j++) {
+                        double sum = 0;
+                        for(unsigned int k = k0; k < MIN(wA, k0 + block_size); k++) {
+                            double a = A[i * wA + k];
+                            double b = B[j * hB + k]; // B is transposed
+                            sum += a * b;
+                        }
+                        C[i * wB + j] += (float)sum;
+                    }
+                }
+            }
+        }
+    }
+}
+
+static  void
+reorder_within_blocks(float * C_block_wise,
+                      float * C_reordered_within_blocks,
+                      int mat_height, int mat_width,
+                      int num_sys_arr_columns, int block_width) {
+    int num_elems = mat_height*mat_width;
+    int column_interleaving = block_width / num_sys_arr_columns;
+    int word_id = 0;
+    for(int i=0; i < num_elems; i += block_width) {
+        for(int j=0; j < column_interleaving; j++) {
+            for(int k=0; k < num_sys_arr_columns ; k++) {
+                C_reordered_within_blocks[word_id] = C_block_wise[i+j+k*column_interleaving];
+                word_id++;
+            }
+        }
+    }
+}
+
 int
 main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -103,7 +153,11 @@ main(int argc, char *argv[]) {
     tensor *b_transpose = tensor_init(2, (int[]){WB, HB});
     tensor *b_transpose_blocked = tensor_init(2, (int[]){WB, HB});
     tensor *b = tensor_init(2, (int[]){HB, WB});
+
     tensor *c = tensor_init(2, (int[]){HC, WC});
+    tensor *c_golden = tensor_init(2, (int[]){HC, WC});
+    tensor *c_golden_blocked = tensor_init(2, (int[]){HC, WC});
+    tensor *c_golden_blocked_reordered = tensor_init(2, (int[]){HC, WC});
     tensor *c_ref = tensor_init(2, (int[]){HC, WC});
 
     printf("a = [%d, %d], b = [%d, %d], "
@@ -119,6 +173,19 @@ main(int argc, char *argv[]) {
     tensor_transpose(b, b_transpose);
     block_wise_reformat(b_transpose->data, b_transpose_blocked->data, WB, HB,
                         MAT_B_BLOCK_WIDTH, MAT_B_BLOCK_HEIGHT);
+
+    // Golden compute
+
+    compute_gold_blocked(c_golden->data,
+                         a->data, b_transpose->data,
+                         HA_trim, WA, WB_trim, HB);
+    block_wise_reformat(c_golden->data, c_golden_blocked->data,
+                        HC, WC, MAT_C_BLOCK_HEIGHT, MAT_C_BLOCK_WIDTH);
+    reorder_within_blocks(c_golden_blocked->data,
+                          c_golden_blocked_reordered->data,
+                          HC, WC, PE_COLS,
+                          MAT_C_BLOCK_WIDTH);
+
 
     cl_platform_id platform_id = platform_by_needle(
         emu ? "FPGA Emulation" : "FPGA SDK");
@@ -292,7 +359,7 @@ main(int argc, char *argv[]) {
     printf("\n");
     printf("%20s", "From cpu: ");
     for (int i = 0; i < 10; i++) {
-        printf("%.2f ", c_ref->data[i]);
+        printf("%.2f ", c_golden_blocked_reordered->data[i]);
     }
     printf("\n");
 
@@ -320,4 +387,7 @@ main(int argc, char *argv[]) {
     tensor_free(b_transpose_blocked);
     tensor_free(c);
     tensor_free(c_ref);
+    tensor_free(c_golden);
+    tensor_free(c_golden_blocked);
+    tensor_free(c_golden_blocked_reordered);
 }
