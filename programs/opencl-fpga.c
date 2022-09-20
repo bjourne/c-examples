@@ -252,6 +252,30 @@ main(int argc, char *argv[]) {
                                      &events[i]);
         ocl_check_err(err);
     }
+    printf("Running kernels\n");
+    for(int i=0; i < 3; i++) {
+        err = clFlush(queues[i]);
+        ocl_check_err(err);
+    }
+
+    for(int i = 0; i < 3; i++) {
+         err = clFinish(queues[i]);
+         ocl_check_err(err);
+    }
+    printf("Kernel execution complete\n");
+
+    // Compute execution time
+    for (int i = 0; i < 3; i++) {
+        cl_ulong start, end;
+        err = clGetEventProfilingInfo(events[i], CL_PROFILING_COMMAND_END,
+                                      sizeof(cl_ulong), &end, NULL);
+        ocl_check_err(err);
+        err = clGetEventProfilingInfo(events[i], CL_PROFILING_COMMAND_START,
+                                      sizeof(cl_ulong), &start, NULL);
+        ocl_check_err(err);
+        double time = 1.0e-9 * (end - start);
+        printf("%.6f\n", time);
+    }
 
     // Release OpenCL
     clReleaseMemObject(dev_a);
