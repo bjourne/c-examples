@@ -259,6 +259,25 @@ ocl_load_kernel(cl_context ctx, cl_device_id dev, const char *fname,
     return true;
 }
 
+static void
+set_kernel_arguments(cl_kernel kernel, int n_args, va_list ap) {
+    // Divide by 2 here is lame.
+    for (int i = 0; i < n_args / 2; i++) {
+        size_t arg_size = va_arg(ap, size_t);
+        void *arg_value = va_arg(ap, void *);
+        cl_int err = clSetKernelArg(kernel, i, arg_size, arg_value);
+        ocl_check_err(err);
+    }
+}
+
+void
+ocl_set_kernel_arguments(cl_kernel kernel, int n_args, ...) {
+    va_list ap;
+    va_start(ap, n_args);
+    set_kernel_arguments(kernel, n_args, ap);
+    va_end(ap);
+}
+
 void
 ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
                   cl_uint work_dim,
@@ -269,13 +288,7 @@ ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
     cl_int err;
 
     va_start(ap, n_args);
-    // Divide by 2 here is lame.
-    for (int i = 0; i < n_args / 2; i++) {
-        size_t arg_size = va_arg(ap, size_t);
-        void *arg_value = va_arg(ap, void *);
-        err = clSetKernelArg(kernel, i, arg_size, arg_value);
-        ocl_check_err(err);
-    }
+    set_kernel_arguments(kernel, n_args, ap);
     va_end(ap);
 
     cl_event event;
