@@ -30,6 +30,7 @@
 #define MAT_B_NUM_BLOCKS_IN_ROW             (WB / MAT_B_BLOCK_WIDTH)
 #define MAT_B_NUM_BLOCKS_IN_COL             (HB / MAT_B_BLOCK_HEIGHT)
 #define MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS  (MAT_B_NUM_BLOCKS_IN_COL * MAT_B_BLOCK_NUM_VECTORS)
+#define MAT_B_NUM_VECTORS_IN_MATRIX         (MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS * MAT_B_NUM_BLOCKS_IN_ROW)
 
 #define MAT_B_BLOCK_HEIGHT          MAT_A_BLOCK_WIDTH
 #define MAT_B_BLOCK_WIDTH           (COLUMNS_INTERLEAVED * PE_COLS)
@@ -216,6 +217,41 @@ main(int argc, char *argv[]) {
         sizeof(unsigned char), (void *)&mat_a_num_blocks_in_col,
         sizeof(unsigned char), (void *)&mat_b_num_blocks_in_row,
         sizeof(unsigned char), (void *)&disableA);
+
+    // LoadB kernel
+    unsigned int mat_b_num_vectors_in_col_of_blocks =
+        MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS;
+    unsigned int mat_b_num_vectors_in_matrix =
+        MAT_B_NUM_VECTORS_IN_MATRIX;
+    unsigned char disableB = 0;
+
+    ocl_set_kernel_arguments(
+        kernels[1], 10,
+        sizeof(cl_mem), (void *)&dev_b,
+        sizeof(unsigned int), (void *)&mat_b_num_vectors_in_col_of_blocks,
+        sizeof(unsigned int), (void *)&mat_b_num_vectors_in_matrix,
+        sizeof(unsigned char), (void *)&mat_a_num_blocks_in_col,
+        sizeof(unsigned char), (void *)&disableB);
+
+    // Store kernel
+    int mat_c_num_coalesced_words = WC * HC / PE_COLS;
+
+    ocl_set_kernel_arguments(
+        kernels[2], 4,
+        sizeof(cl_mem), (void *)&dev_c,
+        sizeof(int), (void *)&mat_c_num_coalesced_words);
+
+    // Queue kernels
+    size_t local[] = {1};
+    size_t global[] = {1};
+    cl_event events[3];
+    for (int i = 0; i < 3; i++) {
+        err = clEnqueueNDRangeKernel(queues[i], kernels[i],
+                                     1, NULL, global, local,
+                                     0, NULL,
+                                     &events[i]);
+        ocl_check_err(err);
+    }
 
     // Release OpenCL
     clReleaseMemObject(dev_a);
