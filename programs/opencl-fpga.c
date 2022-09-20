@@ -111,6 +111,7 @@ main(int argc, char *argv[]) {
            HA, WA, HB, WB, HC, WC, HA, WA, WB, HB);
     tensor_randrange(a, 10);
     tensor_randrange(b, 10);
+    tensor_fill(c, 0);
 
     tensor_multiply(a, b, c_ref);
     block_wise_reformat(a->data, a_blocked->data, HA, WA,
@@ -276,6 +277,18 @@ main(int argc, char *argv[]) {
         double time = 1.0e-9 * (end - start);
         printf("%.6f\n", time);
     }
+
+    // We use the fourth queue to read data back.
+    err = clEnqueueReadBuffer(queues[3], dev_c, CL_TRUE, 0,
+                              n_bytes_c, c->data,
+                              0, NULL, NULL);
+    ocl_check_err(err);
+
+    // Print some floats from c
+    for (int i = 0; i < 10; i++) {
+        printf("%.2f ", c->data[i]);
+    }
+    printf("\n");
 
     // Release OpenCL
     clReleaseMemObject(dev_a);
