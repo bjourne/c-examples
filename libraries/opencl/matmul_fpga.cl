@@ -85,13 +85,6 @@ kernel void loadA(global volatile vec_float_t* restrict A,
                 // instead numbers in a range above 1.0f, where the
                 // actual value is an FP converted uint between
                 // 0x3F800000 and 0x3F81000F
-            } else if (disable) {
-                #pragma unroll
-                for (int j = 0; j < VEC; j++) {
-                    uint tmp = (0x3F800000 + j)
-                        + ((vector_id_global * LVEC + i) & 0xFFFF);
-                    A_local.data[i][j] = *(float *)&tmp;
-                }
             } else {
                 A_local.data[i] = A[vector_id_global * LVEC + i];
             }
@@ -179,16 +172,6 @@ loadB(global volatile vec_float_t* restrict B,
         for (int i = 0; i < LVEC; i++) {
             if (feed_zeros_to_flush_last_C_block) {
                 B_local.data[i] = VECTOR_ZERO;
-            } else if (disable) {
-                #pragma unroll
-                for (int j = 0; j < VEC; j++) {
-                    // Under host control, disable loading data from memory to avoid
-                    // being bandwidth limited
-                    // Generate instead numbers in a range above 7.0f, where the actual
-                    // value is an FP converted uint between 0x40E00000 and 0x40E1000F
-                    uint tmp = (0x40E00000 + j) + ((vector_id_global * LVEC + i) & 0xFFFF);
-                    B_local.data[i][j] = *(float *)&tmp;
-                }
             } else {
                 B_local.data[i] = B[vector_id_global * LVEC + i];
             }

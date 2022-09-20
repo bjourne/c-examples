@@ -123,17 +123,17 @@ compute_gold_blocked(float* C, const float* A, const float* B,
 }
 
 static  void
-reorder_within_blocks(float * C_block_wise,
-                      float * C_reordered_within_blocks,
+reorder_within_blocks(float * src,
+                      float * dst,
                       int mat_height, int mat_width,
                       int num_sys_arr_columns, int block_width) {
     int num_elems = mat_height*mat_width;
     int column_interleaving = block_width / num_sys_arr_columns;
     int word_id = 0;
-    for(int i=0; i < num_elems; i += block_width) {
-        for(int j=0; j < column_interleaving; j++) {
-            for(int k=0; k < num_sys_arr_columns ; k++) {
-                C_reordered_within_blocks[word_id] = C_block_wise[i+j+k*column_interleaving];
+    for (int i = 0; i < num_elems; i += block_width) {
+        for (int j = 0; j < column_interleaving; j++) {
+            for (int k = 0; k < num_sys_arr_columns ; k++) {
+                dst[word_id] = src[i + j + k * column_interleaving];
                 word_id++;
             }
         }
