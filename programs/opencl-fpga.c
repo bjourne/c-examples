@@ -285,8 +285,14 @@ main(int argc, char *argv[]) {
     ocl_check_err(err);
 
     // Print some floats from c
+    printf("%20s", "From device: ");
     for (int i = 0; i < 10; i++) {
         printf("%.2f ", c->data[i]);
+    }
+    printf("\n");
+    printf("%20s", "From cpu: ");
+    for (int i = 0; i < 10; i++) {
+        printf("%.2f ", c_ref->data[i]);
     }
     printf("\n");
 
