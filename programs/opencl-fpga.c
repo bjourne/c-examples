@@ -80,9 +80,12 @@ device_first(cl_platform_id platform_id) {
 
 int
 main(int argc, char *argv[]) {
-    if (argc == 2 && !strncmp(argv[1], "-emu", strlen("-emu"))) {
-        printf("using emulator\n");
+    if (argc != 2) {
+        printf("Usage: %s emu|fpga\n", argv[0]);
+        exit(1);
     }
+    bool emu = !strncmp(argv[1], "emu", strlen("emu"));
+
     tensor *a = tensor_init(2, (int[]){HA, WA});
     tensor *a_blocked = tensor_init(2, (int[]){HA, WA});
     tensor *b_transpose = tensor_init(2, (int[]){WB, HB});
@@ -149,15 +152,44 @@ main(int argc, char *argv[]) {
                                b_transpose_blocked->data, 0, NULL, NULL);
     ocl_check_err(err);
 
-    // Let's try and load the kernel
-    cl_program program;
-    cl_kernel kernel;
-    if (!ocl_load_kernel(ctx, dev_id, "libraries/opencl/matmul_fpga.cl",
-                         &program, &kernel)) {
-        perror("Error");
-        return 0;
-    }
+    // Load the AOCX file.
+    printf("Loading AOCX file\n");
+    const char *aocx_file = emu
+        ? "matrix_mult_emu.aocx"
+        : "matrix_mult_fpga.aocx";
 
+    FILE *fp = fopen(aocx_file, "rb");
+    if (!fp) {
+        perror("Error");
+        return 1;
+    }
+    fseek(fp, 0, SEEK_END);
+    size_t length = ftell(fp);
+    rewind(fp);
+
+    char *binary = (char *)malloc(sizeof(char) * length);
+
+    assert(fread((void *)binary, length, 1, fp) > 0);
+    fclose(fp);
+
+    // Create program from binary
+    cl_program program = clCreateProgramWithBinary(ctx,
+        1, &dev_id,
+        &length, (const unsigned char **)&binary,
+        &err, NULL);
+    ocl_check_err(err);
+
+    err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+    ocl_check_err(err);
+
+    // Create the three kernels.
+
+    const char *names[] = {"loadA", "loadB", "store"};
+    cl_kernel kernels[3];
+    for(int i = 0; i < 3; i++) {
+        kernels[i] = clCreateKernel(program, (const char*)names[i], &err);
+        ocl_check_err(err);
+    }
 
     // Release OpenCL
     clReleaseMemObject(dev_a);
@@ -169,7 +201,9 @@ main(int argc, char *argv[]) {
         ocl_check_err(clFinish(queues[i]));
         clReleaseCommandQueue(queues[i]);
     }
-    clReleaseKernel(kernel);
+    for (int i = 0; i < 3; i++) {
+        clReleaseKernel(kernels[i]);
+    }
     clReleaseProgram(program);
     clReleaseContext(ctx);
 
