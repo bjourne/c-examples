@@ -172,7 +172,7 @@ tensor_flatten(tensor *me, int from) {
 static void *
 malloc_aligned(size_t n_bytes) {
     void *p = NULL;
-    posix_memalign(&p, TENSOR_ADDRESS_ALIGNMENT, n_bytes);
+    assert(!posix_memalign(&p, TENSOR_ADDRESS_ALIGNMENT, n_bytes));
     return p;
 }
 
