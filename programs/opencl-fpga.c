@@ -150,9 +150,17 @@ main(int argc, char *argv[]) {
     tensor *c_golden_blocked_reordered = tensor_init(2, (int[]){HC, WC});
     tensor *c_ref = tensor_init(2, (int[]){HC, WC});
 
-    printf("a = [%d, %d], b = [%d, %d], "
-           "c = [%d, %d], a_blocked = [%d, %d], b_transpose = [%d, %d]\n",
-           HA, WA, HB, WB, HC, WC, HA, WA, WB, HB);
+    printf("** Matrix dimensions **\n");
+    printf("%12s %4d %4d\n", "a", HA, WA);
+    printf("%12s %4d %4d\n", "b", HB, WB);
+    printf("%12s %4d %4d\n", "c", HC, WC);
+    printf("%12s %4d %4d\n", "a_blocked", HA, WA);
+    printf("%12s %4d %4d\n", "b_transpose", WB, HB);
+    printf("\n");
+    printf("** Kernel setup **\n");
+    printf("%12s %4d %4d\n", "PE dims", PE_ROWS, PE_COLS);
+    printf("\n");
+
     tensor_randrange(a, 10);
     tensor_randrange(b, 10);
     tensor_fill(c, 0);
@@ -262,30 +270,26 @@ main(int argc, char *argv[]) {
         MAT_A_NUM_VECTORS_IN_ROW_OF_BLOCKS;
     unsigned char mat_a_num_blocks_in_col = MAT_A_NUM_BLOCKS_IN_COL;
     unsigned char mat_b_num_blocks_in_row = MAT_B_NUM_BLOCKS_IN_ROW;
-    unsigned char disableA = 0;
 
     ocl_set_kernel_arguments(
-        kernels[0], 10,
+        kernels[0], 8,
         sizeof(cl_mem), (void *)&dev_a,
         sizeof(unsigned int), (void *)&mat_a_num_vectors_in_row_of_blocks,
         sizeof(unsigned char), (void *)&mat_a_num_blocks_in_col,
-        sizeof(unsigned char), (void *)&mat_b_num_blocks_in_row,
-        sizeof(unsigned char), (void *)&disableA);
+        sizeof(unsigned char), (void *)&mat_b_num_blocks_in_row);
 
     // LoadB kernel
     unsigned int mat_b_num_vectors_in_col_of_blocks =
         MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS;
     unsigned int mat_b_num_vectors_in_matrix =
         MAT_B_NUM_VECTORS_IN_MATRIX;
-    unsigned char disableB = 0;
 
     ocl_set_kernel_arguments(
-        kernels[1], 10,
+        kernels[1], 8,
         sizeof(cl_mem), (void *)&dev_b,
         sizeof(unsigned int), (void *)&mat_b_num_vectors_in_col_of_blocks,
         sizeof(unsigned int), (void *)&mat_b_num_vectors_in_matrix,
-        sizeof(unsigned char), (void *)&mat_a_num_blocks_in_col,
-        sizeof(unsigned char), (void *)&disableB);
+        sizeof(unsigned char), (void *)&mat_a_num_blocks_in_col);
 
     // Store kernel
     int mat_c_num_coalesced_words = WC * HC / PE_COLS;

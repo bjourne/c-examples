@@ -51,8 +51,7 @@ __attribute__((max_global_work_dim(0)))
 kernel void loadA(global volatile vec_float_t* restrict A,
                   uint mat_a_num_vectors_in_row_of_blocks,
                   uchar mat_a_num_blocks_in_col,
-                  uchar mat_b_num_blocks_in_row,
-                  uchar disable) {
+                  uchar mat_b_num_blocks_in_row) {
 
 
     uchar block_col_id = 1;
@@ -154,8 +153,7 @@ kernel void
 loadB(global volatile vec_float_t* restrict B,
       uint mat_b_num_vectors_in_col_of_blocks,
       uint mat_b_num_vectors_in_matrix,
-      uchar mat_a_num_blocks_in_col,
-      uchar disable) {
+      uchar mat_a_num_blocks_in_col) {
 
     uint vector_id_in_col_of_blocks = 0;
     uint vector_id_global = 0;
