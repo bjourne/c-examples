@@ -7,22 +7,12 @@
 #include <string.h>
 #include "datatypes/common.h"
 #include "opencl/opencl.h"
+#include "tensors/tensors.h"
 
 #define HOST
 #include "opencl/matmul_fpga_config.h"
-#include "tensors/tensors.h"
 
-#define PE_ROWS                  2
-#define PE_COLS                  2
-
-#define DOT_PROD_VECTOR_SIZE     8
 #define SCALING_FACTOR 32
-
-#define ROWS_INTERLEAVED         32
-#define COLUMNS_INTERLEAVED      32
-
-#define MAT_A_BLOCK_WIDTH           (16 * DOT_PROD_VECTOR_SIZE)
-#define MAT_A_BLOCK_HEIGHT          (ROWS_INTERLEAVED   * PE_ROWS)
 
 #define MAT_A_NUM_BLOCKS_IN_ROW             (WA / MAT_A_BLOCK_WIDTH)
 #define MAT_A_NUM_BLOCKS_IN_COL             (HA / MAT_A_BLOCK_HEIGHT)

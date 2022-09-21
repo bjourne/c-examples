@@ -5,36 +5,12 @@
 // PE_ROWS + PE_COLS <= ROWS_INTERLEAVED
 
 // design space exploration of three vector sizes: float4, float8 and float16
-#ifndef DOT_PROD_VECTOR_SIZE
-   #define DOT_PROD_VECTOR_SIZE     8
-#endif
+#define DOT_PROD_VECTOR_SIZE     8
 
-#ifndef FORCE_DOT_4
-   #define FORCE_DOT_4              0
-#endif
-
-#ifndef PE_ROWS
-   #define PE_ROWS                  2
-#endif
-#ifndef PE_COLS
-   #define PE_COLS                  2
-#endif
-
-#ifndef ROWS_INTERLEAVED
-#ifdef REDUCE_DATA
-   #define ROWS_INTERLEAVED         8
-#else
-   #define ROWS_INTERLEAVED         32
-#endif
-#endif
-
-#ifndef COLUMNS_INTERLEAVED
-#ifdef REDUCE_DATA
-   #define COLUMNS_INTERLEAVED      8
-#else
-   #define COLUMNS_INTERLEAVED      32
-#endif
-#endif
+#define PE_ROWS                  2
+#define PE_COLS                  2
+#define ROWS_INTERLEAVED         32
+#define COLUMNS_INTERLEAVED      32
 
 #define MAT_A_BLOCK_WIDTH           (16 * DOT_PROD_VECTOR_SIZE)
 #define MAT_A_BLOCK_HEIGHT          (ROWS_INTERLEAVED   * PE_ROWS)
@@ -72,17 +48,18 @@
 #define RANGE_MASK                  (RANGE - 1)
 
 #ifndef HOST
-    #if DOT_PROD_VECTOR_SIZE==4
-        typedef float4 vec_float_t;
-        #define VECTOR_ZERO         VECTOR_FLOAT4_ZERO
-    #elif DOT_PROD_VECTOR_SIZE==8
-        typedef float8 vec_float_t;
-        #define VECTOR_ZERO         VECTOR_FLOAT8_ZERO
-    #elif DOT_PROD_VECTOR_SIZE==16
-        typedef float16 vec_float_t;
-        #define VECTOR_ZERO         VECTOR_FLOAT16_ZERO
-    #else
-        #error Unsupported DOT_PROD_VECTOR_SIZE
+
+#if DOT_PROD_VECTOR_SIZE==4
+    typedef float4 vec_float_t;
+    #define VECTOR_ZERO         VECTOR_FLOAT4_ZERO
+#elif DOT_PROD_VECTOR_SIZE==8
+    typedef float8 vec_float_t;
+    #define VECTOR_ZERO         VECTOR_FLOAT8_ZERO
+#elif DOT_PROD_VECTOR_SIZE==16
+    typedef float16 vec_float_t;
+    #define VECTOR_ZERO         VECTOR_FLOAT16_ZERO
+#else
+    #error Unsupported DOT_PROD_VECTOR_SIZE
 #endif
 
 struct vec_float_t_bool {
@@ -90,9 +67,7 @@ struct vec_float_t_bool {
     bool  c;  // indicates a new row/column pair
 };
 
-#ifndef LVEC
-   #define LVEC 1
-#endif
+#define LVEC 1
 
 // The number of rows rounded up to the next power of 2
 #if ROWS <= 1
@@ -140,7 +115,7 @@ struct vec_float_t_bool {
     #error "COLS too large, BANKCOLS cannot be defined"
 #endif
 
-
 #endif
+
 
 #endif // _PE_SYSTOLIC_ARRAY_H_
