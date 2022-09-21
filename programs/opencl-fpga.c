@@ -12,8 +12,6 @@
 #define HOST
 #include "opencl/matmul_fpga_config.h"
 
-#define SCALING_FACTOR 32
-
 #define MAT_A_NUM_BLOCKS_IN_ROW             (WA / MAT_A_BLOCK_WIDTH)
 #define MAT_A_NUM_BLOCKS_IN_COL             (HA / MAT_A_BLOCK_HEIGHT)
 #define MAT_A_NUM_VECTORS_IN_ROW_OF_BLOCKS  (MAT_A_NUM_BLOCKS_IN_ROW * MAT_A_BLOCK_NUM_VECTORS)
@@ -27,7 +25,7 @@
 #define MAT_B_BLOCK_WIDTH           (COLUMNS_INTERLEAVED * PE_COLS)
 
 #define HA (4 * MAT_A_BLOCK_HEIGHT)             // Matrix A height
-#define WA (SCALING_FACTOR * MAT_A_BLOCK_WIDTH) // Matrix A width
+#define WA (32 * MAT_A_BLOCK_WIDTH)             // Matrix A width
 
 #define HB WA                                   // Matrix B height
 #define WB (4 * MAT_B_BLOCK_WIDTH)              // Matrix B width
@@ -159,6 +157,10 @@ main(int argc, char *argv[]) {
     printf("\n");
     printf("** Kernel setup **\n");
     printf("%12s %4d %4d\n", "PE dims", PE_ROWS, PE_COLS);
+    printf("%12s %4d %4d\n", "Block A", MAT_A_BLOCK_HEIGHT, MAT_A_BLOCK_WIDTH);
+    printf("%12s %4d %4d\n", "Block B", MAT_B_BLOCK_HEIGHT, MAT_B_BLOCK_WIDTH);
+    printf("%12s %4d %4d\n", "Block C", MAT_C_BLOCK_HEIGHT, MAT_C_BLOCK_WIDTH);
+    printf("%12s %4d %4d\n", "Interleave", ROWS_INTERLEAVED, COLUMNS_INTERLEAVED);
     printf("\n");
 
     tensor_randrange(a, 10);
