@@ -216,8 +216,8 @@ FeederA(struct nvec_float_t_bool newVal,
     bool buffer_id_to_feed_to_sysarr = !buffer_id_to_write_to;
 
     if (write_to_buffer) {
-        uchar buffer_vector_to_write_to     =  (counter * LVEC) & ROW_VECS_MASK;
-        uchar buffer_row_to_write_to        = ((counter * LVEC) & ((ROWS_INTERLEAVED * ROW_VECS)-1)) / ROW_VECS;
+        uchar buffer_vector_to_write_to = (counter * LVEC) & ROW_VECS_MASK;
+        uchar buffer_row_to_write_to = ((counter * LVEC) & ((ROWS_INTERLEAVED * ROW_VECS)-1)) / ROW_VECS;
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
             matrix_block_double_buffer[buffer_id_to_write_to][buffer_row_to_write_to][(buffer_vector_to_write_to / LVEC) * LVEC + i][row] = newVal.data[i];
@@ -313,14 +313,14 @@ kernel monolithic() {
 
 
 #ifdef EMULATE
-    for (int i = 0; i < ROWS; i++) {
+    for (int i = 0; i < PE_ROWS; i++) {
         for (int j = 0; j < ROWS_INTERLEAVED; j++) {
             for (int k = 0; k < ROW_VECS; k++) {
                 memA[0][j][k][i] = memA[1][j][k][i] = NAN;
             }
         }
     }
-    for (int i = 0; i < COLS; i++) {
+    for (int i = 0; i < PE_COLS; i++) {
         for (int j = 0; j < COLS_INTERLEAVED; j++) {
             for (int k = 0; k < ROW_VECS; k++) {
                 memB[0][j][k][i] = memB[1][j][k][i] = -NAN;
@@ -329,23 +329,23 @@ kernel monolithic() {
     }
 #endif
 
-    float accum[ROWS][COLS][ACCUM_SHIFT_REG_SIZE]; // internal PE storage for accumulations, ROWS x COLS shift registers
-    float drain[COLS][ACCUM_SHIFT_REG_SIZE * (ROWS - 1) + 1]; // shift register for drain, one per column
+    float accum[PE_ROWS][PE_COLS][ACCUM_SHIFT_REG_SIZE]; // internal PE storage for accumulations, ROWS x COLS shift registers
+    float drain[PE_COLS][ACCUM_SHIFT_REG_SIZE * (PE_ROWS - 1) + 1]; // shift register for drain, one per column
 
     uint counter = 0;
-    uint storecount = ACCUM_SHIFT_REG_SIZE * ROWS;
+    uint storecount = ACCUM_SHIFT_REG_SIZE * PE_ROWS;
     uint base = 0;
 
-    const uint num_a_loads = ROWS * ROWS_INTERLEAVED * ROW_VECS / LVEC;
-    const uint num_b_loads = COLS * COLS_INTERLEAVED * ROW_VECS / LVEC;
+    const uint num_a_loads = PE_ROWS * ROWS_INTERLEAVED * ROW_VECS / LVEC;
+    const uint num_b_loads = PE_COLS * COLS_INTERLEAVED * ROW_VECS / LVEC;
     // Try to load B as late as possible, so that if there is enough time and not enough DDR bandwidth, we
     // can load all of A and then load all of B
     const uint first_b_load = SWAP_RANGE - num_b_loads;
 
     bool new_row_col_pair = false;
     while (1) {
-        struct vec_float_t_bool fedA[ROWS];
-        vec_float_t fedB[COLS];
+        struct vec_float_t_bool fedA[PE_ROWS];
+        vec_float_t fedB[PE_COLS];
 
         struct nvec_float_t_bool valA;
         struct nvec_float_t valB;
@@ -365,7 +365,7 @@ kernel monolithic() {
         // recover last known row_col_pair
         valA.c = new_row_col_pair;
         #pragma unroll
-        for (int row = 0; row < ROWS; row++) {
+        for (int row = 0; row < PE_ROWS; row++) {
             fedA[row] = FeederA(valA, memA, counterA, row);
             #pragma unroll
             for (int i = 0; i < LVEC; i++) {
@@ -377,7 +377,7 @@ kernel monolithic() {
 
         uint counterB = counter;
         #pragma unroll
-        for (int col = 0; col < COLS; col++) {
+        for (int col = 0; col < PE_COLS; col++) {
             // the indexing matches the serialization of the loadBChannel reads
             fedB[col] = FeederB(valB, memB, counterB - first_b_load, col, counterB);
             #pragma unroll
@@ -388,9 +388,9 @@ kernel monolithic() {
         }
 
         #pragma unroll
-        for (int row = 0; row < ROWS; row++) {
+        for (int row = 0; row < PE_ROWS; row++) {
             #pragma unroll
-            for (int col = 0; col < COLS; col++) {
+            for (int col = 0; col < PE_COLS; col++) {
                 // compute and store outputs in shift register
                 float result =  PE(fedA[row], fedB[col], accum[row][col]);
                 if (fedA[row].c) {
@@ -404,20 +404,20 @@ kernel monolithic() {
 
         struct cols_floats results;
         #pragma unroll
-        for (int col = 0; col < COLS; col++) {
+        for (int col = 0; col < PE_COLS; col++) {
             results.drain_data[col] = drain[col][0];
             #pragma unroll
-            for (int i = 0; i < COLS; i++) {
+            for (int i = 0; i < PE_COLS; i++) {
                 results.drain_data[i] = __fpga_reg(__fpga_reg(results.drain_data[i]));
             }
         }
-        if (storecount - base < ACCUM_SHIFT_REG_SIZE * ROWS)
+        if (storecount - base < ACCUM_SHIFT_REG_SIZE * PE_ROWS)
             write_channel_intel(storeCChannel, results);
 
         #pragma unroll
-        for (int col = 0; col < COLS; col++) {
+        for (int col = 0; col < PE_COLS; col++) {
             #pragma unroll
-            for (int row = 0; row < ROWS - 1; row++) {
+            for (int row = 0; row < PE_ROWS - 1; row++) {
                 #pragma unroll
                 for (int i = 0; i < ACCUM_SHIFT_REG_SIZE - 1; i++) {
                     drain[col][row * ACCUM_SHIFT_REG_SIZE + i] = drain[col][row * ACCUM_SHIFT_REG_SIZE + i + 1];
@@ -453,26 +453,24 @@ store(global volatile float * restrict C,
         }
 
         struct cols_floats root_data = read_channel_intel(storeCChannel);
-        more_words_to_write = i < mat_c_num_coalesced_words + ACCUM_SHIFT_REG_SIZE * ROWS - 1;
+        more_words_to_write = i < mat_c_num_coalesced_words + ACCUM_SHIFT_REG_SIZE * PE_ROWS - 1;
 
         uchar crt_pos = pos & (WIDTH - 1);
         bool commit = (crt_pos >= WIDTH - PE_COLS) || !more_words_to_write;
-        pos += i < ACCUM_SHIFT_REG_SIZE * ROWS ? 0 : PE_COLS;
+        pos += i < ACCUM_SHIFT_REG_SIZE * PE_ROWS ? 0 : PE_COLS;
 
         // Align new data
         #pragma unroll
         for (int j = 0; j < PE_COLS; j++) {
-            tmpelems[j + crt_pos] = i >= ACCUM_SHIFT_REG_SIZE * ROWS ? root_data.drain_data[j] : 0.0f;
+            tmpelems[j + crt_pos] = i >= ACCUM_SHIFT_REG_SIZE * PE_ROWS ? root_data.drain_data[j] : 0.0f;
         }
         // Merge with old data
         #pragma unroll
         for (int j = 0; j < 2 * WIDTH; j++) {
             elems[j] = as_float(as_uint(elems[j]) | as_uint(tmpelems[j]));
-
-            //*(uint *)&elems[j] |= *(uint *)&tmpelems[j];
         }
 
-        if (commit && i >= ACCUM_SHIFT_REG_SIZE * ROWS) {
+        if (commit && i >= ACCUM_SHIFT_REG_SIZE * PE_ROWS) {
         #pragma unroll
         for (int j = 0; j < WIDTH; j++) {
             C[word * WIDTH + j] = elems[j];
