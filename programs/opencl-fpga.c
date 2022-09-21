@@ -132,8 +132,8 @@ reorder_within_blocks(float * src,
 
 int
 main(int argc, char *argv[]) {
-    if (argc != 2) {
-        printf("Usage: %s emu|fpga\n", argv[0]);
+    if (argc != 3) {
+        printf("Usage: %s emu|fpga kernel-path\n", argv[0]);
         exit(1);
     }
     bool emu = !strncmp(argv[1], "emu", strlen("emu"));
@@ -225,11 +225,7 @@ main(int argc, char *argv[]) {
 
     // Load the AOCX file.
     printf("Loading AOCX file\n");
-    const char *aocx_file = emu
-        ? "matrix_mult_emu.aocx"
-        : "matrix_mult_fpga.aocx";
-
-    FILE *fp = fopen(aocx_file, "rb");
+    FILE *fp = fopen(argv[2], "rb");
     if (!fp) {
         perror("Error");
         return 1;
