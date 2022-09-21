@@ -210,8 +210,10 @@ FeederA(struct nvec_float_t_bool newVal,
         vec_float_t matrix_block_double_buffer[2][ROWS_INTERLEAVED][ROW_VECS][BANKROWS],
         uint counter, int row) {
 
-    bool write_to_buffer = ((counter & SWAP_RANGE_MASK) * LVEC / (ROWS_INTERLEAVED * ROW_VECS)) == row;
-    bool new_row_col_pair = (counter & SWAP_RANGE_MASK) < (ROWS_INTERLEAVED * COLS_INTERLEAVED);
+    bool write_to_buffer =
+        ((counter & SWAP_RANGE_MASK) * LVEC / (ROWS_INTERLEAVED * ROW_VECS)) == row;
+    bool new_row_col_pair =
+        (counter & SWAP_RANGE_MASK) < (ROWS_INTERLEAVED * COLUMNS_INTERLEAVED);
     bool buffer_id_to_write_to = (counter / SWAP_RANGE) & 1;
     bool buffer_id_to_feed_to_sysarr = !buffer_id_to_write_to;
 
@@ -224,8 +226,10 @@ FeederA(struct nvec_float_t_bool newVal,
         }
     }
 
-    uchar buffer_row_to_feed_to_sysarr    = (counter & ((ROWS_INTERLEAVED * COLS_INTERLEAVED)-1)) / COLS_INTERLEAVED;
-    uchar buffer_vector_to_feed_to_sysarr = (counter & SWAP_RANGE_MASK) / (ROWS_INTERLEAVED * COLS_INTERLEAVED);
+    uchar buffer_row_to_feed_to_sysarr =
+        (counter & ((ROWS_INTERLEAVED * COLUMNS_INTERLEAVED)-1)) / COLUMNS_INTERLEAVED;
+    uchar buffer_vector_to_feed_to_sysarr =
+        (counter & SWAP_RANGE_MASK) / (ROWS_INTERLEAVED * COLUMNS_INTERLEAVED);
 
     struct vec_float_t_bool val;
     vec_float_t choices[LVEC];
@@ -244,25 +248,28 @@ FeederA(struct nvec_float_t_bool newVal,
 // which may start at some point in the overall counter range (once FeederA is finished loading)
 vec_float_t
 FeederB(struct nvec_float_t newVal,
-        vec_float_t matrix_block_double_buffer[2][COLS_INTERLEAVED][ROW_VECS][BANKCOLS],
+        vec_float_t matrix_block_double_buffer[2][COLUMNS_INTERLEAVED][ROW_VECS][BANKCOLS],
         uint load_counter, int col, uint counter) {
 
-    bool write_to_buffer = (((load_counter & SWAP_RANGE_MASK) * LVEC) / (COLS_INTERLEAVED * ROW_VECS)) == col;
+    bool write_to_buffer =
+        (((load_counter & SWAP_RANGE_MASK) * LVEC) / (COLUMNS_INTERLEAVED * ROW_VECS)) == col;
     // Note: counter is used here because load_counter is not valid if only reading.
     bool buffer_id_to_write_to = (counter / SWAP_RANGE) & 1;
     bool buffer_id_to_feed_to_sysarr = !buffer_id_to_write_to;
 
     if (write_to_buffer) {
-        uchar buffer_vector_to_write_to     =  (load_counter * LVEC) & ROW_VECS_MASK;
-        uchar buffer_row_to_write_to        = ((load_counter * LVEC) & ((COLS_INTERLEAVED * ROW_VECS)-1)) / ROW_VECS;
+        uchar buffer_vector_to_write_to = (load_counter * LVEC) & ROW_VECS_MASK;
+        uchar buffer_row_to_write_to = ((load_counter * LVEC) & ((COLUMNS_INTERLEAVED * ROW_VECS)-1)) / ROW_VECS;
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
             matrix_block_double_buffer[buffer_id_to_write_to][buffer_row_to_write_to][(buffer_vector_to_write_to / LVEC) * LVEC + i][col] = newVal.data[i];
         }
     }
 
-    uchar buffer_row_to_feed_to_sysarr    = counter & (COLS_INTERLEAVED - 1);
-    uchar buffer_vector_to_feed_to_sysarr = (counter & SWAP_RANGE_MASK) / (ROWS_INTERLEAVED * COLS_INTERLEAVED);
+    uchar buffer_row_to_feed_to_sysarr =
+        counter & (COLUMNS_INTERLEAVED - 1);
+    uchar buffer_vector_to_feed_to_sysarr =
+        (counter & SWAP_RANGE_MASK) / (ROWS_INTERLEAVED * COLUMNS_INTERLEAVED);
 
     vec_float_t choices[LVEC];
     #pragma unroll
@@ -284,7 +291,7 @@ PE(struct vec_float_t_bool valA, vec_float_t valB, float *accum) {
     float oldAcc = __fpga_reg(accum[0]);
     float sum = (valA.c ? 0.0f : oldAcc);
     #pragma unroll
-    for (int i = 0; i < VEC; i++) {
+    for (int i = 0; i < DOT_PROD_VECTOR_SIZE; i++) {
         sum += valA.data[i] * valB[i];
         // Breaks up dot-8 and larger into dot-4s using fpga_reg.
         // Not needed if DOT_PROD_VECTOR_SIZE = 4
@@ -309,7 +316,7 @@ __attribute__((autorun))
 void
 kernel monolithic() {
    vec_float_t __attribute__((memory,numbanks(BANKROWS * LVEC),bankwidth(32),singlepump,max_replicates(1),simple_dual_port)) memA[2][ROWS_INTERLEAVED][ROW_VECS][BANKROWS]; // internal feeder A storage, banked, 1 bank per feeder
-   vec_float_t __attribute__((memory,numbanks(BANKCOLS * LVEC),bankwidth(32),singlepump,max_replicates(1),simple_dual_port)) memB[2][COLS_INTERLEAVED][ROW_VECS][BANKCOLS]; // internal feeder B storage, banked, 1 bank per feeder
+   vec_float_t __attribute__((memory,numbanks(BANKCOLS * LVEC),bankwidth(32),singlepump,max_replicates(1),simple_dual_port)) memB[2][COLUMNS_INTERLEAVED][ROW_VECS][BANKCOLS]; // internal feeder B storage, banked, 1 bank per feeder
 
 
 #ifdef EMULATE
@@ -321,7 +328,7 @@ kernel monolithic() {
         }
     }
     for (int i = 0; i < PE_COLS; i++) {
-        for (int j = 0; j < COLS_INTERLEAVED; j++) {
+        for (int j = 0; j < COLUMNS_INTERLEAVED; j++) {
             for (int k = 0; k < ROW_VECS; k++) {
                 memB[0][j][k][i] = memB[1][j][k][i] = -NAN;
             }
@@ -337,7 +344,7 @@ kernel monolithic() {
     uint base = 0;
 
     const uint num_a_loads = PE_ROWS * ROWS_INTERLEAVED * ROW_VECS / LVEC;
-    const uint num_b_loads = PE_COLS * COLS_INTERLEAVED * ROW_VECS / LVEC;
+    const uint num_b_loads = PE_COLS * COLUMNS_INTERLEAVED * ROW_VECS / LVEC;
     // Try to load B as late as possible, so that if there is enough time and not enough DDR bandwidth, we
     // can load all of A and then load all of B
     const uint first_b_load = SWAP_RANGE - num_b_loads;
