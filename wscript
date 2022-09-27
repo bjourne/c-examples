@@ -159,15 +159,15 @@ def build(ctx):
     # Conditional targets
     if ctx.env.DEST_OS == 'linux':
         build_program(ctx, 'sigsegv.c', [])
-        build_program(ctx, 'opencl.c', [
+        build_program(ctx, 'opencl/list.c', [
             'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS'
         ])
-        build_program(ctx, 'opencl-dct.c', [
+        build_program(ctx, 'opencl/dct.c', [
             'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS',
             'TENSORS_OBJS', 'PNG', 'M', 'GOMP',
             'DT_OBJS'
         ])
-        build_program(ctx, 'opencl-fpga.c', [
+        build_program(ctx, 'opencl/fpga.c', [
             'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS',
             'TENSORS_OBJS', 'PNG', 'M', 'DT_OBJS'
         ])

@@ -10,7 +10,7 @@
 #include "tensors/tensors.h"
 
 #define HOST
-#include "opencl/matmul_fpga_config.h"
+#include "matmul_fpga_config.h"
 
 #define MAT_A_NUM_BLOCKS_IN_ROW             (WA / MAT_A_BLOCK_WIDTH)
 #define MAT_A_NUM_BLOCKS_IN_COL             (HA / MAT_A_BLOCK_HEIGHT)

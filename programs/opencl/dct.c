@@ -57,7 +57,7 @@ main(int argc, char *argv[]) {
     cl_program program;
     cl_kernel kernel;
     printf("* Loading kernel\n");
-    ocl_load_kernel(ctx, dev, "libraries/opencl/dct8x8.cl",
+    ocl_load_kernel(ctx, dev, "programs/opencl/dct8x8.cl",
                     &program, &kernel);
 
     // Allocate and initialize tensors
