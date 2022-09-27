@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "datatypes/common.h"
+#include "linalg/linalg.h"
 #include "opencl/opencl.h"
 #include "tensors/tensors.h"
 
@@ -39,21 +40,6 @@
 #define HA_trim (2 *  MAT_A_BLOCK_HEIGHT)
 #define WB_trim WB
 
-static void
-block_wise_reformat(float * restrict src, float * restrict dst,
-                    int height, int width,
-                    int block_height, int block_width) {
-    for(int i = 0; i < height; i += block_height) {
-        for(int j = 0; j < width; j += block_width) {
-            for(int k = 0; k < block_height; k++) {
-                for(int l = 0; l < block_width; l++) {
-                    *dst++ = src[(i + k) * width + (j + l)];
-                }
-            }
-        }
-    }
-}
-
 static cl_platform_id
 platform_by_needle(const char *needle) {
     cl_uint n_platforms;
@@ -85,37 +71,12 @@ device_first(cl_platform_id platform_id) {
     return device_id;
 }
 
-static void
-compute_gold_blocked(float* C, const float* A, const float* B,
-                     unsigned int hA, unsigned int wA,
-                     unsigned int wB, unsigned int hB)
-{
-    const int block_size = COMPUTE_GOLD_BLOCK_SIZE;
-    for(unsigned int i0 = 0; i0 < hA ; i0 += block_size) {
-        for(unsigned int j0 = 0; j0 < wB; j0 += block_size) {
-            for(unsigned int k0=0; k0 < wA ; k0 += block_size ) {
-                for(unsigned int i = i0; i < MIN(hA, i0 + block_size); i++) {
-                    for(unsigned int j = j0; j < MIN(wB, j0 + block_size); j++) {
-                        double sum = 0;
-                        for(unsigned int k = k0; k < MIN(wA, k0 + block_size); k++) {
-                            double a = A[i * wA + k];
-                            double b = B[j * hB + k]; // B is transposed
-                            sum += a * b;
-                        }
-                        C[i * wB + j] += (float)sum;
-                    }
-                }
-            }
-        }
-    }
-}
-
 static  void
 reorder_within_blocks(float * src,
                       float * dst,
-                      int mat_height, int mat_width,
+                      int height, int width,
                       int num_sys_arr_columns, int block_width) {
-    int num_elems = mat_height*mat_width;
+    int num_elems = height * width;
     int column_interleaving = block_width / num_sys_arr_columns;
     int word_id = 0;
     for (int i = 0; i < num_elems; i += block_width) {
@@ -126,6 +87,7 @@ reorder_within_blocks(float * src,
             }
         }
     }
+    assert(word_id == num_elems);
 }
 
 int
@@ -170,22 +132,23 @@ main(int argc, char *argv[]) {
 
     printf("** Multiplying on CPU**\n");
     tensor_multiply(a, b, c_ref);
-    block_wise_reformat(a->data, a_blocked->data, HA, WA,
-                        MAT_A_BLOCK_HEIGHT, MAT_A_BLOCK_WIDTH);
+
+    tensor_linearize_tiles(a, a_blocked, MAT_A_BLOCK_HEIGHT, MAT_A_BLOCK_WIDTH);
     tensor_transpose(b, b_transpose);
-    block_wise_reformat(b_transpose->data, b_transpose_blocked->data, WB, HB,
-                        MAT_B_BLOCK_WIDTH, MAT_B_BLOCK_HEIGHT);
+    tensor_linearize_tiles(b_transpose, b_transpose_blocked,
+                           MAT_B_BLOCK_WIDTH, MAT_B_BLOCK_HEIGHT);
 
     // Golden compute
-
-    compute_gold_blocked(c_golden->data,
-                         a->data, b_transpose->data,
-                         HA_trim, WA, WB_trim, HB);
-    block_wise_reformat(c_golden->data, c_golden_blocked->data,
-                        HC, WC, MAT_C_BLOCK_HEIGHT, MAT_C_BLOCK_WIDTH);
+    tensor_multiply(a, b, c_golden);
+    /* compute_gold_blocked(c_golden->data, */
+    /*                      a->data, b_transpose->data, */
+    /*                      HA, WA, WB, HB); */
+    tensor_linearize_tiles(c_golden, c_golden_blocked,
+                           MAT_C_BLOCK_HEIGHT, MAT_C_BLOCK_WIDTH);
     reorder_within_blocks(c_golden_blocked->data,
                           c_golden_blocked_reordered->data,
-                          HC, WC, PE_COLS,
+                          HC, WC,
+                          PE_COLS,
                           MAT_C_BLOCK_WIDTH);
 
     printf("** Setting up OpenCL **\n");
@@ -344,18 +307,7 @@ main(int argc, char *argv[]) {
                               n_bytes_c, c->data,
                               0, NULL, NULL);
     ocl_check_err(err);
-
-    // Print some floats from c
-    printf("%20s", "From device: ");
-    for (int i = 0; i < 10; i++) {
-        printf("%.2f ", c->data[i]);
-    }
-    printf("\n");
-    printf("%20s", "From cpu: ");
-    for (int i = 0; i < 10; i++) {
-        printf("%.2f ", c_golden_blocked_reordered->data[i]);
-    }
-    printf("\n");
+    tensor_check_equal(c, c_golden_blocked_reordered, LINALG_EPSILON);
 
     // Release OpenCL
     clReleaseMemObject(dev_a);
