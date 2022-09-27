@@ -124,6 +124,10 @@ void tensor_linear(tensor *weights, tensor *bias,
 tensor *tensor_linear_new(tensor *weights, tensor *bias, tensor *src);
 
 // Matrix multiply, transpose, etc.
+
+// Two functions that does the same thing to make it easy for me to
+// test out optimizations.
+void tensor_multiply_ref(tensor *a, tensor *b, tensor *c);
 void tensor_multiply(tensor *a, tensor *b, tensor *c);
 void tensor_transpose(tensor *src, tensor *dst);
 void tensor_linearize_tiles(tensor *src, tensor *dst,
