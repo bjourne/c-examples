@@ -27,8 +27,8 @@ test_load_kernel() {
     size_t b_size = b_els * sizeof(float);
     size_t c_size = c_els * sizeof(float);
 
-    tensor_randrange(a, 100);
-    tensor_randrange(b, 100);
+    tensor_fill_rand_ints(a, 100);
+    tensor_fill_rand_ints(b, 100);
 
     cl_int err;
     cl_uint n_platforms;

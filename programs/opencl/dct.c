@@ -57,8 +57,8 @@ main(int argc, char *argv[]) {
     cl_program program;
     cl_kernel kernel;
     printf("* Loading kernel\n");
-    ocl_load_kernel(ctx, dev, "programs/opencl/dct8x8.cl",
-                    &program, &kernel);
+    assert(ocl_load_kernel(ctx, dev, "programs/opencl/dct8x8.cl",
+                           &program, &kernel));
 
     // Allocate and initialize tensors
     printf("* Initializing tensors\n");
@@ -66,7 +66,7 @@ main(int argc, char *argv[]) {
     tensor *image = tensor_init(2, dims);
     tensor *ref = tensor_init(2, dims);
     tensor *output = tensor_init(2, dims);
-    tensor_randrange(image, 100);
+    tensor_fill_rand_ints(image, 100);
 
     // Compute reference results
     tensor_dct2d_blocks(image, ref, 8, 8);

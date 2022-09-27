@@ -221,16 +221,24 @@ tensor_relu(tensor *me) {
 }
 
 void
-tensor_fill(tensor *me, float v) {
+tensor_fill_const(tensor *me, float v) {
     for (int i = 0; i < tensor_n_elements(me); i++) {
         me->data[i] = v;
     }
 }
 
 void
-tensor_randrange(tensor *me, int high) {
+tensor_fill_rand_ints(tensor *me, int high) {
     for (int i = 0; i < tensor_n_elements(me); i++) {
         me->data[i] = rand_n(high);
+    }
+}
+
+void
+tensor_fill_range(tensor *me, float start) {
+    for (int i = 0; i < tensor_n_elements(me); i++) {
+        me->data[i] = start;
+        start += 1.0;
     }
 }
 
@@ -599,7 +607,7 @@ tensor_linear_new(tensor *weights, tensor *bias, tensor *src) {
 ////////////////////////////////////////////////////////////////////////
 void
 tensor_multiply(tensor *a, tensor *b, tensor *c) {
-    assert(a->n_dims == b->n_dims  && a->n_dims == 2);
+    assert(a->n_dims == b->n_dims);
     assert(a->n_dims == 2);
 
     int a_rows = a->dims[0];
@@ -638,6 +646,32 @@ tensor_transpose(tensor *src, tensor *dst) {
     for (int i = 0; i < src_height; i++) {
         for  (int j = 0; j < src_width; j++) {
             dst->data[j * dst_width + i] = src->data[i * src_width + j];
+        }
+    }
+}
+
+// Ofc this function can be generalized to higher dimensions, but I
+// only need to linearize 2d tiles.
+void
+tensor_linearize_tiles(tensor *src, tensor *dst,
+                       int tile_height, int tile_width) {
+    assert(src->n_dims == 2 &&  src->n_dims == dst->n_dims);
+    assert(tensor_n_elements(src) == tensor_n_elements(dst));
+    int src_height = src->dims[0];
+    int src_width = src->dims[1];
+    assert(src_height % tile_height == 0);
+    assert(src_width % tile_width == 0);
+
+    float *src_buf = src->data;
+    float *dst_buf = dst->data;
+
+    for (int i = 0; i < src_height; i += tile_height) {
+        for (int j = 0; j < src_width; j += tile_width) {
+            for (int k = 0; k < tile_height; k++) {
+                for (int l = 0; l < tile_width; l++) {
+                    *dst_buf++ = src_buf[(i + k) * src_width + (j + l)];
+                }
+            }
         }
     }
 }

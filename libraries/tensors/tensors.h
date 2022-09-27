@@ -123,15 +123,18 @@ void tensor_linear(tensor *weights, tensor *bias,
                    tensor *src, tensor *dst);
 tensor *tensor_linear_new(tensor *weights, tensor *bias, tensor *src);
 
-// Matrix multiply and transpose
+// Matrix multiply, transpose, etc.
 void tensor_multiply(tensor *a, tensor *b, tensor *c);
 void tensor_transpose(tensor *src, tensor *dst);
+void tensor_linearize_tiles(tensor *src, tensor *dst,
+                            int tile_height, int tile_width);
 
 // Scalar ops
 void tensor_relu(tensor *t);
-void tensor_fill(tensor *t, float v);
-void tensor_randrange(tensor *t, int high);
 void tensor_softmax(tensor *t);
+void tensor_fill_const(tensor *t, float v);
+void tensor_fill_rand_ints(tensor *t, int high);
+void tensor_fill_range(tensor *me, float start);
 
 #ifdef HAVE_PNG
 // Png support

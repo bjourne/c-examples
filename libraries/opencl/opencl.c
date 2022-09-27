@@ -206,8 +206,8 @@ ocl_print_device_details(cl_device_id dev, int ind) {
 
     print_prefix(ind);
     cl_bool pipes;
-    cl_int err = clGetDeviceInfo(dev, CL_DEVICE_PIPE_SUPPORT, s
-                                 izeof(cl_bool), &pipes, NULL);
+    cl_int err = clGetDeviceInfo(dev, CL_DEVICE_PIPE_SUPPORT,
+                                 sizeof(cl_bool), &pipes, NULL);
     printf("%-15s: %s\n", "Pipe support",
            err == CL_SUCCESS && pipes ? "yes" : "no");
 }

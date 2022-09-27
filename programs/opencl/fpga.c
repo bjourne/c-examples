@@ -25,7 +25,7 @@
 #define MAT_B_BLOCK_WIDTH           (COLUMNS_INTERLEAVED * PE_COLS)
 
 #define HA (4 * MAT_A_BLOCK_HEIGHT)             // Matrix A height
-#define WA (32 * MAT_A_BLOCK_WIDTH)             // Matrix A width
+#define WA (8 * MAT_A_BLOCK_WIDTH)             // Matrix A width
 
 #define HB WA                                   // Matrix B height
 #define WB (4 * MAT_B_BLOCK_WIDTH)              // Matrix B width
@@ -164,10 +164,9 @@ main(int argc, char *argv[]) {
     printf("\n");
 
     printf("** Initializing input matrices **\n");
-
-    tensor_randrange(a, 10);
-    tensor_randrange(b, 10);
-    tensor_fill(c, 0);
+    tensor_fill_rand_ints(a, 10);
+    tensor_fill_rand_ints(b, 10);
+    tensor_fill_const(c, 0);
 
     printf("** Multiplying on CPU**\n");
     tensor_multiply(a, b, c_ref);

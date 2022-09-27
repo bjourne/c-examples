@@ -176,7 +176,7 @@ test_dct() {
         tensor *a = tensor_init(2, dims[i]);
         tensor *b = tensor_init(2, dims[i]);
         tensor *c = tensor_init(2, dims[i]);
-        tensor_fill(a, 255.0);
+        tensor_fill_const(a, 255.0);
         tensor_dct2d_rect(a, b, 0, 0, height, width);
         assert(approx_eq2(b->data[0], tot[i], 0.005));
         tensor_idct2d(b, c);
@@ -312,7 +312,7 @@ test_8x8_nvidia_benchmark() {
     int dims[] = {1024, 1024};
     tensor *image = tensor_init(2, dims);
     tensor *output = tensor_init(2, dims);
-    tensor_randrange(image, 200);
+    tensor_fill_rand_ints(image, 200);
 
     for (int i = 0; i < 10; i++) {
         tensor_dct2d_8x8_blocks(image, output);

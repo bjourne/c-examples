@@ -19,8 +19,8 @@ test_mul_perf() {
     tensor *b = tensor_init(2, (int[]){b_rows, b_cols});
     tensor *c = tensor_init(2, (int[]){a_rows, b_cols});
 
-    tensor_randrange(a, 100);
-    tensor_randrange(b, 100);
+    tensor_fill_rand_ints(a, 100);
+    tensor_fill_rand_ints(b, 100);
 
     tensor_multiply(a, b, c);
 
