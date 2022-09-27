@@ -163,10 +163,13 @@ main(int argc, char *argv[]) {
     printf("%12s %4d %4d\n", "Interleave", ROWS_INTERLEAVED, COLUMNS_INTERLEAVED);
     printf("\n");
 
+    printf("** Initializing input matrices **\n");
+
     tensor_randrange(a, 10);
     tensor_randrange(b, 10);
     tensor_fill(c, 0);
 
+    printf("** Multiplying on CPU**\n");
     tensor_multiply(a, b, c_ref);
     block_wise_reformat(a->data, a_blocked->data, HA, WA,
                         MAT_A_BLOCK_HEIGHT, MAT_A_BLOCK_WIDTH);
@@ -186,7 +189,7 @@ main(int argc, char *argv[]) {
                           HC, WC, PE_COLS,
                           MAT_C_BLOCK_WIDTH);
 
-
+    printf("** Setting up OpenCL **\n");
     cl_platform_id platform_id = platform_by_needle(
         emu ? "FPGA Emulation" : "FPGA SDK");
     assert(platform_id);
