@@ -140,9 +140,6 @@ main(int argc, char *argv[]) {
 
     // Golden compute
     tensor_multiply(a, b, c_golden);
-    /* compute_gold_blocked(c_golden->data, */
-    /*                      a->data, b_transpose->data, */
-    /*                      HA, WA, WB, HB); */
     tensor_linearize_tiles(c_golden, c_golden_blocked,
                            MAT_C_BLOCK_HEIGHT, MAT_C_BLOCK_WIDTH);
     reorder_within_blocks(c_golden_blocked->data,
@@ -188,12 +185,14 @@ main(int argc, char *argv[]) {
     ocl_check_err(err);
     cl_mem dev_c = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY, n_bytes_c,
                                   NULL, &err);
+    ocl_check_err(err);
 
-    printf("Writing to device buffers\n");
+    printf("Writing to device buffer A\n");
     err = clEnqueueWriteBuffer(queues[0], dev_a, CL_TRUE, 0, n_bytes_a,
                                a_blocked->data, 0, NULL, NULL);
     ocl_check_err(err);
 
+    printf("Writing to device buffer B\n");
     err = clEnqueueWriteBuffer(queues[1], dev_b, CL_TRUE, 0, n_bytes_a,
                                b_transpose_blocked->data, 0, NULL, NULL);
     ocl_check_err(err);

@@ -357,8 +357,9 @@ kernel monolithic() {
         if ((counter & SWAP_RANGE_MASK) < num_a_loads) {
             valA = read_channel_intel(loadAChannel);
             // save latests row_col_pair
-            if ((!new_row_col_pair && valA.c) & 0x01) base = storecount;
-                new_row_col_pair = valA.c;
+            if ((!new_row_col_pair && valA.c) & 0x01)
+                base = storecount;
+            new_row_col_pair = valA.c;
         }
         // serialize the two reads to reduce burstiness
         if (((counter & SWAP_RANGE_MASK) < first_b_load + num_b_loads) && ((counter & SWAP_RANGE_MASK) >= first_b_load))

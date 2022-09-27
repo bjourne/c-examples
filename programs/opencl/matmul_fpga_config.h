@@ -4,13 +4,13 @@
 // This is important but it is not enforced:
 // PE_ROWS + PE_COLS <= ROWS_INTERLEAVED
 
-// design space exploration of three vector sizes: float4, float8 and float16
+// Good settings for Arria 10.
 #define DOT_PROD_VECTOR_SIZE     8
 
-#define PE_ROWS                  2
-#define PE_COLS                  2
+#define PE_ROWS                  10
+#define PE_COLS                  16
 #define ROWS_INTERLEAVED         32
-#define COLUMNS_INTERLEAVED      32
+#define COLUMNS_INTERLEAVED      64
 
 #define MAT_A_BLOCK_WIDTH           (16 * DOT_PROD_VECTOR_SIZE)
 #define MAT_A_BLOCK_HEIGHT          (ROWS_INTERLEAVED * PE_ROWS)
