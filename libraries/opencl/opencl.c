@@ -203,6 +203,13 @@ ocl_print_device_details(cl_device_id dev, int ind) {
     clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES, n_bytes, d, NULL);
     printf("%-15s: %ld, %ld, %ld\n", "Max work items", d[0], d[1], d[2]);
     free(d);
+
+    print_prefix(ind);
+    cl_bool pipes;
+    cl_int err = clGetDeviceInfo(dev, CL_DEVICE_PIPE_SUPPORT, s
+                                 izeof(cl_bool), &pipes, NULL);
+    printf("%-15s: %s\n", "Pipe support",
+           err == CL_SUCCESS && pipes ? "yes" : "no");
 }
 
 bool
