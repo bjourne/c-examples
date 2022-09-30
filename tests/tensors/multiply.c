@@ -19,15 +19,19 @@ test_mul_perf() {
     tensor *a = tensor_init(2, (int[]){a_rows, a_cols});
     tensor *b = tensor_init(2, (int[]){b_rows, b_cols});
     tensor *c = tensor_init(2, (int[]){a_rows, b_cols});
+    tensor *c_ref = tensor_init(2, (int[]){a_rows, b_cols});
 
-    tensor_fill_rand_ints(a, 100);
-    tensor_fill_rand_ints(b, 100);
+    tensor_fill_rand_ints(a, 5);
+    tensor_fill_rand_ints(b, 5);
 
     tensor_multiply(a, b, c);
+    tensor_multiply_ref(a, b, c_ref);
+    tensor_check_equal(c, c_ref, LINALG_EPSILON);
 
     tensor_free(a);
     tensor_free(b);
     tensor_free(c);
+    tensor_free(c_ref);
 }
 
 void
@@ -190,12 +194,110 @@ test_multiply_big() {
     tensor_free(c_exp);
 }
 
+void
+test_transpose_a() {
+    tensor *src = tensor_init(2, (int[]){5, 4});
+    tensor_fill_range(src, 1.0);
+
+    tensor_print(src, "%5.0f", false);
+
+    tensor *dst1 = tensor_transpose_a_new(src, 2);
+
+    assert(dst1->dims[0] == 12);
+    assert(dst1->dims[1] == 2);
+
+    tensor_print(dst1, "%5.0f", false);
+
+    tensor *dst2 = tensor_transpose_a_new(src, 3);
+    assert(dst2->dims[0] == 8);
+    assert(dst2->dims[1] == 3);
+    tensor_print(dst2, "%5.0f", false);
+
+    tensor *dst3 = tensor_transpose_a_new(src, 4);
+    assert(dst3->dims[0] == 8);
+    assert(dst3->dims[1] == 4);
+    tensor_print(dst3, "%5.0f", false);
+
+    tensor *dst4 = tensor_transpose_a_new(src, 5);
+    assert(dst4->dims[0] == 4);
+    assert(dst4->dims[1] == 5);
+    tensor_print(dst4, "%5.0f", false);
+
+    tensor *dst5 = tensor_transpose_a_new(src, 6);
+    assert(dst5->dims[0] == 4);
+    assert(dst5->dims[1] == 6);
+    tensor_print(dst5, "%5.0f", false);
+
+    tensor_free(src);
+    tensor_free(dst1);
+    tensor_free(dst2);
+    tensor_free(dst3);
+    tensor_free(dst4);
+    tensor_free(dst5);
+}
+
+void
+test_transpose_b() {
+    float matrix_6x4[6][4] = {
+        {  1,   2,   5,   6},
+        {  3,   4,   7,   8},
+        {  9,  10,  13,  14},
+        { 11,  12,  15,  16},
+        { 17,  18,   0,   0},
+        { 19,  20,   0,   0}
+    };
+    float matrix_6x6[6][6] = {
+        {  1,   2,   3,   5,   6,   7},
+        {  4,   0,   0,   8,   0,   0},
+        {  9,  10,  11,  13,  14,  15},
+        { 12,   0,   0,  16,   0,   0},
+        { 17,  18,  19,   0,   0,   0},
+        { 20,   0,   0,   0,   0,   0}
+    };
+    float matrix_4x9[4][9] = {
+        {  1,   2,   3,   5,   6,   7,   9,  10,  11},
+        {  4,   0,   0,   8,   0,   0,  12,   0,   0},
+        { 13,  14,  15,  17,  18,  19,   0,   0,   0},
+        { 16,   0,   0,  20,   0,   0,   0,   0,   0}
+    };
+    tensor *src = tensor_init(2, (int[]){5, 4});
+    tensor_fill_range(src, 1.0);
+
+    tensor *dst1 = tensor_transpose_b_new(src, 2, 2);
+    tensor *dst1_exp = tensor_init_from_data((float *)matrix_6x4, 2, (int[]){6, 4});
+    assert(dst1->dims[0] == 6);
+    assert(dst1->dims[1] == 4);
+    tensor_check_equal(dst1, dst1_exp, LINALG_EPSILON);
+
+    tensor *dst2 = tensor_transpose_b_new(src, 2, 3);
+    tensor *dst2_exp = tensor_init_from_data((float *)matrix_6x6, 2, (int[]){6, 6});
+    assert(dst2->dims[0] == 6);
+    assert(dst2->dims[1] == 6);
+    tensor_check_equal(dst2, dst2_exp, LINALG_EPSILON);
+
+    tensor *dst3 = tensor_transpose_b_new(src, 3, 3);
+    tensor *dst3_exp = tensor_init_from_data((float *)matrix_4x9, 2, (int[]){4, 9});
+    assert(dst3->dims[0] == 4);
+    assert(dst3->dims[1] == 9);
+    tensor_check_equal(dst3, dst3_exp, LINALG_EPSILON);
+
+    tensor_free(src);
+    tensor_free(dst1);
+    tensor_free(dst1_exp);
+    tensor_free(dst2);
+    tensor_free(dst2_exp);
+    tensor_free(dst3);
+    tensor_free(dst3_exp);
+}
+
 
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_mul_perf);
-    PRINT_RUN(test_arbitrary_sizes);
-    PRINT_RUN(test_linearize_tiles);
+    /* PRINT_RUN(test_arbitrary_sizes); */
+    /* PRINT_RUN(test_linearize_tiles); */
+    /* PRINT_RUN(test_transpose_a); */
+    //PRINT_RUN(test_transpose_b);
     //PRINT_RUN(test_multiply);
-    //PRINT_RUN(test_multiply_big);
+    /* PRINT_RUN(test_multiply_big); */
 }
