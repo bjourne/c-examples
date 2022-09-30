@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <immintrin.h>
 
-#include "tensors/tensors-dct.h"
+#include "tensors/dct.h"
 
 #ifdef __AVX2__
 

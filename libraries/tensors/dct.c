@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "tensors-dct.h"
+#include "dct.h"
 
 static float SQRT2 = 1.4142135623730951f;
 static float SQRT2INV = 0.7071067811865475f;

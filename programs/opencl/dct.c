@@ -7,7 +7,7 @@
 #include "datatypes/common.h"
 #include "opencl/opencl.h"
 #include "tensors/tensors.h"
-#include "tensors/tensors-dct.h"
+#include "tensors/dct.h"
 
 int
 main(int argc, char *argv[]) {

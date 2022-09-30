@@ -3,7 +3,7 @@
 #include "datatypes/common.h"
 #include "linalg/linalg.h"
 #include "tensors/tensors.h"
-#include "tensors/tensors-dct.h"
+#include "tensors/dct.h"
 
 static float IMAGE_DATA8X8[8][8] = {
     {83, 86, 77, 15, 93, 35, 86, 92},
