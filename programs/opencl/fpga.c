@@ -9,6 +9,7 @@
 #include "linalg/linalg.h"
 #include "opencl/opencl.h"
 #include "tensors/tensors.h"
+#include "tensors/multiply.h"
 
 #define HOST
 #include "matmul_fpga_config.h"

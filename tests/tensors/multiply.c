@@ -5,6 +5,7 @@
 #include "datatypes/common.h"
 #include "linalg/linalg.h"
 #include "tensors/tensors.h"
+#include "tensors/multiply.h"
 
 #define SIZE 1024
 
@@ -195,6 +196,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_mul_perf);
     PRINT_RUN(test_arbitrary_sizes);
     PRINT_RUN(test_linearize_tiles);
-    PRINT_RUN(test_multiply);
-    PRINT_RUN(test_multiply_big);
+    //PRINT_RUN(test_multiply);
+    //PRINT_RUN(test_multiply_big);
 }
