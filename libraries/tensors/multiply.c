@@ -165,8 +165,8 @@ tensor_multiply(tensor *a, tensor *b, tensor *c) {
     assert(c_rows == a_rows);
     assert(c_cols == b_cols);
 
-    tensor *a_tiled = tensor_transpose_b_new(a, SIMD_HEIGHT, 1);
-    tensor *b_tiled = tensor_transpose_b_new(b, TILE_K, SIMD_WIDTH);
+    tensor *a_tiled = tensor_linearize_tiles_new(a, SIMD_HEIGHT, 1);
+    tensor *b_tiled = tensor_linearize_tiles_new(b, TILE_K, SIMD_WIDTH);
     float *a_tiled_data = a_tiled->data;
     float *b_tiled_data = b_tiled->data;
     float *c_buf = calloc(a_rows * b_cols, sizeof(float));
@@ -239,34 +239,10 @@ tensor_linearize_tiles(tensor *src, tensor *dst,
     }
 }
 
-tensor *
-tensor_transpose_a_new(tensor *src, int simd_height) {
-    int src_height = src->dims[0];
-    int src_width = src->dims[1];
-
-    int dst_height = ceil_div(src_height, simd_height) * src_width;
-    tensor *dst = tensor_init(2, (int[]){dst_height, simd_height});
-
-    float *src_ptr = src->data;
-    float *dst_ptr = dst->data;
-    for (int y = 0; y < src_height; y += simd_height) {
-        for (int x = 0; x < src_width; x++) {
-            for (int z = 0; z < simd_height; z++) {
-                int src_y = y + z;
-                if (src_y < src_height) {
-                    *dst_ptr++ = src_ptr[src_width * src_y + x];
-                } else {
-                    *dst_ptr++ = 0.0;
-                }
-            }
-        }
-    }
-    return dst;
-}
-
 // Combine with tensor_linearize_tiles?
 tensor *
-tensor_transpose_b_new(tensor *src, int tile_height, int tile_width) {
+tensor_linearize_tiles_new(tensor *src,
+                           int tile_height, int tile_width) {
     int src_height = src->dims[0];
     int src_width = src->dims[1];
 

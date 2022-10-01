@@ -201,29 +201,29 @@ test_transpose_a() {
 
     tensor_print(src, "%5.0f", false);
 
-    tensor *dst1 = tensor_transpose_b_new(src, 2, 1);
+    tensor *dst1 = tensor_linearize_tiles_new(src, 2, 1);
 
     assert(dst1->dims[0] == 12);
     assert(dst1->dims[1] == 2);
 
     tensor_print(dst1, "%5.0f", false);
 
-    tensor *dst2 = tensor_transpose_b_new(src, 3, 1);
+    tensor *dst2 = tensor_linearize_tiles_new(src, 3, 1);
     assert(dst2->dims[0] == 8);
     assert(dst2->dims[1] == 3);
     tensor_print(dst2, "%5.0f", false);
 
-    tensor *dst3 = tensor_transpose_b_new(src, 4, 1);
+    tensor *dst3 = tensor_linearize_tiles_new(src, 4, 1);
     assert(dst3->dims[0] == 8);
     assert(dst3->dims[1] == 4);
     tensor_print(dst3, "%5.0f", false);
 
-    tensor *dst4 = tensor_transpose_b_new(src, 5, 1);
+    tensor *dst4 = tensor_linearize_tiles_new(src, 5, 1);
     assert(dst4->dims[0] == 4);
     assert(dst4->dims[1] == 5);
     tensor_print(dst4, "%5.0f", false);
 
-    tensor *dst5 = tensor_transpose_b_new(src, 6, 1);
+    tensor *dst5 = tensor_linearize_tiles_new(src, 6, 1);
     assert(dst5->dims[0] == 4);
     assert(dst5->dims[1] == 6);
     tensor_print(dst5, "%5.0f", false);
@@ -263,21 +263,21 @@ test_transpose_b() {
     tensor *src = tensor_init(2, (int[]){5, 4});
     tensor_fill_range(src, 1.0);
 
-    tensor *dst1 = tensor_transpose_b_new(src, 2, 2);
+    tensor *dst1 = tensor_linearize_tiles_new(src, 2, 2);
     tensor *dst1_exp = tensor_init_from_data((float *)matrix_6x4,
                                              2, (int[]){6, 4});
     assert(dst1->dims[0] == 6);
     assert(dst1->dims[1] == 4);
     tensor_check_equal(dst1, dst1_exp, LINALG_EPSILON);
 
-    tensor *dst2 = tensor_transpose_b_new(src, 2, 3);
+    tensor *dst2 = tensor_linearize_tiles_new(src, 2, 3);
     tensor *dst2_exp = tensor_init_from_data((float *)matrix_6x6,
                                              2, (int[]){6, 6});
     assert(dst2->dims[0] == 6);
     assert(dst2->dims[1] == 6);
     tensor_check_equal(dst2, dst2_exp, LINALG_EPSILON);
 
-    tensor *dst3 = tensor_transpose_b_new(src, 3, 3);
+    tensor *dst3 = tensor_linearize_tiles_new(src, 3, 3);
     tensor *dst3_exp = tensor_init_from_data((float *)matrix_4x9,
                                              2, (int[]){4, 9});
     assert(dst3->dims[0] == 4);
