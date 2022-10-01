@@ -44,28 +44,29 @@ tensor_multiply_ref(tensor *a, tensor *b, tensor *c) {
     }
 }
 
-#define TILE_I          32
-#define TILE_J          32
-#define TILE_K          32
+#define TILE_I          16
+#define TILE_J          16
+#define TILE_K          16
 #define SIMD_HEIGHT     2
 #define SIMD_WIDTH      16
 
 static void
 mul_fast_tile_16x2(
-    int i0, int i1,
-    int j0, int j1,
-    int k0, int k1,
+    int i0,
+    int j0,
+    int k0,
     float * restrict Apt,
     float * restrict Bpt,
     float * restrict C,
     int a_cols,
     int b_padded_cols
 ) {
-    for (int i = i0; i < i1; i += SIMD_HEIGHT) {
+    assert(a_cols % 16 == 0);
+    for (int i = i0; i < i0 + TILE_K; i += SIMD_HEIGHT) {
         float * restrict b_ptr = Bpt;
         float * restrict Cptr0 = &C[b_padded_cols * (i + 0) + j0];
         float * restrict Cptr1 = &C[b_padded_cols * (i + 1) + j0];
-        for (int j = j0; j < j1; j += SIMD_WIDTH) {
+        for (int j = j0; j < j0 + TILE_J; j += SIMD_WIDTH) {
             __m128 acc00 = _mm_load_ps(Cptr0 + 0);
             __m128 acc01 = _mm_load_ps(Cptr0 + 4);
             __m128 acc02 = _mm_load_ps(Cptr0 + 8);
@@ -77,7 +78,7 @@ mul_fast_tile_16x2(
             __m128 acc13 = _mm_load_ps(Cptr1 + 12);
 
             float * restrict a_ptr = &Apt[a_cols * i + SIMD_HEIGHT * k0];
-            for (int k = k0; k < k1; k++) {
+            for (int k = k0; k < k0 + TILE_K; k++) {
                 __m128 a0 = _mm_set1_ps(*a_ptr++);
                 __m128 a1 = _mm_set1_ps(*a_ptr++);
                 __m128 b0 = _mm_load_ps(b_ptr + 0);
@@ -116,7 +117,7 @@ typedef struct {
     float *b_tiled;
     float *c_padded;
 
-    int start_i, end_i;
+    int base_tile, top_tile;
     // Height and width of padded c.
     int padded_height, padded_width;
 
@@ -127,20 +128,19 @@ typedef struct {
 static void *
 mul_thread(void *arg) {
     mul_job_t *job = (mul_job_t *)arg;
-
     int a_cols = job->a_cols;
     int b_padded_cols = job->padded_width;
+    int start_i = job->base_tile * TILE_I;
+    int end_i = job->top_tile * TILE_I;
 
-    assert(job->start_i % TILE_I == 0);
-    assert(job->end_i % TILE_I == 0);
+    assert(b_padded_cols % 16 == 0);
 
-    for (int i = job->start_i; i < job->end_i; i += TILE_I) {
+    for (int i = start_i; i < end_i; i += TILE_I) {
         for  (int j = 0; j < job->padded_width; j += TILE_J) {
             for (int k = 0; k < job->padded_height; k += TILE_K) {
-                float *Bptr = &job->b_tiled[k * b_padded_cols + j * TILE_K];
-                mul_fast_tile_16x2(i, i + TILE_I,
-                                   j, j + TILE_J,
-                                   k, k + TILE_K,
+                int b_addr = k * b_padded_cols + j * TILE_K;
+                float *Bptr = &job->b_tiled[b_addr];
+                mul_fast_tile_16x2(i, j, k,
                                    job->a_tiled, Bptr, job->c_padded,
                                    a_cols, b_padded_cols);
             }
@@ -165,42 +165,40 @@ tensor_multiply(tensor *a, tensor *b, tensor *c) {
     assert(c_rows == a_rows);
     assert(c_cols == b_cols);
 
-    tensor *a_tiled = tensor_transpose_a_new(a, SIMD_HEIGHT);
+    tensor *a_tiled = tensor_transpose_b_new(a, SIMD_HEIGHT, 1);
     tensor *b_tiled = tensor_transpose_b_new(b, TILE_K, SIMD_WIDTH);
     float *a_tiled_data = a_tiled->data;
     float *b_tiled_data = b_tiled->data;
-    float *c_buf = calloc(a_rows * b_cols * sizeof(float), 1);
+    float *c_buf = calloc(a_rows * b_cols, sizeof(float));
 
     long n_threads = sysconf(_SC_NPROCESSORS_ONLN);
     pthread_t *threads = (pthread_t *)malloc(sizeof(pthread_t) * n_threads);
     mul_job_t *jobs = (mul_job_t *)malloc(sizeof(mul_job_t) * n_threads);
 
     int n_y_tiles = ceil_div(a_rows, TILE_I);
-    int n_y_tiles_per_thread = ceil_div(n_y_tiles, n_threads);
+    float y_tiles_per_thread = (float)n_y_tiles / (float)n_threads;
 
-    printf("%d a_rows, %d y tiles, %d y tiles/thread, %ld threads\n",
+    printf("%d a_rows, %d y tiles, %.2f y tiles/thread, %ld threads\n",
            a_rows,
            n_y_tiles,
-           n_y_tiles_per_thread, n_threads);
+           y_tiles_per_thread, n_threads);
 
+    int base_tile = 0;
     for (int i = 0; i < n_threads; i++) {
-        int start_i = TILE_I * i * n_y_tiles_per_thread;
-        int end_i = MIN(start_i + TILE_I * n_y_tiles_per_thread, a_rows);
-
-        printf("%d -> %d\n", start_i, end_i);
-
+        int top_tile = ceil(y_tiles_per_thread * (i + 1));
+        printf("%d --> %d\n", base_tile, top_tile);
         jobs[i] = (mul_job_t){
             a_tiled_data, b_tiled_data, c_buf,
-            start_i, end_i,
+            base_tile, top_tile,
             a_rows, b_cols, a_cols
         };
         pthread_create(&threads[i], NULL, mul_thread, &jobs[i]);
+        base_tile = top_tile;
     }
 
     for (int i = 0; i < n_threads; i++) {
         pthread_join(threads[i], NULL);
     }
-
     for (int y = 0; y < c->dims[0]; y++) {
         for (int x = 0; x < c->dims[1]; x++) {
             c->data[y * c_cols + x] = c_buf[y * c_cols + x];
