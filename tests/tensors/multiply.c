@@ -2,18 +2,33 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "datatypes/common.h"
 #include "linalg/linalg.h"
 #include "tensors/tensors.h"
 #include "tensors/multiply.h"
 
 void
+test_crash() {
+    int N = 64;
+    int K = 256;
+    int M = 256;
+    tensor *a = tensor_init(2, (int[]){N, K});
+    tensor *b = tensor_init(2, (int[]){K, M});
+    tensor *c = tensor_init(2, (int[]){N, M});
+    tensor_multiply(a, b, c);
+    tensor_free(a);
+    tensor_free(b);
+    tensor_free(c);
+}
+
+void
 test_mul_perf() {
-    for (int n = 1; n < 16; n++) {
+    for (int n = 1; n < 8; n++) {
         int N = n * 32;
-        for (int k = 1; k < 16; k++) {
+        for (int k = 1; k < 8; k++) {
             int K = k * 32;
-            for (int m = 1; m < 16; m++) {
+            for (int m = 1; m < 8; m++) {
                 int M = m * 32;
 
                 tensor *a = tensor_init(2, (int[]){N, K});
@@ -26,7 +41,7 @@ test_mul_perf() {
 
                 tensor_multiply(a, b, c);
                 tensor_multiply_ref(a, b, c_ref);
-                tensor_check_equal(c, c_ref, LINALG_EPSILON);
+                //tensor_check_equal(c, c_ref, LINALG_EPSILON);
 
                 tensor_free(a);
                 tensor_free(b);
@@ -39,17 +54,21 @@ test_mul_perf() {
 
 void
 test_arbitrary_sizes() {
-    rand_init(0);
+    /* int b0 = 500; */
+    /* int r = 1500; */
+    /* int N = b0 + rand_n(r); */
+    /* int K = b0 + rand_n(r); */
+    /* int M = b0 + rand_n(r); */
 
-    int a_rows = 1000 + rand_n(1000);
-    int a_cols = 1000 + rand_n(1000);
-    int b_rows = a_cols;
-    int b_cols = 1000 + rand_n(1000);
+    int N = 1482;
+    int K = 1040;
+    int M = 648;
 
-    tensor *a = tensor_init(2, (int[]){a_rows, a_cols});
-    tensor *b = tensor_init(2, (int[]){b_rows, b_cols});
-    tensor *c = tensor_init(2, (int[]){a_rows, b_cols});
-    tensor *c_ref = tensor_init(2, (int[]){a_rows, b_cols});
+    printf("N = %d, K = %d, M = %d\n", N, K, M);
+    tensor *a = tensor_init(2, (int[]){N, K});
+    tensor *b = tensor_init(2, (int[]){K, M});
+    tensor *c = tensor_init(2, (int[]){N, M});
+    tensor *c_ref = tensor_init(2, (int[]){N, M});
 
     tensor_fill_rand_ints(a, 10);
     tensor_fill_rand_ints(b, 10);
@@ -296,15 +315,57 @@ test_transpose_b() {
     tensor_free(dst3_exp);
 }
 
+void
+perf_test_multiply() {
+    int SIZE = 8192;
+    tensor *a = tensor_init(2, (int[]){SIZE, SIZE});
+    tensor *b = tensor_init(2, (int[]){SIZE, SIZE});
+    tensor *c = tensor_init(2, (int[]){SIZE, SIZE});
+
+    struct timespec begin, end;
+    clock_gettime(CLOCK_MONOTONIC_RAW, &begin);
+    tensor_multiply(a, b, c);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+    double delta = (end.tv_nsec - begin.tv_nsec) / 1000000000.0 +
+        (end.tv_sec  - begin.tv_sec);
+    float gflops = (long)SIZE * (long)SIZE * (long)SIZE
+        / (delta * 1000.0 * 1000.0 * 1000.0);
+    printf("%.6lfs, %.2f gflops\n", delta, gflops);
+
+    tensor_free(a);
+    tensor_free(b);
+    tensor_free(c);
+}
+
+void
+perf_test_linearize_tiles2() {
+    int SIZE = 8192*2;
+    tensor *src = tensor_init(2, (int[]){SIZE, SIZE});
+    struct timespec begin, end;
+    clock_gettime(CLOCK_MONOTONIC_RAW, &begin);
+    for (int i = 0; i < 10; i++) {
+        tensor *dst = tensor_linearize_tiles_new2(src, 2, 1, SIZE, SIZE);
+        tensor_free(dst);
+    }
+    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+    double delta = (end.tv_nsec - begin.tv_nsec) / 1000000000.0 +
+        (end.tv_sec  - begin.tv_sec);
+    printf("%.6lfs\n", delta);
+    tensor_free(src);
+}
+
 
 int
 main(int argc, char *argv[]) {
     rand_init(0);
+    PRINT_RUN(test_crash);
     PRINT_RUN(test_mul_perf);
-    //PRINT_RUN(test_arbitrary_sizes);
-    //PRINT_RUN(test_linearize_tiles);
-    /* PRINT_RUN(test_transpose_a); */
-    /* PRINT_RUN(test_transpose_b); */
-    //PRINT_RUN(test_multiply);
-    /* PRINT_RUN(test_multiply_big); */
+    PRINT_RUN(test_arbitrary_sizes);
+    PRINT_RUN(test_linearize_tiles);
+    PRINT_RUN(test_transpose_a);
+    PRINT_RUN(test_transpose_b);
+    PRINT_RUN(test_multiply);
+    PRINT_RUN(test_multiply_big);
+    perf_test_multiply();
+    perf_test_linearize_tiles2();
 }

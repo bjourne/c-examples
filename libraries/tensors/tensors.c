@@ -222,8 +222,13 @@ tensor_relu(tensor *me) {
 
 void
 tensor_fill_const(tensor *me, float v) {
-    for (int i = 0; i < tensor_n_elements(me); i++) {
-        me->data[i] = v;
+    size_t n_els = tensor_n_elements(me);
+    if (v == 0.0) {
+        memset(me->data, 0, sizeof(float) * n_els);
+    } else {
+        for (int i = 0; i < n_els; i++) {
+            me->data[i] = v;
+        }
     }
 }
 
