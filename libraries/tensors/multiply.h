@@ -12,8 +12,6 @@ void tensor_multiply(tensor *a, tensor *b, tensor *c);
 // Not sure about these names.
 void tensor_linearize_tiles(tensor *src, tensor *dst,
                             int tile_height, int tile_width);
-
-//tensor *tensor_transpose_a_new(tensor *src, int simd_height);
 tensor *tensor_linearize_tiles_new(tensor *src,
                                    int tile_height,
                                    int tile_width);

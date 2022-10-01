@@ -7,31 +7,34 @@
 #include "tensors/tensors.h"
 #include "tensors/multiply.h"
 
-#define SIZE 128
-
 void
 test_mul_perf() {
-    int a_rows = SIZE;
-    int a_cols = SIZE;
-    int b_rows = SIZE;
-    int b_cols = SIZE;
+    for (int n = 1; n < 16; n++) {
+        int N = n * 32;
+        for (int k = 1; k < 16; k++) {
+            int K = k * 32;
+            for (int m = 1; m < 16; m++) {
+                int M = m * 32;
 
-    tensor *a = tensor_init(2, (int[]){a_rows, a_cols});
-    tensor *b = tensor_init(2, (int[]){b_rows, b_cols});
-    tensor *c = tensor_init(2, (int[]){a_rows, b_cols});
-    tensor *c_ref = tensor_init(2, (int[]){a_rows, b_cols});
+                tensor *a = tensor_init(2, (int[]){N, K});
+                tensor *b = tensor_init(2, (int[]){K, M});
+                tensor *c = tensor_init(2, (int[]){N, M});
+                tensor *c_ref = tensor_init(2, (int[]){N, M});
 
-    tensor_fill_rand_ints(a, 5);
-    tensor_fill_rand_ints(b, 5);
+                tensor_fill_rand_ints(a, 5);
+                tensor_fill_rand_ints(b, 5);
 
-    tensor_multiply(a, b, c);
-    tensor_multiply_ref(a, b, c_ref);
-    tensor_check_equal(c, c_ref, LINALG_EPSILON);
+                tensor_multiply(a, b, c);
+                tensor_multiply_ref(a, b, c_ref);
+                tensor_check_equal(c, c_ref, LINALG_EPSILON);
 
-    tensor_free(a);
-    tensor_free(b);
-    tensor_free(c);
-    tensor_free(c_ref);
+                tensor_free(a);
+                tensor_free(b);
+                tensor_free(c);
+                tensor_free(c_ref);
+            }
+        }
+    }
 }
 
 void
@@ -296,11 +299,12 @@ test_transpose_b() {
 
 int
 main(int argc, char *argv[]) {
+    rand_init(0);
     PRINT_RUN(test_mul_perf);
     //PRINT_RUN(test_arbitrary_sizes);
     //PRINT_RUN(test_linearize_tiles);
-    PRINT_RUN(test_transpose_a);
-    PRINT_RUN(test_transpose_b);
+    /* PRINT_RUN(test_transpose_a); */
+    /* PRINT_RUN(test_transpose_b); */
     //PRINT_RUN(test_multiply);
     /* PRINT_RUN(test_multiply_big); */
 }
