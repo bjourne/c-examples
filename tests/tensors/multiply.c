@@ -54,15 +54,11 @@ test_mul_perf() {
 
 void
 test_arbitrary_sizes() {
-    /* int b0 = 500; */
-    /* int r = 1500; */
-    /* int N = b0 + rand_n(r); */
-    /* int K = b0 + rand_n(r); */
-    /* int M = b0 + rand_n(r); */
-
-    int N = 1482;
-    int K = 1040;
-    int M = 648;
+    int b0 = 500;
+    int r = 1500;
+    int N = b0 + rand_n(r);
+    int K = b0 + rand_n(r);
+    int M = b0 + rand_n(r);
 
     printf("N = %d, K = %d, M = %d\n", N, K, M);
     tensor *a = tensor_init(2, (int[]){N, K});
