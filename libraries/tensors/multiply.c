@@ -36,9 +36,9 @@ tensor_multiply_ref(tensor *a, tensor *b, tensor *c) {
     memset(c_buf, 0, sizeof(float) * tensor_n_elements(c));
     for (int i = 0; i < a_rows; i++) {
         for (int k = 0; k < b_rows; k++) {
+            float a = a_buf[a_cols * i + k];
             for (int j = 0; j < b_cols; j++) {
-                c_buf[b_cols * i + j] +=
-                    a_buf[a_cols * i + k] * b_buf[k * b_cols + j];
+                c_buf[b_cols * i + j] += a * b_buf[b_cols * k + j];
             }
         }
     }
