@@ -4,9 +4,14 @@
 
 #include "tensors.h"
 
-// Two functions that does the same thing to make it easy for me to
-// test out optimizations.
+// Simple and slow matrix multiplication, used to iron out bugs in the
+// optimized implementation.
 void tensor_multiply_ref(tensor *a, tensor *b, tensor *c);
+
+// Quite fast multi-threaded matrix multiplication, utilizing SIMD
+// intrinsics.
+void tensor_multiply_w_params(tensor *a, tensor *b, tensor *c,
+                              unsigned int n_jobs);
 void tensor_multiply(tensor *a, tensor *b, tensor *c);
 
 // Not sure about these names.

@@ -31,7 +31,7 @@ def configure(ctx):
         ]
         speed_flags = ['-O3', '-fomit-frame-pointer']
         debug_flags = ['-O2', '-g']
-    extra_flags = speed_flags
+    extra_flags = debug_flags
     ctx.env.append_unique('CFLAGS', base_c_flags + extra_flags)
     ctx.env.append_unique('CXXFLAGS', base_cxx_flags + extra_flags)
     ctx.env.append_value('INCLUDES', ['libraries'])
@@ -120,7 +120,7 @@ def build(ctx):
     build_library(ctx, 'threads', 'THREADS_OBJS', [])
     build_library(ctx, 'diophantine', 'DIO_OBJS', [])
     build_library(ctx, 'ieee754', 'IEEE754_OBJS', [])
-    build_library(ctx, 'tensors', 'TENSORS_OBJS', ['PNG', 'GOMP'])
+    build_library(ctx, 'tensors', 'TENSORS_OBJS', ['PNG'])
     build_library(ctx, 'opencl', 'OPENCL_OBJS', ['OPENCL', 'DT_OBJS'])
 
     build_tests(ctx, 'datatypes', ['DT_OBJS'])
@@ -138,7 +138,7 @@ def build(ctx):
 
     build_tests(ctx, 'diophantine', ['DIO_OBJS', 'DT_OBJS', 'M'])
     build_tests(ctx, 'ieee754', ['IEEE754_OBJS', 'DT_OBJS'])
-    build_tests(ctx, 'tensors', ['TENSORS_OBJS', 'DT_OBJS', 'PNG', 'M', 'GOMP'])
+    build_tests(ctx, 'tensors', ['TENSORS_OBJS', 'DT_OBJS', 'PNG', 'M'])
     build_tests(ctx, 'opencl', [
         'OPENCL_OBJS',
         'PATHS_OBJS',

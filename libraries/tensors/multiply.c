@@ -34,7 +34,6 @@ tensor_multiply_ref(tensor *a, tensor *b, tensor *c) {
     float *c_buf = c->data;
 
     memset(c_buf, 0, sizeof(float) * tensor_n_elements(c));
-
     for (int i = 0; i < a_rows; i++) {
         for (int k = 0; k < b_rows; k++) {
             for (int j = 0; j < b_cols; j++) {
@@ -48,6 +47,7 @@ tensor_multiply_ref(tensor *a, tensor *b, tensor *c) {
 #define TILE_I          256
 #define TILE_J          256
 #define TILE_K          256
+
 #define SIMD_HEIGHT     2
 #define SIMD_WIDTH      16
 #define SIMD_COLS       (SIMD_WIDTH / 4)
@@ -57,8 +57,7 @@ mul_fast_kernel(
     float * restrict a_base,
     float * restrict b_base,
     float * restrict c_base,
-    unsigned int K,
-    unsigned int M
+    unsigned int K, unsigned int M
 ) {
     for (unsigned int i = 0; i < TILE_I; i += SIMD_HEIGHT) {
         float * restrict b_ptr = b_base;
@@ -117,16 +116,12 @@ typedef struct {
     unsigned int M, K;
 } mul_job_t;
 
-static void *
-mul_thread(void *arg) {
-    mul_job_t job = *(mul_job_t *)arg;
-    unsigned int K = job.K;
-    unsigned int M = job.M;
-    unsigned int start_i = job.start_i;
-    unsigned int end_i = job.end_i;
-    float *a_tiled = job.a_tiled;
-    float *b_tiled = job.b_tiled;
-    float *c_buf = job.c_buf;
+static void
+mul_tiles(float * restrict a_tiled,
+         float * restrict b_tiled,
+         float * restrict c_buf,
+         unsigned int start_i, unsigned int end_i,
+         unsigned int M, unsigned int K) {
     for (unsigned int i = start_i; i < end_i; i += TILE_I) {
         for (unsigned int j = 0; j < M; j += TILE_J) {
             float *c_base = &c_buf[M * i + j];
@@ -139,13 +134,20 @@ mul_thread(void *arg) {
             }
         }
     }
+}
+
+static void *
+mul_thread(void *arg) {
+    mul_job_t job = *(mul_job_t *)arg;
+    mul_tiles(job.a_tiled, job.b_tiled, job.c_buf,
+              job.start_i, job.end_i,
+              job.M, job.K);
     return NULL;
 }
 
 void
-tensor_multiply(tensor *a, tensor *b, tensor *c) {
-
-
+tensor_multiply_w_params(tensor *a, tensor *b, tensor *c,
+                         unsigned int n_jobs) {
     int a_rows = a->dims[0];
     int a_cols = a->dims[1];
     int b_rows = b->dims[0];
@@ -161,14 +163,13 @@ tensor_multiply(tensor *a, tensor *b, tensor *c) {
     assert(TILE_I % SIMD_HEIGHT == 0);
     assert(TILE_J % SIMD_WIDTH == 0);
 
-    // The K dimension doesn't need to be divisble by TILE_K.
-    int N = ceil_div(a_rows, TILE_I) * TILE_I;
-    int K = a_cols;
+    int n_i_tiles = ceil_div(a_rows, TILE_I);
+    int N = n_i_tiles * TILE_I;
+    int K = ceil_div(a_cols, TILE_K) * TILE_K;
     int M = ceil_div(b_cols, TILE_J) * TILE_J;
 
-    // I think A needs to be tiled to N rows.
     tensor *a_tiled = tensor_linearize_tiles_new2(a, SIMD_HEIGHT, 1,
-                                                  N, a_cols);
+                                                  N, K);
     tensor *b_tiled = tensor_linearize_tiles_new2(b, TILE_K, SIMD_WIDTH,
                                                   K, M);
 
@@ -176,32 +177,37 @@ tensor_multiply(tensor *a, tensor *b, tensor *c) {
     float *b_tiled_data = b_tiled->data;
 
     float *c_buf = c->data;
+    size_t n_c_bytes = N * M * sizeof(float);
     if (c_rows != N || c_cols != M) {
-        c_buf = malloc(N * M * sizeof(float));
+        c_buf = malloc(n_c_bytes);
     }
-    memset(c_buf, 0, sizeof(float) * M * N);
+    memset(c_buf, 0, n_c_bytes);
 
-    long n_jobs = 3 * sysconf(_SC_NPROCESSORS_ONLN);
-    mul_job_t *jobs = malloc(sizeof(mul_job_t) * n_jobs);
+    // Running more jobs than there are tiles leads to badness.
+    n_jobs = MIN(n_jobs, n_i_tiles);
+    if (n_jobs == 1) {
+        mul_tiles(a_tiled_data, b_tiled_data, c_buf,
+                  0, N, M, K);
+    } else {
+        mul_job_t *jobs = malloc(sizeof(mul_job_t) * n_jobs);
+        float i_tiles_per_thread = (float)n_i_tiles / (float)n_jobs;
 
-    int n_y_tiles = ceil_div(N, TILE_I);
-    float y_tiles_per_thread = (float)n_y_tiles / (float)n_jobs;
-
-    int start_i = 0;
-    for (int i = 0; i < n_jobs; i++) {
-        int end_i = ceil(y_tiles_per_thread * (i + 1)) * TILE_I;
-        jobs[i] = (mul_job_t){0,
-            a_tiled_data, b_tiled_data, c_buf,
-            start_i, end_i,
-            M, K
-        };
-        pthread_create(&jobs[i].thread, NULL, mul_thread, &jobs[i]);
-        start_i = end_i;
+        int start_i = 0;
+        for (int i = 0; i < n_jobs; i++) {
+            int end_i = ceil(i_tiles_per_thread * (i + 1)) * TILE_I;
+            jobs[i] = (mul_job_t){0,
+                                  a_tiled_data, b_tiled_data, c_buf,
+                                  start_i, end_i,
+                                  M, K
+            };
+            pthread_create(&jobs[i].thread, NULL, mul_thread, &jobs[i]);
+            start_i = end_i;
+        }
+        for (int i = 0; i < n_jobs; i++) {
+            pthread_join(jobs[i].thread, NULL);
+        }
+        free(jobs);
     }
-    for (int i = 0; i < n_jobs; i++) {
-        pthread_join(jobs[i].thread, NULL);
-    }
-    free(jobs);
     if (c_buf != c->data) {
         for (int y = 0; y < c_rows; y++) {
             memcpy(&c->data[y * c_cols],
@@ -213,8 +219,13 @@ tensor_multiply(tensor *a, tensor *b, tensor *c) {
     tensor_free(b_tiled);
 }
 
-// Ofc this function can be generalized to higher dimensions, but I
-// only need to linearize 2d tiles.
+void
+tensor_multiply(tensor *a, tensor *b, tensor *c) {
+    long n_jobs = 3 * sysconf(_SC_NPROCESSORS_ONLN);
+    tensor_multiply_w_params(a, b, c, n_jobs);
+}
+
+// Not all of these 2d tiling functions are necessary.
 void
 tensor_linearize_tiles(tensor *src, tensor *dst,
                        int tile_height, int tile_width) {
@@ -264,7 +275,6 @@ tile_thread(void *arg) {
     unsigned int end_i = job.end_i;
     float *src = job.src;
     float *dst = job.dst;
-
     for (unsigned int i = start_i; i < end_i; i += tile_height) {
         float *dst_ptr = &dst[fill_width * i];
         for (unsigned int j = 0; j < fill_width; j += tile_width) {
@@ -291,7 +301,6 @@ tensor_linearize_tiles_new2(
     unsigned int fill_height,
     unsigned int fill_width
 ) {
-
     unsigned int src_height = src->dims[0];
     unsigned int src_width = src->dims[1];
 

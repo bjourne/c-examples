@@ -23,6 +23,20 @@ test_crash() {
 }
 
 void
+test_crash2() {
+    int N = 615;
+    int K = 373;
+    int M = 383;
+    tensor *a = tensor_init(2, (int[]){N, K});
+    tensor *b = tensor_init(2, (int[]){K, M});
+    tensor *c = tensor_init(2, (int[]){N, M});
+    tensor_multiply_w_params(a, b, c, 21);
+    tensor_free(a);
+    tensor_free(b);
+    tensor_free(c);
+}
+
+void
 test_mul_perf() {
     for (int n = 1; n < 8; n++) {
         int N = n * 32;
@@ -41,7 +55,7 @@ test_mul_perf() {
 
                 tensor_multiply(a, b, c);
                 tensor_multiply_ref(a, b, c_ref);
-                //tensor_check_equal(c, c_ref, LINALG_EPSILON);
+                tensor_check_equal(c, c_ref, LINALG_EPSILON);
 
                 tensor_free(a);
                 tensor_free(b);
@@ -54,8 +68,8 @@ test_mul_perf() {
 
 void
 test_arbitrary_sizes() {
-    int b0 = 500;
-    int r = 1500;
+    int b0 = 200;
+    int r = 500;
     int N = b0 + rand_n(r);
     int K = b0 + rand_n(r);
     int M = b0 + rand_n(r);
@@ -350,11 +364,11 @@ perf_test_linearize_tiles2() {
     tensor_free(src);
 }
 
-
 int
 main(int argc, char *argv[]) {
     rand_init(0);
     PRINT_RUN(test_crash);
+    PRINT_RUN(test_crash2);
     PRINT_RUN(test_mul_perf);
     PRINT_RUN(test_arbitrary_sizes);
     PRINT_RUN(test_linearize_tiles);
