@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019-2020, 2022 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef DATATYPES_COMMON_H
 #define DATATYPES_COMMON_H
 
@@ -35,6 +35,9 @@ void error(char *fmt, ...);
 #define PRINT_RUN_INT(title, func) \
     printf("=== %s\n", title); timed_run(&func); printf("\n")
 #define PRINT_RUN(func) PRINT_RUN_INT(#func, func)
+
+// Allocating aligned memory
+void *malloc_aligned(size_t alignment, size_t size);
 
 // Timing
 void timed_run(void (*func)());

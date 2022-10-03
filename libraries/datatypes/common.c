@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019-2020, 2022 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <inttypes.h>
 #include <stdarg.h>
@@ -9,6 +9,13 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
+
+void *
+malloc_aligned(size_t alignment, size_t size) {
+    void *p = NULL;
+    assert(!posix_memalign(&p, alignment, size));
+    return p;
+}
 
 void
 error(char *fmt, ...) {
