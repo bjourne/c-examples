@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <xmmintrin.h>
+#include <immintrin.h>
 
 #include "datatypes/common.h"
 #include "multiply.h"
@@ -44,6 +44,76 @@ tensor_multiply_ref(tensor *a, tensor *b, tensor *c) {
     }
 }
 
+#if __AVX512F__
+
+#define TILE_I          128
+#define TILE_J          256
+#define TILE_K          256
+
+#define SIMD_HEIGHT     4
+#define SIMD_WIDTH      64
+
+#define N_FLOATS        16
+#define SIMD_COLS       (SIMD_WIDTH / N_FLOATS)
+
+#define UNROLL_FACTOR   32
+#define JOB_FACTOR      2
+
+static void
+mul_fast_kernel(
+    float * restrict a_base,
+    float * restrict b_base,
+    float * restrict c_base,
+    unsigned int K, unsigned int M
+) {
+    for (unsigned int i = 0; i < TILE_I / SIMD_HEIGHT; i++) {
+        float * restrict b_ptr = b_base;
+        float * restrict c_ptr[SIMD_HEIGHT];
+        for (unsigned int y = 0; y < SIMD_HEIGHT; y++) {
+            c_ptr[y] = c_base + M * y;
+        }
+        for (unsigned int j = 0; j < TILE_J / SIMD_WIDTH; j++) {
+            __m512 acc[SIMD_HEIGHT][SIMD_COLS];
+            for (unsigned int y = 0; y < SIMD_HEIGHT; y++) {
+                for (unsigned int x = 0; x < SIMD_COLS; x++) {
+                    acc[y][x] = _mm512_load_ps(c_ptr[y] + N_FLOATS * x);
+                }
+            }
+            float * restrict a_ptr = a_base;
+            #pragma unroll UNROLL_FACTOR
+            for (unsigned int k = 0; k < TILE_K; k++) {
+                __m512 b[SIMD_COLS];
+                for (unsigned int x = 0; x < SIMD_COLS; x++) {
+                    b[x] = _mm512_load_ps(b_ptr + N_FLOATS * x);
+                }
+                b_ptr += SIMD_WIDTH;
+                __m512 a[SIMD_HEIGHT];
+                for (unsigned int y = 0; y < SIMD_HEIGHT; y++) {
+                    a[y] = _mm512_set1_ps(*(a_ptr + y));
+                }
+                a_ptr += SIMD_HEIGHT;
+                for (unsigned int y = 0; y < SIMD_HEIGHT; y++) {
+                    for (unsigned int x = 0; x < SIMD_COLS; x++) {
+                        acc[y][x] = _mm512_fmadd_ps(a[y], b[x], acc[y][x]);
+                    }
+                }
+            }
+            for (unsigned int y = 0; y < SIMD_HEIGHT; y++) {
+                for (unsigned int x = 0; x < SIMD_COLS; x++) {
+                    _mm512_store_ps(c_ptr[y] + N_FLOATS * x, acc[y][x]);
+                }
+            }
+            for (unsigned int y = 0; y < SIMD_HEIGHT; y++) {
+                c_ptr[y] += SIMD_WIDTH;
+            }
+        }
+        a_base += SIMD_HEIGHT * K;
+        c_base += SIMD_HEIGHT * M;
+    }
+}
+
+#else
+
 #define TILE_I          256
 #define TILE_J          256
 #define TILE_K          256
@@ -51,6 +121,8 @@ tensor_multiply_ref(tensor *a, tensor *b, tensor *c) {
 #define SIMD_HEIGHT     2
 #define SIMD_WIDTH      16
 #define SIMD_COLS       (SIMD_WIDTH / 4)
+
+#define JOB_FACTOR      3
 
 static void
 mul_fast_kernel(
@@ -87,8 +159,14 @@ mul_fast_kernel(
                 a_ptr += SIMD_HEIGHT;
                 for (unsigned int y = 0; y < SIMD_HEIGHT; y++) {
                     for (unsigned int x = 0; x < SIMD_COLS; x++) {
+#if defined(__AVX2__)
+                        acc[y][x] = _mm_fmadd_ps(a[y], b[x], acc[y][x]);
+#else
+
                         acc[y][x] = _mm_add_ps(acc[y][x],
                                                _mm_mul_ps(a[y], b[x]));
+
+#endif
                     }
                 }
             }
@@ -106,6 +184,8 @@ mul_fast_kernel(
     }
 }
 
+#endif
+
 typedef struct {
     pthread_t thread;
     float *a_tiled;
@@ -118,10 +198,10 @@ typedef struct {
 
 static void
 mul_tiles(float * restrict a_tiled,
-         float * restrict b_tiled,
-         float * restrict c_buf,
-         unsigned int start_i, unsigned int end_i,
-         unsigned int M, unsigned int K) {
+          float * restrict b_tiled,
+          float * restrict c_buf,
+          unsigned int start_i, unsigned int end_i,
+          unsigned int M, unsigned int K) {
     for (unsigned int i = start_i; i < end_i; i += TILE_I) {
         for (unsigned int j = 0; j < M; j += TILE_J) {
             float *c_base = &c_buf[M * i + j];
@@ -179,7 +259,7 @@ tensor_multiply_w_params(tensor *a, tensor *b, tensor *c,
     float *c_buf = c->data;
     size_t n_c_bytes = N * M * sizeof(float);
     if (c_rows != N || c_cols != M) {
-        c_buf = malloc(n_c_bytes);
+        c_buf = malloc_aligned(TENSOR_ADDRESS_ALIGNMENT, n_c_bytes);
     }
     memset(c_buf, 0, n_c_bytes);
 
@@ -221,7 +301,7 @@ tensor_multiply_w_params(tensor *a, tensor *b, tensor *c,
 
 void
 tensor_multiply(tensor *a, tensor *b, tensor *c) {
-    long n_jobs = 3 * sysconf(_SC_NPROCESSORS_ONLN);
+    long n_jobs = JOB_FACTOR * sysconf(_SC_NPROCESSORS_ONLN);
     tensor_multiply_w_params(a, b, c, n_jobs);
 }
 

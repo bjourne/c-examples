@@ -176,7 +176,7 @@ tensor_init(int n_dims, int dims[]) {
     memcpy(me->dims, dims, n_dims * sizeof(int));
 
     int n_bytes = sizeof(float) * tensor_n_elements(me);
-    me->data = (float *)malloc_aligned(TENSOR_ADDRESS_ALIGNMENT, n_bytes);
+    me->data = malloc_aligned(TENSOR_ADDRESS_ALIGNMENT, n_bytes);
     return me;
 }
 
