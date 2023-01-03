@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -81,14 +81,27 @@ transpose8x8(float *mat) {
 }
 
 static void
-dct8x8_nvidia(float * restrict src, float * restrict dst, int stride) {
+dct8x8_block(float * restrict src, float * restrict dst,
+             int stride, bool use_nvidia) {
     float tmp[64], tmp_io[64];
-    for (int i = 0; i < 8; i++) {
-        tensor_dct8_nvidia(&src[stride * i], &tmp[8 * i]);
+    if (use_nvidia) {
+        for (int i = 0; i < 8; i++) {
+            tensor_dct8_nvidia(&src[stride * i], &tmp[8 * i]);
+        }
+    } else {
+        for (int i = 0; i < 8; i++) {
+            tensor_dct8_loeffler(&src[stride * i], &tmp[8 * i]);
+        }
     }
     transpose8x8(tmp);
-    for (int i = 0; i < 8; i++) {
-        tensor_dct8_nvidia(&tmp[8 * i], &tmp_io[8 * i]);
+    if (use_nvidia) {
+        for (int i = 0; i < 8; i++) {
+            tensor_dct8_nvidia(&tmp[8 * i], &tmp_io[8 * i]);
+        }
+    } else {
+        for (int i = 0; i < 8; i++) {
+            tensor_dct8_loeffler(&tmp[8 * i], &tmp_io[8 * i]);
+        }
     }
     transpose8x8(tmp_io);
     for (int i = 0; i < 8; i++) {
@@ -101,18 +114,19 @@ dct8x8_nvidia(float * restrict src, float * restrict dst, int stride) {
 void
 tensor_dct8x8_blocks_scalar_impl(float * restrict src,
                                  float * restrict dst,
-                                 int width, int height) {
+                                 int width, int height,
+                                 bool use_nvidia) {
     for (int y = 0; y < height; y += 8) {
         for (int x = 0; x < width; x += 8) {
-            dct8x8_nvidia(&src[y * width + x],
-                          &dst[y * width + x],
-                          width);
+            dct8x8_block(&src[y * width + x],
+                         &dst[y * width + x],
+                         width, use_nvidia);
         }
     }
 }
 
 void
-tensor_dct2d_8x8_blocks(tensor *src, tensor *dst) {
+tensor_dct2d_8x8_blocks(tensor *src, tensor *dst, bool use_nvidia) {
     assert(src->n_dims == dst->n_dims  && src->n_dims == 2);
     assert(src->dims[0] == dst->dims[0]);
     assert(src->dims[1] == dst->dims[1]);
@@ -127,9 +141,8 @@ tensor_dct2d_8x8_blocks(tensor *src, tensor *dst) {
     tensor_dct2d_8x8_blocks_avx256_impl(src->data, dst->data,
                                         width, height);
     #else
-
     tensor_dct8x8_blocks_scalar_impl(src->data, dst->data,
-                                     width, height);
+                                     width, height, use_nvidia);
 
     #endif
 }

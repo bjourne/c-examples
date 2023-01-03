@@ -355,7 +355,7 @@ test_8x8_nvidia() {
     for (int i = 0; i < 8; i++) {
         assert(approx_eq2(y[i], y_exp[i], 0.1));
     }
-    tensor_dct2d_8x8_blocks(image, output);
+    tensor_dct2d_8x8_blocks(image, output, true);
     tensor_dct2d_blocks(image, output2, 8, 8);
     assert(tensor_check_equal(output, output2, 0.1));
 
@@ -369,7 +369,7 @@ test_8x8_nvidia() {
     output = tensor_init(2, dims);
     output2 = tensor_init(2, dims);
 
-    tensor_dct2d_8x8_blocks(image, output);
+    tensor_dct2d_8x8_blocks(image, output, true);
     tensor_dct2d_blocks(image, output2, 8, 8);
     assert(tensor_check_equal(output, output2, 0.1));
 
@@ -386,7 +386,7 @@ test_8x8_nvidia_benchmark() {
     tensor_fill_rand_ints(image, 200);
 
     for (int i = 0; i < 10; i++) {
-        tensor_dct2d_8x8_blocks(image, output);
+        tensor_dct2d_8x8_blocks(image, output, true);
     }
     tensor_free(image);
     tensor_free(output);
@@ -398,12 +398,19 @@ test_image_data8x8_2() {
     tensor *image = tensor_init_from_data(
         (float *)IMAGE_DATA8X8_2, 2, dims);
     tensor *output = tensor_init(2, dims);
+    tensor *output2 = tensor_init(2, dims);
     tensor *output_exp = tensor_init_from_data(
         (float *)IMAGE_DATA8x8_2_EXP, 2, dims);
-    tensor_dct2d_blocks(image, output, 8, 8);
+    tensor_dct2d_8x8_blocks(image, output, false);
+    tensor_dct2d_8x8_blocks(image, output2, true);
+
+    tensor_print(output, "%.2f", false);
+    tensor_print(output2, "%.2f", false);
+
     tensor_check_equal(output, output_exp, 0.1);
     tensor_free(image);
     tensor_free(output);
+    tensor_free(output2);
     tensor_free(output_exp);
 }
 

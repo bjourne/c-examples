@@ -150,12 +150,14 @@ void tensor_dct2d_blocks(tensor *src, tensor *dst,
                          int block_height, int block_width);
 
 // Dispatches to the best impl
-void tensor_dct2d_8x8_blocks(tensor *src, tensor *dst);
+void tensor_dct2d_8x8_blocks(tensor *src, tensor *dst,
+                             bool use_nvidia);
 
 void
 tensor_dct8x8_blocks_scalar_impl(float * restrict src,
                                  float * restrict dst,
-                                 int width, int height);
+                                 int width, int height,
+                                 bool use_nvidia);
 #ifdef __AVX2__
 void tensor_dct2d_8x8_blocks_avx256_impl(float * restrict src,
                                          float * restrict dst,
