@@ -1,4 +1,4 @@
-# Copyright (C) 2019-2020, 2022 Björn A. Lindqvist <bjourne@gmail.com>
+# Copyright (C) 2019-2020, 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
 from os.path import splitext
 
 def options(ctx):
@@ -71,11 +71,6 @@ def configure(ctx):
 def noinst_program(ctx, source, target, use):
     ctx.program(source = source, target = target,
                 use = use, install_path = None)
-
-def build_objects(ctx, path, target):
-    path = 'libraries/%s' % path
-    objs = ctx.path.ant_glob('%s/*.c' % path)
-    ctx.objects(source = objs, target = target)
 
 def build_tests(ctx, path, use):
     path = 'tests/%s' % path
