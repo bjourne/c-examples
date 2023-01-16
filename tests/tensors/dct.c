@@ -5,7 +5,7 @@
 #include "tensors/tensors.h"
 #include "tensors/dct.h"
 
-static float IMAGE_DATA8X8[8][8] = {
+static float IMAGE_DATA8X8_1[8][8] = {
     {83, 86, 77, 15, 93, 35, 86, 92},
     {49, 21, 62, 27, 90, 59, 63, 26},
     {40, 26, 72, 36, 11, 68, 67, 29},
@@ -28,14 +28,14 @@ static float IMAGE_DATA8X8_2[8][8] = {
 };
 
 static float IMAGE_DATA8x8_2_EXP[8][8] = {
-    {1257.9, 2.3, -9.7, -4.1, 3.9, 0.6, -2.1, 0.7},
-    {-21.0, -15.3, -4.3, -2.7, 2.3, 3.5, 2.1, -3.1},
-    {-11.2, -7.6, -0.9, 4.1, 2.0, 3.4, 1.4, 0.9},
-    {-4.9, -5.8, 1.8, 1.1, 1.6, 2.7, 2.8, -0.7},
-    {0.1, -3.8, 0.5, 1.3, -1.4, 0.7, 1.0, 0.9},
-    {0.9, -1.6, 0.9, -0.3, -1.8, -0.3, 1.4, 0.8},
-    {-4.4, 2.7, -4.4, -1.5, -0.1, 1.1, 0.4, 1.9},
-    {-6.4, 3.8, -5.0, -2.6, 1.6, 0.6, 0.1, 1.5}
+    {1257.9,   2.3, -9.7, -4.1, 3.9, 0.6, -2.1, 0.7},
+    { -21.0, -15.3, -4.3, -2.7, 2.3, 3.5, 2.1, -3.1},
+    { -11.2,  -7.6, -0.9, 4.1, 2.0, 3.4, 1.4, 0.9},
+    { -4.9,   -5.8, 1.8, 1.1, 1.6, 2.7, 2.8, -0.7},
+    {  0.1,   -3.8, 0.5, 1.3, -1.4, 0.7, 1.0, 0.9},
+    {  0.9,   -1.6, 0.9, -0.3, -1.8, -0.3, 1.4, 0.8},
+    { -4.4,    2.7, -4.4, -1.5, -0.1, 1.1, 0.4, 1.9},
+    { -6.4,    3.8, -5.0, -2.6, 1.6, 0.6, 0.1, 1.5}
 };
 
 static float IMAGE_DATA32X32[32][32] = {
@@ -328,14 +328,18 @@ test_dct8() {
     for (int i = 0; i < 8; i++) {
         assert(approx_eq2(y_exp[i], y[i], 0.01));
         assert(approx_eq2(y_exp[i], y2[i], 0.01));
+        printf("y2[%d] = %.2f\n", i, y2[i]);
     }
 
     for (int i = 0; i < 8; i++) {
+
         x[i] = -10 + rand_n(20);
+
     }
     tensor_dct8_nvidia(x, y);
     tensor_dct8_loeffler(x, y2);
     for (int i = 0; i < 8; i++) {
+        printf("y[%d] = %.2f\n", i, y[i]);
         assert(approx_eq2(y[i], y2[i], 0.01));
     }
 }
@@ -343,7 +347,8 @@ test_dct8() {
 void
 test_8x8_nvidia() {
     int dims[] = {8,  8};
-    tensor *image = tensor_init_from_data((float *)IMAGE_DATA8X8, 2, dims);
+    tensor *image = tensor_init_from_data(
+        (float *)IMAGE_DATA8X8_1, 2, dims);
     tensor *output = tensor_init(2, dims);
     tensor *output2 = tensor_init(2, dims);
 
@@ -358,6 +363,8 @@ test_8x8_nvidia() {
     tensor_dct2d_8x8_blocks(image, output, true);
     tensor_dct2d_blocks(image, output2, 8, 8);
     assert(tensor_check_equal(output, output2, 0.1));
+
+    tensor_print(output, "%7.2f", false);
 
     tensor_free(image);
     tensor_free(output);
@@ -404,10 +411,8 @@ test_image_data8x8_2() {
     tensor_dct2d_8x8_blocks(image, output, false);
     tensor_dct2d_8x8_blocks(image, output2, true);
 
-    tensor_print(output, "%.2f", false);
-    tensor_print(output2, "%.2f", false);
-
     tensor_check_equal(output, output_exp, 0.1);
+    tensor_check_equal(output2, output_exp, 0.1);
     tensor_free(image);
     tensor_free(output);
     tensor_free(output2);
@@ -416,7 +421,7 @@ test_image_data8x8_2() {
 
 int
 main(int argc, char *argv[]) {
-    rand_init(1234);
+    rand_init(2345);
     PRINT_RUN(test_dct);
     PRINT_RUN(test_dct2);
     PRINT_RUN(test_dct_nonsquare);

@@ -327,7 +327,7 @@ test_transpose_b() {
 
 void
 perf_test_multiply() {
-    int SIZE = 16384;
+    int SIZE = 4096;
     //int SIZE = 8192;
     tensor *a = tensor_init(2, (int[]){SIZE, SIZE});
     tensor *b = tensor_init(2, (int[]){SIZE, SIZE});

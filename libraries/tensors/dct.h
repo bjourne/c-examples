@@ -69,11 +69,13 @@ tensor_dct8_loeffler(float x[8], float y[8]) {
 
     y[0] = TENSOR_DCT8_LOEFFLER_NORM1 * s30;
     y[1] = TENSOR_DCT8_LOEFFLER_NORM1 * (s37 + s34);
-    y[2] = TENSOR_DCT8_LOEFFLER_NORM1 * (TENSOR_DCT8_LOEFFLER_C6_A * s23 + c6_rot_tmp);
+    y[2] = TENSOR_DCT8_LOEFFLER_NORM1
+        * (TENSOR_DCT8_LOEFFLER_C6_A * s23 + c6_rot_tmp);
     y[3] = TENSOR_DCT8_LOEFFLER_NORM2 * s35;
     y[4] = TENSOR_DCT8_LOEFFLER_NORM1 * s31;
     y[5] = TENSOR_DCT8_LOEFFLER_NORM2 * s36;
-    y[6] = TENSOR_DCT8_LOEFFLER_NORM1 * (TENSOR_DCT8_LOEFFLER_C6_B * s22 + c6_rot_tmp);
+    y[6] = TENSOR_DCT8_LOEFFLER_NORM1
+        * (TENSOR_DCT8_LOEFFLER_C6_B * s22 + c6_rot_tmp);
     y[7] = TENSOR_DCT8_LOEFFLER_NORM1 * (s37 - s34);
 }
 
