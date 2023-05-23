@@ -1,5 +1,6 @@
 # Copyright (C) 2019-2020, 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
 from os.path import splitext
+from pathlib import Path
 
 def options(ctx):
     ctx.load('compiler_c compiler_cxx')
@@ -40,6 +41,14 @@ def configure(ctx):
         ctx.check(lib = 'X11', mandatory = False)
         ctx.check(lib = 'GL', mandatory = False)
     if dest_os != 'win32':
+        ctx.find_program('aoc', var='AOC', mandatory = False)
+        ctx.find_program('aocl', var='AOCLEXE', mandatory = False)
+        if ctx.env['AOCLEXE']:
+            ctx.check_cfg(path = 'aocl', args = 'compile-config',
+                          package = '', uselib_store = 'AOCL', mandatory = False)
+            ctx.check_cfg(path = 'aocl', args = 'linkflags',
+                          package = '', uselib_store = 'AOCL', mandatory = False)
+
         llvm_libs = ['core', 'executionengine', 'mcjit', 'native']
         args = [
             '--cflags',
@@ -65,8 +74,7 @@ def configure(ctx):
         ctx.check(lib = 'gomp', mandatory = True, uselib_store = 'GOMP')
         ctx.check(lib = 'm', mandatory = False)
         ctx.check(lib = 'pthread', mandatory = False)
-        ctx.check(lib = 'OpenCL', mandatory = True)
-
+        ctx.check(lib = 'OpenCL', mandatory = True, use = ['AOCL'])
 
 def noinst_program(ctx, source, target, use):
     ctx.program(source = source, target = target,
@@ -90,7 +98,10 @@ def build_library(ctx, libname, target, uses):
     defs_file = '%s/%s.def' % (path, libname)
     objs = ctx.path.ant_glob('%s/*.c' % path)
 
-    ctx(features = 'c', source = objs, target = target)
+    ctx(features = 'c',
+        source = objs,
+        use = uses,
+        target = target)
     ctx(features = 'c cstlib',
         target = libname,
         use = [target] + uses,
@@ -100,6 +111,12 @@ def build_library(ctx, libname, target, uses):
     # Installation of header files
     ctx.install_files('${PREFIX}/include/' + libname,
                       ctx.path.ant_glob('%s/*.h' % path))
+
+def build_aoc(ctx, src, deps):
+    tgt = src.with_suffix('.aocx')
+    ctx(rule = '${AOC} -march=emulator ${SRC[0]} -o ${TGT} -report',
+        source = [str(s) for s in [src] + deps],
+        target = str(tgt))
 
 def build(ctx):
     build_library(ctx, 'datatypes', 'DT_OBJS', [])
@@ -116,7 +133,10 @@ def build(ctx):
     build_library(ctx, 'diophantine', 'DIO_OBJS', [])
     build_library(ctx, 'ieee754', 'IEEE754_OBJS', [])
     build_library(ctx, 'tensors', 'TENSORS_OBJS', ['PNG'])
-    build_library(ctx, 'opencl', 'OPENCL_OBJS', ['OPENCL', 'DT_OBJS'])
+
+    # When not using aocl, AOCL will be empty and -lOpenCL will be
+    # found by other means.
+    build_library(ctx, 'opencl', 'OPENCL_OBJS', ['AOCL', 'OPENCL', 'DT_OBJS'])
 
     build_tests(ctx, 'datatypes', ['DT_OBJS'])
     build_tests(ctx, 'quickfit', ['DT_OBJS', 'QF_OBJS'])
@@ -179,3 +199,15 @@ def build(ctx):
         build_program(ctx, 'llvm-rbc.c', ['LLVM'])
     if ctx.env['LIB_GL'] and ctx.env['LIB_X11']:
         build_program(ctx, 'gl-fbconfigs.c', ['GL', 'X11'])
+
+    if ctx.env['AOC']:
+        kernels = [
+            ('dct8x8.cl', []),
+            ('matmul_fpga.cl', ['matmul_fpga_config.h']),
+            ('pipes.cl', [])
+        ]
+        base = Path('programs/opencl')
+        for kernel, deps in kernels:
+            src = Path('programs/opencl') / kernel
+            deps = [base / d for d in deps]
+            build_aoc(ctx, src, deps)
