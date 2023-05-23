@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
 //
 // Demonstrates how to run an AOT-compiled kernel on an FPGA.
 #include <assert.h>
@@ -277,15 +277,15 @@ main(int argc, char *argv[]) {
                                      &events[i]);
         ocl_check_err(err);
     }
-    printf("Running kernels\n");
     for(int i=0; i < 3; i++) {
         err = clFlush(queues[i]);
         ocl_check_err(err);
     }
 
     for(int i = 0; i < 3; i++) {
-         err = clFinish(queues[i]);
-         ocl_check_err(err);
+        printf("Finishing queue %d.\n", i);
+        err = clFinish(queues[i]);
+        ocl_check_err(err);
     }
     printf("Kernel execution complete\n");
 
