@@ -74,7 +74,19 @@ A library for dealing with N-dimensional arrays (tensors).
 
 ### `libraries/opencl`
 
-A library containing OpenCL utility functions.
+A library containing OpenCL utility functions. It can be tricky to
+compile for Intel FPGA because libraries and headers are not in
+standard locations. You can try:
+
+    CFLAGS=$(aocl compile-config) \
+        CXXFLAGS=$(aocl compile-config) \
+        LDFLAGS=$(aocl ldflags) \
+        ./waf-2.0.25 build
+
+Of course, this assumes that `aocl` and related programs are on the
+`PATH`. To run the built programs the OpenCL library must be linkable:
+
+    LD_LIBRARY_PATH=/path/to/opencl ./build/programs/opencl/prog
 
 ## Tests
 Test suites for the various libraries.
