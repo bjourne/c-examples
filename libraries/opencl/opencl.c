@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -8,69 +8,71 @@
 #include "paths/paths.h"
 #include "opencl.h"
 
-#define CL_ERR_RETURN_STRING(x) case x: return #x;
+#define ERR_RETURN_STRING(x) case x: return #x;
+
+#define BOOL_TO_YES_NO(x) ((x) ? "yes" : "no")
 
 const char *
 err_str(cl_int err) {
     switch (err) {
-        CL_ERR_RETURN_STRING(CL_SUCCESS                        )
-        CL_ERR_RETURN_STRING(CL_DEVICE_NOT_FOUND               )
-        CL_ERR_RETURN_STRING(CL_DEVICE_NOT_AVAILABLE           )
-        CL_ERR_RETURN_STRING(CL_COMPILER_NOT_AVAILABLE         )
-        CL_ERR_RETURN_STRING(CL_MEM_OBJECT_ALLOCATION_FAILURE  )
-        CL_ERR_RETURN_STRING(CL_OUT_OF_RESOURCES               )
-        CL_ERR_RETURN_STRING(CL_OUT_OF_HOST_MEMORY             )
-        CL_ERR_RETURN_STRING(CL_PROFILING_INFO_NOT_AVAILABLE   )
-        CL_ERR_RETURN_STRING(CL_MEM_COPY_OVERLAP               )
-        CL_ERR_RETURN_STRING(CL_IMAGE_FORMAT_MISMATCH          )
-        CL_ERR_RETURN_STRING(CL_IMAGE_FORMAT_NOT_SUPPORTED     )
-        CL_ERR_RETURN_STRING(CL_BUILD_PROGRAM_FAILURE          )
-        CL_ERR_RETURN_STRING(CL_MAP_FAILURE                    )
-        CL_ERR_RETURN_STRING(CL_MISALIGNED_SUB_BUFFER_OFFSET   )
-        CL_ERR_RETURN_STRING(CL_COMPILE_PROGRAM_FAILURE        )
-        CL_ERR_RETURN_STRING(CL_LINKER_NOT_AVAILABLE           )
-        CL_ERR_RETURN_STRING(CL_LINK_PROGRAM_FAILURE           )
-        CL_ERR_RETURN_STRING(CL_DEVICE_PARTITION_FAILED        )
-        CL_ERR_RETURN_STRING(CL_KERNEL_ARG_INFO_NOT_AVAILABLE  )
-        CL_ERR_RETURN_STRING(CL_INVALID_VALUE                  )
-        CL_ERR_RETURN_STRING(CL_INVALID_DEVICE_TYPE            )
-        CL_ERR_RETURN_STRING(CL_INVALID_PLATFORM               )
-        CL_ERR_RETURN_STRING(CL_INVALID_DEVICE                 )
-        CL_ERR_RETURN_STRING(CL_INVALID_CONTEXT                )
-        CL_ERR_RETURN_STRING(CL_INVALID_QUEUE_PROPERTIES       )
-        CL_ERR_RETURN_STRING(CL_INVALID_COMMAND_QUEUE          )
-        CL_ERR_RETURN_STRING(CL_INVALID_HOST_PTR               )
-        CL_ERR_RETURN_STRING(CL_INVALID_MEM_OBJECT             )
-        CL_ERR_RETURN_STRING(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR)
-        CL_ERR_RETURN_STRING(CL_INVALID_IMAGE_SIZE             )
-        CL_ERR_RETURN_STRING(CL_INVALID_SAMPLER                )
-        CL_ERR_RETURN_STRING(CL_INVALID_BINARY                 )
-        CL_ERR_RETURN_STRING(CL_INVALID_BUILD_OPTIONS          )
-        CL_ERR_RETURN_STRING(CL_INVALID_PROGRAM                )
-        CL_ERR_RETURN_STRING(CL_INVALID_PROGRAM_EXECUTABLE     )
-        CL_ERR_RETURN_STRING(CL_INVALID_KERNEL_NAME            )
-        CL_ERR_RETURN_STRING(CL_INVALID_KERNEL_DEFINITION      )
-        CL_ERR_RETURN_STRING(CL_INVALID_KERNEL                 )
-        CL_ERR_RETURN_STRING(CL_INVALID_ARG_INDEX              )
-        CL_ERR_RETURN_STRING(CL_INVALID_ARG_VALUE              )
-        CL_ERR_RETURN_STRING(CL_INVALID_ARG_SIZE               )
-        CL_ERR_RETURN_STRING(CL_INVALID_KERNEL_ARGS            )
-        CL_ERR_RETURN_STRING(CL_INVALID_WORK_DIMENSION         )
-        CL_ERR_RETURN_STRING(CL_INVALID_WORK_GROUP_SIZE        )
-        CL_ERR_RETURN_STRING(CL_INVALID_WORK_ITEM_SIZE         )
-        CL_ERR_RETURN_STRING(CL_INVALID_GLOBAL_OFFSET          )
-        CL_ERR_RETURN_STRING(CL_INVALID_EVENT_WAIT_LIST        )
-        CL_ERR_RETURN_STRING(CL_INVALID_EVENT                  )
-        CL_ERR_RETURN_STRING(CL_INVALID_OPERATION              )
-        CL_ERR_RETURN_STRING(CL_INVALID_GL_OBJECT              )
-        CL_ERR_RETURN_STRING(CL_INVALID_BUFFER_SIZE            )
-        CL_ERR_RETURN_STRING(CL_INVALID_MIP_LEVEL              )
-        CL_ERR_RETURN_STRING(CL_INVALID_GLOBAL_WORK_SIZE       )
-        CL_ERR_RETURN_STRING(CL_INVALID_PROPERTY               )
-        CL_ERR_RETURN_STRING(CL_INVALID_IMAGE_DESCRIPTOR       )
-        CL_ERR_RETURN_STRING(CL_INVALID_COMPILER_OPTIONS       )
-        CL_ERR_RETURN_STRING(CL_INVALID_LINKER_OPTIONS         )
-        CL_ERR_RETURN_STRING(CL_INVALID_DEVICE_PARTITION_COUNT )
+        ERR_RETURN_STRING(CL_SUCCESS                        )
+        ERR_RETURN_STRING(CL_DEVICE_NOT_FOUND               )
+        ERR_RETURN_STRING(CL_DEVICE_NOT_AVAILABLE           )
+        ERR_RETURN_STRING(CL_COMPILER_NOT_AVAILABLE         )
+        ERR_RETURN_STRING(CL_MEM_OBJECT_ALLOCATION_FAILURE  )
+        ERR_RETURN_STRING(CL_OUT_OF_RESOURCES               )
+        ERR_RETURN_STRING(CL_OUT_OF_HOST_MEMORY             )
+        ERR_RETURN_STRING(CL_PROFILING_INFO_NOT_AVAILABLE   )
+        ERR_RETURN_STRING(CL_MEM_COPY_OVERLAP               )
+        ERR_RETURN_STRING(CL_IMAGE_FORMAT_MISMATCH          )
+        ERR_RETURN_STRING(CL_IMAGE_FORMAT_NOT_SUPPORTED     )
+        ERR_RETURN_STRING(CL_BUILD_PROGRAM_FAILURE          )
+        ERR_RETURN_STRING(CL_MAP_FAILURE                    )
+        ERR_RETURN_STRING(CL_MISALIGNED_SUB_BUFFER_OFFSET   )
+        ERR_RETURN_STRING(CL_COMPILE_PROGRAM_FAILURE        )
+        ERR_RETURN_STRING(CL_LINKER_NOT_AVAILABLE           )
+        ERR_RETURN_STRING(CL_LINK_PROGRAM_FAILURE           )
+        ERR_RETURN_STRING(CL_DEVICE_PARTITION_FAILED        )
+        ERR_RETURN_STRING(CL_KERNEL_ARG_INFO_NOT_AVAILABLE  )
+        ERR_RETURN_STRING(CL_INVALID_VALUE                  )
+        ERR_RETURN_STRING(CL_INVALID_DEVICE_TYPE            )
+        ERR_RETURN_STRING(CL_INVALID_PLATFORM               )
+        ERR_RETURN_STRING(CL_INVALID_DEVICE                 )
+        ERR_RETURN_STRING(CL_INVALID_CONTEXT                )
+        ERR_RETURN_STRING(CL_INVALID_QUEUE_PROPERTIES       )
+        ERR_RETURN_STRING(CL_INVALID_COMMAND_QUEUE          )
+        ERR_RETURN_STRING(CL_INVALID_HOST_PTR               )
+        ERR_RETURN_STRING(CL_INVALID_MEM_OBJECT             )
+        ERR_RETURN_STRING(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR)
+        ERR_RETURN_STRING(CL_INVALID_IMAGE_SIZE             )
+        ERR_RETURN_STRING(CL_INVALID_SAMPLER                )
+        ERR_RETURN_STRING(CL_INVALID_BINARY                 )
+        ERR_RETURN_STRING(CL_INVALID_BUILD_OPTIONS          )
+        ERR_RETURN_STRING(CL_INVALID_PROGRAM                )
+        ERR_RETURN_STRING(CL_INVALID_PROGRAM_EXECUTABLE     )
+        ERR_RETURN_STRING(CL_INVALID_KERNEL_NAME            )
+        ERR_RETURN_STRING(CL_INVALID_KERNEL_DEFINITION      )
+        ERR_RETURN_STRING(CL_INVALID_KERNEL                 )
+        ERR_RETURN_STRING(CL_INVALID_ARG_INDEX              )
+        ERR_RETURN_STRING(CL_INVALID_ARG_VALUE              )
+        ERR_RETURN_STRING(CL_INVALID_ARG_SIZE               )
+        ERR_RETURN_STRING(CL_INVALID_KERNEL_ARGS            )
+        ERR_RETURN_STRING(CL_INVALID_WORK_DIMENSION         )
+        ERR_RETURN_STRING(CL_INVALID_WORK_GROUP_SIZE        )
+        ERR_RETURN_STRING(CL_INVALID_WORK_ITEM_SIZE         )
+        ERR_RETURN_STRING(CL_INVALID_GLOBAL_OFFSET          )
+        ERR_RETURN_STRING(CL_INVALID_EVENT_WAIT_LIST        )
+        ERR_RETURN_STRING(CL_INVALID_EVENT                  )
+        ERR_RETURN_STRING(CL_INVALID_OPERATION              )
+        ERR_RETURN_STRING(CL_INVALID_GL_OBJECT              )
+        ERR_RETURN_STRING(CL_INVALID_BUFFER_SIZE            )
+        ERR_RETURN_STRING(CL_INVALID_MIP_LEVEL              )
+        ERR_RETURN_STRING(CL_INVALID_GLOBAL_WORK_SIZE       )
+        ERR_RETURN_STRING(CL_INVALID_PROPERTY               )
+        ERR_RETURN_STRING(CL_INVALID_IMAGE_DESCRIPTOR       )
+        ERR_RETURN_STRING(CL_INVALID_COMPILER_OPTIONS       )
+        ERR_RETURN_STRING(CL_INVALID_LINKER_OPTIONS         )
+        ERR_RETURN_STRING(CL_INVALID_DEVICE_PARTITION_COUNT )
     default:
         return NULL;
     }
@@ -204,12 +206,20 @@ ocl_print_device_details(cl_device_id dev, int ind) {
     printf("%-15s: %ld, %ld, %ld\n", "Max work items", d[0], d[1], d[2]);
     free(d);
 
+    cl_bool val;
+    cl_int err;
+
     print_prefix(ind);
-    cl_bool pipes;
-    cl_int err = clGetDeviceInfo(dev, CL_DEVICE_PIPE_SUPPORT,
-                                 sizeof(cl_bool), &pipes, NULL);
+    err = clGetDeviceInfo(dev, CL_DEVICE_PIPE_SUPPORT,
+                          sizeof(cl_bool), &val, NULL);
     printf("%-15s: %s\n", "Pipe support",
-           err == CL_SUCCESS && pipes ? "yes" : "no");
+           BOOL_TO_YES_NO(err == CL_SUCCESS && val));
+
+    print_prefix(ind);
+    err = clGetDeviceInfo(dev, CL_DEVICE_COMPILER_AVAILABLE,
+                          sizeof(cl_bool), &val, NULL);
+    printf("%-15s: %s\n", "Compiler usable",
+           BOOL_TO_YES_NO(err == CL_SUCCESS && val));
 }
 
 bool
@@ -251,7 +261,8 @@ ocl_load_kernel(cl_context ctx, cl_device_id dev, const char *fname,
         char *log = (char *) malloc(n_bytes);
 
         // Get the log
-        clGetProgramBuildInfo(*program, dev, CL_PROGRAM_BUILD_LOG, n_bytes, log, NULL);
+        clGetProgramBuildInfo(*program, dev,
+                              CL_PROGRAM_BUILD_LOG, n_bytes, log, NULL);
 
         // Print the log
         printf("%s\n", log);
