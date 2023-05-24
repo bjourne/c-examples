@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "datatypes/common.h"
+#include "files/files.h"
 #include "paths/paths.h"
 #include "opencl.h"
 
@@ -226,21 +227,11 @@ bool
 ocl_load_kernel(cl_context ctx, cl_device_id dev, const char *fname,
                 cl_program *program, cl_kernel *kernel) {
 
-    FILE *fp = fopen(fname, "r");
-    if (!fp) {
+    char *source;
+    size_t n_source;
+    if (!files_read(fname, &source, &n_source)) {
         return false;
     }
-    fseek(fp, 0, SEEK_END);
-    long size = ftell(fp);
-    rewind(fp);
-
-    char *source = (char*)malloc(sizeof(char)*(size + 1));
-    size_t n_bytes = size * sizeof(char);
-    assert(fread(source, 1, n_bytes, fp) == n_bytes);
-    source[size] = '\0';
-    fclose(fp);
-
-    size_t n_source = strlen(source);
     cl_int err;
     *program = clCreateProgramWithSource(
         ctx, 1,

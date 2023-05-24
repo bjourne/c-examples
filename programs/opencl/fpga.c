@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "datatypes/common.h"
+#include "files/files.h"
 #include "linalg/linalg.h"
 #include "opencl/opencl.h"
 #include "tensors/tensors.h"
@@ -200,20 +201,12 @@ main(int argc, char *argv[]) {
 
     // Load the AOCX file.
     printf("Loading AOCX file\n");
-    FILE *fp = fopen(argv[2], "rb");
-    if (!fp) {
+    char *binary;
+    size_t length;
+    if (!files_read(argv[2], &binary, &length)) {
         perror("Error");
         return 1;
     }
-    fseek(fp, 0, SEEK_END);
-    size_t length = ftell(fp);
-    rewind(fp);
-
-    char *binary = (char *)malloc(sizeof(char) * length);
-
-    assert(fread((void *)binary, length, 1, fp) > 0);
-    fclose(fp);
-
     // Create program from binary
     cl_program program = clCreateProgramWithBinary(ctx,
         1, &dev_id,

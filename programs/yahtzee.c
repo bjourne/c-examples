@@ -114,16 +114,11 @@ run_test(const char *path) {
     uint64_t time_start = nano_count();
 
 #ifdef _WIN32
-    FILE *f = fopen(path, "rb");
-    fseek(f, 0, SEEK_END);
-    uint64_t n_bytes = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    char *buf_start = (char *)malloc(sizeof(char) * n_bytes);
-    if (fread(buf_start, 1, n_bytes, f) != n_bytes) {
-        free(buf_start);
+    char *buf_start;
+    uint64_t n_bytes;
+    if (!files_read(path, &buf_start, &n_bytes)) {
         return false;
     }
-    fclose(f);
 #else
     int fd = open(path, O_RDONLY);
     if (fd == -1) {

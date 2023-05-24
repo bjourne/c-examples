@@ -136,7 +136,8 @@ def build(ctx):
 
     # When not using aocl, AOCL will be empty and -lOpenCL will be
     # found by other means.
-    build_library(ctx, 'opencl', 'OPENCL_OBJS', ['AOCL', 'OPENCL', 'DT_OBJS'])
+    build_library(ctx, 'opencl', 'OPENCL_OBJS',
+                  ['AOCL', 'DT_OBJS', 'FILES_OBJS', 'OPENCL'])
 
     build_tests(ctx, 'datatypes', ['DT_OBJS'])
     build_tests(ctx, 'quickfit', ['DT_OBJS', 'QF_OBJS'])
