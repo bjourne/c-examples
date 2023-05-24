@@ -224,52 +224,6 @@ ocl_print_device_details(cl_device_id dev, int ind) {
 }
 
 bool
-ocl_load_kernel(cl_context ctx, cl_device_id dev, const char *fname,
-                cl_program *program, cl_kernel *kernel) {
-
-    char *source;
-    size_t n_source;
-    if (!files_read(fname, &source, &n_source)) {
-        return false;
-    }
-    cl_int err;
-    *program = clCreateProgramWithSource(
-        ctx, 1,
-        (const char **)&source,
-        (const size_t *)&n_source, &err);
-    ocl_check_err(err);
-
-    err = clBuildProgram(*program, 1, &dev, NULL, NULL, NULL);
-    if (err != CL_SUCCESS) {
-        printf("Build failed: %s\n", err_str(err));
-        size_t n_bytes;
-        err = clGetProgramBuildInfo(*program, dev, CL_PROGRAM_BUILD_LOG,
-                                    0, NULL, &n_bytes);
-        ocl_check_err(err);
-        assert(n_bytes > 0);
-
-        // Allocate memory for the log
-        char *log = (char *) malloc(n_bytes);
-
-        // Get the log
-        clGetProgramBuildInfo(*program, dev,
-                              CL_PROGRAM_BUILD_LOG, n_bytes, log, NULL);
-
-        // Print the log
-        printf("%s\n", log);
-        free(log);
-        return false;
-    }
-    free(source);
-
-    char *stem = paths_stem(fname);
-    *kernel = clCreateKernel(*program, stem, &err);
-    free(stem);
-    ocl_check_err(err);
-    return true;
-}
-
-bool
 ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
                  int n_kernels, char *names[],
                  cl_program *program, cl_kernel *kernels) {

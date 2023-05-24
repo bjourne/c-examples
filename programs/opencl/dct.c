@@ -33,6 +33,12 @@ main(int argc, char *argv[]) {
     printf("\n");
 
     // Setup OpenCL
+    if (argc != 3) {
+        printf("Usage: %s platform-id kernel-path\n", argv[0]);
+        printf("E.g. programs/opencl/dct8x8.cl for kernel path.\n");
+        exit(1);
+    }
+
     cl_int err;
     cl_uint n_platforms;
     cl_platform_id *platforms;
@@ -40,7 +46,8 @@ main(int argc, char *argv[]) {
 
     cl_uint n_devices;
     cl_device_id *devices;
-    ocl_get_devices(platforms[0], &n_devices, &devices);
+    int idx = atoi(argv[1]);
+    ocl_get_devices(platforms[idx], &n_devices, &devices);
 
     cl_device_id dev = devices[0];
     ocl_print_device_details(dev, 0);
@@ -52,15 +59,10 @@ main(int argc, char *argv[]) {
         ctx, dev, 0, &err);
     ocl_check_err(err);
 
-    if (argc != 2) {
-        printf("Specify kernel path (e.g. programs/opencl/dct8x8.cl)\n");
-        exit(1);
-    }
-
     cl_program program;
     cl_kernel kernel;
     printf("* Loading kernel\n");
-    assert(ocl_load_kernels(ctx, dev, argv[1],
+    assert(ocl_load_kernels(ctx, dev, argv[2],
                             1, (char *[]){"dct8x8"},
                             &program, &kernel));
 

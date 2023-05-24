@@ -22,7 +22,7 @@
 /*     A is a N x K matrix */
 /*     B is a K x M matrix */
 /*     C is a N x M matrix */
-#include "programs/opencl/matmul_fpga_config.h"
+#include "matmul_fpga_config.h"
 
 struct nvec_float_t {
     vec_float_t data[LVEC];

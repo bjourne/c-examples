@@ -53,8 +53,9 @@ test_load_kernel() {
     // Load kernel
     cl_program program;
     cl_kernel kernel;
-    assert(ocl_load_kernel(ctx, dev, "libraries/opencl/matmul.cl",
-                           &program, &kernel));
+    assert(ocl_load_kernels(ctx, dev, "libraries/opencl/matmul.cl",
+                            1, (char *[]){"matmul"},
+                            &program, &kernel));
 
     // Create buffers
     cl_mem mem_a = clCreateBuffer(ctx, CL_MEM_READ_ONLY, a_size, NULL, NULL);
