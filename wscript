@@ -125,10 +125,9 @@ def build(ctx):
     build_library(ctx, 'linalg', 'LINALG_OBJS', ['DT_OBJS', 'M'])
     build_library(ctx, 'fastio', 'FASTIO_OBJS', [])
     build_library(ctx, 'isect', 'ISECT_OBJS', [])
-    build_library(ctx, 'file3d', 'FILE3D_OBJS',
-                  ['DT_OBJS', 'LINALG_OBJS'])
     build_library(ctx, 'paths', 'PATHS_OBJS', [])
-
+    build_library(ctx, 'file3d', 'FILE3D_OBJS',
+                  ['PATHS_OBJS', 'DT_OBJS', 'LINALG_OBJS'])
     build_library(ctx, 'threads', 'THREADS_OBJS', [])
     build_library(ctx, 'diophantine', 'DIO_OBJS', [])
     build_library(ctx, 'ieee754', 'IEEE754_OBJS', [])

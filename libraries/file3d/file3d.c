@@ -1,18 +1,10 @@
-// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019, 2023 Björn Lindqvist <bjourne@gmail.com>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "file3d.h"
-
-// Utility
-static char *
-fname_ext(char *fname) {
-    char *dot = strrchr(fname, '.');
-    if(!dot || dot == fname)
-        return "";
-    return dot + 1;
-}
+#include "paths/paths.h"
 
 void
 f3d_set_error(file3d *me, int error_code, char *error_line) {
@@ -38,7 +30,7 @@ f3d_load(char *filename) {
         return me;
     }
 
-    char *ext = fname_ext(filename);
+    const char *ext = paths_ext(filename);
     if (!strcmp("geo", ext)) {
         f3d_load_geo(me, f);
     } else if (!strcmp("obj", ext) || !strcmp("OBJ", ext)) {
