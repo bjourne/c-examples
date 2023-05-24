@@ -1,4 +1,4 @@
-// Copyright (C) 2019, 2022 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019, 2022-2023 Björn Lindqvist <bjourne@gmail.com>
 #include <string.h>
 #include "datatypes/common.h"
 #include "paths.h"
@@ -8,6 +8,9 @@
 // they support backslashes which are used on Windows. On Unix, a
 // backslash can be part of a filename so they are technically not
 // correct.
+// Utility
+
+// Non-allocating functions
 const char *
 paths_basename(const char *path) {
     char *p1 = strrchr(path, '\\');
@@ -19,6 +22,15 @@ paths_basename(const char *path) {
     return ++p;
 }
 
+const char *
+paths_ext(const char *fname) {
+    char *dot = strrchr(fname, '.');
+    if(!dot || dot == fname)
+        return "";
+    return dot + 1;
+}
+
+// Allocating functions
 char *
 paths_stem(const char *path) {
     const char *path2 = paths_basename(path);

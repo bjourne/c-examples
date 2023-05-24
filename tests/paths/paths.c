@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019, 2023 Björn Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <string.h>
 #include "datatypes/common.h"
@@ -51,9 +51,23 @@ test_stem() {
     }
 }
 
+void
+test_ext() {
+    char* tests[][2] = {
+        {"libraries/opencl/matmul.foo", "foo"},
+        {"blah.MOO", "MOO"},
+        {"mooo", ""}
+    };
+    for (int i = 0; i < ARRAY_SIZE(tests); i++) {
+        const char *res = paths_ext(tests[i][0]);
+        assert(!strcmp(tests[i][1], res));
+    }
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_basename);
     PRINT_RUN(test_dirname);
     PRINT_RUN(test_stem);
+    PRINT_RUN(test_ext);
 }
