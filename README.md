@@ -1,8 +1,8 @@
 # C examples
 
-This repository contains C code that I have written. A lot of it is my
-own versions of standard datatypes and algorithms such as my own
-hashset datatype. It was written for fun because I love C coding.
+This repository contains my C code. A lot of it is my own versions of
+standard datatypes and algorithms such as my own hashset datatype. It
+was written for fun because I love C coding.
 
 As some smart person once said; only the one who reinvents the wheel
 truly understand how it works. So there's that.
@@ -11,13 +11,15 @@ This repository consists of the following directories:
 
 ## Libraries
 
-Ten small libraries I have written while learning about algorithms,
-data structures and APIs. They are located in the `libraries`
-directory. They are designed to be self-contained and thus easy to
-borrow by copying the files.
+Located in `libraries` are a bunch of libraries I have written to
+learn more about algorithms, data structures, OS APIs, etc. They are
+designed to be mostly self-contained and thus easy to borrow by
+copying the files. However, over the years I have introduced
+dependencies between them. Factoring out common code is just too
+pleasurable.
 
-No guarantee that the libraries are, or ever will be, complete. They
-were written because I wanted to.
+No guarantee that the libraries are -- or ever will be --
+complete. They were written because I wanted to.
 
 ### `libraries/collectors`
 
@@ -36,10 +38,22 @@ Standard datatypes for C programming like `vector` and
 `hashset`. There is not a lot of documentation for these
 datatypes because the code should be self-explanatory.
 
+### `libraries/diophantine`
+
+A minimal library for solving linear Diophantine equations.
+
 ### `libraries/fastio`
 
 Fast IO routines accessing `stdin` and `stdout`. They are useful to
 minimize IO overhead in competitive programming challenges.
+
+### `libraries/file3d`
+
+A library for loading 3d meshes.
+
+### `libraries/ieee754`
+
+A library for explicit handling of ieee754 floating point numbers.
 
 ### `libraries/isect`
 
@@ -50,27 +64,6 @@ by my raytracer.
 
 Trival single-precision linear algebra library. Contains things like
 matrix multiplication and stuff.
-
-### `libraries/quickfit`
-
-A memory allocator based on the Quick Fit algorithm. It's used by my
-garbage collectors.
-
-### `libraries/file3d`
-
-A library for loading 3d meshes.
-
-### `libraries/diophantine`
-
-A library for solving linear Diophantine equations.
-
-### `libraries/ieee754`
-
-A library for explicit handling of ieee754 floating point numbers.
-
-### `libraries/tensors`
-
-A library for dealing with N-dimensional arrays (tensors).
 
 ### `libraries/opencl`
 
@@ -87,6 +80,19 @@ Of course, this assumes that `aocl` and related programs are on the
 `PATH`. To run the built programs the OpenCL library must be linkable:
 
     LD_LIBRARY_PATH=/path/to/opencl ./build/programs/opencl/prog
+
+### `libraries/paths`
+
+A library for filesystem path handling.
+
+### `libraries/quickfit`
+
+A memory allocator based on the Quick Fit algorithm. It's used by my
+garbage collectors.
+
+### `libraries/tensors`
+
+A library for dealing with N-dimensional arrays (tensors).
 
 ## Tests
 Test suites for the various libraries.
