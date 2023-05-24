@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2020, 2023 Björn Lindqvist <bjourne@gmail.com>
 #include <inttypes.h>
 #include <math.h>
 #include <stdbool.h>
@@ -120,6 +120,7 @@ run_test(const char *path) {
     fseek(f, 0, SEEK_SET);
     char *buf_start = (char *)malloc(sizeof(char) * n_bytes);
     if (fread(buf_start, 1, n_bytes, f) != n_bytes) {
+        free(buf_start);
         return false;
     }
     fclose(f);
