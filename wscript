@@ -124,6 +124,7 @@ def build(ctx):
     build_library(ctx, 'collectors', 'GC_OBJS', ['QF_OBJS'])
     build_library(ctx, 'linalg', 'LINALG_OBJS', ['DT_OBJS', 'M'])
     build_library(ctx, 'fastio', 'FASTIO_OBJS', [])
+    build_library(ctx, 'files', 'FILES_OBJS', [])
     build_library(ctx, 'isect', 'ISECT_OBJS', [])
     build_library(ctx, 'paths', 'PATHS_OBJS', [])
     build_library(ctx, 'file3d', 'FILE3D_OBJS',
@@ -149,6 +150,7 @@ def build(ctx):
     build_tests(ctx, 'paths',
                 ['PATHS_OBJS', 'DT_OBJS'])
     build_tests(ctx, 'fastio', ['FASTIO_OBJS'])
+    build_tests(ctx, 'files', ['DT_OBJS', 'FILES_OBJS'])
 
     build_tests(ctx, 'diophantine', ['DIO_OBJS', 'DT_OBJS', 'M'])
     build_tests(ctx, 'ieee754', ['IEEE754_OBJS', 'DT_OBJS'])
