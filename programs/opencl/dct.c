@@ -11,11 +11,10 @@
 
 int
 main(int argc, char *argv[]) {
+    const int IMAGE_WIDTH = 16;
+    const int IMAGE_HEIGHT = 16;
 
-    const int IMAGE_WIDTH = 256;
-    const int IMAGE_HEIGHT = 256;
     const int IMAGE_N_BYTES = IMAGE_WIDTH * IMAGE_HEIGHT * sizeof(float);
-
     const int BLOCKDIM_X = 8;
     const int BLOCKDIM_Y = 8;
     const int BLOCK_SIZE = 8;
@@ -23,11 +22,11 @@ main(int argc, char *argv[]) {
     //  Single floats
     const int SIMD_LOC = 1;
 
+    // Load kernel
     float x[8] = {20, 9, 10, 11, 12, 13, 14, 15};
     float y[8], y2[8];
     tensor_dct8_nvidia(x, y);
     tensor_dct8_loeffler(x, y2);
-    //loeffler8(x, y2);
     for (int i = 0; i < 8; i++) {
         printf("%2d %5.2f %5.2f\n", i, y[i], y2[i]);
     }
@@ -41,7 +40,7 @@ main(int argc, char *argv[]) {
 
     cl_uint n_devices;
     cl_device_id *devices;
-    ocl_get_devices(platforms[1], &n_devices, &devices);
+    ocl_get_devices(platforms[0], &n_devices, &devices);
 
     cl_device_id dev = devices[0];
     ocl_print_device_details(dev, 0);
@@ -53,12 +52,17 @@ main(int argc, char *argv[]) {
         ctx, dev, 0, &err);
     ocl_check_err(err);
 
-    // Load kernel
+    if (argc != 2) {
+        printf("Specify kernel path (e.g. programs/opencl/dct8x8.cl)\n");
+        exit(1);
+    }
+
     cl_program program;
     cl_kernel kernel;
     printf("* Loading kernel\n");
-    assert(ocl_load_kernel(ctx, dev, "programs/opencl/dct8x8.cl",
-                           &program, &kernel));
+    assert(ocl_load_kernels(ctx, dev, argv[1],
+                            1, (char *[]){"dct8x8"},
+                            &program, &kernel));
 
     // Allocate and initialize tensors
     printf("* Initializing tensors\n");
@@ -116,12 +120,12 @@ main(int argc, char *argv[]) {
                               0, NULL, NULL);
     ocl_check_err(err);
 
-    /* printf("* Input:\n"); */
-    /* tensor_print(image, "%4.0f", false); */
-    /* printf("* Reference:\n"); */
-    /* tensor_print(ref, "%4.0f", false); */
-    /* printf("* Output:\n"); */
-    /* tensor_print(output, "%4.0f", false); */
+    printf("* Input:\n");
+    tensor_print(image, "%4.0f", false);
+    printf("* Reference:\n");
+    tensor_print(ref, "%4.0f", false);
+    printf("* Output:\n");
+    tensor_print(output, "%4.0f", false);
 
     tensor_check_equal(output, ref, 0.01);
 

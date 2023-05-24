@@ -257,6 +257,7 @@ ocl_load_kernel(cl_context ctx, cl_device_id dev, const char *fname,
 
         // Print the log
         printf("%s\n", log);
+        free(log);
         return false;
     }
     free(source);
@@ -267,6 +268,66 @@ ocl_load_kernel(cl_context ctx, cl_device_id dev, const char *fname,
     ocl_check_err(err);
     return true;
 }
+
+bool
+ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
+                 int n_kernels, char *names[],
+                 cl_program *program, cl_kernel *kernels) {
+    char *data = NULL, *log = NULL;
+    size_t n_data;
+    cl_int err;
+    if (!files_read(path, &data, &n_data)) {
+        goto err;
+    }
+
+    // Check file extension
+    if (!strcmp(paths_ext(path), "cl")) {
+        *program = clCreateProgramWithSource(
+            ctx, 1,
+            (const char **)&data,
+            (const size_t *)&n_data, &err);
+
+    } else {
+        *program = clCreateProgramWithBinary(
+            ctx, 1, &dev,
+            &n_data, (const unsigned char **)&data,
+            &err, NULL);
+    }
+    ocl_check_err(err);
+
+    err = clBuildProgram(*program, 1, &dev, NULL, NULL, NULL);
+    if (err != CL_SUCCESS) {
+        printf("Build failed: %s\n", err_str(err));
+        size_t n_log;
+        err = clGetProgramBuildInfo(*program, dev, CL_PROGRAM_BUILD_LOG,
+                                    0, NULL, &n_log);
+        ocl_check_err(err);
+        assert(n_log > 0);
+
+        // Acquire, print, and free the log.
+        log = (char *)malloc(n_log);
+        clGetProgramBuildInfo(*program, dev,
+                              CL_PROGRAM_BUILD_LOG, n_log, log, NULL);
+        printf("%s\n", log);
+        goto err;
+    }
+
+    for (int i = 0; i < n_kernels; i++) {
+        kernels[i] = clCreateKernel(*program, names[i], &err);
+        ocl_check_err(err);
+    }
+    free(data);
+    return true;
+ err:
+    if (data) {
+        free(data);
+    }
+    if (log) {
+        free(log);
+    }
+    return false;
+}
+
 
 static void
 set_kernel_arguments(cl_kernel kernel, int n_args, va_list ap) {

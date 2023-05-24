@@ -42,26 +42,6 @@
 #define HA_trim (2 *  MAT_A_BLOCK_HEIGHT)
 #define WB_trim WB
 
-static cl_platform_id
-platform_by_needle(const char *needle) {
-    cl_uint n_platforms;
-    cl_platform_id *platforms;
-    ocl_get_platforms(&n_platforms, &platforms);
-
-    cl_platform_id id = NULL;
-    for (int i = 0; i < n_platforms; i++) {
-        id = platforms[i];
-        char *name = (char *)ocl_get_platform_info(id, CL_PLATFORM_NAME);
-        if (strstr(name, needle)) {
-            free(name);
-            break;
-        }
-        free(name);
-    }
-    free(platforms);
-    return id;
-}
-
 static cl_device_id
 device_first(cl_platform_id platform_id) {
     cl_uint n_devices;
@@ -95,10 +75,9 @@ reorder_within_blocks(float * src,
 int
 main(int argc, char *argv[]) {
     if (argc != 3) {
-        printf("Usage: %s emu|fpga kernel-path\n", argv[0]);
+        printf("Usage: %s platform-index kernel-path\n", argv[0]);
         exit(1);
     }
-    bool emu = !strncmp(argv[1], "emu", strlen("emu"));
 
     tensor *a = tensor_init(2, (int[]){HA, WA});
     tensor *a_blocked = tensor_init(2, (int[]){HA, WA});
@@ -151,17 +130,29 @@ main(int argc, char *argv[]) {
                           MAT_C_BLOCK_WIDTH);
 
     printf("** Setting up OpenCL **\n");
-    cl_platform_id platform_id = platform_by_needle(
-        emu ? "FPGA Emulation" : "FPGA SDK");
-    assert(platform_id);
 
-    cl_device_id dev_id = device_first(platform_id);
-    assert(dev_id);
-    ocl_print_device_details(dev_id, 0);
+    printf("Getting platform and device\n");
+    cl_uint n_platforms;
+    cl_platform_id *platforms;
+    ocl_get_platforms(&n_platforms, &platforms);
+
+    int idx = atoi(argv[1]);
+    cl_platform_id plat_id = platforms[idx];
+
+    cl_device_id dev = device_first(plat_id);
+    assert(dev);
+    ocl_print_device_details(dev, 0);
 
     cl_int err;
-    cl_context ctx = clCreateContext(NULL, 1, &dev_id, NULL, NULL, &err);
+    cl_context ctx = clCreateContext(NULL, 1, &dev, NULL, NULL, &err);
     ocl_check_err(err);
+
+    printf("Loading kernels\n");
+    cl_program program;
+    cl_kernel kernels[3];
+    assert(ocl_load_kernels(ctx, dev, argv[2],
+                            3, (char *[]){"loadA", "loadB", "store"},
+                            &program, kernels));
 
     // Create four queues
     cl_queue_properties props[] = {
@@ -169,7 +160,7 @@ main(int argc, char *argv[]) {
     };
     cl_command_queue queues[4];
     for (int i = 0; i < 4; i++) {
-        queues[i] = clCreateCommandQueueWithProperties(ctx, dev_id,
+        queues[i] = clCreateCommandQueueWithProperties(ctx, dev,
                                                        props, &err);
         ocl_check_err(err);
     }
@@ -199,31 +190,6 @@ main(int argc, char *argv[]) {
                                b_transpose_blocked->data, 0, NULL, NULL);
     ocl_check_err(err);
 
-    // Load the AOCX file.
-    printf("Loading AOCX file\n");
-    char *binary;
-    size_t length;
-    if (!files_read(argv[2], &binary, &length)) {
-        perror("Error");
-        return 1;
-    }
-    // Create program from binary
-    cl_program program = clCreateProgramWithBinary(ctx,
-        1, &dev_id,
-        &length, (const unsigned char **)&binary,
-        &err, NULL);
-    ocl_check_err(err);
-
-    err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
-    ocl_check_err(err);
-
-    // Create the three kernels.
-    const char *names[] = {"loadA", "loadB", "store"};
-    cl_kernel kernels[3];
-    for(int i = 0; i < 3; i++) {
-        kernels[i] = clCreateKernel(program, (const char*)names[i], &err);
-        ocl_check_err(err);
-    }
 
     // LoadA kernel
     unsigned int mat_a_num_vectors_in_row_of_blocks =
@@ -317,6 +283,9 @@ main(int argc, char *argv[]) {
     }
     clReleaseProgram(program);
     clReleaseContext(ctx);
+
+    // Free more stuff
+    free(platforms);
 
     // Free tensors
     tensor_free(a);

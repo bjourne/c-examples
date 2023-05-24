@@ -23,6 +23,11 @@ bool
 ocl_load_kernel(cl_context ctx, cl_device_id dev, const char *fname,
                 cl_program *program, cl_kernel *kernel);
 
+bool
+ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
+                 int n_kernels, char *names[],
+                 cl_program *program, cl_kernel *kernels);
+
 void
 ocl_set_kernel_arguments(cl_kernel kernel, int n_args, ...);
 
