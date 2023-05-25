@@ -11,8 +11,8 @@
 
 int
 main(int argc, char *argv[]) {
-    const int IMAGE_WIDTH = 16;
-    const int IMAGE_HEIGHT = 16;
+    const int IMAGE_WIDTH = 1024;
+    const int IMAGE_HEIGHT = 1024;
 
     const int IMAGE_N_BYTES = IMAGE_WIDTH * IMAGE_HEIGHT * sizeof(float);
     const int BLOCKDIM_X = 8;
@@ -77,7 +77,8 @@ main(int argc, char *argv[]) {
     // Compute reference results
     tensor_dct2d_blocks(image, ref, 8, 8);
 
-    // Allocate and write to OpenCL buffers
+    // One buffer for the input to the kernel and another one for the
+    // dct-ized result.
     cl_mem mem_image = clCreateBuffer(ctx, CL_MEM_READ_ONLY,
                                       IMAGE_N_BYTES, NULL, &err);
     ocl_check_err(err);
@@ -122,13 +123,14 @@ main(int argc, char *argv[]) {
                               0, NULL, NULL);
     ocl_check_err(err);
 
-    printf("* Input:\n");
-    tensor_print(image, "%4.0f", false);
-    printf("* Reference:\n");
-    tensor_print(ref, "%4.0f", false);
-    printf("* Output:\n");
-    tensor_print(output, "%4.0f", false);
-
+    if (IMAGE_WIDTH < 100) {
+        printf("* Input:\n");
+        tensor_print(image, "%4.0f", false);
+        printf("* Reference:\n");
+        tensor_print(ref, "%4.0f", false);
+        printf("* Output:\n");
+        tensor_print(output, "%4.0f", false);
+    }
     tensor_check_equal(output, ref, 0.01);
 
     // Free tensors
