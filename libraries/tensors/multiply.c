@@ -80,7 +80,11 @@ mul_fast_kernel(
                 }
             }
             float * restrict a_ptr = a_base;
+            #ifdef __clang__
             #pragma unroll UNROLL_FACTOR
+            #else
+            #pragma GCC unroll 32
+            #endif
             for (unsigned int k = 0; k < TILE_K; k++) {
                 __m512 b[SIMD_COLS];
                 for (unsigned int x = 0; x < SIMD_COLS; x++) {
