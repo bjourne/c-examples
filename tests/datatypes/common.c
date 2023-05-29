@@ -7,8 +7,7 @@
 void
 test_malloc_aligned() {
     int dim = 1 << 15;
-    int n_bytes = dim * dim * 4;
-    char *data = malloc_aligned(64, 1 << 15);
+    char *data = malloc_aligned(64, dim);
     assert(data);
     free(data);
 }

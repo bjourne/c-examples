@@ -13,7 +13,9 @@
 void *
 malloc_aligned(size_t alignment, size_t size) {
     void *p = NULL;
-    assert(!posix_memalign(&p, alignment, size));
+    if (posix_memalign(&p, alignment, size)) {
+        return NULL;
+    }
     return p;
 }
 
