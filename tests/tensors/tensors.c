@@ -842,30 +842,30 @@ test_linear_with_bias() {
 void
 test_cifar10() {
     tensor *conv1 = tensor_init(4, (int[]){6, 3, 5, 5});
-    tensor_fill_rand_ints(conv1, 10);
+    tensor_fill_rand_range(conv1, 10);
 
     tensor *conv1_bias = tensor_init(1, (int[]){6});
     tensor_fill_const(conv1_bias, 0);
 
     tensor *conv2 = tensor_init(4, (int[]){16, 6, 5, 5});
-    tensor_fill_rand_ints(conv2, 10);
+    tensor_fill_rand_range(conv2, 10);
     tensor *conv2_bias = tensor_init(1, (int[]){16});
     tensor_fill_const(conv1_bias, 0);
 
     tensor *fc1 = tensor_init(2, (int[]){120, 400});
-    tensor_fill_rand_ints(fc1, 10);
+    tensor_fill_rand_range(fc1, 10);
     tensor *fc1_bias = tensor_init(1, (int[]){120});
 
     tensor *fc2 = tensor_init(2, (int[]){84, 120});
-    tensor_fill_rand_ints(fc2, 10);
+    tensor_fill_rand_range(fc2, 10);
     tensor *fc2_bias = tensor_init(1, (int[]){84});
 
     tensor *fc3 = tensor_init(2, (int[]){10, 84});
-    tensor_fill_rand_ints(fc3, 10);
+    tensor_fill_rand_range(fc3, 10);
     tensor *fc3_bias = tensor_init(1, (int[]){10});
 
     tensor *x0 = tensor_init(3, (int[]){3, 32, 32});
-    tensor_fill_rand_ints(x0, 10);
+    tensor_fill_rand_range(x0, 10);
 
     tensor *x1 = tensor_conv2d_new(conv1, conv1_bias, 1, 0, x0);
     tensor_relu(x1);
@@ -1192,6 +1192,27 @@ test_transpose() {
     tensor_free(src);
 }
 
+void
+test_too_big() {
+    int SIZE = 1 << 17;
+    tensor *mat = tensor_init(2, (int[]){SIZE, SIZE});
+    assert(mat->error_code == TENSOR_ERR_TOO_BIG);
+    tensor_free(mat);
+}
+
+void
+test_random_filling() {
+    // 4024mb
+    int SIZE = 1 << 15;
+    tensor *mat = tensor_init(2, (int[]){SIZE, SIZE});
+    assert(mat);
+    tensor_fill_rand_range(mat, 10000);
+    for (int i = 0; i < 10; i++) {
+        printf("%.2f\n", mat->data[i]);
+    }
+    tensor_free(mat);
+}
+
 int
 main(int argc, char *argv[]) {
     rand_init(1234);
@@ -1226,4 +1247,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_layer_stack_apply_lenet);
     PRINT_RUN(test_softmax);
     PRINT_RUN(test_transpose);
+    PRINT_RUN(test_too_big);
+    PRINT_RUN(test_random_filling);
 }

@@ -390,7 +390,7 @@ test_8x8_nvidia_benchmark() {
     int dims[] = {1024, 1024};
     tensor *image = tensor_init(2, dims);
     tensor *output = tensor_init(2, dims);
-    tensor_fill_rand_ints(image, 200);
+    tensor_fill_rand_range(image, 200);
 
     for (int i = 0; i < 10; i++) {
         tensor_dct2d_8x8_blocks(image, output, true);

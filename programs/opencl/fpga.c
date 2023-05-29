@@ -107,8 +107,8 @@ main(int argc, char *argv[]) {
     printf("\n");
 
     printf("** Initializing input matrices **\n");
-    tensor_fill_rand_ints(a, 10);
-    tensor_fill_rand_ints(b, 10);
+    tensor_fill_rand_range(a, 10);
+    tensor_fill_rand_range(b, 10);
     tensor_fill_const(c, 0);
 
     printf("** Multiplying on CPU**\n");

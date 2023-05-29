@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "datatypes/common.h"
+#include "random/random.h"
 #include "tensors.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -145,16 +146,16 @@ compute_2d_dims(tensor *src,
     *width = (src->dims[2] + 2 * padding - kernel_w) / stride + 1;
 }
 
-static int
+static size_t
 count_elements_from(int n_dims, int *dims, int from) {
-    int tot = dims[from];
+    size_t tot = dims[from];
     for (int i = from + 1; i < n_dims; i++) {
         tot *= dims[i];
     }
     return tot;
 }
 
-int
+size_t
 tensor_n_elements(tensor *me) {
     return count_elements_from(me->n_dims, me->dims, 0);
 }
@@ -175,8 +176,11 @@ tensor_init(int n_dims, int dims[]) {
     me->n_dims = n_dims;
     memcpy(me->dims, dims, n_dims * sizeof(int));
 
-    int n_bytes = sizeof(float) * tensor_n_elements(me);
+    size_t n_bytes = sizeof(float) * tensor_n_elements(me);
     me->data = malloc_aligned(TENSOR_ADDRESS_ALIGNMENT, n_bytes);
+    if (!me->data) {
+        me->error_code = TENSOR_ERR_TOO_BIG;
+    }
     return me;
 }
 
@@ -226,9 +230,9 @@ tensor_fill_const(tensor *me, float v) {
 }
 
 void
-tensor_fill_rand_ints(tensor *me, int high) {
+tensor_fill_rand_range(tensor *me, int high) {
     for (int i = 0; i < tensor_n_elements(me); i++) {
-        me->data[i] = rand_n(high);
+        me->data[i] = rnd_pcg32_rand_range(high);
     }
 }
 

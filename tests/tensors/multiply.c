@@ -50,8 +50,8 @@ test_mul_perf() {
                 tensor *c = tensor_init(2, (int[]){N, M});
                 tensor *c_ref = tensor_init(2, (int[]){N, M});
 
-                tensor_fill_rand_ints(a, 5);
-                tensor_fill_rand_ints(b, 5);
+                tensor_fill_rand_range(a, 5);
+                tensor_fill_rand_range(b, 5);
 
                 tensor_multiply(a, b, c);
                 tensor_multiply_ref(a, b, c_ref);
@@ -80,8 +80,8 @@ test_arbitrary_sizes() {
     tensor *c = tensor_init(2, (int[]){N, M});
     tensor *c_ref = tensor_init(2, (int[]){N, M});
 
-    tensor_fill_rand_ints(a, 10);
-    tensor_fill_rand_ints(b, 10);
+    tensor_fill_rand_range(a, 10);
+    tensor_fill_rand_range(b, 10);
 
     tensor_multiply(a, b, c);
     tensor_multiply_ref(a, b, c_ref);
@@ -205,8 +205,8 @@ test_multiply_big() {
     tensor *c_exp = tensor_init(2, (int[]){dim, dim});
     tensor_fill_const(c_exp, 0.0);
 
-    tensor_fill_rand_ints(a, 10.0);
-    tensor_fill_rand_ints(b, 10.0);
+    tensor_fill_rand_range(a, 10.0);
+    tensor_fill_rand_range(b, 10.0);
 
     for (int i = 0; i < dim; i++) {
         for (int j = 0; j < dim; j++) {
@@ -327,11 +327,15 @@ test_transpose_b() {
 
 void
 perf_test_multiply() {
-    int SIZE = 4096;
-    //int SIZE = 8192;
+    //int SIZE = 4096;
+    int SIZE = 8192*2;
     tensor *a = tensor_init(2, (int[]){SIZE, SIZE});
     tensor *b = tensor_init(2, (int[]){SIZE, SIZE});
     tensor *c = tensor_init(2, (int[]){SIZE, SIZE});
+
+    tensor_fill_range(a, 0.0f);
+    tensor_fill_range(b, 0.0f);
+    printf("filled\n");
 
     struct timespec begin, end;
     clock_gettime(CLOCK_MONOTONIC_RAW, &begin);
@@ -339,9 +343,9 @@ perf_test_multiply() {
     clock_gettime(CLOCK_MONOTONIC_RAW, &end);
     double delta = (end.tv_nsec - begin.tv_nsec) / 1000000000.0 +
         (end.tv_sec  - begin.tv_sec);
-    float gflops = (long)SIZE * (long)SIZE * (long)SIZE
+    double gflops = (long)SIZE * (long)SIZE * (long)SIZE
         / (delta * 1000.0 * 1000.0 * 1000.0);
-    printf("%.6lfs, %.2f gflops\n", delta, gflops);
+    printf("%.6lfs, %.2lf gflops\n", delta, gflops);
 
     tensor_free(a);
     tensor_free(b);

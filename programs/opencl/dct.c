@@ -72,7 +72,7 @@ main(int argc, char *argv[]) {
     tensor *image = tensor_init(2, dims);
     tensor *ref = tensor_init(2, dims);
     tensor *output = tensor_init(2, dims);
-    tensor_fill_rand_ints(image, 100);
+    tensor_fill_rand_range(image, 100);
 
     // Compute reference results
     tensor_dct2d_blocks(image, ref, 8, 8);
