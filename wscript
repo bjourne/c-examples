@@ -104,7 +104,7 @@ def build_library(ctx, libname, target, uses):
         target = target)
     ctx(features = 'c cstlib',
         target = libname,
-        use = [target] + uses,
+        use = [target] + list(uses),
         defs = defs_file,
         install_path = '${LIBDIR}')
 
@@ -132,16 +132,39 @@ def build(ctx):
     build_library(ctx, 'threads', 'THREADS_OBJS', [])
     build_library(ctx, 'diophantine', 'DIO_OBJS', [])
     build_library(ctx, 'ieee754', 'IEEE754_OBJS', [])
-    build_library(ctx, 'tensors', 'TENSORS_OBJS', ['PNG'])
+    build_library(ctx, 'random', 'RANDOM_OBJS', [])
 
     # When not using aocl, AOCL will be empty and -lOpenCL will be
     # found by other means.
     build_library(ctx, 'opencl', 'OPENCL_OBJS',
                   ['AOCL', 'DT_OBJS', 'FILES_OBJS', 'OPENCL'])
 
-    build_tests(ctx, 'datatypes', ['DT_OBJS'])
-    build_tests(ctx, 'quickfit', ['DT_OBJS', 'QF_OBJS'])
-    build_tests(ctx, 'collectors', ['GC_OBJS', 'DT_OBJS', 'QF_OBJS'])
+    libs = {
+        'tensors' : ('TENSORS_OBJS', {'PNG', 'RANDOM_OBJS'})
+    }
+    for lib, (sym, deps) in libs.items():
+        build_library(ctx, lib, sym, deps)
+
+    # Building all tests here
+    tests = {
+        'collectors' : ['GC_OBJS', 'DT_OBJS', 'QF_OBJS'],
+        'datatypes' : ['DT_OBJS'],
+        'opencl' : {
+            'DT_OBJS',
+            'GOMP',
+            'M',
+            'OPENCL',
+            'OPENCL_OBJS',
+            'PATHS_OBJS',
+            'PNG',
+            'TENSORS_OBJS'
+        },
+        'quickfit' : ['DT_OBJS', 'QF_OBJS'],
+        'random' : {'DT_OBJS', 'RANDOM_OBJS'}
+    }
+    for lib, deps in tests.items():
+        build_tests(ctx, lib, deps)
+
     build_tests(ctx, 'linalg', ['LINALG_OBJS', 'DT_OBJS', 'M'])
     build_tests(ctx, 'file3d', [
         'FILE3D_OBJS', 'DT_OBJS', 'LINALG_OBJS', 'M'
@@ -156,13 +179,6 @@ def build(ctx):
     build_tests(ctx, 'diophantine', ['DIO_OBJS', 'DT_OBJS', 'M'])
     build_tests(ctx, 'ieee754', ['IEEE754_OBJS', 'DT_OBJS'])
     build_tests(ctx, 'tensors', ['TENSORS_OBJS', 'DT_OBJS', 'PNG', 'M'])
-    build_tests(ctx, 'opencl', [
-        'OPENCL_OBJS',
-        'PATHS_OBJS',
-        'TENSORS_OBJS',
-        'OPENCL', 'PNG', 'M', 'GOMP',
-        'DT_OBJS'
-    ])
 
     build_program(ctx, 'cpu.c', ['DT_OBJS'])
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
