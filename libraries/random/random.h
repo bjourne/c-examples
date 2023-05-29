@@ -21,5 +21,12 @@ uint32_t rnd_pcg32_rand();
 // Bias-avoiding, so it's better than rnd_pcg32_rand() % N.
 uint32_t rnd_pcg32_rand_range(uint32_t lim);
 
+// Generate a sequence of random numbers 0 <= r < lim.
+void
+rnd_pcg32_rand_range_fill(uint32_t *mem, uint32_t lim, uint32_t n);
+
+void
+rnd_pcg32_rand_uniform_fill_float(float *mem, uint32_t n);
+
 
 #endif
