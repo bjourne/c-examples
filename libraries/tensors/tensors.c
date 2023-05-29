@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <float.h>
 #include <math.h>
@@ -230,9 +230,11 @@ tensor_fill_const(tensor *me, float v) {
 }
 
 void
-tensor_fill_rand_range(tensor *me, int high) {
-    for (int i = 0; i < tensor_n_elements(me); i++) {
-        me->data[i] = rnd_pcg32_rand_range(high);
+tensor_fill_rand_range(tensor *me, float high) {
+    size_t n = tensor_n_elements(me);
+    rnd_pcg32_rand_uniform_fill_float(me->data, n);
+    for (int i = 0; i < n; i++) {
+        me->data[i] *= me->data[i];
     }
 }
 

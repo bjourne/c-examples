@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef TENSOR_H
 #define TENSOR_H
 
@@ -131,7 +131,7 @@ void tensor_transpose(tensor *src, tensor *dst);
 void tensor_relu(tensor *t);
 void tensor_softmax(tensor *t);
 void tensor_fill_const(tensor *t, float v);
-void tensor_fill_rand_range(tensor *t, int high);
+void tensor_fill_rand_range(tensor *t, float high);
 void tensor_fill_range(tensor *me, float start);
 
 #ifdef HAVE_PNG

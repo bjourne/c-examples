@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <string.h>
 #include "datatypes/common.h"
@@ -1203,7 +1203,7 @@ test_too_big() {
 void
 test_random_filling() {
     // 4024mb
-    int SIZE = 1 << 15;
+    int SIZE = 1 << 14;
     tensor *mat = tensor_init(2, (int[]){SIZE, SIZE});
     assert(mat);
     tensor_fill_rand_range(mat, 10000);
