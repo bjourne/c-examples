@@ -100,7 +100,7 @@ Test suites for the various libraries.
 ## Programs
 Demo programs of all kinds:
 
-* `opencl.c`: Lists installed OpenCL platforms.
+* `programs/opencl/list.c`: List installed OpenCL platforms.
 
 ## Compilation
 
@@ -110,3 +110,8 @@ The project is built using the build tool
     ./waf configure build
 
 Windows, Linux and OS X is supported.
+
+## Design Philosophy
+
+Structs are not private. I have good reasons for making them public,
+but I forgot what they are now.
