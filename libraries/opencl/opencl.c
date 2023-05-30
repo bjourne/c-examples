@@ -207,20 +207,25 @@ ocl_print_device_details(cl_device_id dev, int ind) {
     printf("%-15s: %ld, %ld, %ld\n", "Max work items", d[0], d[1], d[2]);
     free(d);
 
-    cl_bool val;
-    cl_int err;
+    cl_device_info flags[] = {
+        CL_DEVICE_PIPE_SUPPORT,
+        CL_DEVICE_COMPILER_AVAILABLE,
+        CL_DEVICE_IMAGE_SUPPORT
+    };
+    char *names[] = {
+        "Pipe support",
+        "Compiler usable",
+        "Image support"
+    };
 
-    print_prefix(ind);
-    err = clGetDeviceInfo(dev, CL_DEVICE_PIPE_SUPPORT,
-                          sizeof(cl_bool), &val, NULL);
-    printf("%-15s: %s\n", "Pipe support",
-           BOOL_TO_YES_NO(err == CL_SUCCESS && val));
-
-    print_prefix(ind);
-    err = clGetDeviceInfo(dev, CL_DEVICE_COMPILER_AVAILABLE,
-                          sizeof(cl_bool), &val, NULL);
-    printf("%-15s: %s\n", "Compiler usable",
-           BOOL_TO_YES_NO(err == CL_SUCCESS && val));
+    for (int i = 0; i < ARRAY_SIZE(flags); i++) {
+        print_prefix(ind);
+        cl_bool val;
+        cl_int err = clGetDeviceInfo(dev, flags[i],
+                                     sizeof(cl_bool), &val, NULL);
+        printf("%-15s: %s\n", names[i],
+               BOOL_TO_YES_NO(err == CL_SUCCESS && val));
+    }
 }
 
 bool
