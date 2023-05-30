@@ -1207,9 +1207,15 @@ test_random_filling() {
     tensor *mat = tensor_init(2, (int[]){SIZE, SIZE});
     assert(mat);
     tensor_fill_rand_range(mat, 10000);
+    int geq1 = 0;
     for (int i = 0; i < 10; i++) {
-        printf("%.2f\n", mat->data[i]);
+        float v = mat->data[i];
+        if (v > 1.0f) {
+            geq1++;
+        }
+        assert(v < 10000);
     }
+    assert(geq1 > 0);
     tensor_free(mat);
 }
 

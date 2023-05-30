@@ -234,7 +234,7 @@ tensor_fill_rand_range(tensor *me, float high) {
     size_t n = tensor_n_elements(me);
     rnd_pcg32_rand_uniform_fill_float(me->data, n);
     for (int i = 0; i < n; i++) {
-        me->data[i] *= me->data[i];
+        me->data[i] *= high;
     }
 }
 
