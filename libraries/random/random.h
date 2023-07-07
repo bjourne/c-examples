@@ -15,6 +15,8 @@ typedef struct {
     bool initialized;
 } rnd_pcg32;
 
+rnd_pcg32 rnd_pcg32_get_state();
+
 void rnd_pcg32_seed(uint64_t init_state, uint64_t init_seq);
 
 uint32_t rnd_pcg32_rand();

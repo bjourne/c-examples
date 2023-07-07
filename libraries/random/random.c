@@ -24,17 +24,24 @@ static void
 ensure_initialized() {
     if (!glob.initialized) {
         rnd_pcg32_seed(time(NULL), (uint64_t)&rnd_pcg32_rand);
-        glob.initialized = true;
     }
+}
+
+rnd_pcg32
+rnd_pcg32_get_state() {
+    return glob;
 }
 
 void
 rnd_pcg32_seed(uint64_t init_state, uint64_t init_seq) {
     glob.state = 0U;
     glob.inc = (init_seq << 1U) | 1U;
+
+    // This call initializes glob.state
     rand_int();
     glob.state += init_state;
     rand_int();
+    glob.initialized = true;
 }
 
 uint32_t
