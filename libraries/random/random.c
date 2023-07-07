@@ -51,10 +51,10 @@ rnd_pcg32_rand() {
 }
 
 void
-rnd_pcg32_rand_range_fill(uint32_t *mem, uint32_t lim, uint32_t n) {
+rnd_pcg32_rand_range_fill(uint32_t *mem, uint32_t lim, size_t n) {
     ensure_initialized();
     uint32_t thresh = -lim % lim;
-    uint32_t i = 0;
+    size_t i = 0;
     while (i < n) {
         uint32_t r = rand_int();
         if (r >= thresh) {
