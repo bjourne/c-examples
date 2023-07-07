@@ -81,6 +81,10 @@ Of course, this assumes that `aocl` and related programs are on the
 
     LD_LIBRARY_PATH=/path/to/opencl ./build/programs/opencl/prog
 
+### `libraries/random`
+
+Random number generation using [www.pcg-random.org](www.pcg-random.org).
+
 ### `libraries/paths`
 
 A library for filesystem path handling.
@@ -101,6 +105,7 @@ Test suites for the various libraries.
 Demo programs of all kinds:
 
 * `programs/opencl/list.c`: List installed OpenCL platforms.
+* `programs/ntimes.c`: See [{n} times faster than C - part one](https://owen.cafe/posts/six-times-faster-than-c/).
 
 ## Compilation
 

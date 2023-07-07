@@ -183,6 +183,7 @@ def build(ctx):
     build_program(ctx, 'cpu.c', ['DT_OBJS'])
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
     build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
+    build_program(ctx, 'ntimes.c', ['DT_OBJS', 'RANDOM_OBJS'])
     build_program(ctx, 'smallpt.cpp', ['GOMP'])
     build_program(ctx, 'simd.c', [])
     build_program(ctx, 'strlen.c', ['DT_OBJS'])
