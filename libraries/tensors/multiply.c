@@ -198,7 +198,7 @@ typedef struct {
 
     unsigned int start_i, end_i;
     unsigned int M, K;
-} mul_job_t;
+} mul_job;
 
 static void
 mul_tiles(float * restrict a_tiled,
@@ -222,7 +222,7 @@ mul_tiles(float * restrict a_tiled,
 
 static void *
 mul_thread(void *arg) {
-    mul_job_t job = *(mul_job_t *)arg;
+    mul_job job = *(mul_job *)arg;
     mul_tiles(job.a_tiled, job.b_tiled, job.c_buf,
               job.start_i, job.end_i,
               job.M, job.K);
@@ -273,13 +273,13 @@ tensor_multiply_w_params(tensor *a, tensor *b, tensor *c,
         mul_tiles(a_tiled_data, b_tiled_data, c_buf,
                   0, N, M, K);
     } else {
-        mul_job_t *jobs = malloc(sizeof(mul_job_t) * n_jobs);
+        mul_job *jobs = malloc(sizeof(mul_job) * n_jobs);
         float i_tiles_per_thread = (float)n_i_tiles / (float)n_jobs;
 
         int start_i = 0;
         for (int i = 0; i < n_jobs; i++) {
             int end_i = ceil(i_tiles_per_thread * (i + 1)) * TILE_I;
-            jobs[i] = (mul_job_t){0,
+            jobs[i] = (mul_job){0,
                                   a_tiled_data, b_tiled_data, c_buf,
                                   start_i, end_i,
                                   M, K
