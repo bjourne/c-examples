@@ -20,7 +20,7 @@
   count_thr_blocked    ->  3.13 seconds,  5.11 GB/s (count: 37600000)
   count_thr_naive      ->  4.33 seconds,  3.70 GB/s (count: 37600000)
 
-  == clang 15.0.7 ==
+  == clang 15.0.7, N_THREADS 4 ==
 
   count_naive          ->  4.40 seconds,  3.64 GB/s (count: 37600000)
   count_compl          ->  6.32 seconds,  2.53 GB/s (count: 37600000)
@@ -55,7 +55,7 @@ int count_thr_naive(const char *s);
 
 #define N_RND_BUF 100000
 
-#define N_BUF 2L * 1000L * 1000 * 1000
+#define N_BUF 3L * 1000L * 1000 * 1000
 #define N_GIG ((double)N_BUF / (1000 * 1000 * 1000))
 #define N_REPS 8L
 
