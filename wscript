@@ -75,6 +75,7 @@ def configure(ctx):
         ctx.check(lib = 'm', mandatory = False)
         ctx.check(lib = 'pthread', mandatory = False)
         ctx.check(lib = 'OpenCL', mandatory = True, use = ['AOCL'])
+        ctx.check(header_name = 'CL/cl.h')
 
 def noinst_program(ctx, source, target, use):
     ctx.program(source = source, target = target,
@@ -183,12 +184,17 @@ def build(ctx):
     build_program(ctx, 'cpu.c', ['DT_OBJS'])
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
     build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
-    build_program(ctx, 'ntimes.c', ['DT_OBJS', 'RANDOM_OBJS'])
+    #build_program(ctx, 'ntimes.c', , ['DT_OBJS', 'RANDOM_OBJS'])
     build_program(ctx, 'smallpt.cpp', ['GOMP'])
     build_program(ctx, 'simd.c', [])
     build_program(ctx, 'strlen.c', ['DT_OBJS'])
     build_program(ctx, 'fenwick.c', ['FASTIO_OBJS'])
     build_program(ctx, 'yahtzee.c', ['DT_OBJS', 'THREADS_OBJS', 'PTHREAD'])
+
+    noinst_program(ctx, ['programs/ntimes.c',
+                         'programs/ntimes-loops.c'],
+                   'programs/ntimes',
+                   ['DT_OBJS', 'RANDOM_OBJS'])
 
     # Conditional targets
     if ctx.env.DEST_OS == 'linux':
