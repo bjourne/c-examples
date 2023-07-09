@@ -1,9 +1,13 @@
+// Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <immintrin.h>
+
+#include "datatypes/common.h"
 
 #define N_BLOCK_BITS 15
 #define N_BLOCK (1 << N_BLOCK_BITS)
@@ -28,7 +32,6 @@ count_blocked(const char *s) {
     }
     return r;
 }
-
 
 int
 count_switches(const char *input) {
@@ -77,10 +80,10 @@ count_naive(const char* input) {
         char c = input[i];
         res += c == 's';
         res -= c == 'p';
+
     }
     return res;
 }
-
 
 int
 count_compl(const char* input) {
@@ -148,9 +151,6 @@ hadd_epi64( __m256i v32 )
     const int64_t low = _mm_cvtsi128_si64( v );
     return high + low;
 }
-
-
-
 
 // Code from https://gist.github.com/Const-me/3ade77faad47f0fbb0538965ae7f8e04
 int
@@ -278,4 +278,149 @@ count_avx2_2(const char *s) {
         cmp_p1 = _mm256_sub_epi64(cmp_p1, cmp_m1);
         cnt1 = _mm256_add_epi64(cnt1, cmp_p1);
     }
+}
+
+#define N_THREADS 4
+
+static unsigned int
+ceil_div(unsigned int a, unsigned int b) {
+    return a / b + (a % b != 0);
+}
+
+typedef struct {
+    pthread_t thread;
+    const char *s;
+    size_t n_bytes;
+    bool is_last;
+    int cnt;
+} count_job;
+
+int
+thr_counting(const char *s, void *(*count_func)(void *arg)) {
+    assert((uintptr_t)s % 32 == 0);
+
+    size_t n_bytes = strlen(s);
+    size_t n_chunks = ceil_div(n_bytes, 32);
+    size_t n_chunks_per_thread = ceil_div(n_chunks, N_THREADS);
+    size_t n_bytes_per_thread = 32 * n_chunks_per_thread;
+
+    count_job jobs[N_THREADS];
+    for (int i = 0; i < N_THREADS; i++) {
+        size_t start = n_bytes_per_thread * i;
+        size_t end = MIN(start + n_bytes_per_thread, n_bytes);
+
+        jobs[i] = (count_job){
+            0,
+            s + start,
+            end - start,
+            i == N_THREADS - 1,
+            0
+        };
+        pthread_create(&jobs[i].thread, NULL, count_func, &jobs[i]);
+    }
+    int cnt = 0;
+    for (int i = 0; i < N_THREADS; i++) {
+        pthread_join(jobs[i].thread, NULL);
+        cnt += jobs[i].cnt;
+    }
+    return cnt;
+}
+
+static void *
+thr_avx2(void *arg) {
+    count_job *job = (count_job *)arg;
+
+    const __m256i zero = _mm256_setzero_si256();
+    const __m256i ch_s = _mm256_set1_epi8('s');
+    const __m256i ch_p = _mm256_set1_epi8('p');
+
+    const char *s = job->s;
+    size_t n_chunks = job->n_bytes / 32;
+
+    __m256i cnt = _mm256_setzero_si256();
+    for (int i = 0; i < n_chunks; i++, s += 32) {
+        // Load 32 bytes from the pointer
+        const __m256i v = _mm256_load_si256((const __m256i *)s);
+
+        __m256i cmp_p = _mm256_cmpeq_epi8(v, ch_s);
+        __m256i cmp_m = _mm256_cmpeq_epi8(v, ch_p);
+
+        // Compute horizontal sum of bytes within 8-byte lanes
+        cmp_p = _mm256_sad_epu8(cmp_p, zero);
+        cmp_m = _mm256_sad_epu8(cmp_m, zero);
+
+        cmp_p = _mm256_sub_epi64(cmp_p, cmp_m);
+        // Update the counter
+        cnt = _mm256_add_epi64(cnt, cmp_p);
+    }
+    int res = (int)( hadd_epi64(cnt) / 0xFF);
+    if (job->is_last) {
+        size_t rem = job->n_bytes - n_chunks * 32;
+        for (int i = 0; i < rem; i++) {
+            char c = *s++;
+            res += c == 's';
+            res -= c == 'p';
+        }
+    }
+    job->cnt = res;
+    return NULL;
+}
+
+#define N_THR_BLOCK_BITS 9
+#define N_THR_BLOCK (1 << N_THR_BLOCK_BITS)
+#define N_THR_BLOCK_MASK (N_THR_BLOCK - 1)
+
+static void *
+thr_blocked(void *arg) {
+    count_job *job = (count_job *)arg;
+    const char *s = job->s;
+    size_t n = job->n_bytes;
+    int r = 0;
+    int tmp = 0;
+
+    for (size_t i = n & N_THR_BLOCK_MASK; i--; ++s) {
+        tmp += (*s == 's') - (*s == 'p');
+    }
+    r += tmp;
+
+    for (n >>= N_THR_BLOCK_BITS; n--;) {
+        tmp = 0;
+        for (int i = N_THR_BLOCK; i--; ++s) {
+            tmp += (*s == 's') - (*s == 'p');
+        }
+        r += tmp;
+    }
+    job->cnt = r;
+    return NULL;
+}
+
+static void *
+thr_naive(void *arg) {
+    count_job *job = (count_job *)arg;
+    const char *s = job->s;
+    size_t n = job->n_bytes;
+    int r = 0;
+    for (size_t i = 0; i < n; ++i) {
+        char c = s[i];
+        r += c == 's';
+        r -= c == 'p';
+    }
+    job->cnt = r;
+    return NULL;
+}
+
+
+int
+count_thr_avx2(const char *s) {
+    return thr_counting(s, thr_avx2);
+}
+
+int
+count_thr_blocked(const char *s) {
+    return thr_counting(s, thr_blocked);
+}
+
+int
+count_thr_naive(const char *s) {
+    return thr_counting(s, thr_naive);
 }
