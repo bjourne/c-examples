@@ -31,6 +31,35 @@
   count_thr_avx2       ->  2.16 seconds,  7.39 GB/s (count: 37600000)
   count_thr_blocked    ->  3.47 seconds,  4.62 GB/s (count: 37600000)
   count_thr_naive      ->  3.61 seconds,  4.43 GB/s (count: 37600000)
+
+  = Xeon W-2245 CPU @ 3.90GHz =
+
+  == gcc 13.1.1, N_THREADS 4 ==
+
+  count_naive          ->  1.55 seconds,  5.17 GB/s (count: 18800000)
+  count_compl          ->  1.56 seconds,  5.12 GB/s (count: 18800000)
+  count_blocked        ->  1.11 seconds,  7.19 GB/s (count: 18800000)
+  count_lookup         ->  2.30 seconds,  3.48 GB/s (count: 18800000)
+  count_avx2           ->  0.52 seconds, 15.32 GB/s (count: 18800000)
+  count_avx2_2         ->  0.53 seconds, 15.20 GB/s (count: 18800000)
+  count_thr_avx2       ->  0.71 seconds, 11.29 GB/s (count: 18800000)
+  count_thr_blocked    ->  0.86 seconds,  9.32 GB/s (count: 18800000)
+  count_thr_naive      ->  0.99 seconds,  8.07 GB/s (count: 18800000)
+
+  == clang 15.0.7, N_THREADS = 4 ==
+
+  count_naive          ->  1.14 seconds,  7.05 GB/s (count: 18800000)
+  count_compl          ->  2.11 seconds,  3.80 GB/s (count: 18800000)
+  count_blocked        ->  1.14 seconds,  7.00 GB/s (count: 18800000)
+  count_lookup         ->  2.94 seconds,  2.72 GB/s (count: 18800000)
+  count_avx2           ->  0.56 seconds, 14.38 GB/s (count: 18800000)
+  count_avx2_2         ->  0.57 seconds, 14.14 GB/s (count: 18800000)
+  count_thr_avx2       ->  0.70 seconds, 11.37 GB/s (count: 18800000)
+  count_thr_blocked    ->  0.84 seconds,  9.51 GB/s (count: 18800000)
+  only_strlen          ->  0.48 seconds, 16.81 GB/s (count: 7999999992)
+
+  Note: only_strlen gives the theoretical maximum throughput.
+
  */
 
 #include <assert.h>
@@ -53,14 +82,19 @@ int count_thr_avx2(const char *s);
 int count_thr_blocked(const char *);
 int count_thr_naive(const char *s);
 
+// Baseline
+int only_strlen(const char *s);
+
 #define N_RND_BUF 100000
 
-#define N_BUF 3L * 1000L * 1000 * 1000
+#define N_BUF 1L * 1000L * 1000 * 1000
 #define N_GIG ((double)N_BUF / (1000 * 1000 * 1000))
 #define N_REPS 8L
 
 void
-benchmark(const char *name, int (*func)(const char *s), const char *s) {
+benchmark(const char *name,
+          int (*func)(const char *s),
+          const char *s) {
     size_t start = nano_count();
     size_t cnt = 0;
     for (int i = 0; i < N_REPS; i++) {
@@ -111,6 +145,7 @@ main(int argc, char *argv[]) {
     benchmark("count_thr_avx2", count_thr_avx2, buf);
     benchmark("count_thr_blocked", count_thr_blocked, buf);
     benchmark("count_thr_naive", count_thr_naive, buf);
+    benchmark("only_strlen", only_strlen, buf);
 
     free(rnd_buf);
     free(buf);
