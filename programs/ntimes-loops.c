@@ -1,6 +1,5 @@
 // Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
-#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -8,6 +7,7 @@
 #include <immintrin.h>
 
 #include "datatypes/common.h"
+#include "threads/threads.h"
 
 #define N_BLOCK_BITS 15
 #define N_BLOCK (1 << N_BLOCK_BITS)
@@ -60,10 +60,10 @@ int to_add[256] = {
 };
 
 int
-count_lookup(const char *input) {
+count_lookup(const char *s) {
     int res = 0;
     while (true) {
-        char c = *input++;
+        char c = *s++;
         if (c == '\0') {
             return res;
         } else {
@@ -73,11 +73,11 @@ count_lookup(const char *input) {
 }
 
 int
-count_naive(const char* input) {
-    size_t len = strlen(input);
+count_naive(const char* s) {
+    size_t len = strlen(s);
     int res = 0;
     for (size_t i = 0; i < len; ++i) {
-        char c = input[i];
+        char c = s[i];
         res += c == 's';
         res -= c == 'p';
 
@@ -86,10 +86,10 @@ count_naive(const char* input) {
 }
 
 int
-count_compl(const char* input) {
+count_compl(const char* s) {
     int res = 0;
-    while ((uintptr_t) input % sizeof(size_t)) {
-        char c = *input++;
+    while ((uintptr_t) s % sizeof(size_t)) {
+        char c = *s++;
         res += c == 's';
         res -= c == 'p';
         if (c == 0) return res;
@@ -104,9 +104,9 @@ count_compl(const char* input) {
     int iters = 0;
     while (1) {
         size_t w;
-        memcpy(&w, input, sizeof(size_t));
+        memcpy(&w, s, sizeof(size_t));
         if ((w - ONES) & ~w & HIGH_BITS) break;
-        input += sizeof(size_t);
+        s += sizeof(size_t);
 
         size_t s_high_bits = ((w ^ SMASK) - ONES) & ~(w ^ SMASK) & HIGH_BITS;
         size_t p_high_bits = ((w ^ PMASK) - ONES) & ~(w ^ PMASK) & HIGH_BITS;
@@ -123,7 +123,7 @@ count_compl(const char* input) {
     res -= p_accum % 255;
 
     while (1) {
-        char c = *input++;
+        char c = *s++;
         res += c == 's';
         res -= c == 'p';
         if (c == 0)
@@ -288,7 +288,6 @@ ceil_div(unsigned int a, unsigned int b) {
 }
 
 typedef struct {
-    pthread_t thread;
     const char *s;
     size_t n_bytes;
     bool is_last;
@@ -304,23 +303,22 @@ thr_counting(const char *s, void *(*count_func)(void *arg)) {
     size_t n_chunks_per_thread = ceil_div(n_chunks, N_THREADS);
     size_t n_bytes_per_thread = 32 * n_chunks_per_thread;
 
+    thr_handle handles[N_THREADS];
     count_job jobs[N_THREADS];
     for (int i = 0; i < N_THREADS; i++) {
         size_t start = n_bytes_per_thread * i;
         size_t end = MIN(start + n_bytes_per_thread, n_bytes);
-
-        jobs[i] = (count_job){
-            0,
-            s + start,
-            end - start,
-            i == N_THREADS - 1,
-            0
-        };
-        pthread_create(&jobs[i].thread, NULL, count_func, &jobs[i]);
+        bool is_last = i == N_THREADS -1;
+        jobs[i] = (count_job){s + start, end - start, is_last, 0};
     }
+
+    thr_create_threads(N_THREADS, handles,
+                       sizeof(count_job),
+                       jobs, count_func);
+    thr_wait_for_threads(N_THREADS, handles);
+
     int cnt = 0;
     for (int i = 0; i < N_THREADS; i++) {
-        pthread_join(jobs[i].thread, NULL);
         cnt += jobs[i].cnt;
     }
     return cnt;
@@ -353,7 +351,7 @@ thr_avx2(void *arg) {
         // Update the counter
         cnt = _mm256_add_epi64(cnt, cmp_p);
     }
-    int res = (int)( hadd_epi64(cnt) / 0xFF);
+    int res = (int)(hadd_epi64(cnt) / 0xFF);
     if (job->is_last) {
         size_t rem = job->n_bytes - n_chunks * 32;
         for (int i = 0; i < rem; i++) {
@@ -423,4 +421,10 @@ count_thr_blocked(const char *s) {
 int
 count_thr_naive(const char *s) {
     return thr_counting(s, thr_naive);
+}
+
+// Baseline that of course gives the wrong result.
+int
+only_strlen(const char *s) {
+    return (int)strlen(s);
 }

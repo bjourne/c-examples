@@ -193,7 +193,7 @@ def build(ctx):
     noinst_program(ctx, ['programs/ntimes.c',
                          'programs/ntimes-loops.c'],
                    'programs/ntimes',
-                   ['DT_OBJS', 'RANDOM_OBJS'])
+                   ['DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS', 'PTHREAD'])
 
     # Conditional targets
     if ctx.env.DEST_OS == 'linux':
