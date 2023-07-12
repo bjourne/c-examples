@@ -195,6 +195,9 @@ def build(ctx):
                    'programs/ntimes',
                    ['DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS', 'PTHREAD'])
 
+    # A superfast (?) strlen
+    build_program(ctx, 'fast-strlen.c', ['DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS'])
+
     # Conditional targets
     if ctx.env.DEST_OS == 'linux':
         build_program(ctx, 'sigsegv.c', [])
