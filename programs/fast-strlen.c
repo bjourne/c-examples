@@ -15,6 +15,16 @@
 //   slow_strlen      -> 18.34 seconds,  2.18 GB/s (length: 4000007776)
 //   strlen           ->  4.56 seconds,  8.76 GB/s (length: 4000007776)
 //
+//
+// On Xeon(R) W-2245 CPU @ 3.90GHz with gcc 13.1.1:
+//
+//   Scanning 10 times over 2.00GB...
+//   strlen_avx2     ->  1.30 seconds, 15.36 GB/s (length: 1999999999)
+//   strlen_avx512   ->  1.22 seconds, 16.36 GB/s (length: 1999999999)
+//   threaded_strlen ->  0.46 seconds, 43.56 GB/s (length: 1999999999)
+//   slow_strlen     ->  1.19 seconds, 16.87 GB/s (length: 1999999999)
+//   strlen          ->  1.19 seconds, 16.84 GB/s (length: 1999999999)
+//
 // How? The function threaded_strlen intentionally triggers a page
 // fault to find an upper bound for the length of the string. It
 // then has a set of threads run memchr in parallel on non-overlapping
@@ -78,7 +88,7 @@ strlen_avx512(const char *s) {
     const __m512i zero = _mm512_setzero_epi32();
     const char *p = s;
     while (true) {
-        __m512i v = _mm512_loadu_si512(p);
+        __m512i v = _mm512_load_si512(p);
         __mmask64 mask = _mm512_cmpeq_epi8_mask(v, zero);
         if (mask) {
             return p - s + slow_strlen(p);
