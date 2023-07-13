@@ -1,6 +1,36 @@
 // Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
 //
+// Compile and run with:
 //
+//   gcc -O3 -march=native fast-strlen.c -lpthread -o fast-strlen
+//       && ./fast-strlen
+//
+// Use gcc because clang is too smart and optimizes away parts of the
+// benchmark. Results on Xeon(R) CPU E5-2650 v4 @ 2.20GHz with gcc
+// 9.4.0:
+//
+//   Scanning 10 times over 4.00GB...
+//   strlen_avx2      ->  5.09 seconds,  7.86 GB/s (length: 4000007776)
+//   threaded_strlen  ->  1.17 seconds, 34.09 GB/s (length: 4000007776)
+//   slow_strlen      -> 18.34 seconds,  2.18 GB/s (length: 4000007776)
+//   strlen           ->  4.56 seconds,  8.76 GB/s (length: 4000007776)
+//
+// How? The function threaded_strlen intentionally triggers a page
+// fault to find an upper bound for the length of the string. It
+// then has a set of threads run memchr in parallel on non-overlapping
+// chunks of memory.
+//
+// Why? For fun. I was nerd sniped by the {n} times benchmark [1] and
+// found that performance was limited by strlen (the best variant [2]
+// is within 10% of strlen on the buffer). So if you make strlen
+// faster that benchmark can be faster too. Besides, I haven't seen
+// any multithreaded strlen's before.
+//
+// Obviously, this technique heavily relies on undefined behavior and
+// shouldn't be used for anything other than beating benchmarks.
+//
+// [1]: https://owen.cafe/posts/six-times-faster-than-c/
+// [2]: https://gist.github.com/Const-me/3ade77faad47f0fbb0538965ae7f8e04
 #include <assert.h>
 #include <immintrin.h>
 #include <pthread.h>
@@ -10,10 +40,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 // Size of buffer to test with and number of times the benchmarked
 // function is called.
-#define N_BUF 2L * 1000 * 1000 * 1000
+#define N_BUF (2L * 1000 * 1000 * 1000)
 #define N_REPS 10
 #define N_GIG ((double)N_BUF / (1000 * 1000 * 1000))
 
@@ -64,8 +95,8 @@ typedef struct {
     bool found;
 } strlen_job;
 
-#define REQ_ALIGNMENT 64
-#define SIGSEGV_SWEEP_SPACE 128L * 1000 * 1000 * 1000
+// Limit is 256TB
+#define SIGSEGV_SWEEP_SPACE 256L * 1000 * 1000 * 1000 * 1000
 #define SIGSEGV_SWEEP_STEP 4L * 1000 * 1000;
 
 static char *
@@ -76,6 +107,9 @@ thr_sigsegv(void *arg) {
     size_t at = SIGSEGV_SWEEP_STEP;
     const char *s = (const char *)arg;
     size_t cnt = 0;
+
+    // Without the conditional the compiler may assume the loop is
+    // infinite and optimize away the memory read.
     while (at < SIGSEGV_SWEEP_SPACE) {
         if (!s[at]) {
             cnt++;
@@ -88,7 +122,7 @@ thr_sigsegv(void *arg) {
 // Plain-old memchr appears to work the best when the length is
 // limited.
 static void *
-thr_strlen_memchr(void *arg) {
+thr_strlen(void *arg) {
     strlen_job *job = (strlen_job *)arg;
     const char *s = job->s;
     const char *p = memchr(s, '\0', job->n_bytes);
@@ -99,7 +133,6 @@ thr_strlen_memchr(void *arg) {
 
 static void
 sigsegv_record(int signal, siginfo_t* siginfo, void* uap) {
-
     sigsegv_addr = siginfo->si_addr;
     pthread_exit(NULL);
 }
@@ -111,11 +144,6 @@ ceil_div(size_t a, size_t b) {
 
 __attribute__((noinline)) size_t
 threaded_strlen(const char *s) {
-
-    // Since this is just for fun, we don't bother with unaligned
-    // memory.
-    assert((uintptr_t)s % REQ_ALIGNMENT == 0);
-
     struct sigaction act, oldact;
     memset(&act, 0, sizeof(struct sigaction));
     sigemptyset(&act.sa_mask);
@@ -133,9 +161,7 @@ threaded_strlen(const char *s) {
     // Launch a thread pool scanning for '\0' in disjoint regions of
     // memory in parallel.
     int n_threads = sysconf(_SC_NPROCESSORS_ONLN);
-    size_t n_chunks = ceil_div(n_bytes, REQ_ALIGNMENT);
-    size_t n_chunks_per_thread = ceil_div(n_chunks, n_threads);
-    size_t n_bytes_per_thread = n_chunks_per_thread * REQ_ALIGNMENT;
+    size_t n_bytes_per_thread = ceil_div(n_bytes, n_threads);
 
     strlen_job *jobs = malloc(sizeof(strlen_job) * n_threads);
     pthread_t *handles = malloc(sizeof(pthread_t) * n_threads);
@@ -148,14 +174,13 @@ threaded_strlen(const char *s) {
         };
         assert(!pthread_create(&handles[i],
                                NULL,
-                               thr_strlen_memchr,
+                               thr_strlen,
                                (void *)&jobs[i]));
     }
     for (int i = 0; i < n_threads; i++) {
         assert(!pthread_join(handles[i], NULL));
     }
-
-    // Restore old handler here -- thr_strlen_memchr can also fault if
+    // Restore old handler here -- thr_strlen can also fault if
     // the buffer is small.
     sigaction(SIGSEGV, &oldact, NULL);
 
@@ -189,14 +214,14 @@ benchmark(const char *name,
     size_t end = nano_count();
     double secs = (double)(end - start) / (1000 * 1000 * 1000);
     double tot_gbs = N_GIG * N_REPS;
-    printf("%-20s -> %5.2f seconds, %5.2f GB/s (count: %ld)\n",
+    printf("%-15s -> %5.2f seconds, %5.2f GB/s (length: %ld)\n",
            name, secs, tot_gbs / secs, cnt);
 }
 
 int
 main(int argc, char *argv[]) {
     char *buf = NULL;
-    assert(!posix_memalign((void *)&buf, REQ_ALIGNMENT, N_BUF));
+    assert(!posix_memalign((void *)&buf, 64, N_BUF));
     memset(buf, 'A', N_BUF);
     buf[N_BUF - 1] = '\0';
 
