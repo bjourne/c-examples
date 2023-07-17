@@ -1,4 +1,4 @@
-// Copyright (C) 2019, 2022 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019, 2022-2023 Björn Lindqvist <bjourne@gmail.com>
 #ifndef FILE3D_H
 #define FILE3D_H
 
@@ -47,7 +47,7 @@ void f3d_load_obj(file3d *me, FILE *f);
 void f3d_set_error(file3d *me, int error_code, char *error_line);
 
 // Public
-file3d *f3d_load(char *filename);
+file3d *f3d_load(char *fname);
 void f3d_free(file3d *me);
 char *f3d_get_error_string(file3d *me);
 

@@ -15,7 +15,7 @@ f3d_set_error(file3d *me, int error_code, char *error_line) {
 }
 
 file3d *
-f3d_load(char *filename) {
+f3d_load(char *fname) {
     file3d *me = (file3d *)malloc(sizeof(file3d));
     me->verts = NULL;
     me->vertex_indices = NULL;
@@ -24,13 +24,13 @@ f3d_load(char *filename) {
     me->coords = NULL;
     me->coord_indices = NULL;
     f3d_set_error(me, FILE3D_ERR_NONE, NULL);
-    FILE *f = fopen(filename, "rb");
+    FILE *f = fopen(fname, "rb");
     if (!f) {
         f3d_set_error(me, FILE3D_ERR_FILE_NOT_FOUND, NULL);
         return me;
     }
 
-    const char *ext = paths_ext(filename);
+    const char *ext = paths_ext(fname);
     if (!strcmp("geo", ext)) {
         f3d_load_geo(me, f);
     } else if (!strcmp("obj", ext) || !strcmp("OBJ", ext)) {
