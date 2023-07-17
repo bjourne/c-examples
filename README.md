@@ -104,8 +104,9 @@ Test suites for the various libraries.
 ## Programs
 Demo programs of all kinds:
 
-* `programs/opencl/list.c`: List installed OpenCL platforms.
+* `programs/npyread.c`: Reading .npy files.
 * `programs/ntimes.c`: See [{n} times faster than C - part one](https://owen.cafe/posts/six-times-faster-than-c/).
+* `programs/opencl/list.c`: List installed OpenCL platforms.
 
 ## Compilation
 

@@ -132,8 +132,6 @@ def build(ctx):
                   ['PATHS_OBJS', 'DT_OBJS', 'LINALG_OBJS'])
     build_library(ctx, 'threads', 'THREADS_OBJS', [])
     build_library(ctx, 'diophantine', 'DIO_OBJS', [])
-    build_library(ctx, 'ieee754', 'IEEE754_OBJS', [])
-    build_library(ctx, 'random', 'RANDOM_OBJS', [])
 
     # When not using aocl, AOCL will be empty and -lOpenCL will be
     # found by other means.
@@ -141,6 +139,9 @@ def build(ctx):
                   ['AOCL', 'DT_OBJS', 'FILES_OBJS', 'OPENCL'])
 
     libs = {
+        'ieee754' : ('IEEE754_OBJS', {}),
+        'npy' : ('NPY_OBJS', {'M'}),
+        'random' : ('RANDOM_OBJS', {}),
         'tensors' : ('TENSORS_OBJS', {'PNG', 'RANDOM_OBJS'})
     }
     for lib, (sym, deps) in libs.items():
@@ -185,18 +186,24 @@ def build(ctx):
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
     build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
     build_program(ctx, 'smallpt.cpp', ['GOMP'])
-    build_program(ctx, 'simd.c', [])
-    build_program(ctx, 'strlen.c', ['DT_OBJS'])
     build_program(ctx, 'fenwick.c', ['FASTIO_OBJS'])
-    build_program(ctx, 'yahtzee.c', ['DT_OBJS', 'THREADS_OBJS', 'PTHREAD'])
 
     noinst_program(ctx, ['programs/ntimes.c',
                          'programs/ntimes-loops.c'],
                    'programs/ntimes',
                    ['DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS', 'PTHREAD'])
 
-    # A superfast (?) strlen
-    build_program(ctx, 'fast-strlen.c', ['DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS'])
+    progs = [
+        ('npyread.c', ['NPY_OBJS']),
+        ('simd.c', []),
+        # Old fast strlen
+        ('strlen.c', ['DT_OBJS']),
+        # New fast strlen
+        ('fast-strlen.c', ['DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS']),
+        ('yahtzee.c', ['DT_OBJS', 'THREADS_OBJS', 'PTHREAD'])
+    ]
+    for cfile, deps in progs:
+        build_program(ctx, cfile, deps)
 
     # Conditional targets
     if ctx.env.DEST_OS == 'linux':
