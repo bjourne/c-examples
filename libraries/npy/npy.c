@@ -27,24 +27,8 @@ consume_until(FILE *f, char c) {
     return false;
 }
 
-int
-npy_type_size(npy_type tp) {
-    if (tp == NPY_INT32 || tp == NPY_FLOAT32) {
-        return 4;
-    }
-    return 8;
-}
-
-static const char *
-type_names[3] = {"int32", "int64", "float64"};
-
-const char *
-npy_type_name(npy_type tp) {
-    return type_names[tp];
-}
-
 size_t
-npy_n_elements(npy_data *me) {
+npy_n_elements(npy_arr *me) {
     size_t tot = 1;
     for (int i = 0; i < me->n_dims; i++) {
         tot *= me->dims[i];
@@ -53,23 +37,54 @@ npy_n_elements(npy_data *me) {
 }
 
 double
-npy_value_at_as_double(npy_data *me, size_t i) {
-    npy_type tp = me->type;
-    if (tp == NPY_INT32) {
-        return (double)((int32_t *)me->data)[i];
-    } else if (tp == NPY_INT64) {
-        return (double)((int64_t *)me->data)[i];
-    } else if (tp == NPY_FLOAT32) {
-        return (double)((float *)me->data)[i];
-    } else if (tp == NPY_FLOAT64) {
-        return ((double *)me->data)[i];
+npy_value_at_as_double(npy_arr *me, size_t i) {
+    char tp = me->type;
+    int v = me->el_size;
+    if (tp == 'i') {
+        if (v == 1) {
+            return (double)((int8_t *)me->data)[i];
+        }
+        else if (v == 4) {
+            return (double)((int32_t *)me->data)[i];
+        } else if (v == 8) {
+            return (double)((int64_t *)me->data)[i];
+        }
+        assert(false);
+    } else if (tp == 'f') {
+        if (v == 4) {
+            return (double)((float *)me->data)[i];
+        } else if (v == 8) {
+            return ((double *)me->data)[i];
+        }
+        assert(false);
     }
     assert(false);
 }
 
-npy_data *
+static void
+transpose_data(npy_arr *me) {
+    assert(me->n_dims == 2);
+    size_t n_els = npy_n_elements(me);
+    int *dims = me->dims;
+    int rows = dims[0];
+    int cols = dims[1];
+    int el_size = me->el_size;
+    char *new = malloc(el_size * n_els);
+    for (int x = 0; x < cols; x++) {
+        for (int y = 0; y < rows; y++) {
+            char *from = me->data + el_size * (x * rows + y);
+            char *to = new + el_size * (y * cols + x);
+            memcpy(to, from, el_size);
+            from += el_size;
+        }
+    }
+    free(me->data);
+    me->data = new;
+}
+
+npy_arr *
 npy_load(const char *fname) {
-    npy_data *me = (npy_data *)malloc(sizeof(npy_data));
+    npy_arr *me = (npy_arr *)malloc(sizeof(npy_arr));
     me->error_code = NPY_ERR_NONE;
     me->n_dims = 0;
     me->data = NULL;
@@ -93,13 +108,7 @@ npy_load(const char *fname) {
     if (!consume(f, "{")) {
         goto truncation_error;
     }
-    const char *formats[] = {"i4", "i8", "f4", "f8"};
-    npy_type types[] = {
-        NPY_INT32,
-        NPY_INT64,
-        NPY_FLOAT32,
-        NPY_FLOAT64
-    };
+    bool fortran_order = false;
     for (int k = 0; k < 3; k++) {
         char rbuf[128];
         if (fscanf(f, "%s", rbuf) != 1) {
@@ -109,14 +118,8 @@ npy_load(const char *fname) {
             if (fscanf(f, "%s", rbuf) != 1) {
                 goto parse_error;
             }
-            bool found = false;
-            for (int i = 0; i < ARRAY_SIZE(formats); i++) {
-                if (strstr(rbuf, formats[i])) {
-                    me->type = types[i];
-                    found = true;
-                }
-            }
-            if (!found) {
+            me->type = rbuf[2];
+            if (sscanf(&rbuf[3], "%d", &me->el_size) != 1) {
                 goto parse_error;
             }
         } else if (strstr(rbuf, "'fortran_order':")) {
@@ -124,6 +127,9 @@ npy_load(const char *fname) {
                 goto parse_error;
             }
             if (strstr(rbuf, "False")) {
+                fortran_order = false;
+            } else if (strstr(rbuf, "True")) {
+                fortran_order = true;
             } else {
                 goto parse_error;
             }
@@ -147,13 +153,14 @@ npy_load(const char *fname) {
         goto parse_error;
     }
     size_t n_els = npy_n_elements(me);
-    size_t n_bytes = n_els * npy_type_size(me->type);
-
+    size_t n_bytes = n_els * me->el_size;
     me->data = (char *)malloc(n_bytes);
     if (fread(me->data, 1, n_bytes, f) != n_bytes) {
         goto truncation_error;
     }
-
+    if (fortran_order) {
+        transpose_data(me);
+    }
  done:
     fclose(f);
     return me;
@@ -168,7 +175,7 @@ npy_load(const char *fname) {
 }
 
 void
-npy_free(npy_data *me) {
+npy_free(npy_arr *me) {
     if (me->data) {
         free(me->data);
     }

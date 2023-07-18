@@ -25,8 +25,9 @@ typedef struct {
     // Version
     int ver_maj, ver_min;
 
-    // Value type
-    npy_type type;
+    // Type and size (in bytes) of elements
+    char type;
+    int el_size;
 
     // Dimensions
     int dims[NPY_MAX_N_DIMS];
@@ -37,15 +38,11 @@ typedef struct {
 
     // Error
     npy_error error_code;
-} npy_data;
+} npy_arr;
 
-size_t npy_n_elements(npy_data *me);
-npy_data *npy_load(const char *fname);
-void npy_free(npy_data *me);
-
-int npy_type_size(npy_type tp);
-const char *npy_type_name(npy_type tp);
-
-double npy_value_at_as_double(npy_data *me, size_t i);
+size_t npy_n_elements(npy_arr *me);
+npy_arr *npy_load(const char *fname);
+void npy_free(npy_arr *me);
+double npy_value_at_as_double(npy_arr *me, size_t i);
 
 #endif
