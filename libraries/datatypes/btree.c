@@ -1,3 +1,4 @@
+// Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <string.h>
 #include "datatypes/btree.h"
 
@@ -12,17 +13,17 @@ bnode_init() {
 void
 bnode_free(bnode *me) {
     if (me) {
-        for (int i = 0; i < me->count; i++) {
+        for (size_t i = 0; i < me->count; i++) {
             bnode_free(me->childs[i]);
         }
         free(me);
     }
 }
 
-int
+size_t
 bnode_linear_search(bnode *me, int key, bool *found) {
     *found = false;
-    int i;
+    size_t i;
     for (i = 0; i < me->count; i++) {
         int this_key = me->keys[i];
         if (this_key > key) {

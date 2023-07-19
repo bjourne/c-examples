@@ -1,3 +1,4 @@
+// Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef BTREE_H
 #define BTREE_H
 
@@ -29,6 +30,6 @@ bnode *btree_find(btree *me, int key, int *index);
 bnode *bnode_init();
 void bnode_free(bnode *me);
 
-int bnode_linear_search(bnode *me, int key, bool *found);
+size_t bnode_linear_search(bnode *me, int key, bool *found);
 
 #endif
