@@ -28,7 +28,7 @@ void
 rnd_pcg32_rand_range_fill(uint32_t *mem, uint32_t lim, size_t n);
 
 void
-rnd_pcg32_rand_uniform_fill_float(float *mem, uint32_t n);
+rnd_pcg32_rand_uniform_fill_float(float *mem, size_t n);
 
 
 #endif
