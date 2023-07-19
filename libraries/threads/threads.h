@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2020, 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef THREADS_H
 #define THREADS_H
 
