@@ -1,3 +1,4 @@
+// Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <stdio.h>
 #include "datatypes/bstree.h"
@@ -67,8 +68,8 @@ test_add_remove() {
 void
 test_callstack_overflow() {
     bstree *bst = NULL;
-    size_t count = 10000;
-    for (int i = 0; i < count; i++) {
+    bstkey count = 10000;
+    for (bstkey i = 0; i < count; i++) {
         bst = bst_add_key(bst, i);
     }
     assert(bst_size(bst) == count);
@@ -78,7 +79,7 @@ test_callstack_overflow() {
 void
 test_print_tree() {
     bstree *bst = NULL;
-    for (int i = 0; i < 20; i++) {
+    for (bstkey i = 0; i < 20; i++) {
         bst = bst_add_key(bst, rand_n(50));
     }
     bst_print(bst, 0, true);

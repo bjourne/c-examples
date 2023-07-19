@@ -95,7 +95,7 @@ rbt_find(rbtree *me, bstkey key) {
 rbtree *
 rbt_find_lower_bound(rbtree *me, bstkey key) {
     rbtree *best = NULL;
-    ptr best_key = BST_KEY_MAX;
+    bstkey best_key = BST_KEY_MAX;
     while (me) {
         bstkey me_key = me->key;
         if (key < me_key) {
