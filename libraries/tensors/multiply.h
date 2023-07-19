@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef TENSORS_MULTIPLY_H
 #define TENSORS_MULTIPLY_H
 
@@ -10,8 +10,7 @@ void tensor_multiply_ref(tensor *a, tensor *b, tensor *c);
 
 // Quite fast multi-threaded matrix multiplication, utilizing SIMD
 // intrinsics.
-void tensor_multiply_w_params(tensor *a, tensor *b, tensor *c,
-                              unsigned int n_jobs);
+void tensor_multiply_w_params(tensor *a, tensor *b, tensor *c, int n_jobs);
 void tensor_multiply(tensor *a, tensor *b, tensor *c);
 
 // Not sure about these names.

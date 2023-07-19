@@ -153,8 +153,8 @@ tensor_idct2d(tensor *src, tensor *dst) {
     assert(src->dims[0] == dst->dims[0]);
     assert(src->dims[1] == dst->dims[1]);
 
-    int n_rows = src->dims[0];
-    int n_cols = src->dims[1];
+    unsigned int n_rows = src->dims[0];
+    unsigned int n_cols = src->dims[1];
 
     float pi_div_2rows = 0.5 * M_PI / n_rows;
     float pi_div_2cols = 0.5 * M_PI / n_cols;

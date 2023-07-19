@@ -240,7 +240,7 @@ test_dct() {
         {8, 16},
     };
     float tot[] = {2040, 4080, 2885};
-    for (int i = 0; i < ARRAY_SIZE(dims); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(dims); i++) {
         int height = dims[i][0];
         int width = dims[i][1];
         tensor *a = tensor_init(2, dims[i]);

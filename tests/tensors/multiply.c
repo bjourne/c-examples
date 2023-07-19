@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -182,7 +182,7 @@ test_multiply() {
             2, (int[]){2, 2}
         )
     };
-    for (int i = 0; i < ARRAY_SIZE(as); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(as); i++) {
         tensor *a = as[i];
         tensor *b = bs[i];
         tensor *c = cs[i];

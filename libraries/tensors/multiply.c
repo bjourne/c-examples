@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <math.h>
 #include <pthread.h>
@@ -27,7 +27,7 @@ tensor_multiply_ref(tensor *a, tensor *b, tensor *c) {
     int b_cols = b->dims[1];
 
     assert(a_cols == b_rows);
-    assert(tensor_n_elements(c) == a_rows * b_cols);
+    assert(tensor_n_elements(c) == (size_t)(a_rows * b_cols));
 
     float *a_buf = a->data;
     float *b_buf = b->data;
@@ -230,8 +230,7 @@ mul_thread(void *arg) {
 }
 
 void
-tensor_multiply_w_params(tensor *a, tensor *b, tensor *c,
-                         unsigned int n_jobs) {
+tensor_multiply_w_params(tensor *a, tensor *b, tensor *c, int n_jobs) {
     int a_rows = a->dims[0];
     int a_cols = a->dims[1];
     int b_rows = b->dims[0];
@@ -305,7 +304,7 @@ tensor_multiply_w_params(tensor *a, tensor *b, tensor *c,
 
 void
 tensor_multiply(tensor *a, tensor *b, tensor *c) {
-    long n_jobs = JOB_FACTOR * sysconf(_SC_NPROCESSORS_ONLN);
+    int n_jobs = JOB_FACTOR * (int)sysconf(_SC_NPROCESSORS_ONLN);
     tensor_multiply_w_params(a, b, c, n_jobs);
 }
 

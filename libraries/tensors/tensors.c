@@ -1,4 +1,9 @@
 // Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
+//
+// Conventions:
+//
+//   * `n` or `n_els` is the number of elements in the tensor.
+//   * Tensors have `size_t` number of elements.
 #include <assert.h>
 #include <float.h>
 #include <math.h>
@@ -51,7 +56,8 @@ tensor_check_equal(tensor *t1, tensor *t2, float epsilon) {
     int dim_counts[TENSOR_MAX_N_DIMS] = {0};
     int *dims = t1->dims;
     int n_mismatches = 0;
-    for (int i = 0; i < tensor_n_elements(t1); i++) {
+    size_t n_els = tensor_n_elements(t1);
+    for (size_t i = 0; i < n_els; i++) {
         float v1 = t1->data[i];
         float v2 = t2->data[i];
         float diff = fabs(v2 - v1);
@@ -212,18 +218,19 @@ tensor_free(tensor *t) {
 ////////////////////////////////////////////////////////////////////////
 void
 tensor_relu(tensor *me) {
-    for (int i  = 0; i < tensor_n_elements(me); i++) {
+    size_t n = tensor_n_elements(me);
+    for (size_t i  = 0; i < n; i++) {
         me->data[i] = MAX(me->data[i], 0.0f);
     }
 }
 
 void
 tensor_fill_const(tensor *me, float v) {
-    size_t n_els = tensor_n_elements(me);
+    size_t n = tensor_n_elements(me);
     if (v == 0.0) {
-        memset(me->data, 0, sizeof(float) * n_els);
+        memset(me->data, 0, sizeof(float) * n);
     } else {
-        for (int i = 0; i < n_els; i++) {
+        for (size_t i = 0; i < n; i++) {
             me->data[i] = v;
         }
     }
@@ -232,30 +239,33 @@ tensor_fill_const(tensor *me, float v) {
 void
 tensor_fill_rand_range(tensor *me, float high) {
     size_t n = tensor_n_elements(me);
+    // Doesn't this ruin the precision?
     rnd_pcg32_rand_uniform_fill_float(me->data, n);
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         me->data[i] *= high;
     }
 }
 
 void
 tensor_fill_range(tensor *me, float start) {
-    for (int i = 0; i < tensor_n_elements(me); i++) {
+    size_t n = tensor_n_elements(me);
+    for (size_t i = 0; i < n; i++) {
         me->data[i] = start;
         start += 1.0;
     }
 }
 
 void
-tensor_softmax(tensor *t) {
+tensor_softmax(tensor *me) {
     float tot = 0.0;
-    for (int i = 0; i < tensor_n_elements(t); i++) {
-        float v = exp(t->data[i]);
-        t->data[i] = v;
+    size_t n = tensor_n_elements(me);
+    for (size_t i = 0; i < n; i++) {
+        float v = exp(me->data[i]);
+        me->data[i] = v;
         tot += v;
     }
-    for (int i = 0; i < tensor_n_elements(t); i++) {
-        t->data[i] /= tot;
+    for (size_t i = 0; i < n; i++) {
+        me->data[i] /= tot;
     }
 }
 
@@ -401,9 +411,9 @@ tensor_read_png(char *filename) {
     me->data = (float *)malloc_aligned(TENSOR_ADDRESS_ALIGNMENT, n_bytes);
     png_bytepp row_pointers = png_get_rows(png, info);
 
-    for (int y = 0; y < height; y++) {
+    for (png_uint_32 y = 0; y < height; y++) {
         png_byte *row = row_pointers[y];
-        for (int x = 0; x < width; x++) {
+        for (png_uint_32 x = 0; x < width; x++) {
             for (int c = 0; c < 3; c++) {
                 png_byte v = row[c];
                 me->data[c*width*height + y*width + x] = v;
@@ -780,7 +790,7 @@ tensor_layer_stack_init(int n_layers, tensor_layer **layers,
     // Layers' dims
     me->layers_n_dims = (int *)malloc(sizeof(int) * n_layers);
     me->layers_dims = (int **)malloc(sizeof(int *) * n_layers);
-    int buf_size = count_elements_from(input_n_dims, input_dims, 0);
+    size_t buf_size = count_elements_from(input_n_dims, input_dims, 0);
     for (int i = 0; i < n_layers; i++) {
         tensor *output = tensor_layer_apply_new(me->layers[i], input);
         int n_dims = output->n_dims;
