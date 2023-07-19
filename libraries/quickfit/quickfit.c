@@ -1,3 +1,5 @@
+// Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
+//
 // A QuickFit memory allocator based on Factor.
 #include <assert.h>
 #include <inttypes.h>
@@ -142,7 +144,10 @@ qf_can_allot_p(quick_fit *me, size_t size) {
         size = QF_LARGE_BLOCK_SIZE(small);
     }
     rbtree *node = rbt_iterate(me->large_blocks, NULL, BST_RIGHT);
-    if (node && node->key >= size) {
+    if (size > BST_KEY_MAX) {
+        return false;
+    }
+    if (node && node->key >= (bstkey)size) {
         return true;
     }
     return false;
