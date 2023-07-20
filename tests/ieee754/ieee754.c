@@ -80,16 +80,8 @@ test_i32_to_f32() {
 
 void
 test_i32_to_f32_random() {
-    for (long int lv = -2147483648; lv <= 2147483647; lv++) {
-        //for (int i = 0; i < 10000000; i++) {
-        //int32_t v = rnd_pcg32_rand();
-        //printf("%d\n", v);
-        //v = rnd_pcg32_rand();
-
-        if (lv % 100000000 == 0) {
-            printf("%ldM...\n", lv / 1000000);
-        }
-        int v = (int)lv;
+    for (int i = 0; i < 10000000; i++) {
+        int32_t v = rnd_pcg32_rand();
         float f = (float)v;
         uint32_t exp_f32 = BW_FLOAT_TO_UINT(f);
         uint32_t got_f32 = ieee754_i32_to_f32(v);

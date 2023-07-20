@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <stdio.h>
 #include "datatypes/common.h"
 #include "ieee754.h"
@@ -66,17 +66,6 @@ ieee754_print_bits(uint32_t f) {
         putchar(f & (1 << i) ? '1' : '0');
     }
 }
-
-/* static uint32_t */
-/* log2floor(uint32_t n) { */
-/*     uint32_t q = n >> 1; */
-/*     uint32_t r = 0; */
-/*     while (q) { */
-/*         q = q >> 1; */
-/*         r++; */
-/*     } */
-/*     return r; */
-/* } */
 
 uint32_t
 ieee754_i32_to_f32(int32_t val) {
