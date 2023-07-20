@@ -16,7 +16,6 @@ typedef union {
 
 int32_t
 ieee754_f32_to_i32(uint32_t flt) {
-
     ieee754_f32 d;
     d.v = flt;
     int32_t exp = d.raw.exp;
@@ -29,17 +28,6 @@ ieee754_f32_to_i32(uint32_t flt) {
     else if (exp > 23)
         ret = ret << (exp - 23);
     return d.raw.sign ? -ret : ret;
-}
-
-static uint32_t
-log2floor(uint32_t n) {
-    uint32_t q = n >> 1;
-    uint32_t r = 0;
-    while (q) {
-        q = q >> 1;
-        r++;
-    }
-    return r;
 }
 
 void
@@ -79,34 +67,77 @@ ieee754_print_bits(uint32_t f) {
     }
 }
 
+/* static uint32_t */
+/* log2floor(uint32_t n) { */
+/*     uint32_t q = n >> 1; */
+/*     uint32_t r = 0; */
+/*     while (q) { */
+/*         q = q >> 1; */
+/*         r++; */
+/*     } */
+/*     return r; */
+/* } */
+
 uint32_t
 ieee754_i32_to_f32(int32_t val) {
     ieee754_f32 d;
+    uint32_t u32;
     d.v = 0;
     if (val < 0) {
         d.raw.sign = 1;
-        val = -val;
+        u32 = (uint32_t)-val;
     } else {
         d.raw.sign = 0;
+        u32 = (uint32_t)val;
     }
-
-    if (!val) {
+    if (!u32) {
         return 0;
     }
-    int32_t exp = log2floor(val);
 
-    // Subtract MSB
-    uint32_t mask = (1 << exp);
-    val = val - mask;
-    mask >>= 1;
-
-    for (int i = 22; i >= MAX(22 - exp + 1, 0); i--) {
-        if (val >= mask) {
-            val -= mask;
-            d.raw.frac |= (1 << i);
-        }
-        mask >>= 1;
+    // Index of most significant bit (MSB)
+    uint8_t msb = 0;
+    while ((1U << msb) <= (u32 >> 1)) {
+        msb++;
     }
-    d.raw.exp = exp + 127;
+
+    // Subtract MSB.
+    u32 -= (1 << msb);
+
+    // Index of the truncated part's MSB.
+    int8_t trunc_msb = msb - 23;
+
+    uint32_t significand;
+    uint8_t exp;
+    if (trunc_msb >= 0) {
+        significand = u32 >> trunc_msb;
+
+        // Upper bound of truncation range.
+        uint32_t upper = 1 << trunc_msb;
+
+        // Truncted value
+        uint32_t trunc = u32 & (upper - 1);
+
+        // Distance to the upper and lower bound (which is zero).
+        uint32_t lo = trunc - 0;
+        uint32_t hi = upper - trunc;
+
+        // Round up if closer to upper bound than lower, or if
+        // equally close round up if odd (so to even).
+        if ((lo > hi) ||
+            (lo == hi && (significand & 1))) {
+            significand++;
+
+            // Incrementing the significand may cause wrap-around in
+            // which case we increase the msb.
+            significand &= (1 << 23) - 1;
+            msb += !significand;
+        }
+    } else {
+        significand = u32 << (23 - msb);
+    }
+    exp = msb + 127;
+
+    d.raw.frac = significand;
+    d.raw.exp = exp;
     return d.v;
 }
