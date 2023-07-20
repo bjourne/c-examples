@@ -175,7 +175,7 @@ ocl_print_device_details(cl_device_id dev, int ind) {
         CL_DEVICE_VERSION, CL_DRIVER_VERSION,
         CL_DEVICE_OPENCL_C_VERSION
     };
-    for (int i = 0; i < ARRAY_SIZE(attr_types); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(attr_types); i++) {
         print_prefix(ind);
         print_device_info_str(dev, attr_types[i], attr_names[i]);
     }
@@ -218,7 +218,7 @@ ocl_print_device_details(cl_device_id dev, int ind) {
         "Image support"
     };
 
-    for (int i = 0; i < ARRAY_SIZE(flags); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(flags); i++) {
         print_prefix(ind);
         cl_bool val;
         cl_int err = clGetDeviceInfo(dev, flags[i],
