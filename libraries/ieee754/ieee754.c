@@ -1,4 +1,5 @@
 // Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
+#include <assert.h>
 #include <stdio.h>
 #include "datatypes/common.h"
 #include "ieee754.h"
@@ -89,16 +90,14 @@ ieee754_i32_to_f32(int32_t val) {
         msb++;
     }
 
-    // Subtract MSB.
+    // Mask msb.
     u32 -= (1 << msb);
 
-    // Index of the truncated part's MSB.
-    int8_t trunc_msb = msb - 23;
-
-    uint32_t significand;
-    uint8_t exp;
-    if (trunc_msb >= 0) {
-        significand = u32 >> trunc_msb;
+    uint32_t sig;
+    if (msb > 23) {
+        // Index of the truncated part's MSB.
+        int8_t trunc_msb = msb - 23;
+        sig = u32 >> trunc_msb;
 
         // Upper bound of truncation range.
         uint32_t upper = 1 << trunc_msb;
@@ -113,20 +112,20 @@ ieee754_i32_to_f32(int32_t val) {
         // Round up if closer to upper bound than lower, or if
         // equally close round up if odd (so to even).
         if ((lo > hi) ||
-            (lo == hi && (significand & 1))) {
-            significand++;
+            (lo == hi && (sig & 1))) {
+            sig++;
 
-            // Incrementing the significand may cause wrap-around in
+            // Incrementing the sig may cause wrap-around in
             // which case we increase the msb.
-            significand &= (1 << 23) - 1;
-            msb += !significand;
+            sig &= (1 << 23) - 1;
+            msb += !sig;
         }
     } else {
-        significand = u32 << (23 - msb);
+        sig = u32 << (23 - msb);
     }
-    exp = msb + 127;
+    uint8_t exp = msb + 127;
 
-    d.raw.frac = significand;
+    d.raw.frac = sig;
     d.raw.exp = exp;
     return d.v;
 }
