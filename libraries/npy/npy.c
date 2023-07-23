@@ -210,7 +210,7 @@ pp_indent(int n) {
     }
 
 static void
-pp_value(npy_pp *me, size_t row_idx) {
+pp_value(npy_pp *me, int row_idx) {
     npy_arr *arr = me->arr;
     char tp = arr->type;
     char *data = arr->data;
@@ -256,12 +256,15 @@ pp_row(npy_pp *me, bool is_first) {
         pp_indent(n_dims - 1);
     }
     printf("[");
-    size_t cnt = arr->dims[n_dims - 1];
+
+    int cnt = arr->dims[n_dims - 1];
     for (int i = 0; i < cnt - 1; i++) {
         pp_value(me, i);
         printf(me->sep);
     }
-    pp_value(me, cnt - 1);
+    if (cnt) {
+        pp_value(me, cnt - 1);
+    }
     printf("]");
 }
 
@@ -302,10 +305,9 @@ npy_pp_print_arr(npy_pp *me, npy_arr *arr) {
         sprintf(me->fmt, "%%%ds", arr->el_size);
         width = arr->el_size;
     } else {
-        // Empty arrays...
-        double max = npy_value_at_as_double(arr, 0);
+        double max = 0;
         double min = 0;
-        for (int i = 1; i < npy_n_elements(arr); i++) {
+        for (int i = 0; i < npy_n_elements(arr); i++) {
             double at = npy_value_at_as_double(arr, i);
             if (at < min) {
                 min = at;

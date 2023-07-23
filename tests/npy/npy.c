@@ -24,6 +24,7 @@ void
 test_pretty_print() {
     npy_arr *arr = npy_load("tests/npy/uint8.npy");
     npy_arr *arr2 = npy_load("tests/npy/rands.npy");
+    npy_arr *arr3 = npy_load("tests/npy/empty.npy");
 
     int n_columns = 100;
     struct winsize w;
@@ -35,9 +36,12 @@ test_pretty_print() {
     pp->n_columns = 100;
     pp->sep = ", ";
     npy_pp_print_arr(pp, arr2);
+    npy_pp_print_arr(pp, arr3);
+
     npy_pp_free(pp);
     npy_free(arr);
     npy_free(arr2);
+    npy_free(arr3);
 }
 
 int
