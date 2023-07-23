@@ -1,5 +1,6 @@
 // Copyright (C) 2023 Björn Lindqvist <bjourne@gmail.com>
 #include <assert.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,28 +37,24 @@ npy_n_elements(npy_arr *me) {
     return tot;
 }
 
+#define DOUBLE_CAST(tp_val, v_val, cast) \
+    if (tp == (tp_val) && v == (v_val)) \
+        return (double)((cast)me->data)[i];
+
 double
 npy_value_at_as_double(npy_arr *me, size_t i) {
     char tp = me->type;
     int v = me->el_size;
-    if (tp == 'i') {
-        if (v == 1) {
-            return (double)((int8_t *)me->data)[i];
-        }
-        else if (v == 4) {
-            return (double)((int32_t *)me->data)[i];
-        } else if (v == 8) {
-            return (double)((int64_t *)me->data)[i];
-        }
-        assert(false);
-    } else if (tp == 'f') {
-        if (v == 4) {
-            return (double)((float *)me->data)[i];
-        } else if (v == 8) {
-            return ((double *)me->data)[i];
-        }
-        assert(false);
-    }
+
+    // Macro-magic here.
+    DOUBLE_CAST('i', 1, int8_t *);
+    DOUBLE_CAST('i', 4, int32_t *);
+    DOUBLE_CAST('i', 8, int64_t *);
+    DOUBLE_CAST('u', 1, uint8_t *);
+    DOUBLE_CAST('u', 4, uint32_t *);
+    DOUBLE_CAST('u', 8, uint64_t *);
+    DOUBLE_CAST('f', 4, float *);
+    DOUBLE_CAST('f', 8, double *);
     assert(false);
 }
 
@@ -180,4 +177,164 @@ npy_free(npy_arr *me) {
         free(me->data);
     }
     free(me);
+}
+
+////////////////////////////////////////////////////////////////////////
+// Pretty printing
+////////////////////////////////////////////////////////////////////////
+npy_pp *
+npy_pp_init(int n_decimals, int n_columns, const char *sep) {
+    npy_pp *me = (npy_pp *)malloc(sizeof(npy_pp));
+    me->n_decimals = n_decimals;
+    me->n_columns = n_columns;
+    me->sep = sep;
+    return me;
+}
+
+void
+npy_pp_free(npy_pp *me) {
+    free(me);
+}
+
+static void
+pp_indent(int n) {
+    for (int i = 0; i < n; i++) {
+        printf(" ");
+    }
+}
+
+#define PRINT_EL_AT(tp_char, v_val, tp_tp)  \
+    if (tp == (tp_char) && v == (v_val)) {  \
+        printf(fmt, ((tp_tp *)data)[i]);    \
+        printed = true;                     \
+    }
+
+static void
+pp_value(npy_pp *me, size_t row_idx) {
+    npy_arr *arr = me->arr;
+    char tp = arr->type;
+    char *data = arr->data;
+    int n_dims = arr->n_dims;
+    int v = arr->el_size;
+    char *fmt = me->fmt;
+    size_t i = me->value_idx;
+    if (me->break_lines &&
+        row_idx % me->n_items_per_line == 0 &&
+        row_idx > 0) {
+        printf("\n");
+        pp_indent(n_dims);
+    }
+    bool printed = false;
+    PRINT_EL_AT('i', 1, int8_t);
+    PRINT_EL_AT('i', 4, int32_t);
+    PRINT_EL_AT('i', 8, int64_t);
+    PRINT_EL_AT('u', 1, uint8_t);
+    PRINT_EL_AT('u', 4, uint32_t);
+    PRINT_EL_AT('u', 8, uint64_t);
+    PRINT_EL_AT('f', 4, float);
+    PRINT_EL_AT('f', 8, double);
+    if (!printed) {
+        const char *s = data + v * i;
+        for (int k = 0; k < v; k++) {
+            unsigned char c = *s;
+            if (c == 0) {
+                break;
+            }
+            putchar(c);
+            s++;
+        }
+    }
+    me->value_idx++;
+}
+
+
+static void
+pp_row(npy_pp *me, bool is_first) {
+    npy_arr *arr = me->arr;
+    int n_dims = arr->n_dims;
+    if (!is_first) {
+        pp_indent(n_dims - 1);
+    }
+    printf("[");
+    size_t cnt = arr->dims[n_dims - 1];
+    for (int i = 0; i < cnt - 1; i++) {
+        pp_value(me, i);
+        printf(me->sep);
+    }
+    pp_value(me, cnt - 1);
+    printf("]");
+}
+
+
+static void
+pp_rec(npy_pp *me, int dim_idx, bool is_first) {
+    npy_arr *arr = me->arr;
+    int n_dims = arr->n_dims;
+    int *dims = arr->dims;
+    if (dim_idx == n_dims - 1) {
+        pp_row(me, is_first);
+    } else {
+        if (!is_first) {
+            pp_indent(dim_idx);
+        }
+        printf("[");
+        int n_els = dims[dim_idx];
+        for (int i = 0; i < n_els - 1; i++) {
+            pp_rec(me, dim_idx + 1, i == 0);
+            printf(",\n");
+        }
+        pp_rec(me, dim_idx + 1, n_els == 1);
+        printf("]");
+    }
+    if (dim_idx == 0) {
+        printf("\n");
+    }
+}
+
+void
+npy_pp_print_arr(npy_pp *me, npy_arr *arr) {
+    me->value_idx = 0;
+
+    // Find suitable format string and element width.
+    char tp = arr->type;
+    int width;
+    if (tp == 'S') {
+        sprintf(me->fmt, "%%%ds", arr->el_size);
+        width = arr->el_size;
+    } else {
+        // Empty arrays...
+        double max = npy_value_at_as_double(arr, 0);
+        double min = 0;
+        for (int i = 1; i < npy_n_elements(arr); i++) {
+            double at = npy_value_at_as_double(arr, i);
+            if (at < min) {
+                min = at;
+            } else if (at > max) {
+                max = at;
+            }
+        }
+        int max_width = (int)ceil(log10(max));
+        int min_width = (int)ceil(log10(-min)) + 1;
+        width = MAX(max_width, min_width);
+        if (arr->type == 'i') {
+            sprintf(me->fmt, "%%%dd", width);
+        } else if (arr->type == 'u') {
+            sprintf(me->fmt, "%%%du", width);
+        } else  {
+            width += 1 + me->n_decimals;
+            sprintf(me->fmt, "%%%d.%df", width, me->n_decimals);
+        }
+    }
+
+    // Estimate line-width
+    int n_sep = strlen(me->sep);
+    int n_els = arr->dims[arr->n_dims - 1];
+    int line_length = n_els * (width + n_sep);
+    me->break_lines = line_length > me->n_columns;
+    me->n_items_per_line = me->n_columns / (width + n_sep);
+
+    // Begin recursive printing.
+    me->value_idx = 0;
+    me->arr = arr;
+    pp_rec(me, 0, true);
 }

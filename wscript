@@ -152,6 +152,7 @@ def build(ctx):
         'collectors' : ['GC_OBJS', 'DT_OBJS', 'QF_OBJS'],
         'datatypes' : ['DT_OBJS'],
         'ieee754' : ['IEEE754_OBJS', 'DT_OBJS', 'RANDOM_OBJS'],
+        'npy' : ['DT_OBJS', 'NPY_OBJS'],
         'opencl' : {
             'DT_OBJS',
             'GOMP',
