@@ -9,11 +9,11 @@ static void
 print_dims(npy_arr *arr) {
     int *dims = arr->dims;
     int n_dims = arr->n_dims;
-    printf("(");
+    printf("[");
     for (int i = 0; i < n_dims - 1; i++) {
         printf("%d, ", dims[i]);
     }
-    printf("%d)", dims[n_dims - 1]);
+    printf("%d]", dims[n_dims - 1]);
 }
 
 int
@@ -41,7 +41,7 @@ main(int argc, char *argv[]) {
     if (!ioctl(STDOUT_FILENO, TIOCGWINSZ, &w)) {
         n_columns = w.ws_col;
     }
-    npy_pp *pp = npy_pp_init(1, n_columns, ", ");
+    npy_pp *pp = npy_pp_init(1, n_columns, " ");
 
     npy_pp_print_arr(pp, arr);
 

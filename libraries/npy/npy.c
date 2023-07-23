@@ -327,11 +327,12 @@ npy_pp_print_arr(npy_pp *me, npy_arr *arr) {
     }
 
     // Estimate line-width
+    int n_dims = arr->n_dims;
     int n_sep = strlen(me->sep);
-    int n_els = arr->dims[arr->n_dims - 1];
+    int n_els = arr->dims[n_dims - 1];
     int line_length = n_els * (width + n_sep);
     me->break_lines = line_length > me->n_columns;
-    me->n_items_per_line = me->n_columns / (width + n_sep);
+    me->n_items_per_line = (me->n_columns - n_dims) / (width + n_sep);
 
     // Begin recursive printing.
     me->value_idx = 0;
