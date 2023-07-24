@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019, 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -39,7 +39,7 @@ vec2 *
 v2_array_pack(vector *a) {
     size_t n = a->used / 2;
     vec2 *out = (vec2 *)malloc(sizeof(vec2) * n);
-    for (int i  = 0; i < n; i++) {
+    for (size_t i  = 0; i < n; i++) {
         out[i].x = BW_PTR_TO_FLOAT(a->array[2 * i]);
         out[i].y = BW_PTR_TO_FLOAT(a->array[2 * i + 1]);
     }
@@ -50,7 +50,7 @@ vec3 *
 v3_array_pack(vector *a) {
     size_t n = a->used / 3;
     vec3 *out = (vec3 *)malloc(sizeof(vec3) * n);
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         out[i].x = BW_PTR_TO_FLOAT(a->array[3 * i]);
         out[i].y = BW_PTR_TO_FLOAT(a->array[3 * i + 1]);
         out[i].z = BW_PTR_TO_FLOAT(a->array[3 * i + 2]);

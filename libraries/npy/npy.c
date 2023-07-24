@@ -260,7 +260,7 @@ pp_row(npy_pp *me, bool is_first) {
     int cnt = arr->dims[n_dims - 1];
     for (int i = 0; i < cnt - 1; i++) {
         pp_value(me, i);
-        printf(me->sep);
+        fputs(me->sep, stdout);
     }
     if (cnt) {
         pp_value(me, cnt - 1);
@@ -307,7 +307,7 @@ npy_pp_print_arr(npy_pp *me, npy_arr *arr) {
     } else {
         double max = 0;
         double min = 0;
-        for (int i = 0; i < npy_n_elements(arr); i++) {
+        for (size_t i = 0; i < npy_n_elements(arr); i++) {
             double at = npy_value_at_as_double(arr, i);
             if (at < min) {
                 min = at;

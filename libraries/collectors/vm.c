@@ -1,3 +1,4 @@
+// Copyright (C) 2023 Björn A. Lindqvist
 #include <assert.h>
 #include "collectors/vm.h"
 
@@ -118,7 +119,7 @@ vm_array_init(vm *me, int n, ptr value) {
 
     value = vm_last(me);
     ptr *base = SLOT_P(item, 1);
-    for (size_t i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++) {
         me->gc_dispatch->set_new_ptr(me->gc_obj, base + i, value);
     }
     vm_remove(me);

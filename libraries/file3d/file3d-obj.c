@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019, 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <ctype.h>
 #include <string.h>
 
@@ -26,7 +26,7 @@ str_is_empty(const char *s) {
 static int *
 index_array_pack(vector *a, int n_vecs) {
     int *pack = (int *)malloc(sizeof(int) * a->used);
-    for (int i = 0; i < a->used; i++) {
+    for (size_t i = 0; i < a->used; i++) {
         int idx = (int)a->array[i];
         if (idx < 0) {
             idx = n_vecs + idx;
