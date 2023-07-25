@@ -197,7 +197,7 @@ npy_pp_free(npy_pp *me) {
 }
 
 static void
-pp_indent(int n) {
+indent(int n) {
     for (int i = 0; i < n; i++) {
         printf(" ");
     }
@@ -222,7 +222,7 @@ pp_value(npy_pp *me, int row_idx) {
         row_idx % me->n_items_per_line == 0 &&
         row_idx > 0) {
         printf("\n");
-        pp_indent(n_dims);
+        indent(n_dims);
     }
     bool printed = false;
     PRINT_EL_AT('i', 1, int8_t);
@@ -235,14 +235,7 @@ pp_value(npy_pp *me, int row_idx) {
     PRINT_EL_AT('f', 8, double);
     if (!printed) {
         const char *s = data + v * i;
-        for (int k = 0; k < v; k++) {
-            unsigned char c = *s;
-            if (c == 0) {
-                break;
-            }
-            putchar(c);
-            s++;
-        }
+        printf(fmt, s);
     }
     me->value_idx++;
 }
@@ -253,7 +246,7 @@ pp_row(npy_pp *me, bool is_first) {
     npy_arr *arr = me->arr;
     int n_dims = arr->n_dims;
     if (!is_first) {
-        pp_indent(n_dims - 1);
+        indent(n_dims - 1);
     }
     printf("[");
 
@@ -278,7 +271,7 @@ pp_rec(npy_pp *me, int dim_idx, bool is_first) {
         pp_row(me, is_first);
     } else {
         if (!is_first) {
-            pp_indent(dim_idx);
+            indent(dim_idx);
         }
         printf("[");
         int n_els = dims[dim_idx];
@@ -294,36 +287,56 @@ pp_rec(npy_pp *me, int dim_idx, bool is_first) {
     }
 }
 
+// Figure out a good cell-width for the array
+static size_t
+cell_width(npy_pp *me, npy_arr *arr) {
+    char tp = arr->type;
+    size_t n_els = npy_n_elements(arr);
+    size_t el_size = arr->el_size;
+    size_t width = 0;
+    if (tp == 'S') {
+        for (size_t i = 0; i < n_els; i++) {
+            size_t width0 = strnlen(arr->data + i * el_size, el_size);
+            width = MAX(width, width0);
+        }
+        return width;
+    }
+    double max = 0;
+    double min = 0;
+    for (size_t i = 0; i < n_els; i++) {
+        double at = npy_value_at_as_double(arr, i);
+        if (at < min) {
+            min = at;
+        } else if (at > max) {
+            max = at;
+        }
+    }
+    int max_width = (int)ceil(log10(max));
+    int min_width = (int)ceil(log10(-min)) + 1;
+    width = MAX(max_width, min_width);
+    if (tp  == 'f') {
+        width += 1 + me->n_decimals;
+    }
+    return width;
+}
+
 void
 npy_pp_print_arr(npy_pp *me, npy_arr *arr) {
     me->value_idx = 0;
 
     // Find suitable format string and element width.
     char tp = arr->type;
-    int width;
+    int width = cell_width(me, arr);
     if (tp == 'S') {
-        sprintf(me->fmt, "%%%ds", arr->el_size);
-        width = arr->el_size;
+        // Note the period which limits the maximum number of
+        // characters printed.
+        sprintf(me->fmt, "%%-%d.%ds", width, width);
     } else {
-        double max = 0;
-        double min = 0;
-        for (size_t i = 0; i < npy_n_elements(arr); i++) {
-            double at = npy_value_at_as_double(arr, i);
-            if (at < min) {
-                min = at;
-            } else if (at > max) {
-                max = at;
-            }
-        }
-        int max_width = (int)ceil(log10(max));
-        int min_width = (int)ceil(log10(-min)) + 1;
-        width = MAX(max_width, min_width);
         if (arr->type == 'i') {
             sprintf(me->fmt, "%%%dd", width);
         } else if (arr->type == 'u') {
             sprintf(me->fmt, "%%%du", width);
         } else  {
-            width += 1 + me->n_decimals;
             sprintf(me->fmt, "%%%d.%df", width, me->n_decimals);
         }
     }
