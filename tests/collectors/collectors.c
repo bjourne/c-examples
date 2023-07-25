@@ -1,3 +1,4 @@
+// Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <stdlib.h>
 #include "collectors/vm.h"
@@ -162,7 +163,7 @@ test_stack_overflow() {
     vm *v = vm_init(dispatch, 10 << 20);
     vm_add(v, vm_wrapper_init(v, 0));
     size_t n_loops = 300000;
-    for (int i = 0; i < n_loops; i++) {
+    for (size_t i = 0; i < n_loops; i++) {
         vm_set(v, 0, vm_wrapper_init(v, vm_get(v, 0)));
     }
     vm_collect(v);
@@ -242,7 +243,7 @@ test_torture2() {
     vm *v = vm_init(dispatch, 1024 * 1024 * 1024);
     vm_add(v, vm_wrapper_init(v, 0));
     size_t n_loops = 25 * 1024 * 1024;
-    for (int i = 0; i < n_loops; i++) {
+    for (size_t i = 0; i < n_loops; i++) {
         vm_set(v, 0, vm_wrapper_init(v, vm_get(v, 0)));
     }
 

@@ -72,7 +72,7 @@ test_callstack_overflow() {
     for (bstkey i = 0; i < count; i++) {
         bst = bst_add_key(bst, i);
     }
-    assert(bst_size(bst) == count);
+    assert(bst_size(bst) == (size_t)count);
     bst_free(bst);
 }
 

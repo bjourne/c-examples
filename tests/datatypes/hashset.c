@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2021, 2023 Björn Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <inttypes.h>
 #include <time.h>
@@ -11,7 +11,7 @@ test_bad_bug() {
         3, 35, 67, 99, 131, 163, 195,
         227, 259, 291, 323, 355, 387
     };
-    for (int i = 0; i < ARRAY_SIZE(values); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(values); i++) {
         hs_add(hs, values[i]);
         assert(hs_in_p(hs, values[i]));
     }
@@ -84,8 +84,8 @@ test_congestion() {
     int values[] = {
         3, 35, 67, 99, 131, 163, 195, 227, 259, 291
     };
-    int n_values = ARRAY_SIZE(values);
-    for (int i = 0; i < n_values; i++) {
+    size_t n_values = ARRAY_SIZE(values);
+    for (size_t i = 0; i < n_values; i++) {
         assert(hs_add(hs, values[i]));
     }
     assert(hs->n_used == n_values);
@@ -129,7 +129,7 @@ test_rehash() {
     hashset *hs = hs_init();
     int first_cap = hs->capacity;
     size_t max_used = (size_t)(hs->capacity * HS_MAX_FILL);
-    for (int i = 0; i < max_used - 1; i++) {
+    for (size_t i = 0; i < max_used - 1; i++) {
         hs_add(hs, i + 2);
         hs_remove(hs, i + 2);
         assert(hs->n_items == 0);
@@ -137,7 +137,7 @@ test_rehash() {
     // This one causes a rehashing.
     hs_add(hs, max_used + 2);
     assert(hs->capacity == 2 * first_cap);
-    for (int i = 0; i < hs->capacity; i++) {
+    for (size_t i = 0; i < hs->capacity; i++) {
         assert(hs->array[i] != 1);
     }
     hs_free(hs);
