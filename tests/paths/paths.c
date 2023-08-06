@@ -64,10 +64,39 @@ test_ext() {
     }
 }
 
+void
+test_normalize() {
+    char* tests[][2] = {
+        {"", "."},
+        {"///", "/"},
+        {"///.", "/"},
+        {".././.", ".."},
+        {"foo" , "foo"},
+        {"/foo", "/foo"},
+        {"///foo", "/foo"},
+        {"foo/bar/baz", "foo/bar/baz"},
+        {"foo/bar//baz//", "foo/bar/baz"},
+        {"eeh/", "eeh"},
+        {"/", "/"},
+        {"foo/./bar", "foo/bar"},
+        {"./foo", "foo"},
+        {"/./.", "/"}
+    };
+    for (int i = 0; i < ARRAY_SIZE(tests); i++) {
+        char *inp = tests[i][0];
+        char *exp = tests[i][1];
+        char *res = paths_normalize(inp);
+        printf("%-20s => %-20s, expected: %-20s\n", inp, res, exp);
+        assert(!strcmp(exp, res));
+        free(res);
+    }
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_basename);
     PRINT_RUN(test_dirname);
     PRINT_RUN(test_stem);
     PRINT_RUN(test_ext);
+    PRINT_RUN(test_normalize);
 }

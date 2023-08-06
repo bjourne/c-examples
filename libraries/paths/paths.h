@@ -9,5 +9,6 @@ const char *paths_ext(const char *path);
 // Allocates memory
 char *paths_stem(const char *path);
 char *paths_dirname(char *path);
+char *paths_normalize(const char *path);
 
 #endif

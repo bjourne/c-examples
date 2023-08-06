@@ -1,4 +1,5 @@
 // Copyright (C) 2019, 2022-2023 Björn Lindqvist <bjourne@gmail.com>
+#include <stdbool.h>
 #include <string.h>
 #include "datatypes/common.h"
 #include "paths.h"
@@ -60,4 +61,44 @@ paths_dirname(char *path) {
     strncpy(buf, path, len);
     buf[len] = '\0';
     return buf;
+}
+
+char *
+paths_normalize(const char *path) {
+    size_t n = strlen(path);
+    char *ret = malloc(n);
+    char *buf = malloc(n);
+    size_t ri = 0;
+    size_t bi = 0;
+    bool is_first = true;
+    if (path[0] == '/') {
+        ret[0] = '/';
+        ri++;
+    }
+    for (size_t pi = 0; pi <= n; pi++) {
+        // Note short-circuiting
+        if (pi == n || path[pi] == '/') {
+            // Check buffer
+            if (bi > 0 && !(bi == 1 && buf[0] == '.')) {
+                if (!is_first) {
+                    ret[ri] = '/';
+                    ri++;
+                }
+                is_first = false;
+                memcpy(&ret[ri], buf, bi);
+                ri += bi;
+            }
+            bi = 0;
+        } else {
+            buf[bi] = path[pi];
+            bi++;
+        }
+    }
+    if (!ri) {
+        ret[ri] = '.';
+        ri++;
+    }
+    ret[ri] = '\0';
+    free(buf);
+    return ret;
 }
