@@ -102,7 +102,8 @@ test_join() {
         {"foo", "bar", "foo/bar"},
         {"", "", "."},
         {"..///.q", ".", "../.q"},
-        {"/foo", "bar/", "/foo/bar"}
+        {"/foo", "bar/", "/foo/bar"},
+        {"0123456789abcdef", "12345678", "0123456789abcdef/12345678"}
     };
     for (int i = 0; i < ARRAY_SIZE(tests); i++) {
         char *x = tests[i][0];
@@ -114,7 +115,6 @@ test_join() {
         free(got);
     }
 }
-
 
 int
 main(int argc, char *argv[]) {

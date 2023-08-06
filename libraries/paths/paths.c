@@ -1,4 +1,5 @@
 // Copyright (C) 2019, 2022-2023 Björn Lindqvist <bjourne@gmail.com>
+#include <assert.h>
 #include <stdbool.h>
 #include <string.h>
 #include "datatypes/common.h"
@@ -66,7 +67,9 @@ paths_dirname(char *path) {
 char *
 paths_normalize(const char *path) {
     size_t n = strlen(path);
-    char *ret = malloc(n);
+
+    // If path is "" output is "." which requires 2 bytes.
+    char *ret = malloc(n + 2);
     char *buf = malloc(n);
     size_t ri = 0;
     size_t bi = 0;
@@ -108,7 +111,6 @@ char *paths_join(const char *p1, const char *p2) {
     char *y = paths_normalize(p2);
     size_t xl = strlen(x);
     size_t yl = strlen(y);
-
     char *z = NULL;
     if (y[0] == '/') {
         z = strdup(y);
