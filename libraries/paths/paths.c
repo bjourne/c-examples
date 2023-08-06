@@ -102,3 +102,27 @@ paths_normalize(const char *path) {
     free(buf);
     return ret;
 }
+
+char *paths_join(const char *p1, const char *p2) {
+    char *x = paths_normalize(p1);
+    char *y = paths_normalize(p2);
+    size_t xl = strlen(x);
+    size_t yl = strlen(y);
+
+    char *z = NULL;
+    if (y[0] == '/') {
+        z = strdup(y);
+    } else {
+        char *tmp = malloc(xl + yl + 2);
+        memcpy(&tmp[0], x, xl);
+        tmp[xl] = '/';
+        memcpy(&tmp[xl + 1], y, yl);
+        tmp[xl + yl + 1] = '\0';
+        printf("tmp %s\n", tmp);
+        z = paths_normalize(tmp);
+        free(tmp);
+    }
+    free(x);
+    free(y);
+    return z;
+}

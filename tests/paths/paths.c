@@ -68,11 +68,13 @@ void
 test_normalize() {
     char* tests[][2] = {
         {"", "."},
+        {"./.", "."},
         {"///", "/"},
         {"///.", "/"},
         {".././.", ".."},
         {"foo" , "foo"},
         {"/foo", "/foo"},
+        {"foo/.", "foo"},
         {"///foo", "/foo"},
         {"foo/bar/baz", "foo/bar/baz"},
         {"foo/bar//baz//", "foo/bar/baz"},
@@ -92,6 +94,28 @@ test_normalize() {
     }
 }
 
+void
+test_join() {
+    char* tests[][3] = {
+        {"foo", "/bar", "/bar"},
+        {"foo/", "bar", "foo/bar"},
+        {"foo", "bar", "foo/bar"},
+        {"", "", "."},
+        {"..///.q", ".", "../.q"},
+        {"/foo", "bar/", "/foo/bar"}
+    };
+    for (int i = 0; i < ARRAY_SIZE(tests); i++) {
+        char *x = tests[i][0];
+        char *y = tests[i][1];
+        char *exp = tests[i][2];
+        char *got = paths_join(x, y);
+        printf("%-20s + %-20s => %-20s, got: %-20s\n", x, y, exp, got);
+        assert(!strcmp(exp, got));
+        free(got);
+    }
+}
+
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_basename);
@@ -99,4 +123,5 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_stem);
     PRINT_RUN(test_ext);
     PRINT_RUN(test_normalize);
+    PRINT_RUN(test_join);
 }

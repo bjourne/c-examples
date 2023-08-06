@@ -10,5 +10,6 @@ const char *paths_ext(const char *path);
 char *paths_stem(const char *path);
 char *paths_dirname(char *path);
 char *paths_normalize(const char *path);
+char *paths_join(const char *p1, const char *p2);
 
 #endif
