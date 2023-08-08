@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019, 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,7 +26,7 @@ array_shuffle(void *array, size_t n, size_t size) {
 
 typedef struct {
     void *ctx;
-    int (*key_fun)(void *ctx, const void *a);
+    array_cmp_fun *fun;
 } compare_context;
 
 static int
@@ -38,19 +38,37 @@ cmp_fun(
 #endif
 ) {
     compare_context *outer = (compare_context *)ctx;
-    int k1 = outer->key_fun(outer->ctx, a);
-    int k2 = outer->key_fun(outer->ctx, b);
-    return k1 - k2;
+    // I don't know if this is kosher...
+    return outer->fun(*(void **)a, *(void **)b, outer->ctx);
 }
 
 void
-array_qsort_with_key(void *base, size_t nmemb, size_t size,
-                     int (*key_fun)(void *ctx, const void *a),
-                     void *ctx) {
-    compare_context outer_ctx = { ctx, key_fun };
+array_qsort(void *base, size_t nmemb, size_t size,
+            array_cmp_fun *fun, void *ctx) {
+    compare_context outer_ctx = { ctx, fun };
 #if defined(_MSC_VER)
     qsort_s(base, nmemb, size, cmp_fun, (void *)&outer_ctx);
 #else
     qsort_r(base, nmemb, size, cmp_fun, (void *)&outer_ctx);
 #endif
+}
+
+typedef struct {
+    void *ctx;
+    array_key_fun *fun;
+} key_compare_context;
+
+static int
+key_cmp_fun(const void *a, const void *b, void *ctx) {
+    key_compare_context *wrap = (key_compare_context *)ctx;
+    int k1 = wrap->fun(a, wrap->ctx);
+    int k2 = wrap->fun(b, wrap->ctx);
+    return k1 - k2;
+}
+
+void
+array_qsort_by_key(void *base, size_t nmemb, size_t size,
+                   array_key_fun *fun, void *ctx) {
+    key_compare_context wrap = { ctx, fun };
+    array_qsort(base, nmemb, size, key_cmp_fun, (void *)&wrap);
 }
