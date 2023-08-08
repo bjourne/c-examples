@@ -68,11 +68,49 @@ test_sorting_strings() {
     assert(!strcmp(strings[3], "three"));
 }
 
+void
+test_argsort() {
+    char *strings[] = {
+        "foo",
+        "bar",
+        "xyz",
+        "aaa",
+        "nnnn"
+    };
+    int *indices = array_qsort_indirect(strings, 5, sizeof(char *),
+                                        (array_cmp_fun *)&strcmp, NULL);
+    for (int i = 0; i < 5; i++) {
+        printf("%d\n", indices[i]);
+    }
+    free(indices);
+}
+
+void
+test_permute() {
+    char *strings[] = {
+        "a", "b", "c", "d",
+        "e", "f", "g", "h"
+    };
+    char *expected[] = {
+        "a", "c", "b", "d",
+        "e", "h", "g", "f"
+    };
+    int indices[8] = {0, 2, 1, 3, 4, 7, 6, 5};
+    array_permute(strings, ARRAY_SIZE(indices),
+                  sizeof(char *), indices);
+
+    for (size_t i = 0; i < ARRAY_SIZE(indices); i++) {
+        assert(!strcmp(strings[i], expected[i]));
+    }
+}
+
 int
 main(int argc, char *argv[]) {
     rand_init(0);
     PRINT_RUN(test_array_shuffle);
     PRINT_RUN(test_sorting);
     PRINT_RUN(test_sorting_strings);
+    PRINT_RUN(test_argsort);
+    PRINT_RUN(test_permute);
     return 0;
 }

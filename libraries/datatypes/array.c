@@ -1,5 +1,6 @@
 // Copyright (C) 2019, 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "array.h"
@@ -71,4 +72,50 @@ array_qsort_by_key(void *base, size_t nmemb, size_t size,
                    array_key_fun *fun, void *ctx) {
     key_compare_context wrap = { ctx, fun };
     array_qsort(base, nmemb, size, key_cmp_fun, (void *)&wrap);
+}
+
+typedef struct {
+    void *ctx;
+    array_cmp_fun *fun;
+    void *base;
+    size_t size;
+} indirect_compare_context;
+
+static int
+ind_cmp_fun(const void *a, const void *b, void *ctx) {
+    indirect_compare_context *outer = (indirect_compare_context *)ctx;
+    int ai = (int)((uintptr_t)a & 0xffffffff);
+    int bi = (int)((uintptr_t)b & 0xffffffff);
+    void *av = outer->base + outer->size * ai;
+    void *bv = outer->base + outer->size * bi;
+    return outer->fun(*(void **)av, *(void **)bv, outer->ctx);
+}
+
+int*
+array_qsort_indirect(void *base, size_t nmemb, size_t size,
+                     array_cmp_fun *fun, void *ctx) {
+    int *indices = malloc(nmemb * sizeof(int));
+    for (size_t i = 0; i < nmemb; i++) {
+        indices[i] = i;
+    }
+    indirect_compare_context wrap = { ctx, fun, base, size };
+    array_qsort(indices, nmemb, sizeof(int),
+                ind_cmp_fun, (void *)&wrap);
+
+
+    return indices;
+}
+
+
+void
+array_permute(void *base, size_t nmemb, size_t size, int *indices) {
+    for (size_t i = 0; i < nmemb - 1; i++) {
+        size_t ind = indices[i];
+        while (ind < i) {
+            ind = indices[ind];
+        }
+        void *tmp = *(void **)(base + size * i);
+        *(void **)(base + size * i) = *(void **)(base + size * ind);
+        *(void **)(base + size * ind) = tmp;
+    }
 }

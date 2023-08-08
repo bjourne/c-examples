@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019, 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef ARRAY_BL_H
 #define ARRAY_BL_H
 
@@ -15,10 +15,18 @@ array_qsort(void *base, size_t nmemb, size_t size,
             int (*cmp_fun)(const void *a, const void *b, void *ctx),
             void *ctx);
 
+int*
+array_qsort_indirect(void *base, size_t nmemb, size_t size,
+                     int (*cmp_fun)(const void *a, const void *b, void *ctx),
+                     void *ctx);
+
 // Quicksorting with a custom key function.
 void
 array_qsort_by_key(void *base, size_t nmemb, size_t size,
                    array_key_fun *fun, void *ctx);
+
+void
+array_permute(void *base, size_t nmemb, size_t size, int *indices);
 
 
 #endif
