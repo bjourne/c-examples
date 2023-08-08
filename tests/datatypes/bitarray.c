@@ -81,7 +81,7 @@ void
 test_next_unset_bit() {
     bitarray *ba = ba_init(1024);
     ba_set_bit_range(ba, 0, 65);
-    assert(AT(ba->bits) == -1);
+    assert(AT(ba->bits) == 0xffffffffffffffff);
     assert(AT(ba->bits + sizeof(ptr)) == 1);
 
     assert(ba_next_unset_bit(ba, 0) == 65);

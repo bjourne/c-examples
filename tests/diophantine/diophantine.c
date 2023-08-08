@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include "datatypes/common.h"
 #include "diophantine/diophantine.h"
@@ -11,7 +11,7 @@ test_solvable_eqs() {
         {3, -4, 8},
         {10, -6, -6}
     };
-    for (int i = 0; i < ARRAY_SIZE(inputs); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(inputs); i++) {
         int x0, xk, y0, yk;
         int a = inputs[i][0];
         int b = inputs[i][1];
@@ -29,7 +29,7 @@ test_unsolvable_eqs() {
         {2, -2, 1},
         {2, 2, 1}
     };
-    for (int i = 0; i < ARRAY_SIZE(inputs); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(inputs); i++) {
         int a = inputs[i][0];
         int b = inputs[i][1];
         int c = inputs[i][2];
@@ -59,7 +59,7 @@ test_constrain_sols() {
         {1, 2},
         {-1, 9}
     };
-    for (int i = 0; i < ARRAY_SIZE(inputs); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(inputs); i++) {
         int r_lo, r_hi;
         int b = inputs[i][0];
         int s = inputs[i][1];

@@ -8,7 +8,7 @@ test_bit_markings() {
     ptr mem = (ptr)malloc(heap_size);
     mark_sweep_bits_gc *ms = msb_init(mem, heap_size);
 
-    assert(ms->ba->n_words == (heap_size / 16 / BA_WORD_BITS));
+    assert((size_t)ms->ba->n_words == (heap_size / 16 / BA_WORD_BITS));
 
     vector *roots = v_init(16);
     v_add(roots, msb_do_allot(ms, TYPE_INT, 1000));

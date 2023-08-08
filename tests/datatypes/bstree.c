@@ -248,7 +248,7 @@ test_successors_with_duplicates() {
     while (true) {
         count++;
         iter = bst_iterate(t, iter, BST_LEFT);
-        if (!iter || iter->key != key) {
+        if (!iter || iter->key != (bstkey)key) {
             break;
         }
         key = iter->key;

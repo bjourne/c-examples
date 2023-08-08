@@ -1,4 +1,4 @@
-// Copyright (C) 2021, 2023 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2021, 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <inttypes.h>
 #include <time.h>
@@ -127,7 +127,7 @@ test_growing() {
 void
 test_rehash() {
     hashset *hs = hs_init();
-    int first_cap = hs->capacity;
+    size_t first_cap = hs->capacity;
     size_t max_used = (size_t)(hs->capacity * HS_MAX_FILL);
     for (size_t i = 0; i < max_used - 1; i++) {
         hs_add(hs, i + 2);

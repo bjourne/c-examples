@@ -37,7 +37,7 @@ test_f32_to_i32() {
         0,
         -123
     };
-    for (int i = 0; i < ARRAY_SIZE(floats); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(floats); i++) {
         float f = floats[i];
         int v = ints[i];
         printf("%18.4f -> %10d\n", f, v);

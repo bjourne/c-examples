@@ -58,7 +58,7 @@ test_ext() {
         {"blah.MOO", "MOO"},
         {"mooo", ""}
     };
-    for (int i = 0; i < ARRAY_SIZE(tests); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(tests); i++) {
         const char *res = paths_ext(tests[i][0]);
         assert(!strcmp(tests[i][1], res));
     }
