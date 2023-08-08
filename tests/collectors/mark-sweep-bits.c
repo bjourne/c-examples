@@ -1,3 +1,4 @@
+// Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include "collectors/mark-sweep-bits.h"
 

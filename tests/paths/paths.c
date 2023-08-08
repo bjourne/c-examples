@@ -13,7 +13,7 @@ test_basename() {
         {"/C/foo.txt", "foo.txt"},
         {"", ""}
     };
-    for (int i = 0; i < ARRAY_SIZE(tests); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(tests); i++) {
         const char *res = paths_basename(tests[i][0]);
         assert(!strcmp(tests[i][1], res));
     }
@@ -32,7 +32,7 @@ test_dirname() {
         {"/this/is/////simple", "/this/is"},
         {"this/here", "this"}
     };
-    for (int i = 0; i < ARRAY_SIZE(tests); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(tests); i++) {
         char *res = paths_dirname(tests[i][0]);
         assert(!strcmp(tests[i][1], res));
         free(res);
@@ -44,7 +44,7 @@ test_stem() {
     char* tests[][2] = {
         {"libraries/opencl/matmul.cl", "matmul"}
     };
-    for (int i = 0; i < ARRAY_SIZE(tests); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(tests); i++) {
         char *res = paths_stem(tests[i][0]);
         assert(!strcmp(tests[i][1], res));
         free(res);
@@ -84,7 +84,7 @@ test_normalize() {
         {"./foo", "foo"},
         {"/./.", "/"}
     };
-    for (int i = 0; i < ARRAY_SIZE(tests); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(tests); i++) {
         char *inp = tests[i][0];
         char *exp = tests[i][1];
         char *res = paths_normalize(inp);
@@ -105,7 +105,7 @@ test_join() {
         {"/foo", "bar/", "/foo/bar"},
         {"0123456789abcdef", "12345678", "0123456789abcdef/12345678"}
     };
-    for (int i = 0; i < ARRAY_SIZE(tests); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(tests); i++) {
         char *x = tests[i][0];
         char *y = tests[i][1];
         char *exp = tests[i][2];

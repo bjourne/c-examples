@@ -21,7 +21,7 @@ list_platforms() {
     cl_platform_id *platforms;
     ocl_get_platforms(&n_platforms, &platforms);
 
-    for (int i  = 0; i < n_platforms; i++) {
+    for (cl_uint i  = 0; i < n_platforms; i++) {
         for (int j = 0; j < 5; j++) {
             char *info = (char *)ocl_get_platform_info(platforms[i],
                                                        attr_types[j]);
@@ -33,7 +33,7 @@ list_platforms() {
 
         ocl_get_devices(platforms[i], &n_devices, &devices);
         printf("%-15s: %d\n", "Devices", n_devices);
-        for (int j = 0; j < n_devices; j++) {
+        for (cl_uint j = 0; j < n_devices; j++) {
             ocl_print_device_details(devices[j], 2);
         }
         free(devices);
