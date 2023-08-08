@@ -73,7 +73,7 @@ naive_strlen(const char *str) {
 char *
 make_buffer(size_t size) {
     char *mem = (char *)malloc(size + 1);
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         mem[i] = (rand() % 255) + 1;
     }
     mem[size] = 0;

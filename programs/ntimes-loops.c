@@ -101,7 +101,7 @@ count_compl(const char* s) {
     const size_t PMASK = ONES * (size_t) 'p'; // 0x...70707070
     size_t s_accum = 0;
     size_t p_accum = 0;
-    int iters = 0;
+    size_t iters = 0;
     while (1) {
         size_t w;
         memcpy(&w, s, sizeof(size_t));
@@ -336,7 +336,7 @@ thr_avx2(void *arg) {
     size_t n_chunks = job->n_bytes / 32;
 
     __m256i cnt = _mm256_setzero_si256();
-    for (int i = 0; i < n_chunks; i++, s += 32) {
+    for (size_t i = 0; i < n_chunks; i++, s += 32) {
         // Load 32 bytes from the pointer
         const __m256i v = _mm256_load_si256((const __m256i *)s);
 
@@ -354,7 +354,7 @@ thr_avx2(void *arg) {
     int res = (int)(hadd_epi64(cnt) / 0xFF);
     if (job->is_last) {
         size_t rem = job->n_bytes - n_chunks * 32;
-        for (int i = 0; i < rem; i++) {
+        for (size_t i = 0; i < rem; i++) {
             char c = *s++;
             res += c == 's';
             res -= c == 'p';
