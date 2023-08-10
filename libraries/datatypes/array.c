@@ -1,5 +1,6 @@
 // Copyright (C) 2019, 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -83,23 +84,23 @@ typedef struct {
 
 static int
 ind_cmp_fun(const void *a, const void *b, void *ctx) {
-    indirect_compare_context *outer = (indirect_compare_context *)ctx;
-    int ai = (int)((uintptr_t)a & 0xffffffff);
-    int bi = (int)((uintptr_t)b & 0xffffffff);
-    void *av = outer->base + outer->size * ai;
-    void *bv = outer->base + outer->size * bi;
-    return outer->fun(*(void **)av, *(void **)bv, outer->ctx);
+    indirect_compare_context *wrap = (indirect_compare_context *)ctx;
+    size_t ai = (size_t)a & 0xffffffff;
+    size_t bi = (size_t)b & 0xffffffff;
+    void *av = wrap->base + wrap->size * ai;
+    void *bv = wrap->base + wrap->size * bi;
+    return wrap->fun(*(void **)av, *(void **)bv, wrap->ctx);
 }
 
-int*
+size_t*
 array_qsort_indirect(void *base, size_t nmemb, size_t size,
                      array_cmp_fun *fun, void *ctx) {
-    int *indices = malloc(nmemb * sizeof(int));
+    size_t *indices = malloc(nmemb * sizeof(size_t));
     for (size_t i = 0; i < nmemb; i++) {
         indices[i] = i;
     }
     indirect_compare_context wrap = { ctx, fun, base, size };
-    array_qsort(indices, nmemb, sizeof(int),
+    array_qsort(indices, nmemb, sizeof(size_t),
                 ind_cmp_fun, (void *)&wrap);
 
 
@@ -108,14 +109,31 @@ array_qsort_indirect(void *base, size_t nmemb, size_t size,
 
 
 void
-array_permute(void *base, size_t nmemb, size_t size, int *indices) {
+array_permute(void *base, size_t nmemb, size_t size, size_t *indices) {
     for (size_t i = 0; i < nmemb - 1; i++) {
         size_t ind = indices[i];
         while (ind < i) {
             ind = indices[ind];
         }
-        void *tmp = *(void **)(base + size * i);
-        *(void **)(base + size * i) = *(void **)(base + size * ind);
-        *(void **)(base + size * ind) = tmp;
+        if (size == 8)  {
+            uint64_t *base64 = (uint64_t *)base;
+            uint64_t tmp = base64[i];
+            base64[i] = base64[ind];
+            base64[ind] = tmp;
+        } else if (size == 1) {
+            uint8_t *base8 = (uint8_t *)base;
+            uint8_t tmp = base8[i];
+            base8[i] = base8[ind];
+            base8[ind] = tmp;
+        } else {
+            assert(false);
+        }
     }
+}
+
+int
+array_ord_asc_uint8_t(const void *a, const void *b, void *ctx) {
+    uint8_t ai = (int)((uintptr_t)a & 0xff);
+    uint8_t bi = (int)((uintptr_t)b & 0xff);
+    return ai - bi;
 }

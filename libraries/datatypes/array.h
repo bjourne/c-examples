@@ -15,7 +15,7 @@ array_qsort(void *base, size_t nmemb, size_t size,
             int (*cmp_fun)(const void *a, const void *b, void *ctx),
             void *ctx);
 
-int*
+size_t*
 array_qsort_indirect(void *base, size_t nmemb, size_t size,
                      int (*cmp_fun)(const void *a, const void *b, void *ctx),
                      void *ctx);
@@ -26,7 +26,11 @@ array_qsort_by_key(void *base, size_t nmemb, size_t size,
                    array_key_fun *fun, void *ctx);
 
 void
-array_permute(void *base, size_t nmemb, size_t size, int *indices);
+array_permute(void *base, size_t nmemb, size_t size, size_t *indices);
+
+// Builtin sorts
+int
+array_ord_asc_uint8_t(const void *a, const void *b, void *ctx);
 
 
 #endif

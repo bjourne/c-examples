@@ -77,10 +77,10 @@ test_argsort() {
         "aaa",
         "nnnn"
     };
-    int *indices = array_qsort_indirect(strings, 5, sizeof(char *),
-                                        (array_cmp_fun *)&strcmp, NULL);
+    size_t *indices = array_qsort_indirect(strings, 5, sizeof(char *),
+                                           (array_cmp_fun *)&strcmp, NULL);
     for (int i = 0; i < 5; i++) {
-        printf("%d\n", indices[i]);
+        printf("%ld\n", indices[i]);
     }
     free(indices);
 }
@@ -95,13 +95,46 @@ test_permute() {
         "a", "c", "b", "d",
         "e", "h", "g", "f"
     };
-    int indices[8] = {0, 2, 1, 3, 4, 7, 6, 5};
+    size_t indices[8] = {0, 2, 1, 3, 4, 7, 6, 5};
     array_permute(strings, ARRAY_SIZE(indices),
                   sizeof(char *), indices);
 
     for (size_t i = 0; i < ARRAY_SIZE(indices); i++) {
         assert(!strcmp(strings[i], expected[i]));
     }
+}
+
+void
+test_permute2() {
+    uint8_t delays[] = {
+        19, 7, 22, 29, 15,
+        20, 17, 21, 18, 19
+    };
+    size_t n_delays = ARRAY_SIZE(delays);
+    size_t *idxs = array_qsort_indirect(
+        delays, n_delays,
+        sizeof(uint8_t),
+        (array_cmp_fun *)&array_ord_asc_uint8_t,
+        NULL);
+
+    size_t exp_idxs[10] = {
+        1, 4, 6, 8, 0,
+        9, 5, 7, 2, 3
+    };
+    for (size_t i = 0; i < n_delays; i++) {
+        assert(exp_idxs[i] == idxs[i]);
+    }
+
+    // Now apply the permutation
+    array_permute(delays, n_delays, sizeof(uint8_t), idxs);
+
+    uint8_t exp_delays[10] = {
+        7, 15, 17, 18, 19, 19, 20, 21, 22, 29
+    };
+    for (size_t i = 0; i < n_delays; i++) {
+        assert(exp_delays[i] == delays[i]);
+    }
+    free(idxs);
 }
 
 int
@@ -112,5 +145,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_sorting_strings);
     PRINT_RUN(test_argsort);
     PRINT_RUN(test_permute);
+    PRINT_RUN(test_permute2);
     return 0;
 }
