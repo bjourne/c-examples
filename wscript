@@ -21,7 +21,9 @@ def configure(ctx):
         speed_flags = []
     else:
         base_c_flags = [
-            '-Wall', '-Werror', '-fPIC', '-std=gnu11',
+            '-Wall', '-Werror',
+            # Do I want -fPIC? I don't know.
+            '-std=gnu11',
             '-Wsign-compare',
             # Since we are now using SIMD intrinsics
             '-march=native', '-mtune=native',
@@ -151,7 +153,7 @@ def build(ctx):
     # Building all tests here
     tests = {
         'collectors' : ['GC_OBJS', 'DT_OBJS', 'QF_OBJS'],
-        'datatypes' : ['DT_OBJS'],
+        'datatypes' : ['DT_OBJS', 'RANDOM_OBJS'],
         'ieee754' : ['IEEE754_OBJS', 'DT_OBJS', 'RANDOM_OBJS'],
         'npy' : ['DT_OBJS', 'NPY_OBJS'],
         'opencl' : {

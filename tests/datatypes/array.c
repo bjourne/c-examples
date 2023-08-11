@@ -5,6 +5,7 @@
 #include <string.h>
 #include "datatypes/array.h"
 #include "datatypes/common.h"
+#include "random/random.h"
 
 void
 test_array_shuffle() {
@@ -143,17 +144,49 @@ test_bsearch() {
     size_t nmemb1 = ARRAY_SIZE(arr1);
     size_t size1 = sizeof(int);
 
-    assert(array_bsearch(arr1, nmemb1, size1, &array_ord_asc_i32, (void *)15) == 4);
-    assert(array_bsearch(arr1, nmemb1, size1, &array_ord_asc_i32, (void *)100) == 7);
-    assert(array_bsearch(arr1, nmemb1, size1, &array_ord_asc_i32, (void *)-10) == 0);
+    assert(array_bsearch(arr1, nmemb1, size1, array_ord_asc_i32, NULL, (void *)15) == 4);
+    assert(array_bsearch(arr1, nmemb1, size1, array_ord_asc_i32, NULL, (void *)100) == 7);
+    assert(array_bsearch(arr1, nmemb1, size1, array_ord_asc_i32, NULL, (void *)-10) == 0);
 
     int arr2[] = {};
-    assert(array_bsearch(arr2, 0, size1, &array_ord_asc_i32, (void *)123) == 0);
+    assert(array_bsearch(arr2, 0, size1, &array_ord_asc_i32, NULL, (void *)123) == 0);
 
     uint8_t arr3[] = {2, 3, 99, 200};
     size_t nmemb3 = ARRAY_SIZE(arr3);
     size_t size3 = sizeof(uint8_t);
-    assert(array_bsearch(arr3, nmemb3, size3, &array_ord_asc_u8, (void *)5) == 2);
+    assert(array_bsearch(arr3, nmemb3, size3,
+                         &array_ord_asc_u8, NULL, (void *)5) == 2);
+
+    uint32_t arr4[] = {0, 5, 10};
+    assert(array_bsearch(arr4, 3, sizeof(uint32_t),
+                         &array_ord_asc_u32, NULL, (void *)-1) == 3);
+    assert(array_bsearch(arr4, 3, sizeof(uint32_t),
+                         &array_ord_asc_u32, NULL, (void *)1) == 1);
+}
+
+// See https://mhdm.dev/posts/sb_lower_bound/
+#define N_RND_BUF (100 * 1000 * 1000)
+#define RND_LIM (1 << 31)
+#define N_ACCESSES (10 * 1000 * 1000L)
+
+void
+test_bsearch_perf() {
+    size_t tp_size = sizeof(uint32_t);
+    rnd_pcg32_seed(1001, 370);
+    uint32_t *buf = malloc_aligned(64, tp_size * N_RND_BUF);
+    rnd_pcg32_rand_range_fill(buf, RND_LIM, N_RND_BUF);
+    printf("Sorting\n");
+    array_qsort(buf, N_RND_BUF, tp_size, array_ord_asc_u32, NULL);
+
+    uint64_t start = nano_count();
+    for (uint64_t i = 0; i < N_ACCESSES; i++) {
+        array_bsearch(buf, N_RND_BUF, tp_size,
+                      array_ord_asc_u32, NULL, (void *)(uint64_t)i);
+    }
+    uint64_t nanos = nano_count() - start;
+    double nanos_per_access = (double)nanos / (double)N_ACCESSES;
+    printf("%.2lfns/access\n", nanos_per_access);
+    free(buf);
 }
 
 int
@@ -166,5 +199,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_permute);
     PRINT_RUN(test_permute2);
     PRINT_RUN(test_bsearch);
+    PRINT_RUN(test_bsearch_perf);
     return 0;
 }

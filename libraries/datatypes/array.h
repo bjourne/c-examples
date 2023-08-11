@@ -21,6 +21,7 @@ array_qsort_by_key(void *base, size_t nmemb, size_t size,
 
 // Builtin sorts
 int array_ord_asc_u8(const void *a, const void *b, void *ctx);
+int array_ord_asc_u32(const void *a, const void *b, void *ctx);
 int array_ord_asc_i32(const void *a, const void *b, void *ctx);
 
 void array_permute(void *base, size_t nmemb, size_t size, size_t *indices);
@@ -30,7 +31,8 @@ void array_shuffle(void *array, size_t n, size_t size);
 // Binary search. Returns the insertion point.
 size_t
 array_bsearch(void *base, size_t nmemb, size_t size,
-              array_cmp_fun *fun, void *key);
+              array_cmp_fun *fun, void *ctx,
+              void *key);
 
 
 #endif

@@ -144,6 +144,20 @@ array_ord_asc_u8(const void *a,
 }
 
 int
+array_ord_asc_u32(const void *a,
+                  const void *b,
+                  void *ctx __attribute__((unused))) {
+    uint32_t ai = (uint32_t)((uintptr_t)a & 0xffffffff);
+    uint32_t bi = (uint32_t)((uintptr_t)b & 0xffffffff);
+    if (ai > bi) {
+        return 1;
+    } else if (ai < bi) {
+        return -1;
+    }
+    return 0;
+}
+
+int
 array_ord_asc_i32(const void *a,
                   const void *b,
                   void *ctx __attribute__((unused))) {
@@ -152,17 +166,56 @@ array_ord_asc_i32(const void *a,
     return ai - bi;
 }
 
-size_t
-array_bsearch(void *base, size_t nmemb, size_t size, array_cmp_fun *fun, void *key) {
-    size_t first = 0;
-    while (nmemb > 0) {
-        size_t rem = nmemb & 1;
-        nmemb >>= 1;
-
-        void **addr = base + (first + nmemb) * size;
-        if (fun(*addr, key, NULL) < 0) {
-            first += nmemb + rem;
+static int32_t *
+fast_bsearch_i32(int32_t *base, size_t nmemb, int32_t key) {
+    while (nmemb) {
+        size_t half = nmemb >> 1;
+        if (base[half] < key) {
+            base += nmemb - half;
         }
+        nmemb = half;
+    }
+    return base;
+}
+
+static uint32_t *
+fast_bsearch_u32(uint32_t *base, size_t nmemb, uint32_t key) {
+    while (nmemb) {
+        size_t half = nmemb >> 1;
+        if (base[half] < key) {
+            base += nmemb - half;
+        }
+        nmemb = half;
+    }
+    return base;
+}
+
+#define BSEARCH_BODY(expr)                          \
+    while (nmemb > 0) {                             \
+        size_t rem = nmemb & 1;                     \
+        nmemb >>= 1;                                \
+        if (expr) {                                 \
+            first += nmemb + rem;                   \
+        }                                           \
+    }
+
+size_t
+array_bsearch(void *base, size_t nmemb, size_t size,
+              array_cmp_fun *fun, void *ctx,
+              void *key) {
+    size_t first = 0;
+    if (size == 4) {
+        if (fun == array_ord_asc_i32) {
+            int32_t key32 = (int32_t)((uint64_t)key);
+            first = fast_bsearch_i32(base, nmemb, key32) - (int32_t *)base;
+        } else if (fun == array_ord_asc_u32) {
+            uint32_t key32 = (uint32_t)((uint64_t)key);
+            first = fast_bsearch_u32(base, nmemb, key32) - (uint32_t *)base;
+        } else {
+            BSEARCH_BODY(fun(*(void **)(base + 4 * (first + nmemb)), key, ctx) < 0);
+        }
+    } else {
+        BSEARCH_BODY(fun(*(void **)(base + size * (first + nmemb)), key, ctx) < 0);
     }
     return first;
 }
