@@ -188,7 +188,6 @@ def build(ctx):
     build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
     build_program(ctx, 'smallpt.cpp', ['GOMP'])
     build_program(ctx, 'fenwick.c', ['FASTIO_OBJS'])
-
     noinst_program(ctx, ['programs/ntimes.c',
                          'programs/ntimes-loops.c'],
                    'programs/ntimes',
@@ -197,6 +196,7 @@ def build(ctx):
     progs = [
         ('npyread.c', ['NPY_OBJS']),
         ('simd.c', []),
+        ('prodcon.c', ['THREADS_OBJS']),
         # Old fast strlen
         ('strlen.c', ['DT_OBJS']),
         # New fast strlen
