@@ -22,6 +22,7 @@ def configure(ctx):
     else:
         base_c_flags = [
             '-Wall', '-Werror', '-fPIC', '-std=gnu11',
+            '-Wsign-compare',
             # Since we are now using SIMD intrinsics
             '-march=native', '-mtune=native',
             '-fopenmp'

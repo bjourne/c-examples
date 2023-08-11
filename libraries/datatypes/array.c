@@ -102,8 +102,6 @@ array_qsort_indirect(void *base, size_t nmemb, size_t size,
     indirect_compare_context wrap = { ctx, fun, base, size };
     array_qsort(indices, nmemb, sizeof(size_t),
                 ind_cmp_fun, (void *)&wrap);
-
-
     return indices;
 }
 
@@ -137,10 +135,34 @@ array_permute(void *base, size_t nmemb, size_t size, size_t *indices) {
 }
 
 int
-array_ord_asc_uint8_t(const void *a,
-                      const void *b,
-                      void *ctx __attribute__((unused))) {
-    uint8_t ai = (int)((uintptr_t)a & 0xff);
-    uint8_t bi = (int)((uintptr_t)b & 0xff);
+array_ord_asc_u8(const void *a,
+                 const void *b,
+                 void *ctx __attribute__((unused))) {
+    uint8_t ai = (uint8_t)((uintptr_t)a & 0xff);
+    uint8_t bi = (uint8_t)((uintptr_t)b & 0xff);
     return ai - bi;
+}
+
+int
+array_ord_asc_i32(const void *a,
+                  const void *b,
+                  void *ctx __attribute__((unused))) {
+    int32_t ai = (int32_t)((uintptr_t)a & 0xffffffff);
+    int32_t bi = (int32_t)((uintptr_t)b & 0xffffffff);
+    return ai - bi;
+}
+
+size_t
+array_bsearch(void *base, size_t nmemb, size_t size, array_cmp_fun *fun, void *key) {
+    size_t first = 0;
+    while (nmemb > 0) {
+        size_t rem = nmemb & 1;
+        nmemb >>= 1;
+
+        void **addr = base + (first + nmemb) * size;
+        if (fun(*addr, key, NULL) < 0) {
+            first += nmemb + rem;
+        }
+    }
+    return first;
 }

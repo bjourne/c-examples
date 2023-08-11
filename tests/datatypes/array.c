@@ -114,7 +114,7 @@ test_permute2() {
     size_t *idxs = array_qsort_indirect(
         delays, n_delays,
         sizeof(uint8_t),
-        (array_cmp_fun *)&array_ord_asc_uint8_t,
+        (array_cmp_fun *)&array_ord_asc_u8,
         NULL);
 
     size_t exp_idxs[10] = {
@@ -137,6 +137,25 @@ test_permute2() {
     free(idxs);
 }
 
+void
+test_bsearch() {
+    int arr1[] = {3, 4, 9, 10, 15, 20, 55};
+    size_t nmemb1 = ARRAY_SIZE(arr1);
+    size_t size1 = sizeof(int);
+
+    assert(array_bsearch(arr1, nmemb1, size1, &array_ord_asc_i32, (void *)15) == 4);
+    assert(array_bsearch(arr1, nmemb1, size1, &array_ord_asc_i32, (void *)100) == 7);
+    assert(array_bsearch(arr1, nmemb1, size1, &array_ord_asc_i32, (void *)-10) == 0);
+
+    int arr2[] = {};
+    assert(array_bsearch(arr2, 0, size1, &array_ord_asc_i32, (void *)123) == 0);
+
+    uint8_t arr3[] = {2, 3, 99, 200};
+    size_t nmemb3 = ARRAY_SIZE(arr3);
+    size_t size3 = sizeof(uint8_t);
+    assert(array_bsearch(arr3, nmemb3, size3, &array_ord_asc_u8, (void *)5) == 2);
+}
+
 int
 main(int argc, char *argv[]) {
     rand_init(0);
@@ -146,5 +165,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_argsort);
     PRINT_RUN(test_permute);
     PRINT_RUN(test_permute2);
+    PRINT_RUN(test_bsearch);
     return 0;
 }
