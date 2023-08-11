@@ -115,16 +115,21 @@ array_permute(void *base, size_t nmemb, size_t size, size_t *indices) {
         while (ind < i) {
             ind = indices[ind];
         }
-        if (size == 8)  {
-            uint64_t *base64 = (uint64_t *)base;
-            uint64_t tmp = base64[i];
-            base64[i] = base64[ind];
-            base64[ind] = tmp;
-        } else if (size == 1) {
+        if (size == 1) {
             uint8_t *base8 = (uint8_t *)base;
             uint8_t tmp = base8[i];
             base8[i] = base8[ind];
             base8[ind] = tmp;
+        } else if (size == 4) {
+            uint32_t *base32 = (uint32_t *)base;
+            uint32_t tmp = base32[i];
+            base32[i] = base32[ind];
+            base32[ind] = tmp;
+        } else if (size == 8) {
+            uint64_t *base64 = (uint64_t *)base;
+            uint64_t tmp = base64[i];
+            base64[i] = base64[ind];
+            base64[ind] = tmp;
         } else {
             assert(false);
         }
@@ -132,7 +137,9 @@ array_permute(void *base, size_t nmemb, size_t size, size_t *indices) {
 }
 
 int
-array_ord_asc_uint8_t(const void *a, const void *b, void *ctx) {
+array_ord_asc_uint8_t(const void *a,
+                      const void *b,
+                      void *ctx __attribute__((unused))) {
     uint8_t ai = (int)((uintptr_t)a & 0xff);
     uint8_t bi = (int)((uintptr_t)b & 0xff);
     return ai - bi;
