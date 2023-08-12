@@ -21,6 +21,10 @@ pleasurable.
 No guarantee that the libraries are -- or ever will be --
 complete. They were written because I wanted to.
 
+### `libraries/benchmark`
+
+Minimal library for benchmarking C code.
+
 ### `libraries/collectors`
 
 An object model and a bunch of garbage collectors. These were written
