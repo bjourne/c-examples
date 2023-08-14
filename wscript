@@ -85,7 +85,7 @@ def configure(ctx):
         ctx.check(lib = 'm', mandatory = False)
         ctx.check(lib = 'pthread', mandatory = False)
         ctx.check(lib = 'OpenCL', mandatory = True, use = ['AOCL'])
-        ctx.check(header_name = 'CL/cl.h')
+        ctx.check(header_name = 'CL/cl.h', use = ['AOCL'])
 
 def noinst_program(ctx, source, target, use):
     ctx.program(source = source, target = target,
