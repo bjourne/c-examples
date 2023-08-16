@@ -84,7 +84,7 @@ def configure(ctx):
 
 def noinst_program(ctx, source, target, use):
     ctx.program(source = source, target = target,
-                use = use, install_path = None)
+                use = sorted(use), install_path = None)
 
 def build_tests(ctx, path, use):
     path = 'tests/%s' % path
@@ -104,6 +104,8 @@ def build_library(ctx, libname, target, uses, defines):
     defs_file = '%s/%s.def' % (path, libname)
     objs = ctx.path.ant_glob('%s/*.c' % path)
 
+    # https://gitlab.com/ita1024/waf/-/issues/2412
+    uses = sorted(uses)
     ctx(features = 'c',
         source = objs,
         use = uses,
@@ -111,7 +113,7 @@ def build_library(ctx, libname, target, uses, defines):
         defines = defines)
     ctx(features = 'c cstlib',
         target = libname,
-        use = [target] + list(uses),
+        use = [target] + uses,
         defs = defs_file,
         install_path = '${LIBDIR}')
 
@@ -221,20 +223,20 @@ def build(ctx):
     build_tests(ctx, 'diophantine', ['DIO_OBJS', 'DT_OBJS', 'M'])
     build_tests(ctx, 'tensors', ['TENSORS_OBJS', 'DT_OBJS', 'PNG', 'M'])
 
-    build_program(ctx, 'cpu.c', ['DT_OBJS'])
     build_program(ctx, 'memperf.c', ['DT_OBJS'])
     build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
     build_program(ctx, 'smallpt.cpp', ['GOMP'])
-    build_program(ctx, 'fenwick.c', ['FASTIO_OBJS'])
     noinst_program(ctx, ['programs/ntimes.c',
                          'programs/ntimes-loops.c'],
                    'programs/ntimes',
                    ['DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS', 'PTHREAD'])
 
     progs = [
+        ('cpu.c', {'DT_OBJS'}),
+        ('fenwick.c', {'FASTIO_OBJS'}),
         ('npyread.c', ['NPY_OBJS']),
         ('simd.c', []),
-        ('prodcon.c', ['THREADS_OBJS']),
+        ('prodcon.c', {'DT_OBJS', 'THREADS_OBJS'}),
         # Old fast strlen
         ('strlen.c', ['DT_OBJS']),
         # New fast strlen
