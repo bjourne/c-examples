@@ -40,11 +40,6 @@ def configure(ctx):
     ctx.env.append_unique('CFLAGS', base_c_flags + extra_flags)
     ctx.env.append_unique('CXXFLAGS', base_cxx_flags + extra_flags)
 
-    # Sorting makes output prettier and I don't think the order
-    # matters.
-    for define in ['CFLAGS', 'CXXFLAGS']:
-        ctx.env[define] = list(sorted(ctx.env[define]))
-
     ctx.env.append_value('INCLUDES', ['libraries'])
     dest_os = ctx.env.DEST_OS
     if dest_os == 'linux':
@@ -151,19 +146,12 @@ def cc_native_family(cc):
                     return v
     return 'unknown'
 
-def cc_actual_family():
-    with open('/sys/devices/cpu/caps/pmu_name', 'r') as f:
-        return f.read().strip()
-
-
-
 def collect_benchmark_flags(env):
     cc_name = env['CC'][0]
     cflags = env['CFLAGS']
     cflags_str = ' '.join(cflags)
     flags = [('CC', cc_name),
              ('CC_NATIVE_FAMILY', cc_native_family(cc_name)),
-             ('CC_ACTUAL_FAMILY', cc_actual_family()),
              ('CFLAGS', cflags_str)]
     flags = ['BENCHMARK_%s="%s"' % (k, v) for k, v in flags]
     return flags
@@ -200,7 +188,7 @@ def build(ctx):
     tests = {
         'benchmark' : ['BENCHMARK_OBJS', 'DT_OBJS'],
         'collectors' : ['GC_OBJS', 'DT_OBJS', 'QF_OBJS'],
-        'datatypes' : ['DT_OBJS', 'RANDOM_OBJS'],
+        'datatypes' : ['BENCHMARK_OBJS', 'DT_OBJS', 'RANDOM_OBJS'],
         'ieee754' : ['IEEE754_OBJS', 'DT_OBJS', 'RANDOM_OBJS'],
         'npy' : ['DT_OBJS', 'NPY_OBJS'],
         'opencl' : {
