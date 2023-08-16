@@ -45,6 +45,18 @@ var_vec_remove(var_vector *me, void *dst) {
     memcpy(dst, me->array + me->used * me->el_size, me->el_size);
 }
 
+void
+var_vec_remove_at(var_vector *me, size_t i, void *dst) {
+    if (i >= me->used) {
+        error("Index out of bounds!");
+    }
+    void *el_addr = me->array + me->el_size * i;
+    memcpy(dst, el_addr, me->el_size);
+    me->used--;
+    size_t n_copy = (me->used - i) * me->el_size;
+    memmove(el_addr, el_addr + me->el_size, n_copy);
+}
+
 vector *
 v_init(size_t size) {
     vector *v = malloc(sizeof(vector));
