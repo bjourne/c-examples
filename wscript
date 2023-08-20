@@ -236,7 +236,7 @@ def build(ctx):
         ('fenwick.c', {'FASTIO_OBJS'}),
         ('npyread.c', ['NPY_OBJS']),
         ('simd.c', []),
-        ('prodcon.c', {'DT_OBJS', 'THREADS_OBJS'}),
+        ('prodcon.c', {'DT_OBJS', 'THREADS_OBJS', 'RANDOM_OBJS'}),
         # Old fast strlen
         ('strlen.c', ['DT_OBJS']),
         # New fast strlen
