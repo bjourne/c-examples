@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019, 2023 Björn Lindqvist <bjourne@gmail.com>
 #ifndef LINALG_SIMD_H
 #define LINALG_SIMD_H
 
@@ -9,11 +9,10 @@
 
 #include "linalg/linalg.h"
 
-// Is this typedef necessary?
 typedef __m128 float4;
 
 inline float4
-f4_set_i4(int a, int b, int c, int d) {
+f4_set_int32(int32_t a, int32_t b, int32_t c, int32_t d) {
     return _mm_castsi128_ps(_mm_set_epi32(a, b, c, d));
 }
 
@@ -64,6 +63,44 @@ f4_print(float4 a, int n_dec) {
     printf("}");
 }
 
+inline float4
+madd(float4 a, float4 b, float4 c) {
+#if defined(__AVX2__)
+    return _mm_fmadd_ps(a, b, c);
+#else
+    return _mm_add_ps(_mm_mul_ps(a, b), c);
+#endif
+}
+
+#ifdef __AVX2__
+typedef __m256d double4;
+
+inline double4
+d4_set_int32(int32_t a, int32_t b, int32_t c, int32_t d) {
+    return _mm256_set_pd((double)a, (double)b, (double)c, (double)d);
+}
+
+inline void
+d4_print(double4 a, int n_dec) {
+    double r[4];
+    _mm256_storeu_pd(r, a);
+    printf("{");
+    la_print_float(r[3], n_dec);
+    printf(", ");
+    la_print_float(r[2], n_dec);
+    printf(", ");
+    la_print_float(r[1], n_dec);
+    printf(", ");
+    la_print_float(r[0], n_dec);
+    printf("}");
+}
+
+
+
+#endif
+
+
+
 // vec3x4 type. Four 3d vectors in packed format to exploit SIMD.
 typedef struct {
     float4 x;
@@ -102,15 +139,6 @@ v3x4_mul(vec3x4 a, vec3x4 b) {
         _mm_mul_ps(a.y, b.y),
         _mm_mul_ps(a.z, b.z)
     };
-}
-
-inline float4
-madd(float4 a, float4 b, float4 c) {
-#if defined(__AVX2__)
-    return _mm_fmadd_ps(a, b, c);
-#else
-    return _mm_add_ps(_mm_mul_ps(a, b), c);
-#endif
 }
 
 // Dot product

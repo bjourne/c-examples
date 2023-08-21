@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019, 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include "datatypes/bits.h"
 #include "datatypes/common.h"
@@ -16,7 +16,7 @@ void
 test_f4_signmask() {
     float4 a = _mm_set_ps(-7.8f, 3.2f, 0.0f, -1.2f);
     float4 b = f4_signmask(a);
-    float4 r = f4_set_i4(0x80000000, 0, 0, 0x80000000);
+    float4 r = f4_set_int32(0x80000000, 0, 0, 0x80000000);
     assert(f4_eq(b, r));
 }
 
@@ -84,19 +84,19 @@ test_broadcast() {
 
 void
 test_f4_xor() {
-    float4 a = f4_set_i4(255, 10, 0, 8);
-    float4 b = f4_set_i4(3, 7, 0, 0x80);
+    float4 a = f4_set_int32(255, 10, 0, 8);
+    float4 b = f4_set_int32(3, 7, 0, 0x80);
     float4 c = _mm_xor_ps(a, b);
-    float4 d = f4_set_i4(255 ^ 3, 0xa ^ 7, 0 ^ 0, 8 ^ 0x80);
+    float4 d = f4_set_int32(255 ^ 3, 0xa ^ 7, 0 ^ 0, 8 ^ 0x80);
     assert(f4_eq(c, d));
 }
 
 void
 test_f4_or() {
-    float4 a = f4_set_i4(5, 6, 7, 100);
-    float4 b = f4_set_i4(3, 7, 0, 0x80);
+    float4 a = f4_set_int32(5, 6, 7, 100);
+    float4 b = f4_set_int32(3, 7, 0, 0x80);
     float4 c = _mm_or_ps(a, b);
-    float4 d = f4_set_i4(5 | 3, 6 | 7, 7 | 0, 100 | 0x80);
+    float4 d = f4_set_int32(5 | 3, 6 | 7, 7 | 0, 100 | 0x80);
     assert(f4_eq(c, d));
 }
 
@@ -105,6 +105,13 @@ test_f4_scale() {
     float4 a = _mm_set_ps(0, 1, 2, 3);
     float4 b = _mm_set_ps(0, 6, 12, 18);
     assert(f4_eq(f4_scale(a, 6), b));
+}
+
+void
+test_d4_set_i8() {
+    double4 a = d4_set_int32(123, 456, 789, 222);
+    d4_print(a, 3);
+    printf("\n");
 }
 
 int
@@ -123,5 +130,7 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_f4_scale);
 
     PRINT_RUN(test_broadcast);
+
+    PRINT_RUN(test_d4_set_i8);
     return 0;
 }
