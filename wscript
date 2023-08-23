@@ -192,6 +192,7 @@ def build(ctx):
         'collectors' : ['GC_OBJS', 'DT_OBJS', 'QF_OBJS'],
         'datatypes' : ['BENCHMARK_OBJS', 'DT_OBJS', 'RANDOM_OBJS'],
         'ieee754' : ['IEEE754_OBJS', 'DT_OBJS', 'RANDOM_OBJS'],
+        'isect' : {'LINALG_OBJS', 'DT_OBJS', 'M', 'ISECT_OBJS'},
         'npy' : ['DT_OBJS', 'NPY_OBJS'],
         'opencl' : {
             'DT_OBJS',
@@ -203,8 +204,10 @@ def build(ctx):
             'PNG',
             'TENSORS_OBJS'
         },
+        'paths' : {'PATHS_OBJS', 'DT_OBJS'},
         'quickfit' : ['DT_OBJS', 'QF_OBJS'],
-        'random' : {'DT_OBJS', 'RANDOM_OBJS'}
+        'random' : {'DT_OBJS', 'RANDOM_OBJS'},
+        'threads' : {'DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS'}
     }
     for lib, deps in tests.items():
         build_tests(ctx, lib, deps)
@@ -213,10 +216,6 @@ def build(ctx):
     build_tests(ctx, 'file3d', [
         'FILE3D_OBJS', 'DT_OBJS', 'LINALG_OBJS', 'M'
     ])
-    build_tests(ctx, 'isect',
-                ['LINALG_OBJS', 'DT_OBJS', 'M', 'ISECT_OBJS'])
-    build_tests(ctx, 'paths',
-                ['PATHS_OBJS', 'DT_OBJS'])
     build_tests(ctx, 'fastio', ['FASTIO_OBJS'])
     build_tests(ctx, 'files', ['DT_OBJS', 'FILES_OBJS'])
 

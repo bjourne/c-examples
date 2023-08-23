@@ -8,55 +8,8 @@
 #include <stdio.h>
 #include "datatypes/queue.h"
 #include "random/random.h"
+#include "threads/synced_queue.h"
 #include "threads/threads.h"
-
-typedef struct {
-    queue *q;
-    pthread_mutex_t m;
-    pthread_cond_t var_prod;
-    pthread_cond_t var_cons;
-} synced_queue;
-
-synced_queue *
-synced_queue_init(size_t max, size_t el_size) {
-    synced_queue *me = malloc(sizeof(synced_queue));
-    me->q = queue_init(max, el_size, false);
-    assert(!pthread_mutex_init(&me->m, NULL));
-    assert(!pthread_cond_init(&me->var_prod, NULL));
-    assert(!pthread_cond_init(&me->var_cons, NULL));
-    return me;
-}
-
-void
-synced_queue_free(synced_queue *me) {
-    assert(!pthread_mutex_destroy(&me->m));
-    assert(!pthread_cond_destroy(&me->var_prod));
-    assert(!pthread_cond_destroy(&me->var_cons));
-    queue_free(me->q);
-    free(me);
-}
-
-static void
-synced_queue_add(synced_queue *me, void *value) {
-    pthread_mutex_lock(&me->m);
-    while (me->q->n_elements == me->q->capacity) {
-        pthread_cond_wait(&me->var_prod, &me->m);
-    }
-    queue_add(me->q, value);
-    pthread_mutex_unlock(&me->m);
-    pthread_cond_signal(&me->var_cons);
-}
-
-static void
-synced_queue_remove(synced_queue *me, void *value) {
-    pthread_mutex_lock(&me->m);
-    while (me->q->n_elements == 0) {
-        pthread_cond_wait(&me->var_cons, &me->m);
-    }
-    queue_remove(me->q, value);
-    pthread_mutex_unlock(&me->m);
-    pthread_cond_signal(&me->var_prod);
-}
 
 // Two types of threads - one producer and one consumer. The producer
 // sends jobs to the consumer.
@@ -136,7 +89,7 @@ prodcon_fun(void *args) {
 int
 main(int argc, char *argv[]) {
     rnd_pcg32_seed(1001, 370);
-    synced_queue *sq = synced_queue_init(8, sizeof(job));
+    synced_queue *sq = synced_queue_init(8, sizeof(job), false);
     thr_handle handles[2];
     prodcon_thread threads[2] = {
         {PRODUCER, sq}, {CONSUMER, sq}
