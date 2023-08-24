@@ -10,10 +10,17 @@
 
 typedef enum {
     NPY_ERR_NONE = 0,
-    NPY_ERR_FILE_NOT_FOUND,
-    NPY_ERR_TRUNCATED,
-    NPY_ERR_BAD_MAGIC,
-    NPY_ERR_HEADER_PARSE
+
+    // Read & write errors
+    NPY_ERR_OPEN_FILE,
+
+    // Read errors
+    NPY_ERR_READ_MAGIC,
+    NPY_ERR_READ_HEADER,
+    NPY_ERR_READ_PAYLOAD,
+
+    // Write errors
+    NPY_ERR_WRITE_MAGIC
 } npy_error;
 
 typedef enum {
@@ -44,6 +51,7 @@ typedef struct {
 
 size_t npy_n_elements(npy_arr *me);
 npy_arr *npy_load(const char *fname);
+npy_error npy_save(npy_arr *me, const char *fname);
 void npy_free(npy_arr *me);
 double npy_value_at_as_double(npy_arr *me, size_t i);
 

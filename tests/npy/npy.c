@@ -8,7 +8,7 @@
 void
 test_load_missing() {
     npy_arr *arr = npy_load("tests/npy/eeeh");
-    assert(arr->error_code == NPY_ERR_FILE_NOT_FOUND);
+    assert(arr->error_code == NPY_ERR_OPEN_FILE);
     npy_free(arr);
 }
 
@@ -33,7 +33,7 @@ test_pretty_print() {
     }
     npy_pp *pp = npy_pp_init(1, n_columns, " ");
     npy_pp_print_arr(pp, arr);
-    pp->n_columns = 100;
+    pp->n_columns = 78;
     pp->sep = ", ";
     npy_pp_print_arr(pp, arr2);
     npy_pp_print_arr(pp, arr3);
@@ -53,10 +53,21 @@ test_pretty_print_bytes() {
     npy_free(arr);
 }
 
+void
+test_load_and_save() {
+    npy_arr *arr = npy_load("tests/npy/uint8.npy");
+    assert(arr->n_dims == 1);
+    assert(arr->dims[0] == 100);
+    assert(npy_save(arr, "foo.npy") == NPY_ERR_NONE);
+    npy_free(arr);
+}
+
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_load_missing);
     PRINT_RUN(test_load_uint8);
     PRINT_RUN(test_pretty_print);
     PRINT_RUN(test_pretty_print_bytes);
+    PRINT_RUN(test_load_and_save);
 }

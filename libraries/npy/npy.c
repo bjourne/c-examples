@@ -79,6 +79,30 @@ transpose_data(npy_arr *me) {
     me->data = new;
 }
 
+npy_error
+npy_save(npy_arr *me, const char *fname) {
+    FILE *f = fopen(fname, "wb");
+    if (!f) {
+        return NPY_ERR_OPEN_FILE;
+    }
+    // Write header
+    if (fwrite("\x93NUMPY", 6, 1, f) != 1) {
+        return NPY_ERR_WRITE_MAGIC;
+    }
+    if (fwrite(&me->ver_maj, 1, 1, f) != 1) {
+        return NPY_ERR_WRITE_MAGIC;
+    }
+    if (fwrite(&me->ver_min, 1, 1, f) != 1) {
+        return NPY_ERR_WRITE_MAGIC;
+    }
+    uint16_t header_len = 123;
+    if (fwrite(&header_len, 2, 1, f) != 1) {
+        return NPY_ERR_WRITE_MAGIC;
+    }
+    fclose(f);
+    return NPY_ERR_NONE;
+}
+
 npy_arr *
 npy_load(const char *fname) {
     npy_arr *me = (npy_arr *)malloc(sizeof(npy_arr));
@@ -88,7 +112,7 @@ npy_load(const char *fname) {
 
     FILE *f = fopen(fname, "rb");
     if (!f) {
-        me->error_code = NPY_ERR_FILE_NOT_FOUND;
+        me->error_code = NPY_ERR_OPEN_FILE;
         return me;
     }
     char buf[10];
@@ -96,7 +120,7 @@ npy_load(const char *fname) {
         goto truncation_error;
     }
     if (memcmp(buf, "\x93NUMPY", 6)) {
-        me->error_code = NPY_ERR_BAD_MAGIC;
+        me->error_code = NPY_ERR_READ_MAGIC;
         goto done;
     }
     me->ver_maj = buf[6];
@@ -162,11 +186,11 @@ npy_load(const char *fname) {
     fclose(f);
     return me;
  parse_error:
-    me->error_code = NPY_ERR_HEADER_PARSE;
+    me->error_code = NPY_ERR_READ_HEADER;
     fclose(f);
     return me;
  truncation_error:
-    me->error_code = NPY_ERR_TRUNCATED;
+    me->error_code = NPY_ERR_READ_PAYLOAD;
     fclose(f);
     return me;
 }
