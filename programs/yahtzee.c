@@ -1,4 +1,5 @@
 // Copyright (C) 2020, 2023 Björn Lindqvist <bjourne@gmail.com>
+#include <assert.h>
 #include <inttypes.h>
 #include <math.h>
 #include <stdbool.h>
@@ -22,7 +23,7 @@
 #define MIN_VALUE (1 * 1000 * 1000)
 #define MAX_VALUE (2 * 1000 * 1000)
 #define N_VALUES 100 * 1000 * 1000
-#define N_THREADS 4
+#define N_THREADS 8
 
 //////////////////////////////////////////////////////////////////////////////
 // Timing functions.
@@ -45,6 +46,7 @@ static void
 run_generate(const char *path) {
     srand(1234);
     FILE *f = fopen(path, "wb");
+    assert(f);
     for (int i = 0; i < N_VALUES; i++) {
         fprintf(f, "%d\n", rand_in_range(MIN_VALUE, MAX_VALUE));
     }
@@ -94,6 +96,7 @@ parse_chunk(char *at, const char *end, int *accum) {
 // Thread definition
 //////////////////////////////////////////////////////////////////////////////
 typedef struct {
+    thr_handle handle;
     char *chunk_start;
     char *chunk_end;
     int *accum;
@@ -159,16 +162,14 @@ run_test(const char *path) {
         args[i].chunk_end = chunk_end;
         args[i].accum = accum;
     }
-    thr_handle handles[N_THREADS];
-    if (!thr_create_threads(N_THREADS, handles,
-                            sizeof(parse_chunk_thread_args),
-                            args, parse_chunk_thread)) {
+    size_t tp_size = sizeof(parse_chunk_thread_args);
+    if (!thr_create_threads2(N_THREADS, tp_size, &args,
+                             parse_chunk_thread)) {
         return false;
     }
-    if (!thr_wait_for_threads(N_THREADS, handles)) {
+    if (!thr_wait_for_threads2(N_THREADS, tp_size, &args)) {
         return false;
     }
-
     uint64_t max = 0;
     for (int i = 0; i < MAX_VALUE; i++) {
         uint64_t val = accum[i] * i;
