@@ -19,6 +19,7 @@ typedef enum {
 } thread_type;
 
 typedef struct {
+    thr_handle handle;
     thread_type type;
     synced_queue *sq;
 } prodcon_thread;
@@ -90,14 +91,12 @@ int
 main(int argc, char *argv[]) {
     rnd_pcg32_seed(1001, 370);
     synced_queue *sq = synced_queue_init(8, sizeof(job), false);
-    thr_handle handles[2];
     prodcon_thread threads[2] = {
-        {PRODUCER, sq}, {CONSUMER, sq}
+        {0, PRODUCER, sq}, {0, CONSUMER, sq}
     };
-    assert(thr_create_threads(2, handles,
-                              sizeof(prodcon_thread), &threads,
-                              prodcon_fun));
-    assert(thr_wait_for_threads(2, handles));
+    size_t tp_size = sizeof(prodcon_thread);
+    assert(thr_create_threads2(2, tp_size, &threads, prodcon_fun));
+    assert(thr_wait_for_threads2(2, tp_size, &threads));
     synced_queue_free(sq);
     return 0;
 }
