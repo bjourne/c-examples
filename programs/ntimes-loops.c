@@ -288,6 +288,7 @@ ceil_div(unsigned int a, unsigned int b) {
 }
 
 typedef struct {
+    thr_handle handle;
     const char *s;
     size_t n_bytes;
     bool is_last;
@@ -295,28 +296,24 @@ typedef struct {
 } count_job;
 
 int
-thr_counting(const char *s, void *(*count_func)(void *arg)) {
+thr_counting(const char *s, void *(*count_fun)(void *arg)) {
     assert((uintptr_t)s % 32 == 0);
 
     size_t n_bytes = strlen(s);
     size_t n_chunks = ceil_div(n_bytes, 32);
     size_t n_chunks_per_thread = ceil_div(n_chunks, N_THREADS);
     size_t n_bytes_per_thread = 32 * n_chunks_per_thread;
-
-    thr_handle handles[N_THREADS];
     count_job jobs[N_THREADS];
     for (int i = 0; i < N_THREADS; i++) {
         size_t start = n_bytes_per_thread * i;
         size_t end = MIN(start + n_bytes_per_thread, n_bytes);
         bool is_last = i == N_THREADS -1;
-        jobs[i] = (count_job){s + start, end - start, is_last, 0};
+        jobs[i] = (count_job){0, s + start, end - start, is_last, 0};
     }
 
-    thr_create_threads(N_THREADS, handles,
-                       sizeof(count_job),
-                       jobs, count_func);
-    thr_wait_for_threads(N_THREADS, handles);
-
+    size_t tp_size = sizeof(count_job);
+    thr_create_threads2(N_THREADS, tp_size, &jobs, count_fun);
+    thr_wait_for_threads2(N_THREADS, tp_size, &jobs);
     int cnt = 0;
     for (int i = 0; i < N_THREADS; i++) {
         cnt += jobs[i].cnt;
