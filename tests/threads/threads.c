@@ -5,13 +5,14 @@
 #include "threads/threads.h"
 #include "threads/synced_queue.h"
 
-#define N_JOBS (10 * 1000 * 1000)
+#define N_JOBS (100 * 1000 * 1000)
 
 typedef struct {
     uint32_t x, y;
 } job;
 
 typedef struct {
+    thr_handle handle;
     bool is_producer;
     synced_queue *sq;
     uint64_t sum;
@@ -40,17 +41,49 @@ fun(void *args) {
     return NULL;
 }
 
+static uint64_t
+run_case(synced_queue_lock_type lock_type, size_t queue_size) {
+    uint64_t start = nano_count();
+    synced_queue *sq = synced_queue_init(queue_size, sizeof(job), lock_type);
+    thread_ctx ctx[2] = {
+        {0, true, sq, 0}, {0, false, sq, 0}
+    };
+    assert(thr_create_threads2(2, sizeof(thread_ctx), &ctx, fun));
+    assert(thr_wait_for_threads2(2, sizeof(thread_ctx), &ctx));
+    synced_queue_free(sq);
+    return nano_count() - start;
+}
+
+// Some numbers on my machine:
+//
+//      spinlock                256 elements  0.15 us/job
+//      uncontested spinlock    256 elements  0.14 us/job
+//      mutex                   256 elements  0.28 us/job
 void
 benchmark_synced_queue() {
-    synced_queue *sq = synced_queue_init(128, sizeof(job), true);
-    thr_handle handles[2];
-    thread_ctx ctx[2] = {
-        {true, sq, 0}, {false, sq, 0}
+
+    size_t queue_sizes[] = {1024, 512, 256, 128, 64, 32, 16, 8, 4};
+    synced_queue_lock_type lock_types[] = {
+        SYNCED_QUEUE_SPIN_LOCK,
+        SYNCED_QUEUE_SPIN_LOCK_UNCONTESTED,
+        SYNCED_QUEUE_MUTEX
     };
-    assert(thr_create_threads(2, handles, sizeof(thread_ctx), &ctx, fun));
-    assert(thr_wait_for_threads(2, handles));
-    synced_queue_free(sq);
-    printf("%ld\n", ctx[1].sum);
+    for (size_t j = 0; j < ARRAY_SIZE(queue_sizes); j++) {
+        for (size_t i = 0; i < ARRAY_SIZE(lock_types); i++) {
+            synced_queue_lock_type lt = lock_types[i];
+            size_t queue_size = queue_sizes[j];
+            uint64_t nanos = run_case(lt, queue_size);
+            double us_per_job = ((double)nanos / 1000.0) / (double)N_JOBS;
+            char *lt_name = "mutex";
+            if (lt == SYNCED_QUEUE_SPIN_LOCK_UNCONTESTED) {
+                lt_name = "uncontested spinlock";
+            } else if (lt == SYNCED_QUEUE_SPIN_LOCK) {
+                lt_name = "spinlock";
+            }
+            printf("%-22s %4ld elements %5.2lf us/job\n",
+                   lt_name, queue_size, us_per_job);
+        }
+    }
 }
 
 int
