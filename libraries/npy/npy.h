@@ -20,7 +20,8 @@ typedef enum {
     NPY_ERR_READ_PAYLOAD,
 
     // Write errors
-    NPY_ERR_WRITE_MAGIC
+    NPY_ERR_WRITE_HEADER,
+    NPY_ERR_WRITE_DATA
 } npy_error;
 
 typedef enum {

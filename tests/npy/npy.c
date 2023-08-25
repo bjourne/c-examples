@@ -17,6 +17,7 @@ test_load_uint8() {
     npy_arr *arr = npy_load("tests/npy/uint8.npy");
     assert(arr->n_dims == 1);
     assert(arr->dims[0] == 100);
+    assert(arr->type == 'u');
     npy_free(arr);
 }
 
@@ -55,11 +56,17 @@ test_pretty_print_bytes() {
 
 void
 test_load_and_save() {
-    npy_arr *arr = npy_load("tests/npy/uint8.npy");
-    assert(arr->n_dims == 1);
-    assert(arr->dims[0] == 100);
-    assert(npy_save(arr, "foo.npy") == NPY_ERR_NONE);
-    npy_free(arr);
+    npy_arr *orig = npy_load("tests/npy/uint8.npy");
+    assert(orig->n_dims == 1);
+    assert(orig->dims[0] == 100);
+    assert(npy_save(orig, "tmp.npy") == NPY_ERR_NONE);
+
+    npy_arr *copy = npy_load("tmp.npy");
+    assert(copy->n_dims == 1);
+    assert(copy->dims[0] == 100);
+
+    npy_free(copy);
+    npy_free(orig);
 }
 
 

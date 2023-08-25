@@ -18,6 +18,7 @@ consume(FILE *f, char *str) {
     }
     return true;
 }
+
 static bool
 consume_until(FILE *f, char c) {
     while (!feof(f)) {
@@ -27,6 +28,25 @@ consume_until(FILE *f, char c) {
     }
     return false;
 }
+
+static void
+format_dims(npy_arr *arr, char *buf) {
+    char *ptr = buf;
+    int *dims = arr->dims;
+    int n_dims = arr->n_dims;
+
+    if (n_dims == 1) {
+        sprintf(ptr, "(%d,)", dims[0]);
+    } else {
+        ptr += sprintf(ptr, "(");
+        for (int i = 0; i < n_dims - 1; i++) {
+            ptr += sprintf(ptr, "%d", dims[i]);
+        }
+        ptr += sprintf(ptr, "%d)", dims[n_dims - 1]);
+    }
+}
+
+
 
 size_t
 npy_n_elements(npy_arr *me) {
@@ -85,19 +105,36 @@ npy_save(npy_arr *me, const char *fname) {
     if (!f) {
         return NPY_ERR_OPEN_FILE;
     }
-    // Write header
-    if (fwrite("\x93NUMPY", 6, 1, f) != 1) {
-        return NPY_ERR_WRITE_MAGIC;
+    char buf[2048];
+
+    // Fix buffer overflows
+    char shape[256];
+    format_dims(me, shape);
+
+    // First format the descriptor so that we can compute the header
+    // length.
+    char *fmt = "{'descr': '<%c%d', 'fortran_order': False, 'shape': %s, }";
+    size_t n_data = sprintf(buf + 10, fmt, me->type, me->el_size, shape) + 10;
+    size_t n_padding = 64 - n_data + n_data / 64 * 64;
+    size_t n_header = n_data + n_padding;
+    assert(n_header < 0xffff);
+
+    memset(&buf[n_data], ' ', n_padding);
+    buf[n_header - 1] = '\n';
+
+    char *ptr = buf;
+    ptr += sprintf(ptr, "\x93NUMPY");
+    *ptr++ = me->ver_maj;
+    *ptr++ = me->ver_min;
+    *ptr++ = (n_header - 10) & 0xff;
+    *ptr++ = (n_header - 10) >> 8;
+    if (fwrite(buf, 1, n_header, f) != n_header) {
+        return NPY_ERR_WRITE_HEADER;
     }
-    if (fwrite(&me->ver_maj, 1, 1, f) != 1) {
-        return NPY_ERR_WRITE_MAGIC;
-    }
-    if (fwrite(&me->ver_min, 1, 1, f) != 1) {
-        return NPY_ERR_WRITE_MAGIC;
-    }
-    uint16_t header_len = 123;
-    if (fwrite(&header_len, 2, 1, f) != 1) {
-        return NPY_ERR_WRITE_MAGIC;
+    // Then the data
+    size_t n_els = npy_n_elements(me);
+    if (fwrite(me->data, me->el_size, n_els, f) != n_els) {
+        return NPY_ERR_WRITE_DATA;
     }
     fclose(f);
     return NPY_ERR_NONE;
