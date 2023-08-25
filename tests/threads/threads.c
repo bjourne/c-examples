@@ -5,7 +5,7 @@
 #include "threads/threads.h"
 #include "threads/synced_queue.h"
 
-#define N_JOBS (100 * 1000 * 1000)
+#define N_JOBS (1 * 1000 * 1000)
 
 typedef struct {
     uint32_t x, y;
