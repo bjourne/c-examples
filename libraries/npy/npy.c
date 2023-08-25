@@ -40,7 +40,7 @@ npy_format_dims(npy_arr *arr, char *buf) {
     } else {
         ptr += sprintf(ptr, "(");
         for (int i = 0; i < n_dims - 1; i++) {
-            ptr += sprintf(ptr, "%d", dims[i]);
+            ptr += sprintf(ptr, "%d, ", dims[i]);
         }
         ptr += sprintf(ptr, "%d)", dims[n_dims - 1]);
     }
@@ -97,50 +97,32 @@ transpose_data(npy_arr *me) {
     me->data = new;
 }
 
-npy_error
-npy_save(npy_arr *me, const char *fname) {
-    FILE *f = fopen(fname, "wb");
-    if (!f) {
-        return NPY_ERR_OPEN_FILE;
+npy_arr *
+npy_init(char type, int el_size,
+         int n_dims, int *dims,
+         void *data, bool copy) {
+    npy_arr *me = malloc(sizeof(npy_arr));
+    me->ver_maj = 1;
+    me->ver_min = 0;
+    me->type = type;
+    me->el_size = el_size;
+    memcpy(me->dims, dims, n_dims * sizeof(int));
+    me->n_dims = n_dims;
+    if (copy) {
+        size_t n_bytes = el_size * npy_n_elements(me);
+        me->data = malloc(n_bytes);
+        memcpy(me->data, data, n_bytes);
+    } else {
+        me->data = data;
     }
-    char buf[2048];
-
-    // Fix buffer overflows
-    char shape[256];
-    npy_format_dims(me, shape);
-
-    // First format the descriptor so that we can compute the header
-    // length.
-    char *fmt = "{'descr': '<%c%d', 'fortran_order': False, 'shape': %s, }";
-    size_t n_data = sprintf(buf + 10, fmt, me->type, me->el_size, shape) + 10;
-    size_t n_padding = 64 - n_data + n_data / 64 * 64;
-    size_t n_header = n_data + n_padding;
-    assert(n_header < 0xffff);
-
-    memset(&buf[n_data], ' ', n_padding);
-    buf[n_header - 1] = '\n';
-
-    char *ptr = buf;
-    ptr += sprintf(ptr, "\x93NUMPY");
-    *ptr++ = me->ver_maj;
-    *ptr++ = me->ver_min;
-    *ptr++ = (n_header - 10) & 0xff;
-    *ptr++ = (n_header - 10) >> 8;
-    if (fwrite(buf, 1, n_header, f) != n_header) {
-        return NPY_ERR_WRITE_HEADER;
-    }
-    // Then the data
-    size_t n_els = npy_n_elements(me);
-    if (fwrite(me->data, me->el_size, n_els, f) != n_els) {
-        return NPY_ERR_WRITE_DATA;
-    }
-    fclose(f);
-    return NPY_ERR_NONE;
+    me->error_code = NPY_ERR_NONE;
+    return me;
 }
+
 
 npy_arr *
 npy_load(const char *fname) {
-    npy_arr *me = (npy_arr *)malloc(sizeof(npy_arr));
+    npy_arr *me = malloc(sizeof(npy_arr));
     me->error_code = NPY_ERR_NONE;
     me->n_dims = 0;
     me->data = NULL;
@@ -228,6 +210,47 @@ npy_load(const char *fname) {
     me->error_code = NPY_ERR_READ_PAYLOAD;
     fclose(f);
     return me;
+}
+
+npy_error
+npy_save(npy_arr *me, const char *fname) {
+    FILE *f = fopen(fname, "wb");
+    if (!f) {
+        return NPY_ERR_OPEN_FILE;
+    }
+    char buf[2048];
+
+    // Fix buffer overflows
+    char shape[256];
+    npy_format_dims(me, shape);
+
+    // First format the descriptor so that we can compute the header
+    // length.
+    char *fmt = "{'descr': '<%c%d', 'fortran_order': False, 'shape': %s, }";
+    size_t n_data = sprintf(buf + 10, fmt, me->type, me->el_size, shape) + 10;
+    size_t n_padding = 64 - n_data + n_data / 64 * 64;
+    size_t n_header = n_data + n_padding;
+    assert(n_header < 0xffff);
+
+    memset(&buf[n_data], ' ', n_padding);
+    buf[n_header - 1] = '\n';
+
+    char *ptr = buf;
+    ptr += sprintf(ptr, "\x93NUMPY");
+    *ptr++ = me->ver_maj;
+    *ptr++ = me->ver_min;
+    *ptr++ = (n_header - 10) & 0xff;
+    *ptr++ = (n_header - 10) >> 8;
+    if (fwrite(buf, 1, n_header, f) != n_header) {
+        return NPY_ERR_WRITE_HEADER;
+    }
+    // Then the data
+    size_t n_els = npy_n_elements(me);
+    if (fwrite(me->data, me->el_size, n_els, f) != n_els) {
+        return NPY_ERR_WRITE_DATA;
+    }
+    fclose(f);
+    return NPY_ERR_NONE;
 }
 
 void

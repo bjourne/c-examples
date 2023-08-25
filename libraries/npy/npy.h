@@ -1,6 +1,6 @@
 // Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
 //
-// For reading binary .npy files.
+// For reading and writing .npy files.
 #ifndef NPY_H
 #define NPY_H
 
@@ -44,12 +44,18 @@ typedef struct {
     int n_dims;
 
     // Data
-    char *data;
+    void *data;
 
     // Error
     npy_error error_code;
 } npy_arr;
 
+// Initializes an array from contiguous memory. Note that unless copy
+// is true the function steals the pointer.
+npy_arr *
+npy_init(char type, int el_size,
+         int n_dims, int *dims,
+         void *data, bool copy);
 size_t npy_n_elements(npy_arr *me);
 void npy_format_dims(npy_arr *arr, char *buf);
 npy_arr *npy_load(const char *fname);

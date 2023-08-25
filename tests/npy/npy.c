@@ -69,6 +69,27 @@ test_load_and_save() {
     npy_free(orig);
 }
 
+void
+test_create_and_save() {
+    double data[10][20];
+    for (int i = 0; i < 10; i++) {
+        for (int j = 0; j < 20; j++) {
+            data[i][j] = i + j;
+        }
+    }
+    npy_arr *arr1 = npy_init('f', 8, 2, (int[]){10, 20}, data, true);
+    assert(npy_save(arr1, "tmp.npy") == NPY_ERR_NONE);
+    npy_arr *arr2 = npy_load("tmp.npy");
+    assert(arr2->error_code == NPY_ERR_NONE);
+    for (int i = 0; i < 10; i++) {
+        for (int j = 0; j < 20; j++) {
+            double v = npy_value_at_as_double(arr2, 20 * i + j);
+            assert(v == i + j);
+        }
+    }
+    npy_free(arr1);
+    npy_free(arr2);
+}
 
 int
 main(int argc, char *argv[]) {
@@ -77,4 +98,5 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_pretty_print);
     PRINT_RUN(test_pretty_print_bytes);
     PRINT_RUN(test_load_and_save);
+    PRINT_RUN(test_create_and_save);
 }
