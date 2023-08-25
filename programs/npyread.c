@@ -5,17 +5,6 @@
 #include <unistd.h>
 #include "npy/npy.h"
 
-static void
-print_dims(npy_arr *arr) {
-    int *dims = arr->dims;
-    int n_dims = arr->n_dims;
-    printf("[");
-    for (int i = 0; i < n_dims - 1; i++) {
-        printf("%d, ", dims[i]);
-    }
-    printf("%d]", dims[n_dims - 1]);
-}
-
 int
 main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -32,9 +21,10 @@ main(int argc, char *argv[]) {
     }
     printf("Version   : %d.%d\n", arr->ver_maj, arr->ver_min);
     printf("Type      : %c%d\n", arr->type, arr->el_size);
-    printf("Dimensions: ");
-    print_dims(arr);
-    printf("\n");
+
+    char buf[256];
+    npy_format_dims(arr, buf);
+    printf("Dimensions: %s\n", buf);
 
     int n_columns = 100;
     struct winsize w;

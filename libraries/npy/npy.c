@@ -29,8 +29,8 @@ consume_until(FILE *f, char c) {
     return false;
 }
 
-static void
-format_dims(npy_arr *arr, char *buf) {
+void
+npy_format_dims(npy_arr *arr, char *buf) {
     char *ptr = buf;
     int *dims = arr->dims;
     int n_dims = arr->n_dims;
@@ -45,8 +45,6 @@ format_dims(npy_arr *arr, char *buf) {
         ptr += sprintf(ptr, "%d)", dims[n_dims - 1]);
     }
 }
-
-
 
 size_t
 npy_n_elements(npy_arr *me) {
@@ -109,7 +107,7 @@ npy_save(npy_arr *me, const char *fname) {
 
     // Fix buffer overflows
     char shape[256];
-    format_dims(me, shape);
+    npy_format_dims(me, shape);
 
     // First format the descriptor so that we can compute the header
     // length.

@@ -51,6 +51,7 @@ typedef struct {
 } npy_arr;
 
 size_t npy_n_elements(npy_arr *me);
+void npy_format_dims(npy_arr *arr, char *buf);
 npy_arr *npy_load(const char *fname);
 npy_error npy_save(npy_arr *me, const char *fname);
 void npy_free(npy_arr *me);
