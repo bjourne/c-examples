@@ -14,7 +14,7 @@ typedef __m128i int4;
 
 // float4 functions
 inline float4
-f4_set_4xi4(int32_t a, int32_t b, int32_t c, int32_t d) {
+f4_set_4x_i(int32_t a, int32_t b, int32_t c, int32_t d) {
     return _mm_castsi128_ps(_mm_set_epi32(a, b, c, d));
 }
 
@@ -81,13 +81,13 @@ i4_load(int32_t *ptr) {
 }
 
 inline int4
-i4_set_4xi4(int32_t a, int32_t b, int32_t c, int32_t d) {
+i4_set_4x(int32_t a, int32_t b, int32_t c, int32_t d) {
     // Note order
     return _mm_set_epi32(d, c, b, a);
 }
 
 inline int4
-i4_set_1xi4(int32_t a) {
+i4_set_1x(int32_t a) {
     return _mm_set1_epi32(a);
 }
 
@@ -114,7 +114,7 @@ i4_all_eq(int4 a, int4 b) {
 
 inline int4
 i4_test(int4 a) {
-    return _mm_cmpeq_epi32(a, i4_set_1xi4(0));
+    return _mm_cmpeq_epi32(a, i4_set_1x(0));
 }
 
 // Chooses a if mask is negative, else b.
@@ -134,25 +134,27 @@ i4_print(int4 r) {
 #ifdef __AVX2__
 
 typedef __m256d double4;
+typedef __m256i int8;
+typedef __m256i long4;
 
 inline double4
-d4_set_1xd4(double a) {
+d4_set_1x(double a) {
     return _mm256_set1_pd(a);
 }
 
 inline double4
 d4_0() {
-    return d4_set_1xd4(0);
+    return d4_set_1x(0);
 }
 
 inline double4
-d4_set_4xd4(double a, double b, double c, double d) {
+d4_set_4x(double a, double b, double c, double d) {
     // Note order
     return _mm256_set_pd(d, c, b, a);
 }
 
 inline double4
-d4_set_4xi4(int32_t a, int32_t b, int32_t c, int32_t d) {
+d4_set_4x_i(int32_t a, int32_t b, int32_t c, int32_t d) {
     return _mm256_set_pd((double)d, (double)c, (double)b, (double)a);
 }
 
@@ -181,10 +183,8 @@ d4_print(double4 a, int n_dec) {
     printf("}");
 }
 
-typedef __m256i long4;
-
 inline long4
-l4_set_4xl4(int64_t a, int64_t b, int64_t c, int64_t d) {
+l4_set_4x(int64_t a, int64_t b, int64_t c, int64_t d) {
     // Note order
     return _mm256_set_epi64x(d, c, b, a);
 }
@@ -196,6 +196,29 @@ l4_print(long4 r) {
     printf("{%ld, %ld, %ld, %ld}", d[0], d[1], d[2], d[3]);
 }
 
+
+inline int8
+i8_set_8x(int32_t a, int32_t b, int32_t c, int32_t d,
+          int32_t e, int32_t f, int32_t g, int32_t h) {
+    return _mm256_set_epi32(h, g, f, e, d, c, b, a);
+}
+
+inline void
+i8_print(int8 r) {
+    int32_t d[8];
+    _mm256_storeu_si256((__m256i *)d, r);
+    printf("{%d, %d, %d, %d, %d, %d, %d, %d}",
+           d[0], d[1], d[2], d[3],
+           d[4], d[5], d[6], d[7]);
+}
+
+inline int4
+l4_cvt_i4(long4 r) {
+    // Emulates _mm256_cvtepi64_epi32
+    int8 pat = i8_set_8x(0, 2, 4, 6, 0, 0, 0, 0);
+    return _mm256_castsi256_si128(
+        _mm256_permutevar8x32_epi32(r, pat));
+}
 
 #endif
 
