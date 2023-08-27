@@ -10,9 +10,11 @@
 #include "linalg/linalg.h"
 
 typedef __m128 float4;
+typedef __m128i int4;
 
+// float4 functions
 inline float4
-f4_set_int32(int32_t a, int32_t b, int32_t c, int32_t d) {
+f4_set_4xi4(int32_t a, int32_t b, int32_t c, int32_t d) {
     return _mm_castsi128_ps(_mm_set_epi32(a, b, c, d));
 }
 
@@ -31,7 +33,7 @@ f4_signmask(float4 a) {
 }
 
 inline bool
-f4_eq(float4 a, float4 b) {
+f4_all_eq(float4 a, float4 b) {
     __m128 cmp = _mm_cmpeq_ps(a, b);
     return _mm_movemask_ps(cmp) == 0xf;
 }
@@ -72,11 +74,47 @@ madd(float4 a, float4 b, float4 c) {
 #endif
 }
 
+// int4 functions
+inline int4
+i4_load(int32_t *ptr) {
+    return _mm_load_si128((const __m128i *)ptr);
+}
+
+inline int4
+i4_set_4xi4(int32_t a, int32_t b, int32_t c, int32_t d) {
+    // Note order
+    return _mm_set_epi32(d, c, b, a);
+}
+
+inline int4
+i4_set_1xi4(int32_t a) {
+    return _mm_set1_epi32(a);
+}
+
+inline int4
+i4_sub(int4 a, int4 b) {
+    return _mm_sub_epi32(a, b);
+}
+
+inline bool
+i4_all_eq(int4 a, int4 b) {
+    __m128 cmp = _mm_cmpeq_epi32(a, b);
+    return _mm_movemask_ps(cmp) == 0xf;
+}
+
+inline void
+i4_print(int4 r) {
+    int d[4];
+    _mm_storeu_si128((__m128i *)d, r);
+    // Note order
+    printf("{%d, %d, %d, %d}", d[0], d[1], d[2], d[3]);
+}
+
 #ifdef __AVX2__
 typedef __m256d double4;
 
 inline double4
-d4_set_int32(int32_t a, int32_t b, int32_t c, int32_t d) {
+d4_set_4xi4(int32_t a, int32_t b, int32_t c, int32_t d) {
     return _mm256_set_pd((double)a, (double)b, (double)c, (double)d);
 }
 
