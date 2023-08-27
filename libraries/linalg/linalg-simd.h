@@ -1,4 +1,4 @@
-// Copyright (C) 2019, 2023 Björn Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019, 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef LINALG_SIMD_H
 #define LINALG_SIMD_H
 
@@ -92,6 +92,16 @@ i4_set_1xi4(int32_t a) {
 }
 
 inline int4
+i4_0() {
+    return _mm_set1_epi32(0);
+}
+
+inline int4
+i4_1() {
+    return _mm_set1_epi32(1);
+}
+
+inline int4
 i4_sub(int4 a, int4 b) {
     return _mm_sub_epi32(a, b);
 }
@@ -102,20 +112,58 @@ i4_all_eq(int4 a, int4 b) {
     return _mm_movemask_ps(cmp) == 0xf;
 }
 
+inline int4
+i4_test(int4 a) {
+    return _mm_cmpeq_epi32(a, i4_set_1xi4(0));
+}
+
+// Chooses a if mask is negative, else b.
+inline int4
+i4_tern(int4 mask, int4 a, int4 b) {
+    return _mm_blendv_ps(b, a, mask);
+}
+
 inline void
 i4_print(int4 r) {
-    int d[4];
+    int32_t d[4];
     _mm_storeu_si128((__m128i *)d, r);
     // Note order
     printf("{%d, %d, %d, %d}", d[0], d[1], d[2], d[3]);
 }
 
 #ifdef __AVX2__
+
 typedef __m256d double4;
 
 inline double4
+d4_set_1xd4(double a) {
+    return _mm256_set1_pd(a);
+}
+
+inline double4
+d4_0() {
+    return d4_set_1xd4(0);
+}
+
+inline double4
+d4_set_4xd4(double a, double b, double c, double d) {
+    // Note order
+    return _mm256_set_pd(d, c, b, a);
+}
+
+inline double4
 d4_set_4xi4(int32_t a, int32_t b, int32_t c, int32_t d) {
-    return _mm256_set_pd((double)a, (double)b, (double)c, (double)d);
+    return _mm256_set_pd((double)d, (double)c, (double)b, (double)a);
+}
+
+inline double4
+d4_cmp_gte(double4 a, double4 b) {
+    return _mm256_cmp_pd(a, b, _CMP_GE_OQ);
+}
+
+inline double4
+d4_tern(double4 mask, double4 a, double4 b) {
+    return _mm256_blendv_pd(b, a, mask);
 }
 
 inline void
@@ -123,21 +171,33 @@ d4_print(double4 a, int n_dec) {
     double r[4];
     _mm256_storeu_pd(r, a);
     printf("{");
-    la_print_float(r[3], n_dec);
-    printf(", ");
-    la_print_float(r[2], n_dec);
+    la_print_float(r[0], n_dec);
     printf(", ");
     la_print_float(r[1], n_dec);
     printf(", ");
-    la_print_float(r[0], n_dec);
+    la_print_float(r[2], n_dec);
+    printf(", ");
+    la_print_float(r[3], n_dec);
     printf("}");
 }
 
+typedef __m256i long4;
+
+inline long4
+l4_set_4xl4(int64_t a, int64_t b, int64_t c, int64_t d) {
+    // Note order
+    return _mm256_set_epi64x(d, c, b, a);
+}
+
+inline void
+l4_print(long4 r) {
+    int64_t d[4];
+    _mm256_storeu_si256((__m256i *)d, r);
+    printf("{%ld, %ld, %ld, %ld}", d[0], d[1], d[2], d[3]);
+}
 
 
 #endif
-
-
 
 // vec3x4 type. Four 3d vectors in packed format to exploit SIMD.
 typedef struct {
