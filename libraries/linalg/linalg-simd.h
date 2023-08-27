@@ -124,9 +124,19 @@ i4_tern(int4 mask, int4 a, int4 b) {
 }
 
 inline void
+i4_storeu(int4 a, int32_t *d) {
+    _mm_storeu_si128((int4 *)d, a);
+}
+
+inline void
+i4_store(int4 a, int32_t *d) {
+    _mm_store_si128((int4 *)d, a);
+}
+
+inline void
 i4_print(int4 r) {
     int32_t d[4];
-    _mm_storeu_si128((__m128i *)d, r);
+    i4_storeu(r, d);
     // Note order
     printf("{%d, %d, %d, %d}", d[0], d[1], d[2], d[3]);
 }
@@ -137,6 +147,17 @@ typedef __m256d double4;
 typedef __m256i int8;
 typedef __m256i long4;
 
+// double4
+inline double4
+d4_andnot(double4 a, double4 b) {
+    return _mm256_andnot_pd(a, b);
+}
+
+inline double4
+d4_load(double *ptr) {
+    return _mm256_load_pd(ptr);
+}
+
 inline double4
 d4_set_1x(double a) {
     return _mm256_set1_pd(a);
@@ -145,6 +166,16 @@ d4_set_1x(double a) {
 inline double4
 d4_0() {
     return d4_set_1x(0);
+}
+
+inline double4
+d4_mul(double4 a, double4 b) {
+    return _mm256_mul_pd(a, b);
+}
+
+inline double4
+d4_add(double4 a, double4 b) {
+    return _mm256_add_pd(a, b);
 }
 
 inline double4
@@ -169,9 +200,19 @@ d4_tern(double4 mask, double4 a, double4 b) {
 }
 
 inline void
+d4_store(double4 r, double *ptr) {
+    _mm256_store_pd(ptr, r);
+}
+
+inline void
+d4_storeu(double4 r, double *ptr) {
+    _mm256_storeu_pd(ptr, r);
+}
+
+inline void
 d4_print(double4 a, int n_dec) {
     double r[4];
-    _mm256_storeu_pd(r, a);
+    d4_storeu(a, r);
     printf("{");
     la_print_float(r[0], n_dec);
     printf(", ");
@@ -181,6 +222,27 @@ d4_print(double4 a, int n_dec) {
     printf(", ");
     la_print_float(r[3], n_dec);
     printf("}");
+}
+
+// long4
+inline long4
+l4_tern(long4 mask, long4 a, long4 b) {
+    return _mm256_blendv_pd(b, a, mask);
+}
+
+inline long4
+l4_load(int64_t *ptr) {
+    return _mm256_load_si256((long4 *)ptr);
+}
+
+inline long4
+l4_sub(long4 a, long4 b) {
+    return _mm256_sub_epi64(a, b);
+}
+
+inline long4
+l4_set_1x(int64_t a) {
+    return _mm256_set1_epi64x(a);
 }
 
 inline long4
@@ -196,7 +258,22 @@ l4_print(long4 r) {
     printf("{%ld, %ld, %ld, %ld}", d[0], d[1], d[2], d[3]);
 }
 
+inline long4
+l4_1() {
+    return l4_set_1x(1);
+}
 
+inline long4
+l4_and(long4 a, long4 b) {
+    return _mm256_and_si256(a, b);
+}
+
+inline void
+l4_store(long4 a, int64_t *d) {
+    _mm256_store_si256((long4 *)d, a);
+}
+
+// int8
 inline int8
 i8_set_8x(int32_t a, int32_t b, int32_t c, int32_t d,
           int32_t e, int32_t f, int32_t g, int32_t h) {
@@ -218,6 +295,21 @@ l4_cvt_i4(long4 r) {
     int8 pat = i8_set_8x(0, 2, 4, 6, 0, 0, 0, 0);
     return _mm256_castsi256_si128(
         _mm256_permutevar8x32_epi32(r, pat));
+}
+
+inline long4
+i4_cvt_l4(int4 r) {
+    return _mm256_cvtepi32_epi64(r);
+}
+
+inline double4
+i4_cvt_d4(int4 r) {
+    return (double4)i4_cvt_l4(r);
+}
+
+inline int4
+d4_cvt_i4(double4 r) {
+    return l4_cvt_i4((long4)r);
 }
 
 #endif
