@@ -191,8 +191,10 @@ def build(ctx):
         'benchmark' : ['BENCHMARK_OBJS', 'DT_OBJS'],
         'collectors' : ['GC_OBJS', 'DT_OBJS', 'QF_OBJS'],
         'datatypes' : ['BENCHMARK_OBJS', 'DT_OBJS', 'RANDOM_OBJS'],
+        'file3d' : {'FILE3D_OBJS', 'DT_OBJS', 'LINALG_OBJS', 'M'},
         'ieee754' : ['IEEE754_OBJS', 'DT_OBJS', 'RANDOM_OBJS'],
         'isect' : {'LINALG_OBJS', 'DT_OBJS', 'M', 'ISECT_OBJS'},
+        'linalg' : {'LINALG_OBJS', 'DT_OBJS', 'M', 'RANDOM_OBJS'},
         'npy' : ['DT_OBJS', 'NPY_OBJS'],
         'opencl' : {
             'DT_OBJS',
@@ -212,10 +214,6 @@ def build(ctx):
     for lib, deps in tests.items():
         build_tests(ctx, lib, deps)
 
-    build_tests(ctx, 'linalg', ['LINALG_OBJS', 'DT_OBJS', 'M'])
-    build_tests(ctx, 'file3d', [
-        'FILE3D_OBJS', 'DT_OBJS', 'LINALG_OBJS', 'M'
-    ])
     build_tests(ctx, 'fastio', ['FASTIO_OBJS'])
     build_tests(ctx, 'files', ['DT_OBJS', 'FILES_OBJS'])
 
