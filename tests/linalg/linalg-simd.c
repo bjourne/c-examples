@@ -370,12 +370,14 @@ run_test(uint32_t tp, uint32_t *n_evs, uint64_t *nanos) {
                                       c1, c2, c3,
                                       thr, rst);
         }
-    } else if (tp  == 3) {
+    } else if (tp == 3) {
         for (uint32_t t = 0; t < N_T; t++) {
             *n_evs += run_interleaved_loop(items,
                                            c1, c2, c3,
                                            thr, rst);
         }
+    } else {
+        assert(false);
     }
     *nanos = nano_count() - start;
     free(items);
@@ -389,13 +391,14 @@ run_test(uint32_t tp, uint32_t *n_evs, uint64_t *nanos) {
 
 void
 benchmark_tern_etc() {
-    //uint64_t nanos;
     assert(N_S % 4 == 0);
 
     // On my laptop the difference is quite small between the scalar
     // loop and the avx2-coded one.
     uint32_t cnts[4];
-    char *names[4] = {"sse", "avx2", "scalar", "interleaved"};
+    char *names[4] = {
+        "sse", "avx2", "scalar", "interleaved"
+    };
     for (size_t i = 0; i < ARRAY_SIZE(cnts); i++) {
         uint64_t nanos;
         run_test(i, &cnts[i], &nanos);
