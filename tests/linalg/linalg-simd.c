@@ -173,6 +173,33 @@ test_mix_d4_i4_and_blend() {
 #define N_S (1024 * 80)
 #define N_T (5 * 10 * 1000)
 
+typedef struct {
+    double x, y, z;
+    int64_t c;
+} item;
+
+static uint32_t
+run_interleaved_loop(
+    item *ptr,
+    double c1, double c2, double c3,
+    double thr, uint32_t rst) {
+    uint32_t n_evs = 0;
+    for (uint32_t i = 0; i < N_S; i++) {
+        if (!ptr->c) {
+            ptr->x = ptr->x * c1 + ptr->y * c2 + ptr->z * c3;
+            if (ptr->x >= thr) {
+                n_evs++;
+                ptr->x = 0.0;
+                ptr->c = rst;
+            }
+        } else {
+            ptr->c -= 1;
+        }
+        ptr++;
+    }
+    return n_evs;
+}
+
 static uint32_t
 run_scalar_loop(
     double *x_ptr, double *y_ptr, double *z_ptr, int64_t *c_ptr,
@@ -291,6 +318,7 @@ run_test(uint32_t tp, uint32_t *n_evs, uint64_t *nanos) {
     double *ys = malloc_aligned(0x40, N_S * sizeof(double));
     double *zs = malloc_aligned(0x40, N_S * sizeof(double));
     int64_t *cs = malloc_aligned(0x40, N_S * sizeof(double));
+    item *items = malloc_aligned(0x40, sizeof(item) * N_S);
 
     rnd_pcg32_seed(1001, 370);
     for (uint32_t i = 0; i < N_S; i++) {
@@ -298,6 +326,10 @@ run_test(uint32_t tp, uint32_t *n_evs, uint64_t *nanos) {
         ys[i] = (double)rnd_pcg32_rand_range(1000) / 5;
         zs[i] = (double)rnd_pcg32_rand_range(1000) / 5;
         cs[i] = 0;
+        items[i].x = xs[i];
+        items[i].y = ys[i];
+        items[i].z = zs[i];
+        items[i].c = cs[i];
     }
 
     double c1 = 0.990049834;
@@ -326,8 +358,15 @@ run_test(uint32_t tp, uint32_t *n_evs, uint64_t *nanos) {
                                       c1, c2, c3,
                                       thr, rst);
         }
+    } else if (tp  == 3) {
+        for (uint32_t t = 0; t < N_T; t++) {
+            *n_evs += run_interleaved_loop(items,
+                                           c1, c2, c3,
+                                           thr, rst);
+        }
     }
     *nanos = nano_count() - start;
+    free(items);
     free(xs);
     free(ys);
     free(zs);
@@ -341,17 +380,15 @@ benchmark_tern_etc() {
 
     // On my laptop the difference is quite small between the scalar
     // loop and the avx2-coded one.
-    uint32_t cnts[3];
-    char *names[3] = {"sse", "avx2", "scalar"};
-    for (uint32_t i = 0; i < 3; i++) {
+    uint32_t cnts[4];
+    char *names[4] = {"sse", "avx2", "scalar", "interleaved"};
+    for (size_t i = 0; i < ARRAY_SIZE(cnts); i++) {
         uint64_t nanos;
         run_test(i, &cnts[i], &nanos);
-        printf("%-10s %5d %6.2f\n",
+        printf("%-15s %9d %6.2f\n",
                names[i], cnts[i], (double)nanos / (1000 * 1000 * 1000));
     }
-    //printf("%d\n", cnts[0]);
-    assert(cnts[0] == cnts[1]);
-    assert(cnts[1] == cnts[2]);
+    assert(cnts[0] == cnts[1] && cnts[1] == cnts[2]);
 }
 
 int
