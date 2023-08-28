@@ -79,6 +79,97 @@ madd(float4 a, float4 b, float4 c) {
 #endif
 }
 
+// double2 functions
+typedef __m128d double2;
+
+inline double2
+d2_set_1x(double a) {
+    return _mm_set1_pd(a);
+}
+
+inline double2
+d2_0() {
+    return d2_set_1x(0.0);
+}
+
+inline double2
+d2_load(double *ptr) {
+    return _mm_load_pd(ptr);
+}
+
+inline void
+d2_store(double2 a, double *ptr) {
+    _mm_store_pd(ptr, a);
+}
+
+inline double2
+d2_mul(double2 a, double2 b) {
+    return _mm_mul_pd(a, b);
+}
+
+inline double2
+d2_add(double2 a, double2 b) {
+    return _mm_add_pd(a, b);
+}
+
+inline double2
+d2_cmp_gte(double2 a, double2 b) {
+    return _mm_cmp_pd(a, b, _CMP_GE_OQ);
+}
+
+inline uint32_t
+d2_movemask(double2 a) {
+    return _mm_movemask_pd(a);
+}
+
+inline double2
+d2_tern(double2 mask, double2 a, double2 b) {
+    return _mm_blendv_pd(b, a, mask);
+}
+
+inline double2
+d2_andnot(double2 a, double2 b) {
+    return _mm_andnot_pd(a, b);
+}
+
+// long2 functions
+typedef __m128i long2;
+
+inline long2
+l2_load(int64_t *ptr) {
+    return _mm_load_si128((const __m128i *)ptr);
+}
+
+inline void
+l2_store(long2 a, int64_t *ptr) {
+    _mm_store_si128((long2 *)ptr, a);
+}
+
+inline long2
+l2_sub(long2 a, long2 b) {
+    return _mm_sub_epi64(a, b);
+}
+
+inline long2
+l2_and(long2 a, long2 b) {
+    return _mm_and_si128(a, b);
+}
+
+inline long2
+l2_set_1x(int64_t a) {
+    return _mm_set1_epi64x(a);
+}
+
+inline long2
+l2_1() {
+    return l2_set_1x(1);
+}
+
+inline long2
+l2_tern(long2 mask, long2 a, long2 b) {
+    return (long2)d2_tern((double2)mask, (double2)a, (double2)b);
+}
+
 // int4 functions
 inline int4
 i4_load(int32_t *ptr) {
@@ -153,6 +244,11 @@ typedef __m256i int8;
 typedef __m256i long4;
 
 // double4
+inline uint32_t
+d4_movemask(double4 a) {
+    return _mm256_movemask_pd(a);
+}
+
 inline double4
 d4_andnot(double4 a, double4 b) {
     return _mm256_andnot_pd(a, b);
