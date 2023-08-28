@@ -146,17 +146,17 @@ test_shuffles() {
 void
 test_mix_d4_i4_and_blend() {
     int4 cnt = i4_load((int32_t[]){4, 0, 0, 0});
-    double4 vm =  d4_load((double[]){30.0, 18.0, 7.0, 2.0});
+    double4 x =  d4_load((double[]){30.0, 18.0, 7.0, 2.0});
     double4 thr = d4_set_1x(15.0);
     int4 cnt_rst = i4_set_1x(5);
 
     int4 cnt_next = i4_sub(cnt, i4_1());
-    double4 event_d4 = d4_cmp_gte(vm, thr);
+    double4 event_d4 = d4_cmp_gte(x, thr);
     int4 event_i4 = d4_cvt_i4(event_d4);
 
-    vm = d4_tern(i4_cvt_d4(cnt_next),
-                 d4_tern(event_d4, d4_0(), vm),
-                 d4_0());
+    x = d4_tern(i4_cvt_d4(cnt_next),
+                d4_tern(event_d4, d4_0(), x),
+                d4_0());
 
     cnt_next = i4_tern(cnt_next,
                   i4_tern(event_i4, cnt_rst, i4_0()),
@@ -165,17 +165,18 @@ test_mix_d4_i4_and_blend() {
     printf("cnt next: ");
     i4_print(cnt_next);
     printf("\n");
-    printf("vm: ");
-    d4_print(vm, 1);
+    printf("x: ");
+    d4_print(x, 1);
     printf("\n");
 }
 
-#define N_S (1024 * 80)
+#define N_G (1024 * 10)
+#define N_S (8 * N_G)
 #define N_T (5 * 10 * 1000)
 
 typedef struct {
     double x, y, z;
-    int64_t c;
+    int8_t c;
 } item;
 
 static uint32_t
@@ -202,79 +203,81 @@ run_interleaved_loop(
 
 static uint32_t
 run_scalar_loop(
-    double *x_ptr, double *y_ptr, double *z_ptr, int64_t *c_ptr,
+    double *x_ptr, double *y_ptr, int8_t *c_ptr,
+    double *o_ptr,
     double c1, double c2, double c3,
     double thr, uint32_t rst) {
     uint32_t n_evs = 0;
-    for (uint32_t i = 0; i < N_S; i++) {
-        double x = *x_ptr;
-        double y = *y_ptr;
-        double z = *z_ptr;
-        int64_t c = *c_ptr;
-        if (!c) {
-            x = x * c1 + y * c2 + z * c3;
-            if (x >= thr) {
-                n_evs++;
-                *x_ptr = 0.0;
-                *c_ptr = rst;
+    for (uint32_t i = 0; i < 8; i++) {
+        double z = o_ptr[i];
+        for (uint32_t j = 0; j < N_G; j++) {
+            double x = *x_ptr;
+            double y = *y_ptr;
+            int64_t c = *c_ptr;
+            if (!c) {
+                x = x * c1 + y * c2 + z * c3;
+                if (x >= thr) {
+                    n_evs++;
+                    *x_ptr = 0.0;
+                    *c_ptr = rst;
+                } else {
+                    *x_ptr = x;
+                }
             } else {
-                *x_ptr = x;
+                *c_ptr = c - 1;
             }
-        } else {
-            *c_ptr = c - 1;
+            x_ptr++;
+            y_ptr++;
+            c_ptr++;
         }
-        x_ptr++;
-        y_ptr++;
-        z_ptr++;
-        c_ptr++;
     }
     return n_evs;
 }
 
 static uint32_t
 run_avx2_loop(
-    double *x_ptr, double *y_ptr, double *z_ptr, int64_t *c_ptr,
+    double *x_ptr, double *y_ptr, int64_t *c_ptr, double *o_ptr,
     double c1, double c2, double c3,
     double thr, uint32_t rst) {
-    double4 r_c1 = d4_set_1x(0.990049834);
-    double4 r_c2 = d4_set_1x(0.000398007);
-    double4 r_c3 = d4_set_1x(0.000360672);
-    long4 r_rst = l4_set_1x(20);
-    double4 r_thr = d4_set_1x(10.0);
+    double4 r_c1 = d4_set_1x(c1);
+    double4 r_c2 = d4_set_1x(c2);
+    double4 r_c3 = d4_set_1x(c3);
+    long4 r_rst = l4_set_1x(rst);
+    double4 r_thr = d4_set_1x(thr);
     uint32_t n_evs = 0;
-    for (uint32_t i = 0; i < N_S; i += 4) {
-        double4 x = d4_load(x_ptr);
-        double4 y = d4_load(y_ptr);
-        double4 z = d4_load(z_ptr);
-        long4 c = l4_load(c_ptr);
-        c = l4_sub(c, l4_1());
+    for (uint32_t i = 0; i < 8; i++) {
+        double4 z = d4_set_1x(o_ptr[i]);
+        for (uint32_t j = 0; j < N_G; j += 4) {
+            double4 x = d4_load(x_ptr);
+            double4 y = d4_load(y_ptr);
+            long4 c = l4_load(c_ptr);
+            c = l4_sub(c, l4_1());
 
-        double4 t1 = d4_mul(x, r_c1);
-        double4 t2 = d4_mul(y, r_c2);
-        double4 t3 = d4_mul(z, r_c3);
-        x = d4_add(d4_add(t1, t2), t3);
+            double4 t1 = d4_mul(x, r_c1);
+            double4 t2 = d4_mul(y, r_c2);
+            double4 t3 = d4_mul(z, r_c3);
+            x = d4_add(d4_add(t1, t2), t3);
 
-        double4 ev = d4_cmp_gte(x, r_thr);
-        uint32_t ev_mask = d4_movemask(ev);
+            double4 ev = d4_cmp_gte(x, r_thr);
 
-        x = d4_tern((double4)c, d4_andnot(ev, x), d4_0());
-        c = l4_tern(c, l4_and((long4)ev, r_rst), c);
+            x = d4_tern((double4)c, d4_andnot(ev, x), d4_0());
+            c = l4_tern(c, l4_and((long4)ev, r_rst), c);
 
-        n_evs += __builtin_popcount(ev_mask);
-        d4_store(x, x_ptr);
-        l4_store(c, c_ptr);
+            n_evs += d4_count_mask(ev);
+            d4_store(x, x_ptr);
+            l4_store(c, c_ptr);
 
-        x_ptr += 4;
-        y_ptr += 4;
-        z_ptr += 4;
-        c_ptr += 4;
+            x_ptr += 4;
+            y_ptr += 4;
+            c_ptr += 4;
+        }
     }
     return n_evs;
 }
 
 static uint32_t
 run_sse_loop(
-    double *x_ptr, double *y_ptr, double *z_ptr, int64_t *c_ptr,
+    double *x_ptr, double *y_ptr, int64_t *c_ptr, double *o_ptr,
     double c1, double c2, double c3,
     double thr, uint32_t rst) {
     double2 r_c1 = d2_set_1x(c1);
@@ -283,31 +286,32 @@ run_sse_loop(
     long2 r_rst = l2_set_1x(rst);
     double2 r_thr = d2_set_1x(thr);
     uint32_t n_evs = 0;
-    for (uint32_t i = 0; i < N_S; i += 2) {
-        double2 x = d2_load(x_ptr);
-        double2 y = d2_load(y_ptr);
-        double2 z = d2_load(z_ptr);
-        long2 c = l2_load(c_ptr);
-        c = l2_sub(c, l2_1());
+    for (uint32_t i = 0; i < 8; i++) {
+        double2 z = d2_set_1x(o_ptr[i]);
+        for (uint32_t j = 0; j < N_G; j += 2) {
+            double2 x = d2_load(x_ptr);
+            double2 y = d2_load(y_ptr);
+            long2 c = l2_load(c_ptr);
+            c = l2_sub(c, l2_1());
 
-        double2 t1 = d2_mul(x, r_c1);
-        double2 t2 = d2_mul(y, r_c2);
-        double2 t3 = d2_mul(z, r_c3);
-        x = d2_add(d2_add(t1, t2), t3);
+            double2 t1 = d2_mul(x, r_c1);
+            double2 t2 = d2_mul(y, r_c2);
+            double2 t3 = d2_mul(z, r_c3);
+            x = d2_add(d2_add(t1, t2), t3);
 
-        double2 ev = d2_cmp_gte(x, r_thr);
-        uint32_t ev_mask = d2_movemask(ev);
+            double2 ev = d2_cmp_gte(x, r_thr);
+            uint32_t ev_mask = d2_movemask(ev);
 
-        x = d2_tern((double2)c, d2_andnot(ev, x), d2_0());
-        c = l2_tern(c, l2_and((long2)ev, r_rst), c);
-        n_evs += __builtin_popcount(ev_mask);
-        d2_store(x, x_ptr);
-        l2_store(c, c_ptr);
+            x = d2_tern((double2)c, d2_andnot(ev, x), d2_0());
+            c = l2_tern(c, l2_and((long2)ev, r_rst), c);
+            n_evs += __builtin_popcount(ev_mask);
+            d2_store(x, x_ptr);
+            l2_store(c, c_ptr);
 
-        x_ptr += 2;
-        y_ptr += 2;
-        z_ptr += 2;
-        c_ptr += 2;
+            x_ptr += 2;
+            y_ptr += 2;
+            c_ptr += 2;
+        }
     }
     return n_evs;
 }
@@ -317,21 +321,29 @@ run_test(uint32_t tp, uint32_t *n_evs, uint64_t *nanos) {
     double *xs = malloc_aligned(0x40, N_S * sizeof(double));
     double *ys = malloc_aligned(0x40, N_S * sizeof(double));
     double *zs = malloc_aligned(0x40, N_S * sizeof(double));
-    int64_t *cs = malloc_aligned(0x40, N_S * sizeof(double));
+    int64_t *cs8 = malloc_aligned(0x40, N_S * sizeof(int64_t));
+    int8_t *cs1 = malloc_aligned(0x40, N_S * sizeof(int8_t));
     item *items = malloc_aligned(0x40, sizeof(item) * N_S);
+    double *os = malloc_aligned(0x40, sizeof(double) * 8);
 
     rnd_pcg32_seed(1001, 370);
-    for (uint32_t i = 0; i < N_S; i++) {
-        xs[i] = (double)rnd_pcg32_rand_range(1000) / 100;
-        ys[i] = (double)rnd_pcg32_rand_range(1000) / 5;
-        zs[i] = (double)rnd_pcg32_rand_range(1000) / 5;
-        cs[i] = 0;
-        items[i].x = xs[i];
-        items[i].y = ys[i];
-        items[i].z = zs[i];
-        items[i].c = cs[i];
+    for (uint32_t i = 0; i < 8; i++) {
+        os[i] = (double)rnd_pcg32_rand_range(1000) / 5;
     }
-
+    for (uint32_t i = 0; i < 8; i++) {
+        for (uint32_t j = 0; j < N_G; j++) {
+            uint32_t k = i * N_G + j;
+            xs[k] = (double)rnd_pcg32_rand_range(1000) / 100;
+            ys[k] = (double)rnd_pcg32_rand_range(1000) / 5;
+            zs[k] = os[i];
+            cs8[k] = 0;
+            cs1[k] = 0;
+            items[k].x = xs[k];
+            items[k].y = ys[k];
+            items[k].z = zs[k];
+            items[k].c = cs8[k];
+        }
+    }
     double c1 = 0.990049834;
     double c2 = 0.000398007;
     double c3 = 0.000360672;
@@ -342,19 +354,19 @@ run_test(uint32_t tp, uint32_t *n_evs, uint64_t *nanos) {
     uint64_t start = nano_count();
     if (tp == 0) {
         for (uint32_t t = 0; t < N_T; t++) {
-            *n_evs += run_sse_loop(xs, ys, zs, cs,
+            *n_evs += run_sse_loop(xs, ys, cs8, os,
                                    c1, c2, c3,
                                    thr, rst);
         }
     } else if (tp == 1) {
         for (uint32_t t = 0; t < N_T; t++) {
-            *n_evs += run_avx2_loop(xs, ys, zs, cs,
+            *n_evs += run_avx2_loop(xs, ys, cs8, os,
                                     c1, c2, c3,
                                     thr, rst);
         }
     } else if (tp == 2) {
         for (uint32_t t = 0; t < N_T; t++) {
-            *n_evs += run_scalar_loop(xs, ys, zs, cs,
+            *n_evs += run_scalar_loop(xs, ys, cs1, os,
                                       c1, c2, c3,
                                       thr, rst);
         }
@@ -370,7 +382,9 @@ run_test(uint32_t tp, uint32_t *n_evs, uint64_t *nanos) {
     free(xs);
     free(ys);
     free(zs);
-    free(cs);
+    free(os);
+    free(cs8);
+    free(cs1);
 }
 
 void
