@@ -249,6 +249,11 @@ d4_movemask(double4 a) {
     return _mm256_movemask_pd(a);
 }
 
+inline uint32_t
+d4_count_mask(double4 a) {
+    return _mm_popcnt_u32(d4_movemask(a));
+}
+
 inline double4
 d4_andnot(double4 a, double4 b) {
     return _mm256_andnot_pd(a, b);
