@@ -89,7 +89,7 @@ d2_set_1x(double a) {
 
 inline double2
 d2_0() {
-    return d2_set_1x(0.0);
+    return _mm_setzero_pd();
 }
 
 inline double2
@@ -189,7 +189,7 @@ i4_set_1x(int32_t a) {
 
 inline int4
 i4_0() {
-    return _mm_set1_epi32(0);
+    return _mm_setzero_si128();
 }
 
 inline int4
@@ -266,7 +266,7 @@ d4_set_1x(double a) {
 
 inline double4
 d4_0() {
-    return d4_set_1x(0);
+    return _mm256_setzero_pd();
 }
 
 inline double4
