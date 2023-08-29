@@ -119,7 +119,7 @@ void
 test_i4() {
     int32_t data[] = {1, 2, 3, 4};
     int4 reg1 = i4_load(data);
-    int4 reg2 = i4_set_1x(1);
+    int4 reg2 = i4_1();
     int4 reg3 = i4_set_4x(0, 1, 2, 3);
     reg1 = i4_sub(reg1, reg2);
     assert(i4_all_eq(reg1, reg3));
@@ -408,6 +408,60 @@ benchmark_tern_etc() {
     assert(cnts[0] == cnts[1] && cnts[1] == cnts[2]);
 }
 
+#define N_ELS (256 * 1024 * 1024)
+
+// Compiler sees that these are equivalent.
+static void
+mul_with_cast(double *xs, float *ys) {
+    for (uint32_t i = 0; i < N_ELS; i += 4) {
+        double4 x = d4_load(xs);
+        float4 y = f4_load(ys);
+        x = d4_mul(x, d4_set_4x_f4(y));
+        d4_store(x, xs);
+        xs += 4;
+        ys += 4;
+    }
+}
+
+static void
+mul_with_no_cast(double *xs, float *ys) {
+    for (uint32_t i = 0; i < N_ELS; i += 4) {
+        double4 x = d4_load(xs);
+        double4 y = d4_set_4x((double)ys[0],
+                              (double)ys[1],
+                              (double)ys[2],
+                              (double)ys[3]);
+        x = d4_mul(x, y);
+        d4_store(x, xs);
+        xs += 4;
+        ys += 4;
+    }
+}
+
+void
+benchmark_ps_to_pd() {
+    // We have an array of floats we want to multiply with an array of
+    // doubles.
+    rnd_pcg32_seed(1001, 370);
+    double *xs = malloc_aligned(0x40, N_ELS * sizeof(double));
+    float *ys = malloc_aligned(0x40, N_ELS * sizeof(float));
+    for (uint32_t i = 0; i < 2; i++) {
+        for (uint32_t j = 0; j < N_ELS; j++) {
+            xs[j] = (double)rnd_pcg32_rand_range(1000) / 100;
+            ys[j] = (float)rnd_pcg32_rand_range(1000) / 100;
+        }
+        uint64_t start = nano_count();
+        if (i == 0) {
+            mul_with_cast(xs, ys);
+        } else {
+            mul_with_no_cast(xs, ys);
+        }
+        printf("%d %ld\n", i, nano_count() - start);
+    }
+    free(xs);
+    free(ys);
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_f4_abs);
@@ -431,6 +485,7 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_mix_d4_i4_and_blend);
 
     PRINT_RUN(benchmark_tern_etc);
+    PRINT_RUN(benchmark_ps_to_pd);
 
     return 0;
 }

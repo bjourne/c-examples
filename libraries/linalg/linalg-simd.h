@@ -6,13 +6,23 @@
 #include <xmmintrin.h>
 #include <nmmintrin.h>
 #include <immintrin.h>
-
 #include "linalg/linalg.h"
+
+// Naming conventions:
+//
+// * set_Nx means use N values to set all N vector elements.
+// * set_1x means broadcast one value to all N vector elements.
+
 
 typedef __m128 float4;
 typedef __m128i int4;
 
 // float4 functions
+inline float4
+f4_load(float const *ptr) {
+    return _mm_load_ps(ptr);
+}
+
 inline float4
 f4_tern(float4 mask, float4 a, float4 b) {
     return _mm_blendv_ps(b, a, mask);
@@ -210,7 +220,7 @@ i4_all_eq(int4 a, int4 b) {
 
 inline int4
 i4_test(int4 a) {
-    return _mm_cmpeq_epi32(a, i4_set_1x(0));
+    return _mm_cmpeq_epi32(a, i4_0());
 }
 
 // Chooses a if mask is negative, else b.
@@ -270,6 +280,11 @@ d4_set_1x(double a) {
 }
 
 inline double4
+d4_set_4x_f4(float4 a) {
+    return _mm256_cvtps_pd(a);
+}
+
+inline double4
 d4_0() {
     return _mm256_setzero_pd();
 }
@@ -314,6 +329,7 @@ inline void
 d4_storeu(double4 r, double *ptr) {
     _mm256_storeu_pd(ptr, r);
 }
+
 
 inline void
 d4_print(double4 a, int n_dec) {
