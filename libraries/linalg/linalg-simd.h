@@ -10,8 +10,11 @@
 
 // Naming conventions:
 //
-// * set_Nx means use N values to set all N vector elements.
-// * set_1x means broadcast one value to all N vector elements.
+// * set_Nx: use N values to set all N vector elements.
+// * set_1x: broadcast one value to all N vector elements.
+// * nameX: register containing X values of type name.
+// * set_Nx_cM: cast from one vector type to another using a
+//   cvt-function.
 
 
 typedef __m128 float4;
@@ -333,6 +336,96 @@ typedef __m256d double4;
 typedef __m256i int8;
 typedef __m256i long4;
 
+// float8
+typedef __m256 float8;
+
+inline void
+f8_store(float8 r, float *ptr) {
+    _mm256_store_ps(ptr, r);
+}
+
+inline uint32_t
+f8_is_zero(float8 a) {
+    // This may not be more efficient than movemask.
+    return _mm256_testz_si256((int8)a, (int8)a);
+}
+
+inline uint32_t
+f8_movemask(float8 a) {
+    return _mm256_movemask_ps(a);
+}
+
+inline float8
+f8_set_8x(float a, float b, float c, float d,
+          float e, float f, float g, float h) {
+    return _mm256_set_ps(h, g, f, e, d, c, b, a);
+}
+
+inline float8
+f8_set_1x(float a) {
+    return _mm256_set1_ps(a);
+}
+
+inline float8
+f8_set_8x_i8(int8 a) {
+    return _mm256_cvtepi32_ps(a);
+}
+
+inline float8
+f8_add(float8 a, float8 b) {
+    return _mm256_add_ps(a, b);
+}
+
+inline float8
+f8_sub(float8 a, float8 b) {
+    return _mm256_sub_ps(a, b);
+}
+
+inline float8
+f8_mul(float8 a, float8 b) {
+    return _mm256_mul_ps(a, b);
+}
+
+inline float8
+f8_div(float8 a, float8 b) {
+    return _mm256_div_ps(a, b);
+}
+
+inline float8
+f8_fma(float8 a, float8 b, float8 c) {
+    return _mm256_fmadd_ps(a, b, c);
+}
+
+inline float8
+f8_and(float8 a, float8 b) {
+    return _mm256_and_ps(a, b);
+}
+
+inline float8
+f8_0() {
+    return _mm256_setzero_ps();
+}
+
+inline float8
+f8_2() {
+    return f8_set_1x(2);
+}
+
+inline float8
+f8_1() {
+    return f8_set_1x(1);
+}
+
+inline float8
+f8_4() {
+    return f8_set_1x(4);
+}
+
+inline float8
+f8_cmp_lte(float8 a, float8 b) {
+    return _mm256_cmp_ps(a, b, _CMP_LE_OQ);
+}
+
 // double4
 inline uint32_t
 d4_movemask(double4 a) {
@@ -426,6 +519,42 @@ d4_print(double4 a, int n_dec) {
     printf("}");
 }
 
+// int8
+inline int8
+i8_set_1x(int32_t a) {
+    return _mm256_set1_epi32(a);
+}
+
+inline int8
+i8_0() {
+    return _mm256_setzero_si256();
+}
+
+inline int8
+i8_set_8x(int32_t a, int32_t b, int32_t c, int32_t d,
+          int32_t e, int32_t f, int32_t g, int32_t h) {
+    return _mm256_set_epi32(h, g, f, e, d, c, b, a);
+}
+
+inline void
+i8_print(int8 r) {
+    int32_t d[8];
+    _mm256_storeu_si256((__m256i *)d, r);
+    printf("{%d, %d, %d, %d, %d, %d, %d, %d}",
+           d[0], d[1], d[2], d[3],
+           d[4], d[5], d[6], d[7]);
+}
+
+inline int8
+i8_abs(int8 a) {
+    return _mm256_abs_epi32(a);
+}
+
+inline int8
+i8_sub(int8 a, int8 b) {
+    return _mm256_sub_epi32(a, b);
+}
+
 // long4
 inline long4
 l4_tern(long4 mask, long4 a, long4 b) {
@@ -475,22 +604,6 @@ l4_store(long4 a, int64_t *d) {
     _mm256_store_si256((long4 *)d, a);
 }
 
-// int8
-inline int8
-i8_set_8x(int32_t a, int32_t b, int32_t c, int32_t d,
-          int32_t e, int32_t f, int32_t g, int32_t h) {
-    return _mm256_set_epi32(h, g, f, e, d, c, b, a);
-}
-
-inline void
-i8_print(int8 r) {
-    int32_t d[8];
-    _mm256_storeu_si256((__m256i *)d, r);
-    printf("{%d, %d, %d, %d, %d, %d, %d, %d}",
-           d[0], d[1], d[2], d[3],
-           d[4], d[5], d[6], d[7]);
-}
-
 inline int4
 l4_cvt_i4(long4 r) {
     // Emulates _mm256_cvtepi64_epi32
@@ -513,6 +626,9 @@ inline int4
 d4_cvt_i4(double4 r) {
     return l4_cvt_i4((long4)r);
 }
+
+
+
 
 #endif
 
