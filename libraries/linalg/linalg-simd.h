@@ -23,14 +23,84 @@ f4_load(float const *ptr) {
     return _mm_load_ps(ptr);
 }
 
+inline void
+f4_store(float4 r, float *ptr) {
+    _mm_store_ps(ptr, r);
+}
+
 inline float4
 f4_tern(float4 mask, float4 a, float4 b) {
     return _mm_blendv_ps(b, a, mask);
 }
 
 inline float4
+f4_set_4x(float a, float b, float c, float d) {
+    return _mm_set_ps(d, c, b, a);
+}
+
+inline float4
+f4_set_1x(float a) {
+    return _mm_set1_ps(a);
+}
+
+inline float4
+f4_0() {
+    return _mm_setzero_ps();
+}
+
+inline float4
+f4_1() {
+    return f4_set_1x(1);
+}
+
+inline float4
+f4_2() {
+    return f4_set_1x(2);
+}
+
+inline float4
+f4_4() {
+    return f4_set_1x(4);
+}
+
+inline float4
 f4_set_4x_i(int32_t a, int32_t b, int32_t c, int32_t d) {
     return _mm_castsi128_ps(_mm_set_epi32(a, b, c, d));
+}
+
+inline uint32_t
+f4_movemask(float4 a) {
+    return _mm_movemask_ps(a);
+}
+
+inline float4
+f4_mul(float4 a, float4 b) {
+    return _mm_mul_ps(a, b);
+}
+
+inline float4
+f4_div(float4 a, float4 b) {
+    return _mm_div_ps(a, b);
+}
+
+inline float4
+f4_cmp_lte(float4 a, float4 b) {
+    return _mm_cmple_ps(a, b);
+}
+
+inline float4
+f4_add(float4 a, float4 b) {
+    return _mm_add_ps(a, b);
+}
+
+inline float4
+f4_sub(float4 a, float4 b) {
+    return _mm_sub_ps(a, b);
+}
+
+inline float4
+f4_and(float4 a, float4 b) {
+    return _mm_and_ps(a, b);
 }
 
 inline float4
@@ -81,7 +151,7 @@ f4_print(float4 a, int n_dec) {
 }
 
 inline float4
-madd(float4 a, float4 b, float4 c) {
+f4_fma(float4 a, float4 b, float4 c) {
 #if defined(__AVX2__)
     return _mm_fmadd_ps(a, b, c);
 #else
@@ -210,6 +280,16 @@ i4_1() {
 inline int4
 i4_sub(int4 a, int4 b) {
     return _mm_sub_epi32(a, b);
+}
+
+inline int4
+i4_add(int4 a, int4 b) {
+    return _mm_add_epi32(a, b);
+}
+
+inline int4
+i4_and(int4 a, int4 b) {
+    return _mm_and_si128(a, b);
 }
 
 inline bool
@@ -479,7 +559,7 @@ v3x4_mul(vec3x4 a, vec3x4 b) {
 // Dot product
 inline float4
 v3x4_dot(vec3x4 a, vec3x4 b) {
-    return madd(a.x, b.x, madd(a.y, b.y, _mm_mul_ps(a.z, b.z)));
+    return f4_fma(a.x, b.x, f4_fma(a.y, b.y, _mm_mul_ps(a.z, b.z)));
 }
 
 
