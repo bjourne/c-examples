@@ -231,6 +231,7 @@ def build(ctx):
     progs = [
         ('cpu.c', {'DT_OBJS'}),
         ('fenwick.c', {'FASTIO_OBJS'}),
+        ('mandelbrot.c', {'DT_OBJS', 'LINALG_OBJS', 'M', 'TENSORS_OBJS'}),
         ('npyread.c', ['NPY_OBJS']),
         ('simd.c', []),
         ('prodcon.c', {'DT_OBJS', 'THREADS_OBJS', 'RANDOM_OBJS'}),
@@ -240,24 +241,26 @@ def build(ctx):
         ('fast-strlen.c', ['DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS']),
         ('yahtzee.c', ['DT_OBJS', 'THREADS_OBJS', 'PTHREAD'])
     ]
+    linux_progs = [
+        ('opencl/dct.c', [
+            'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS',
+            'TENSORS_OBJS', 'PNG', 'M', 'GOMP',
+            'DT_OBJS'
+        ]),
+        ('opencl/fpga.c', {
+            'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS',
+            'TENSORS_OBJS', 'PNG', 'M', 'DT_OBJS'
+        }),
+        ('opencl/list.c', {'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS'}),
+        ('sigsegv.c', {}),
+    ]
+    if ctx.env.DEST_OS == 'linux':
+        progs.extend(linux_progs)
+
     for cfile, deps in progs:
         build_program(ctx, cfile, deps)
 
     # Conditional targets
-    if ctx.env.DEST_OS == 'linux':
-        build_program(ctx, 'sigsegv.c', [])
-        build_program(ctx, 'opencl/list.c', [
-            'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS'
-        ])
-        build_program(ctx, 'opencl/dct.c', [
-            'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS',
-            'TENSORS_OBJS', 'PNG', 'M', 'GOMP',
-            'DT_OBJS'
-        ])
-        build_program(ctx, 'opencl/fpga.c', [
-            'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS',
-            'TENSORS_OBJS', 'PNG', 'M', 'DT_OBJS'
-        ])
     if ctx.env.DEST_OS != 'win32':
         build_program(ctx, 'capstack.c',
                       ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
