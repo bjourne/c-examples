@@ -124,6 +124,7 @@ run_mandelbrot(uint32_t tp) {
     double nanos_per_pixel = (double)delta / N_PIXELS;
     double secs = (double)delta / (1000 * 1000 * 1000);
 
+#ifdef HAVE_PNG
     tensor *t = tensor_init(3, (int[]){3, HEIGHT, WIDTH});
     tensor_fill_const(t, 0);
     for (uint32_t h = 0; h < HEIGHT; h++) {
@@ -140,9 +141,9 @@ run_mandelbrot(uint32_t tp) {
     } else if (tp == 2) {
         fname = "mandelbrot-avx2.png";
     }
-
     assert(tensor_write_png(t, fname));
     tensor_free(t);
+#endif
     free(pixels);
     if (tp == 0) {
         printf("== Scalar ==\n");
