@@ -68,6 +68,7 @@ npy_value_at_as_double(npy_arr *me, size_t i) {
     DOUBLE_CAST('i', 1, int8_t *);
     DOUBLE_CAST('i', 4, int32_t *);
     DOUBLE_CAST('i', 8, int64_t *);
+    DOUBLE_CAST('b', 1, uint8_t *);
     DOUBLE_CAST('u', 1, uint8_t *);
     DOUBLE_CAST('u', 4, uint32_t *);
     DOUBLE_CAST('u', 8, uint64_t *);
@@ -230,7 +231,6 @@ npy_save(npy_arr *me, const char *fname) {
     if (me->type == 'S' || me->el_size == 1) {
         byte_order = '|';
     }
-
     char *fmt =
         "{'descr': '%c%c%d', 'fortran_order': False, 'shape': %s, }";
     size_t n_data = sprintf(buf + 10, fmt,
@@ -319,6 +319,7 @@ pp_value(npy_pp *me, int row_idx) {
     PRINT_EL_AT('i', 4, int32_t);
     PRINT_EL_AT('i', 8, int64_t);
     PRINT_EL_AT('u', 1, uint8_t);
+    PRINT_EL_AT('b', 1, uint8_t);
     PRINT_EL_AT('u', 4, uint32_t);
     PRINT_EL_AT('u', 8, uint64_t);
     PRINT_EL_AT('f', 4, float);
@@ -421,14 +422,12 @@ npy_pp_print_arr(npy_pp *me, npy_arr *arr) {
         // Note the period which limits the maximum number of
         // characters printed.
         sprintf(me->fmt, "%%-%d.%ds", width, width);
-    } else {
-        if (arr->type == 'i') {
-            sprintf(me->fmt, "%%%dd", width);
-        } else if (arr->type == 'u') {
-            sprintf(me->fmt, "%%%du", width);
-        } else  {
-            sprintf(me->fmt, "%%%d.%df", width, me->n_decimals);
-        }
+    } else if (tp == 'i') {
+        sprintf(me->fmt, "%%%dd", width);
+    } else if (tp == 'u' || tp == 'b') {
+        sprintf(me->fmt, "%%%du", width);
+    } else  {
+        sprintf(me->fmt, "%%%d.%df", width, me->n_decimals);
     }
 
     // Estimate line-width
