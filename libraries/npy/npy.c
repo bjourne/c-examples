@@ -226,8 +226,16 @@ npy_save(npy_arr *me, const char *fname) {
 
     // First format the descriptor so that we can compute the header
     // length.
-    char *fmt = "{'descr': '<%c%d', 'fortran_order': False, 'shape': %s, }";
-    size_t n_data = sprintf(buf + 10, fmt, me->type, me->el_size, shape) + 10;
+    char byte_order = '<';
+    if (me->type == 'S' || me->el_size == 1) {
+        byte_order = '|';
+    }
+
+    char *fmt =
+        "{'descr': '%c%c%d', 'fortran_order': False, 'shape': %s, }";
+    size_t n_data = sprintf(buf + 10, fmt,
+                            byte_order, me->type, me->el_size, shape);
+    n_data += 10;
     size_t n_padding = 64 - n_data + n_data / 64 * 64;
     size_t n_header = n_data + n_padding;
     assert(n_header < 0xffff);
