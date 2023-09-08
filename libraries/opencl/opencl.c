@@ -93,16 +93,6 @@ ocl_check_err(cl_int err) {
     assert(false);
 }
 
-static
-void
-ocl_check_err_for_call(const char *func, cl_int err) {
-    if (err == CL_SUCCESS)  {
-        return;
-    }
-    printf("OpenCL call failed: %s\n", func);
-    ocl_check_err(err);
-}
-
 static void
 print_prefix(int ind) {
     for (int i = 0; i < ind; i++) {
@@ -120,18 +110,20 @@ print_device_info_str(cl_device_id dev, int attr, char *attr_name) {
     free(bytes);
 }
 
-void
+bool
 ocl_get_platforms(cl_uint *n_platforms, cl_platform_id **platforms) {
     cl_int err;
 
     err = clGetPlatformIDs(0, NULL, n_platforms);
-    ocl_check_err_for_call("clGetPlatformIDs", err);
-
+    if (err != CL_SUCCESS || n_platforms == 0) {
+        return false;
+    }
     *platforms = (cl_platform_id *)malloc(
         sizeof(cl_platform_id) * *n_platforms);
 
     err = clGetPlatformIDs(*n_platforms, *platforms, NULL);
     ocl_check_err(err);
+    return true;
 }
 
 void *

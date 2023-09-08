@@ -19,7 +19,10 @@ list_platforms() {
 
     cl_uint n_platforms;
     cl_platform_id *platforms;
-    ocl_get_platforms(&n_platforms, &platforms);
+    if (!ocl_get_platforms(&n_platforms, &platforms)) {
+        printf("No OpenCL platforms found!\n");
+        return;
+    }
 
     for (cl_uint i  = 0; i < n_platforms; i++) {
         for (int j = 0; j < 5; j++) {
@@ -39,7 +42,6 @@ list_platforms() {
         free(devices);
         printf("\n");
     }
-
     free(platforms);
 }
 
