@@ -122,10 +122,14 @@ def build_library(ctx, libname, target, uses, defines):
                       ctx.path.ant_glob('%s/*.h' % path))
 
 def build_aoc(ctx, src, deps):
-    tgt = src.with_suffix('.aocx')
-    ctx(rule = '${AOC} -march=emulator ${SRC[0]} -o ${TGT} -report',
+    aocx = str(src.with_suffix('.aocx'))
+    dir = aocx.split('.')[0]
+    # Need to remove the log directory otherwise aoc gets angry.
+    rules = ['rm -rf ${TGT[1]}',
+             '${AOC} -march=emulator ${SRC[0]} -o ${TGT[0]} -report']
+    ctx(rule = ' && '.join(rules),
         source = [str(s) for s in [src] + deps],
-        target = str(tgt))
+        target = [aocx, dir])
 
 def cc_native_family(cc):
     cmd = [cc, '-march=native', '-E', '-v', '-']
@@ -226,7 +230,7 @@ def build(ctx):
     noinst_program(ctx, ['programs/ntimes.c',
                          'programs/ntimes-loops.c'],
                    'programs/ntimes',
-                   ['DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS', 'PTHREAD'])
+                   ['PTHREAD', 'DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS'])
 
     progs = [
         ('cpu.c', {'DT_OBJS'}),
