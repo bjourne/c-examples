@@ -320,9 +320,8 @@ ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
     set_kernel_arguments(kernel, n_args, ap);
     va_end(ap);
 
-    // 2 should perhaps not be hardcoded.
     cl_event event;
-    err = clEnqueueNDRangeKernel(queue, kernel, 2, NULL,
+    err = clEnqueueNDRangeKernel(queue, kernel, work_dim, NULL,
                                  global, local, 0, NULL, &event);
     ocl_check_err(err);
     err = clWaitForEvents(1, &event);
