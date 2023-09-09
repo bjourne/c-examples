@@ -283,8 +283,7 @@ ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
 
 static void
 set_kernel_arguments(cl_kernel kernel, int n_args, va_list ap) {
-    // Divide by 2 here is lame.
-    for (int i = 0; i < n_args / 2; i++) {
+    for (int i = 0; i < n_args; i++) {
         size_t arg_size = va_arg(ap, size_t);
         void *arg_value = va_arg(ap, void *);
         cl_int err = clSetKernelArg(kernel, i, arg_size, arg_value);
@@ -295,7 +294,7 @@ set_kernel_arguments(cl_kernel kernel, int n_args, va_list ap) {
 void
 ocl_set_kernel_arguments(cl_kernel kernel, int n_args, ...) {
     va_list ap;
-    va_start(ap, n_args);
+    va_start(ap, 2 * n_args);
     set_kernel_arguments(kernel, n_args, ap);
     va_end(ap);
 }

@@ -101,7 +101,7 @@ main(int argc, char *argv[]) {
                               IMAGE_HEIGHT_BLOCKS,
                               IMAGE_WIDTH
                           }, NULL,
-                          8,
+                          4,
                           sizeof(cl_mem), (void *)&mem_image,
                           sizeof(cl_mem), (void *)&mem_dct,
                           sizeof(cl_uint), (void *)&IMAGE_HEIGHT,
@@ -110,7 +110,6 @@ main(int argc, char *argv[]) {
     uint64_t end = nano_count();
     double ms_per_kernel = ((double)(end - start) / 1000 / 1000) / n_iter;
     printf("\\--> %.2f ms/kernel\n", ms_per_kernel);
-
 
     printf("* Running kernels[1]\n");
     start = nano_count();
@@ -121,7 +120,7 @@ main(int argc, char *argv[]) {
                               IMAGE_HEIGHT_BLOCKS,
                               IMAGE_WIDTH_BLOCKS
                           }, NULL,
-                          8,
+                          4,
                           sizeof(cl_mem), (void *)&mem_image,
                           sizeof(cl_mem), (void *)&mem_dct,
                           sizeof(cl_uint), (void *)&IMAGE_HEIGHT,
