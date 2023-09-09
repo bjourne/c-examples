@@ -115,30 +115,28 @@ dct8x8_sd(
 ) {
     float buf0[BLOCK_SIZE * BLOCK_SIZE];
     float buf1[BLOCK_SIZE * BLOCK_SIZE];
-    for (uint y0 = 0; y0 < height; y0 += BLOCK_SIZE) {
-        for (uint x0 = 0; x0 < width; x0 += BLOCK_SIZE) {
-            for (uint y1 = 0; y1 < BLOCK_SIZE; y1++) {
-                for (uint x1 = 0; x1 < BLOCK_SIZE; x1++) {
-                    uint src_addr = (y0 + y1) * width + x0 + x1;
-                    uint buf_addr = y1 * BLOCK_SIZE + x1;
-                    buf0[buf_addr] = src[src_addr];
-                }
-            }
-            for (uint i = 0; i < BLOCK_SIZE; i++) {
-                dct8(&buf0[BLOCK_SIZE * i], &buf1[BLOCK_SIZE * i]);
-            }
-            transpose(buf1);
-            for (uint i = 0; i < BLOCK_SIZE; i++) {
-                dct8(&buf1[BLOCK_SIZE * i], &buf0[BLOCK_SIZE * i]);
-            }
-            transpose(buf0);
-            for (uint y1 = 0; y1 < BLOCK_SIZE; y1++) {
-                for (uint x1 = 0; x1 < BLOCK_SIZE; x1++) {
-                    uint dst_addr = (y0 + y1) * width + x0 + x1;
-                    uint buf_addr = y1 * BLOCK_SIZE + x1;
-                    dst[dst_addr] = buf0[buf_addr];
-                }
-            }
+    uint y0 = BLOCK_SIZE * get_global_id(0);
+    uint x0 = BLOCK_SIZE * get_global_id(1);
+    for (uint y1 = 0; y1 < BLOCK_SIZE; y1++) {
+        for (uint x1 = 0; x1 < BLOCK_SIZE; x1++) {
+            uint src_addr = (y0 + y1) * width + x0 + x1;
+            uint buf_addr = y1 * BLOCK_SIZE + x1;
+            buf0[buf_addr] = src[src_addr];
+        }
+    }
+    for (uint i = 0; i < BLOCK_SIZE; i++) {
+        dct8(&buf0[BLOCK_SIZE * i], &buf1[BLOCK_SIZE * i]);
+    }
+    transpose(buf1);
+    for (uint i = 0; i < BLOCK_SIZE; i++) {
+        dct8(&buf1[BLOCK_SIZE * i], &buf0[BLOCK_SIZE * i]);
+    }
+    transpose(buf0);
+    for (uint y1 = 0; y1 < BLOCK_SIZE; y1++) {
+        for (uint x1 = 0; x1 < BLOCK_SIZE; x1++) {
+            uint dst_addr = (y0 + y1) * width + x0 + x1;
+            uint buf_addr = y1 * BLOCK_SIZE + x1;
+            dst[dst_addr] = buf0[buf_addr];
         }
     }
 }

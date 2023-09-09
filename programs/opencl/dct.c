@@ -16,7 +16,10 @@ int
 main(int argc, char *argv[]) {
     const int IMAGE_WIDTH = 1024;
     const int IMAGE_HEIGHT = 1024;
+    const int IMAGE_WIDTH_BLOCKS = IMAGE_WIDTH / BLOCK_SIZE;
+    const int IMAGE_HEIGHT_BLOCKS = IMAGE_HEIGHT / BLOCK_SIZE;
     const int IMAGE_N_BYTES = IMAGE_WIDTH * IMAGE_HEIGHT * sizeof(float);
+
 
     // Load kernel
     float x[8] = {20, 9, 10, 11, 12, 13, 14, 15};
@@ -90,15 +93,14 @@ main(int argc, char *argv[]) {
 
     // Run kernels
     printf("* Running kernels[0]\n");
-    size_t global[] = {
-        IMAGE_HEIGHT / BLOCK_SIZE,
-        IMAGE_WIDTH
-    };
     uint64_t start = nano_count();
     uint32_t n_iter = 1000;
     for (uint32_t i = 0; i < n_iter; i++) {
         ocl_run_nd_kernel(queue, kernels[0],
-                          2, global, NULL,
+                          2, (size_t[]){
+                              IMAGE_HEIGHT_BLOCKS,
+                              IMAGE_WIDTH
+                          }, NULL,
                           8,
                           sizeof(cl_mem), (void *)&mem_image,
                           sizeof(cl_mem), (void *)&mem_dct,
@@ -107,15 +109,18 @@ main(int argc, char *argv[]) {
     }
     uint64_t end = nano_count();
     double ms_per_kernel = ((double)(end - start) / 1000 / 1000) / n_iter;
-    printf("\\--> %.0f ms/kernel\n", ms_per_kernel);
+    printf("\\--> %.2f ms/kernel\n", ms_per_kernel);
 
 
     printf("* Running kernels[1]\n");
     start = nano_count();
-    n_iter = 10;
+    n_iter = 1000;
     for (uint32_t i = 0; i < n_iter; i++) {
         ocl_run_nd_kernel(queue, kernels[1],
-                          1, (size_t[]){1}, NULL,
+                          2, (size_t[]){
+                              IMAGE_HEIGHT_BLOCKS,
+                              IMAGE_WIDTH_BLOCKS
+                          }, NULL,
                           8,
                           sizeof(cl_mem), (void *)&mem_image,
                           sizeof(cl_mem), (void *)&mem_dct,
@@ -124,7 +129,7 @@ main(int argc, char *argv[]) {
     }
     end = nano_count();
     ms_per_kernel = ((double)(end - start) / 1000 / 1000) / n_iter;
-    printf("\\--> %.0f ms/kernel\n", ms_per_kernel);
+    printf("\\--> %.2f ms/kernel\n", ms_per_kernel);
 
     // Read data
     printf("* Reading device data\n");
