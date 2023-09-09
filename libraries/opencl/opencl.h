@@ -12,7 +12,7 @@
 #include <CL/cl.h>
 #endif
 
-void ocl_get_platforms(cl_uint *n_platforms, cl_platform_id **platforms);
+bool ocl_get_platforms(cl_uint *n_platforms, cl_platform_id **platforms);
 void ocl_get_devices(cl_platform_id platform,
                      cl_uint *n_devices, cl_device_id **devices);
 
