@@ -1,20 +1,21 @@
 #define BLOCKDIM_X      8
 #define BLOCKDIM_Y      8
 #define BLOCK_SIZE      8
-#define BLOCK_SIZE_F    1
-#define SIMD_LOC        1
 
-// Applicable on FPGA targets.
-#define SIMD_WI         1
-#define COMP_U          1
-
-#define    C_a 1.38703984532214746182161919156640f  // a = sqrt(2) * cos(1 * pi / 16)
-#define    C_b 1.30656296487637652785664317342720f  // b = sqrt(2) * cos(2 * pi / 16)
-#define    C_c 1.17587560241935871697446710461130f  // c = sqrt(2) * cos(3 * pi / 16)
-#define    C_d 0.78569495838710218127789736765722f  // d = sqrt(2) * cos(5 * pi / 16)
-#define    C_e 0.54119610014619698439972320536639f  // e = sqrt(2) * cos(6 * pi / 16)
-#define    C_f 0.27589937928294301233595756366937f  // f = sqrt(2) * cos(7 * pi / 16)
-#define C_norm 0.35355339059327376220042218105242f  // 1 / sqrt(8)
+// a = sqrt(2) * cos(1 * pi / 16)
+#define    C_a 1.38703984532214746182161919156640f
+// b = sqrt(2) * cos(2 * pi / 16)
+#define    C_b 1.30656296487637652785664317342720f
+// c = sqrt(2) * cos(3 * pi / 16)
+#define    C_c 1.17587560241935871697446710461130f
+// d = sqrt(2) * cos(5 * pi / 16)
+#define    C_d 0.78569495838710218127789736765722f
+// e = sqrt(2) * cos(6 * pi / 16)
+#define    C_e 0.54119610014619698439972320536639f
+// f = sqrt(2) * cos(7 * pi / 16)
+#define    C_f 0.27589937928294301233595756366937f
+// norm = 1 / sqrt(8)
+#define C_norm 0.35355339059327376220042218105242f
 
 inline void
 dct8(float *in, float *out){
@@ -47,29 +48,17 @@ dct8(float *in, float *out){
 // Separable filter approach, I think.
 
 // Image dimensions must be divisible by 8.
-__attribute__((num_simd_work_items(SIMD_WI)))
-__attribute__((num_compute_units(COMP_U)))
-__kernel __attribute__((reqd_work_group_size(BLOCKDIM_Y / BLOCK_SIZE,
-                                             BLOCKDIM_X / SIMD_LOC, 1)))
+__kernel __attribute__((reqd_work_group_size(1, 8, 1)))
 void dct8x8(
     __global float * restrict src,
     __global float * restrict dst,
-    uint height,
-    uint width
+    uint height, uint width
 ) {
-    __local float transp[BLOCKDIM_Y][BLOCKDIM_X + 1];
-    const uint local_y = BLOCK_SIZE * get_local_id(0);
-    const uint local_x = get_local_id(1) * SIMD_LOC;
-    const uint mod_local_x = local_x & (BLOCK_SIZE - 1);
-    const uint global_y = get_group_id(0) * BLOCKDIM_Y + local_y;
-    const uint global_x = get_group_id(1) * BLOCKDIM_X + local_x;
+    const uint local_x = get_local_id(1);
+    const uint global_y = get_group_id(0) * BLOCK_SIZE;
+    const uint global_x = get_group_id(1) * BLOCK_SIZE + local_x;
 
-    if ((global_x - mod_local_x + BLOCK_SIZE - 1 >= width) ||
-        (global_y + BLOCK_SIZE - 1 >= height) )
-        return;
-
-    __local float *lv = &transp[local_y + 0][local_x + 0];
-    __local float *lh = &transp[local_y + mod_local_x][local_x  - mod_local_x];
+    __local float transp[BLOCK_SIZE][BLOCK_SIZE];
 
     src += global_y * width + global_x;
     dst += global_y * width + global_x;
@@ -79,33 +68,77 @@ void dct8x8(
     float D_2[BLOCK_SIZE];
     float D_3[BLOCK_SIZE];
 
+    // Write a column to transp.
     for(uint i = 0; i < BLOCK_SIZE; i++) {
-        lv[i * (BLOCKDIM_X + 1)] = src[i * width];
+        transp[i][local_x] = src[i * width];
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
     for(uint i = 0; i < BLOCK_SIZE; i++) {
-        D_0[i] = lh[i];
+        D_0[i] = transp[local_x][i];
     }
-
-    for (uint i = 0; i < BLOCK_SIZE_F; i++) {
-    	dct8(&D_0[i * 8], &D_1[i * 8]);
-    }
+    dct8((__private float *)&D_0, (__private float *)&D_1);
 
     for(uint i = 0; i < BLOCK_SIZE; i++) {
-        lh[i] = D_1[i];
+        transp[local_x][i] = D_1[i];
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
     for(uint i = 0; i < BLOCK_SIZE; i++) {
-        D_2[i] = lv[i * (BLOCKDIM_X + 1)];
+        D_2[i] = transp[i][local_x];
     }
+    dct8((__private float *)&D_2, (__private float *)&D_3);
 
-    for(uint i = 0; i < BLOCK_SIZE_F; i++) {
-    	dct8(&D_2[i * 8], &D_3[i * 8]);
-    }
 
     for(uint i = 0; i < BLOCK_SIZE; i++) {
         dst[i * width] = D_3[i];
+    }
+}
+
+inline void
+transpose(float *buf) {
+    for (uint i = 0; i < BLOCK_SIZE; i++) {
+        for (int j = i + 1; j < BLOCK_SIZE; j++) {
+            float t = buf[i * BLOCK_SIZE + j];
+            buf[i * BLOCK_SIZE + j] = buf[j * BLOCK_SIZE + i];
+            buf[j * BLOCK_SIZE + i] = t;
+        }
+    }
+}
+
+// This kernel should run fast on fpgas.
+__kernel void
+dct8x8_sd(
+    __global float * restrict src,
+    __global float * restrict dst,
+    uint height, uint width
+) {
+    float buf0[BLOCK_SIZE * BLOCK_SIZE];
+    float buf1[BLOCK_SIZE * BLOCK_SIZE];
+    for (uint y0 = 0; y0 < height; y0 += BLOCK_SIZE) {
+        for (uint x0 = 0; x0 < width; x0 += BLOCK_SIZE) {
+            for (uint y1 = 0; y1 < BLOCK_SIZE; y1++) {
+                for (uint x1 = 0; x1 < BLOCK_SIZE; x1++) {
+                    uint src_addr = (y0 + y1) * width + x0 + x1;
+                    uint buf_addr = y1 * BLOCK_SIZE + x1;
+                    buf0[buf_addr] = src[src_addr];
+                }
+            }
+            for (uint i = 0; i < BLOCK_SIZE; i++) {
+                dct8(&buf0[BLOCK_SIZE * i], &buf1[BLOCK_SIZE * i]);
+            }
+            transpose(buf1);
+            for (uint i = 0; i < BLOCK_SIZE; i++) {
+                dct8(&buf1[BLOCK_SIZE * i], &buf0[BLOCK_SIZE * i]);
+            }
+            transpose(buf0);
+            for (uint y1 = 0; y1 < BLOCK_SIZE; y1++) {
+                for (uint x1 = 0; x1 < BLOCK_SIZE; x1++) {
+                    uint dst_addr = (y0 + y1) * width + x0 + x1;
+                    uint buf_addr = y1 * BLOCK_SIZE + x1;
+                    dst[dst_addr] = buf0[buf_addr];
+                }
+            }
+        }
     }
 }

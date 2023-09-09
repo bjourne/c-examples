@@ -9,18 +9,14 @@
 #include "tensors/tensors.h"
 #include "tensors/dct.h"
 
+// Should match constants in dct8x8.cl
+#define BLOCK_SIZE 8
+
 int
 main(int argc, char *argv[]) {
     const int IMAGE_WIDTH = 1024;
     const int IMAGE_HEIGHT = 1024;
-
     const int IMAGE_N_BYTES = IMAGE_WIDTH * IMAGE_HEIGHT * sizeof(float);
-    const int BLOCKDIM_X = 8;
-    const int BLOCKDIM_Y = 8;
-    const int BLOCK_SIZE = 8;
-
-    //  Single floats
-    const int SIMD_LOC = 1;
 
     // Load kernel
     float x[8] = {20, 9, 10, 11, 12, 13, 14, 15};
@@ -60,11 +56,11 @@ main(int argc, char *argv[]) {
     ocl_check_err(err);
 
     cl_program program;
-    cl_kernel kernel;
+    cl_kernel kernels[2];
     printf("* Loading kernel\n");
     assert(ocl_load_kernels(ctx, dev, argv[2],
-                            1, (char *[]){"dct8x8"},
-                            &program, &kernel));
+                            2, (char *[]){"dct8x8", "dct8x8_sd"},
+                            &program, kernels));
 
     // Allocate and initialize tensors
     printf("* Initializing tensors\n");
@@ -75,12 +71,13 @@ main(int argc, char *argv[]) {
     tensor_fill_rand_range(image, 100);
 
     // Compute reference results
-    tensor_dct2d_blocks(image, ref, 8, 8);
+    tensor_dct2d_8x8_blocks(image, ref, true);
 
     // One buffer for the input to the kernel and another one for the
     // dct-ized result.
-    cl_mem mem_image = clCreateBuffer(ctx, CL_MEM_READ_ONLY,
-                                      IMAGE_N_BYTES, NULL, &err);
+    cl_mem mem_image = clCreateBuffer(
+        ctx, CL_MEM_READ_ONLY,
+        IMAGE_N_BYTES, NULL, &err);
     ocl_check_err(err);
     cl_mem mem_dct = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY,
                                     IMAGE_N_BYTES, NULL, &err);
@@ -90,31 +87,43 @@ main(int argc, char *argv[]) {
                                0, NULL, NULL);
     ocl_check_err(err);
 
-    // Run kernel
-    printf("* Running kernel\n");
-    size_t local[] = {
-        BLOCKDIM_Y / BLOCK_SIZE,
-        BLOCKDIM_X / SIMD_LOC
-    };
+    // Run kernels
+    printf("* Running kernels[0]\n");
     size_t global[] = {
-        IMAGE_HEIGHT / BLOCKDIM_Y * local[0],
-        IMAGE_WIDTH / BLOCKDIM_X * local[1]
+        IMAGE_HEIGHT / BLOCK_SIZE,
+        IMAGE_WIDTH
     };
-
     uint64_t start = nano_count();
-    for (int i = 0; i < 1000; i++) {
-        ocl_run_nd_kernel(queue, kernel,
-                          2, global, local,
+    uint32_t n_iter = 1000;
+    for (uint32_t i = 0; i < n_iter; i++) {
+        ocl_run_nd_kernel(queue, kernels[0],
+                          2, global, NULL,
                           8,
                           sizeof(cl_mem), (void *)&mem_image,
                           sizeof(cl_mem), (void *)&mem_dct,
                           sizeof(cl_uint), (void *)&IMAGE_HEIGHT,
                           sizeof(cl_uint), (void *)&IMAGE_WIDTH);
     }
-
     uint64_t end = nano_count();
-    double secs = (double)(end - start) / 1000 / 1000 / 1000;
-    printf("\\--> %.3f seconds\n", secs);
+    double ms_per_kernel = ((double)(end - start) / 1000 / 1000) / n_iter;
+    printf("\\--> %.0f ms/kernel\n", ms_per_kernel);
+
+
+    printf("* Running kernels[1]\n");
+    start = nano_count();
+    n_iter = 10;
+    for (uint32_t i = 0; i < n_iter; i++) {
+        ocl_run_nd_kernel(queue, kernels[1],
+                          1, (size_t[]){1}, NULL,
+                          8,
+                          sizeof(cl_mem), (void *)&mem_image,
+                          sizeof(cl_mem), (void *)&mem_dct,
+                          sizeof(cl_uint), (void *)&IMAGE_HEIGHT,
+                          sizeof(cl_uint), (void *)&IMAGE_WIDTH);
+    }
+    end = nano_count();
+    ms_per_kernel = ((double)(end - start) / 1000 / 1000) / n_iter;
+    printf("\\--> %.0f ms/kernel\n", ms_per_kernel);
 
     // Read data
     printf("* Reading device data\n");
@@ -149,11 +158,12 @@ main(int argc, char *argv[]) {
     clReleaseMemObject(mem_image);
     clReleaseMemObject(mem_dct);
 
-    clReleaseKernel(kernel);
+    for (int i = 0; i < 2; i++) {
+        clReleaseKernel(kernels[i]);
+    }
     clReleaseProgram(program);
     clReleaseContext(ctx);
     free(platforms);
     free(devices);
-
     return 0;
 }
