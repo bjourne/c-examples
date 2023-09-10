@@ -182,9 +182,10 @@ static uint32_t *
 fast_bsearch_u32(uint32_t *base, size_t nmemb, uint32_t key) {
     while (nmemb) {
         size_t half = nmemb >> 1;
-        if (base[half] < key) {
-            base += nmemb - half;
-        }
+        __builtin_prefetch(&base[half >> 1]);
+        uint32_t *base_half = base + (nmemb - half);
+        __builtin_prefetch(&base_half[half >> 1]);
+        base = base[half] < key ? base_half : base;
         nmemb = half;
     }
     return base;
@@ -207,15 +208,19 @@ array_bsearch(void *base, size_t nmemb, size_t size,
     if (size == 4) {
         if (fun == array_ord_asc_i32) {
             int32_t key32 = (int32_t)((uint64_t)key);
-            first = fast_bsearch_i32(base, nmemb, key32) - (int32_t *)base;
+            first = fast_bsearch_i32(base, nmemb, key32)
+                - (int32_t *)base;
         } else if (fun == array_ord_asc_u32) {
             uint32_t key32 = (uint32_t)((uint64_t)key);
-            first = fast_bsearch_u32(base, nmemb, key32) - (uint32_t *)base;
+            first = fast_bsearch_u32(base, nmemb, key32)
+                - (uint32_t *)base;
         } else {
-            BSEARCH_BODY(fun(*(void **)(base + 4 * (first + nmemb)), key, ctx) < 0);
+            BSEARCH_BODY(fun(*(void **)(base + 4 * (first + nmemb)),
+                             key, ctx) < 0);
         }
     } else {
-        BSEARCH_BODY(fun(*(void **)(base + size * (first + nmemb)), key, ctx) < 0);
+        BSEARCH_BODY(fun(*(void **)(base + size * (first + nmemb)),
+                         key, ctx) < 0);
     }
     return first;
 }
