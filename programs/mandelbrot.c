@@ -1,11 +1,16 @@
 // Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
 //
-// Generates an image of the Mandelbrot set.
+// Generates Mandelbrot set images.
+//
+// See
+//  * https://discourse.julialang.org/t/julia-mojo-mandelbrot-benchmark/103638
+
 #include <assert.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "linalg/linalg-simd.h"
 #include "datatypes/common.h"
 #include "tensors/tensors.h"
@@ -14,6 +19,10 @@
 #define WIDTH (3 * 1920)
 #define N_PIXELS (HEIGHT * WIDTH)
 #define MAX_ITER 500
+#define MIN_X -2.00
+#define MAX_X  0.47
+#define MIN_Y -1.12
+#define MAX_Y  1.12
 
 static void
 mandelbrot_avx2(float *ptr, float _y, float _min_x, float _scale_x) {
@@ -102,23 +111,27 @@ mandelbrot_scalar(float *ptr, float y, float min_x, float scale_x) {
 }
 
 static void
-run_mandelbrot(uint32_t tp) {
-    float min_x = -2.0, max_x = 0.47;
-    float min_y = -1.12, max_y = 1.12;
-    float scale_x = (max_x - min_x) / WIDTH;
-    float scale_y = (max_y - min_y) / HEIGHT;
+run_mandelbrot(const char *name) {
+    int chan = -1;
+    void (*fun)(float *, float, float, float) = NULL;
+    if (!strcmp(name, "scalar")) {
+        chan = 0;
+        fun = mandelbrot_scalar;
+    } else if (!strcmp(name, "sse")) {
+        chan = 1;
+        fun = mandelbrot_sse;
+    } else if (!strcmp(name, "avx2")) {
+        chan = 2;
+        fun = mandelbrot_avx2;
+    }
+    float scale_x = (MAX_X - MIN_X) / WIDTH;
+    float scale_y = (MAX_Y - MIN_Y) / HEIGHT;
     uint64_t start = nano_count();
     float *pixels = malloc_aligned(64, N_PIXELS * sizeof(float));
     for (uint32_t h = 0; h < HEIGHT; h++) {
-        float cy = min_y + h * scale_y;
+        float cy = MIN_Y + h * scale_y;
         float *addr = &pixels[WIDTH * h];
-        if (tp == 0) {
-            mandelbrot_scalar(addr, cy, min_x, scale_x);
-        } else if (tp == 1) {
-            mandelbrot_sse(addr, cy, min_x, scale_x);
-        } else if (tp == 2) {
-            mandelbrot_avx2(addr, cy, min_x, scale_x);
-        }
+        fun(addr, cy, MIN_X, scale_x);
     }
     uint64_t delta = nano_count() - start;
     double nanos_per_pixel = (double)delta / N_PIXELS;
@@ -130,36 +143,24 @@ run_mandelbrot(uint32_t tp) {
     for (uint32_t h = 0; h < HEIGHT; h++) {
         for (uint32_t w = 0; w < WIDTH; w++) {
             uint8_t col = pixels[WIDTH * h + w] * 255;
-            t->data[N_PIXELS * tp + WIDTH * h + w] = col;
+            t->data[N_PIXELS * chan + WIDTH * h + w] = col;
         }
     }
-    char *fname = NULL;
-    if (tp == 0) {
-        fname = "mandelbrot-scalar.png";
-    } else if (tp == 1) {
-        fname = "mandelbrot-sse.png";
-    } else if (tp == 2) {
-        fname = "mandelbrot-avx2.png";
-    }
+    char fname[256];
+    sprintf(fname, "mandelbrot-%s.png", name);
     assert(tensor_write_png(t, fname));
     tensor_free(t);
 #endif
     free(pixels);
-    if (tp == 0) {
-        printf("== Scalar ==\n");
-    } else if (tp == 1) {
-        printf("== SSE ==\n");
-    } else if (tp == 2) {
-        printf("== AVX2 ==\n");
-    }
+    printf("== %s ==\n", name);
     printf("%.2f seconds\n", secs);
     printf("%.0f nanos/pixels\n", nanos_per_pixel);
 }
 
 int
 main(int argc, char *argv[]) {
-    run_mandelbrot(0);
-    run_mandelbrot(1);
-    run_mandelbrot(2);
+    run_mandelbrot("scalar");
+    run_mandelbrot("sse");
+    run_mandelbrot("avx2");
     return 0;
 }
