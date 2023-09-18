@@ -4,10 +4,12 @@ from pathlib import Path
 from subprocess import PIPE, Popen
 
 def options(ctx):
-    ctx.load('compiler_c compiler_cxx')
+    for tool in {'compiler_c', 'compiler_cxx'}:
+        ctx.load_tool(tool)
 
 def configure(ctx):
-    ctx.load('compiler_c compiler_cxx')
+    for tool in {'compiler_c', 'compiler_cxx'}:
+        ctx.load_tool(tool)
     ctx.define('_GNU_SOURCE', 1)
     if ctx.env.CC_NAME == 'msvc':
         base_c_flags = [
@@ -82,9 +84,11 @@ def configure(ctx):
         ctx.check(lib = 'OpenCL', mandatory = True, use = ['AOCL'])
         ctx.check(header_name = 'CL/cl.h', use = ['AOCL'])
 
-def noinst_program(ctx, source, target, use):
-    ctx.program(source = source, target = target,
-                use = sorted(use), install_path = None)
+def noinst_program(ctx, source, target, use, features):
+    assert type(source) == list
+    ctx(features = features,
+        source = source, target = target,
+        use = sorted(use), install_path = None)
 
 def build_tests(ctx, path, use):
     path = 'tests/%s' % path
@@ -92,12 +96,15 @@ def build_tests(ctx, path, use):
     for test in tests:
         from_path = test.path_from(ctx.path)
         target = splitext(from_path)[0]
-        noinst_program(ctx, [test], target, use)
+        noinst_program(ctx, [test], target, use, "c cprogram")
 
 def build_program(ctx, fname, use):
+    base, ext = splitext(fname)
+    print(base, ext)
+    features = "c cprogram" if ext == ".c" else "cxx cxxprogram"
     source = 'programs/%s' % fname
-    target = 'programs/%s' % splitext(fname)[0]
-    noinst_program(ctx, source, target, use)
+    target = 'programs/%s' % base
+    noinst_program(ctx, [source], target, use, features)
 
 def build_library(ctx, libname, target, uses, defines):
     path = 'libraries/%s' % libname
@@ -223,19 +230,19 @@ def build(ctx):
 
     build_tests(ctx, 'diophantine', ['DIO_OBJS', 'DT_OBJS', 'M'])
     build_tests(ctx, 'tensors', ['TENSORS_OBJS', 'DT_OBJS', 'PNG', 'M'])
-
-    build_program(ctx, 'memperf.c', ['DT_OBJS'])
-    build_program(ctx, 'multimap.cpp', ['DT_OBJS'])
-    build_program(ctx, 'smallpt.cpp', ['GOMP'])
     noinst_program(ctx, ['programs/ntimes.c',
                          'programs/ntimes-loops.c'],
                    'programs/ntimes',
-                   ['PTHREAD', 'DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS'])
+                   ['PTHREAD', 'DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS'],
+                   "c cprogram")
 
     progs = [
         ('cpu.c', {'DT_OBJS'}),
         ('fenwick.c', {'FASTIO_OBJS'}),
         ('mandelbrot.c', {'DT_OBJS', 'LINALG_OBJS', 'M', 'TENSORS_OBJS'}),
+        ('memperf.c', ['DT_OBJS']),
+        ('multimap.cpp', ['DT_OBJS']),
+        ('smallpt.cpp', ['GOMP']),
         ('npyread.c', ['NPY_OBJS']),
         ('simd.c', []),
         ('prodcon.c', {'DT_OBJS', 'THREADS_OBJS', 'RANDOM_OBJS'}),
