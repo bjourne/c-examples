@@ -16,6 +16,7 @@
 const char *
 err_str(cl_int err) {
     switch (err) {
+        ERR_RETURN_STRING(OCL_FILE_NOT_FOUND)
         ERR_RETURN_STRING(CL_SUCCESS                        )
         ERR_RETURN_STRING(CL_DEVICE_NOT_FOUND               )
         ERR_RETURN_STRING(CL_DEVICE_NOT_AVAILABLE           )
@@ -220,7 +221,7 @@ ocl_print_device_details(cl_device_id dev, int ind) {
     }
 }
 
-bool
+cl_int
 ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
                  int n_kernels, char *names[],
                  cl_program *program, cl_kernel *kernels) {
@@ -228,7 +229,7 @@ ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
     size_t n_data;
     cl_int err;
     if (!files_read(path, &data, &n_data)) {
-        goto err;
+        return OCL_FILE_NOT_FOUND;
     }
 
     // Check file extension
@@ -268,7 +269,7 @@ ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
         ocl_check_err(err);
     }
     free(data);
-    return true;
+    return CL_SUCCESS;
  err:
     if (data) {
         free(data);

@@ -58,9 +58,10 @@ main(int argc, char *argv[]) {
     cl_program program;
     cl_kernel kernels[2];
     printf("* Loading kernel\n");
-    assert(ocl_load_kernels(ctx, dev, argv[2],
-                            2, (char *[]){"dct8x8", "dct8x8_sd"},
-                            &program, kernels));
+    err = ocl_load_kernels(ctx, dev, argv[2],
+                           2, (char *[]){"dct8x8", "dct8x8_sd"},
+                           &program, kernels);
+    ocl_check_err(err);
 
     // Allocate and initialize tensors
     printf("* Initializing tensors\n");
