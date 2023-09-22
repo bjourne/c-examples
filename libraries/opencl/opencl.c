@@ -325,3 +325,25 @@ ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
     }
     return clWaitForEvents(1, &event);
 }
+
+cl_int
+ocl_create_and_fill_buffer(cl_context ctx, cl_command_queue queue,
+                           size_t n_bytes, void *src,
+                           cl_mem *mem) {
+    cl_int err;
+
+    *mem = clCreateBuffer(
+        ctx, CL_MEM_READ_WRITE,
+        n_bytes, NULL, &err);
+    if (err != CL_SUCCESS) {
+        return err;
+    }
+    err = clEnqueueWriteBuffer(queue, *mem, CL_TRUE,
+                               0, n_bytes, src,
+                               0, NULL, NULL);
+    if (err != CL_SUCCESS) {
+        clReleaseMemObject(*mem);
+        return err;
+    }
+    return CL_SUCCESS;
+}

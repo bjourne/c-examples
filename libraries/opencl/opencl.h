@@ -39,7 +39,14 @@ ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
                   const size_t *local,
                   int n_args, ...);
 
-void *ocl_get_platform_info(cl_platform_id platform,
-                            cl_platform_info info);
+void *
+ocl_get_platform_info(cl_platform_id platform,
+                      cl_platform_info info);
+
+// Create a buffer and fill it with data.
+cl_int
+ocl_create_and_fill_buffer(cl_context ctx, cl_command_queue queue,
+                           size_t n_bytes, void *src,
+                           cl_mem *mem);
 
 #endif
