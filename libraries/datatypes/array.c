@@ -40,7 +40,8 @@ cmp_fun(
 #endif
 ) {
     compare_context *outer = (compare_context *)ctx;
-    // I don't know if this is kosher...
+    // This has to be fixed because it doesn't work if the elements
+    // are, say, structs.
     return outer->fun(*(void **)a, *(void **)b, outer->ctx);
 }
 
