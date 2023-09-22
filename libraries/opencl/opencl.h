@@ -1,4 +1,7 @@
 // Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
+//
+// All functions should return a cl_int, indicating whether an error
+// occurred.
 #ifndef OPENCL_H
 #define OPENCL_H
 
@@ -16,11 +19,16 @@
 // freely use positive values.
 #define OCL_FILE_NOT_FOUND 1
 
+// Printing
+void
+ocl_print_platform_details(cl_platform_id plat);
+
+void
+ocl_print_device_details(cl_device_id dev, int ind);
+
 bool ocl_get_platforms(cl_uint *n_platforms, cl_platform_id **platforms);
 void ocl_get_devices(cl_platform_id platform,
                      cl_uint *n_devices, cl_device_id **devices);
-
-void ocl_print_device_details(cl_device_id dev, int ind);
 void ocl_check_err(cl_int err);
 
 // CL_SUCCESS on success.

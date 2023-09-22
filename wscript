@@ -100,7 +100,6 @@ def build_tests(ctx, path, use):
 
 def build_program(ctx, fname, use):
     base, ext = splitext(fname)
-    print(base, ext)
     features = "c cprogram" if ext == ".c" else "cxx cxxprogram"
     source = 'programs/%s' % fname
     target = 'programs/%s' % base

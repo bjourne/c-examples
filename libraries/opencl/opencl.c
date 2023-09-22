@@ -102,13 +102,28 @@ print_prefix(int ind) {
 }
 
 static void
-print_device_info_str(cl_device_id dev, int attr, char *attr_name) {
+print_device_info_str(cl_device_id dev,
+                      cl_device_info attr, char *attr_name) {
     size_t n_bytes;
     clGetDeviceInfo(dev, attr, 0, NULL, &n_bytes);
     char *bytes = (char *)malloc(n_bytes);
     clGetDeviceInfo(dev, attr, n_bytes, bytes, NULL);
     printf("%-15s: %s\n", attr_name, bytes);
     free(bytes);
+}
+
+void *
+ocl_get_platform_info(cl_platform_id platform,
+                      cl_platform_info attr) {
+    size_t n_bytes;
+    cl_int err;
+    err = clGetPlatformInfo(platform, attr, 0, NULL, &n_bytes);
+    ocl_check_err(err);
+    void *bytes = (void *)malloc(n_bytes);
+    clGetPlatformInfo(platform, attr,
+                      n_bytes, bytes, NULL);
+    ocl_check_err(err);
+    return bytes;
 }
 
 bool
@@ -127,20 +142,7 @@ ocl_get_platforms(cl_uint *n_platforms, cl_platform_id **platforms) {
     return true;
 }
 
-void *
-ocl_get_platform_info(cl_platform_id platform,
-                      cl_platform_info info) {
-    size_t n_bytes;
-    cl_int err;
-    err = clGetPlatformInfo(platform, info,
-                            0, NULL, &n_bytes);
-    ocl_check_err(err);
-    void *ptr = (void *)malloc(n_bytes);
-    clGetPlatformInfo(platform, info,
-                      n_bytes, ptr, NULL);
-    ocl_check_err(err);
-    return ptr;
-}
+
 
 void
 ocl_get_devices(cl_platform_id platform,
@@ -219,6 +221,34 @@ ocl_print_device_details(cl_device_id dev, int ind) {
         printf("%-15s: %s\n", names[i],
                BOOL_TO_YES_NO(err == CL_SUCCESS && val));
     }
+}
+
+void
+ocl_print_platform_details(cl_platform_id plat) {
+    cl_platform_info attr_types[] = {
+        CL_PLATFORM_NAME, CL_PLATFORM_VENDOR,
+        CL_PLATFORM_VERSION, CL_PLATFORM_PROFILE, CL_PLATFORM_EXTENSIONS
+    };
+    char *attr_names[] = {
+        "Name", "Vendor",
+        "Version", "Profile", "Extensions"
+    };
+    for (size_t i = 0; i < ARRAY_SIZE(attr_names); i++) {
+        char *info = (char *)ocl_get_platform_info(plat,
+                                                   attr_types[i]);
+        printf("%-15s: %s\n", attr_names[i], info);
+        free(info);
+    }
+    cl_uint n_devices;
+    cl_device_id *devices;
+
+    ocl_get_devices(plat, &n_devices, &devices);
+    printf("%-15s: %d\n", "Devices", n_devices);
+    for (cl_uint i = 0; i < n_devices; i++) {
+        ocl_print_device_details(devices[i], 2);
+    }
+    free(devices);
+    printf("\n");
 }
 
 cl_int
