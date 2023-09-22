@@ -10,7 +10,7 @@ static void
 list_platforms() {
     cl_uint n_platforms;
     cl_platform_id *platforms;
-    if (!ocl_get_platforms(&n_platforms, &platforms)) {
+    if (ocl_get_platforms(&n_platforms, &platforms) != CL_SUCCESS) {
         printf("No OpenCL platforms found!\n");
         return;
     }

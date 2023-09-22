@@ -20,7 +20,6 @@ main(int argc, char *argv[]) {
     const int IMAGE_HEIGHT_BLOCKS = IMAGE_HEIGHT / BLOCK_SIZE;
     const int IMAGE_N_BYTES = IMAGE_WIDTH * IMAGE_HEIGHT * sizeof(float);
 
-
     // Load kernel
     float x[8] = {20, 9, 10, 11, 12, 13, 14, 15};
     float y[8], y2[8];
@@ -38,31 +37,28 @@ main(int argc, char *argv[]) {
         exit(1);
     }
 
-    cl_int err;
-    cl_uint n_platforms;
-    cl_platform_id *platforms;
-    ocl_get_platforms(&n_platforms, &platforms);
-
-    cl_uint n_devices;
-    cl_device_id *devices;
     int idx = atoi(argv[1]);
-    ocl_get_devices(platforms[idx], &n_devices, &devices);
+    char *fname = argv[2];
 
-    cl_device_id dev = devices[0];
-    ocl_print_device_details(dev, 0);
-
-    cl_context ctx = clCreateContext(NULL, 1, devices, NULL, NULL, &err);
+    cl_platform_id platform;
+    cl_device_id device;
+    cl_context ctx;
+    cl_int err = ocl_basic_setup(idx, 0,
+                                 &platform, &device, &ctx);
     ocl_check_err(err);
 
+    ocl_print_device_details(device, 0);
+
     cl_command_queue queue = clCreateCommandQueueWithProperties(
-        ctx, dev, 0, &err);
+        ctx, device, 0, &err);
     ocl_check_err(err);
 
     cl_program program;
+    char *names[2] = {"dct8x8", "dct8x8_sd"};
     cl_kernel kernels[2];
     printf("* Loading kernel\n");
-    err = ocl_load_kernels(ctx, dev, argv[2],
-                           2, (char *[]){"dct8x8", "dct8x8_sd"},
+    err = ocl_load_kernels(ctx, device, fname,
+                           2, names,
                            &program, kernels);
     ocl_check_err(err);
 
@@ -79,20 +75,19 @@ main(int argc, char *argv[]) {
 
     // One buffer for the input to the kernel and another one for the
     // dct-ized result.
-    cl_mem mem_image = clCreateBuffer(
-        ctx, CL_MEM_READ_ONLY,
-        IMAGE_N_BYTES, NULL, &err);
-    ocl_check_err(err);
+    cl_mem mem_image;
+    err = ocl_create_and_fill_buffer(ctx, CL_MEM_READ_ONLY,
+                                     queue,
+                                     IMAGE_N_BYTES, image->data,
+                                     &mem_image);
+
     cl_mem mem_dct = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY,
                                     IMAGE_N_BYTES, NULL, &err);
     ocl_check_err(err);
-    err = clEnqueueWriteBuffer(queue, mem_image, CL_TRUE,
-                               0, IMAGE_N_BYTES, image->data,
-                               0, NULL, NULL);
-    ocl_check_err(err);
+
 
     // Run kernels
-    printf("* Running kernels[0]\n");
+    printf("* Running kernel %s\n", names[0]);
     uint64_t start = nano_count();
     uint32_t n_iter = 1000;
     for (uint32_t i = 0; i < n_iter; i++) {
@@ -111,7 +106,7 @@ main(int argc, char *argv[]) {
     double ms_per_kernel = ((double)(end - start) / 1000 / 1000) / n_iter;
     printf("\\--> %.2f ms/kernel\n", ms_per_kernel);
 
-    printf("* Running kernels[1]\n");
+    printf("* Running kernel %s\n", names[1]);
     start = nano_count();
     n_iter = 1000;
     for (uint32_t i = 0; i < n_iter; i++) {
@@ -168,7 +163,5 @@ main(int argc, char *argv[]) {
     }
     clReleaseProgram(program);
     clReleaseContext(ctx);
-    free(platforms);
-    free(devices);
     return 0;
 }

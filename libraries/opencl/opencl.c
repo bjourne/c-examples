@@ -126,20 +126,19 @@ ocl_get_platform_info(cl_platform_id platform,
     return bytes;
 }
 
-bool
+cl_int
 ocl_get_platforms(cl_uint *n_platforms, cl_platform_id **platforms) {
     cl_int err;
 
     err = clGetPlatformIDs(0, NULL, n_platforms);
-    if (err != CL_SUCCESS || n_platforms == 0) {
-        return false;
+    if (err != CL_SUCCESS) {
+        return err;
     }
+
     *platforms = (cl_platform_id *)malloc(
         sizeof(cl_platform_id) * *n_platforms);
 
-    err = clGetPlatformIDs(*n_platforms, *platforms, NULL);
-    ocl_check_err(err);
-    return true;
+    return clGetPlatformIDs(*n_platforms, *platforms, NULL);
 }
 
 
@@ -357,13 +356,14 @@ ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
 }
 
 cl_int
-ocl_create_and_fill_buffer(cl_context ctx, cl_command_queue queue,
+ocl_create_and_fill_buffer(cl_context ctx, cl_mem_flags flags,
+                           cl_command_queue queue,
                            size_t n_bytes, void *src,
                            cl_mem *mem) {
     cl_int err;
 
     *mem = clCreateBuffer(
-        ctx, CL_MEM_READ_WRITE,
+        ctx, flags,
         n_bytes, NULL, &err);
     if (err != CL_SUCCESS) {
         return err;
@@ -375,5 +375,43 @@ ocl_create_and_fill_buffer(cl_context ctx, cl_command_queue queue,
         clReleaseMemObject(*mem);
         return err;
     }
+    return CL_SUCCESS;
+}
+
+cl_int
+ocl_basic_setup(cl_uint plat_idx, cl_uint dev_idx,
+                cl_platform_id *platform,
+                cl_device_id *device,
+                cl_context *ctx) {
+    cl_int err;
+
+    cl_uint n_platforms;
+    cl_platform_id *platforms;
+    if (ocl_get_platforms(&n_platforms, &platforms) != CL_SUCCESS) {
+        return err;
+    }
+    if (plat_idx >= n_platforms) {
+        return OCL_BAD_PLATFORM_IDX;
+    }
+    *platform = platforms[plat_idx];
+
+    cl_uint n_devices;
+    cl_device_id *devices;
+    ocl_get_devices(*platform, &n_devices, &devices);
+    if (dev_idx >= n_devices) {
+        return OCL_BAD_DEVICE_IDX;
+    }
+    *device = devices[dev_idx];
+
+    *ctx = clCreateContext(NULL, 1, device, NULL, NULL, &err);
+
+    if (err != CL_SUCCESS) {
+        free(devices);
+        free(platforms);
+        return err;
+    }
+
+    free(devices);
+    free(platforms);
     return CL_SUCCESS;
 }

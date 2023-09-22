@@ -17,16 +17,27 @@
 
 // Some more error codes. All OpenCL's error codes are negative we can
 // freely use positive values.
-#define OCL_FILE_NOT_FOUND 1
+#define OCL_FILE_NOT_FOUND      1
+#define OCL_BAD_PLATFORM_IDX    2
+#define OCL_BAD_DEVICE_IDX      3
 
-// Printing
+// Print functions
 void
 ocl_print_platform_details(cl_platform_id plat);
 
 void
 ocl_print_device_details(cl_device_id dev, int ind);
 
-bool ocl_get_platforms(cl_uint *n_platforms, cl_platform_id **platforms);
+// Convenience functions
+cl_int
+ocl_basic_setup(cl_uint plat_idx, cl_uint dev_idx,
+                cl_platform_id *platform,
+                cl_device_id *device,
+                cl_context *ctx);
+
+// Platform and device functions
+cl_int
+ocl_get_platforms(cl_uint *n_platforms, cl_platform_id **platforms);
 void ocl_get_devices(cl_platform_id platform,
                      cl_uint *n_devices, cl_device_id **devices);
 void ocl_check_err(cl_int err);
@@ -53,7 +64,8 @@ ocl_get_platform_info(cl_platform_id platform,
 
 // Create a buffer and fill it with data.
 cl_int
-ocl_create_and_fill_buffer(cl_context ctx, cl_command_queue queue,
+ocl_create_and_fill_buffer(cl_context ctx, cl_mem_flags flags,
+                           cl_command_queue queue,
                            size_t n_bytes, void *src,
                            cl_mem *mem);
 
