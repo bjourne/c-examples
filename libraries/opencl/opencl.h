@@ -29,14 +29,15 @@ ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
                  int n_kernels, char *names[],
                  cl_program *program, cl_kernel *kernels);
 
-void
+cl_int
 ocl_set_kernel_arguments(cl_kernel kernel, int n_args, ...);
 
-void ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
-                       cl_uint work_dim,
-                       const size_t *global,
-                       const size_t *local,
-                       int n_args, ...);
+cl_int
+ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
+                  cl_uint work_dim,
+                  const size_t *global,
+                  const size_t *local,
+                  int n_args, ...);
 
 void *ocl_get_platform_info(cl_platform_id platform,
                             cl_platform_info info);

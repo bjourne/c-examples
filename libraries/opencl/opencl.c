@@ -281,41 +281,47 @@ ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
 }
 
 
-static void
+static cl_int
 set_kernel_arguments(cl_kernel kernel, int n_args, va_list ap) {
     for (int i = 0; i < n_args; i++) {
         size_t arg_size = va_arg(ap, size_t);
         void *arg_value = va_arg(ap, void *);
         cl_int err = clSetKernelArg(kernel, i, arg_size, arg_value);
-        ocl_check_err(err);
+        if (err != CL_SUCCESS) {
+            return err;
+        }
     }
+    return CL_SUCCESS;
 }
 
-void
+cl_int
 ocl_set_kernel_arguments(cl_kernel kernel, int n_args, ...) {
     va_list ap;
     va_start(ap, n_args);
-    set_kernel_arguments(kernel, n_args, ap);
+    cl_int err = set_kernel_arguments(kernel, n_args, ap);
     va_end(ap);
+    return err;
 }
 
-void
+cl_int
 ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
                   cl_uint work_dim,
                   const size_t *global,
                   const size_t *local,
                   int n_args, ...) {
     va_list ap;
-    cl_int err;
-
     va_start(ap, n_args);
-    set_kernel_arguments(kernel, n_args, ap);
+    cl_int err = set_kernel_arguments(kernel, n_args, ap);
     va_end(ap);
+    if (err != CL_SUCCESS) {
+        return err;
+    }
 
     cl_event event;
     err = clEnqueueNDRangeKernel(queue, kernel, work_dim, NULL,
                                  global, local, 0, NULL, &event);
-    ocl_check_err(err);
-    err = clWaitForEvents(1, &event);
-    ocl_check_err(err);
+    if (err != CL_SUCCESS) {
+        return err;
+    }
+    return clWaitForEvents(1, &event);
 }
