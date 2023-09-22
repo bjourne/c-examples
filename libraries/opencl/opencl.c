@@ -294,7 +294,7 @@ set_kernel_arguments(cl_kernel kernel, int n_args, va_list ap) {
 void
 ocl_set_kernel_arguments(cl_kernel kernel, int n_args, ...) {
     va_list ap;
-    va_start(ap, 2 * n_args);
+    va_start(ap, n_args);
     set_kernel_arguments(kernel, n_args, ap);
     va_end(ap);
 }
