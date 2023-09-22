@@ -10,6 +10,8 @@
 
 typedef enum {
     SYNCED_QUEUE_SPIN_LOCK,
+    // This primitive can be used when there is only one producer and
+    // one consumer for a queue.
     SYNCED_QUEUE_SPIN_LOCK_UNCONTESTED,
     SYNCED_QUEUE_MUTEX
 } synced_queue_lock_type;

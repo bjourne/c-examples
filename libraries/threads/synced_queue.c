@@ -43,37 +43,37 @@ synced_queue_free(synced_queue *me) {
         }
     }
 
-    void
-    synced_queue_add(synced_queue *me, void *value) {
-        synced_queue_lock_type tp = me->lock_type;
-        if (tp == SYNCED_QUEUE_SPIN_LOCK) {
-            while (true) {
-                pthread_spin_lock(&me->lock);
-                if (me->queue->n_elements < me->queue->capacity) {
-                    break;
-                }
-                pthread_spin_unlock(&me->lock);
-            }
-        } else if (tp == SYNCED_QUEUE_SPIN_LOCK_UNCONTESTED) {
-            spin_while_full(me);
+void
+synced_queue_add(synced_queue *me, void *value) {
+    synced_queue_lock_type tp = me->lock_type;
+    if (tp == SYNCED_QUEUE_SPIN_LOCK) {
+        while (true) {
             pthread_spin_lock(&me->lock);
-        } else if (tp == SYNCED_QUEUE_MUTEX) {
-            pthread_mutex_lock(&me->mutex);
-            while (me->queue->n_elements == me->queue->capacity) {
-                pthread_cond_wait(&me->var_prod, &me->mutex);
+            if (me->queue->n_elements < me->queue->capacity) {
+                break;
             }
-        } else {
-            assert(false);
-        }
-        queue_add(me->queue, value);
-        if (tp == SYNCED_QUEUE_SPIN_LOCK ||
-            tp == SYNCED_QUEUE_SPIN_LOCK_UNCONTESTED) {
             pthread_spin_unlock(&me->lock);
-        } else {
-            pthread_mutex_unlock(&me->mutex);
-            pthread_cond_signal(&me->var_cons);
         }
+    } else if (tp == SYNCED_QUEUE_SPIN_LOCK_UNCONTESTED) {
+        spin_while_full(me);
+        pthread_spin_lock(&me->lock);
+    } else if (tp == SYNCED_QUEUE_MUTEX) {
+        pthread_mutex_lock(&me->mutex);
+        while (me->queue->n_elements == me->queue->capacity) {
+            pthread_cond_wait(&me->var_prod, &me->mutex);
+        }
+    } else {
+        assert(false);
     }
+    queue_add(me->queue, value);
+    if (tp == SYNCED_QUEUE_SPIN_LOCK ||
+        tp == SYNCED_QUEUE_SPIN_LOCK_UNCONTESTED) {
+        pthread_spin_unlock(&me->lock);
+    } else {
+        pthread_mutex_unlock(&me->mutex);
+        pthread_cond_signal(&me->var_cons);
+    }
+}
 
 static void
 spin_while_empty(volatile synced_queue *me) {
