@@ -32,7 +32,6 @@ test_load_kernel() {
     tensor_fill_rand_range(a, 100);
     tensor_fill_rand_range(b, 100);
 
-    cl_int err;
     cl_platform_id platform;
     cl_device_id dev;
     cl_context ctx;
@@ -62,22 +61,23 @@ test_load_kernel() {
     const size_t local[2] = {4, 4};
     const size_t global[2] = {a_rows, b_cols};
 
-    err = ocl_run_nd_kernel(queue, kernel, 2, global, local, 6,
-                            sizeof(int), (void*)&a_cols,
-                            sizeof(int), (void*)&b_rows,
-                            sizeof(int), (void*)&b_cols,
-                            sizeof(cl_mem), (void*)&mem_a,
-                            sizeof(cl_mem), (void*)&mem_b,
-                            sizeof(cl_mem), (void*)&mem_c);
+    ocl_check_err(ocl_run_nd_kernel(
+                      queue, kernel, 2, global, local, 6,
+                      sizeof(int), (void*)&a_cols,
+                      sizeof(int), (void*)&b_rows,
+                      sizeof(int), (void*)&b_cols,
+                      sizeof(cl_mem), (void*)&mem_a,
+                      sizeof(cl_mem), (void*)&mem_b,
+                      sizeof(cl_mem), (void*)&mem_c));
 
     // Multiply to reference
     tensor_multiply(a, b, c_exp);
 
     // Read from device
-    err = clEnqueueReadBuffer(queue, mem_c, CL_TRUE,
-                              0, c_size, c->data,
-                              0, NULL, NULL);
-    ocl_check_err(err);
+    ocl_check_err(clEnqueueReadBuffer(
+                      queue, mem_c, CL_TRUE,
+                      0, c_size, c->data,
+                      0, NULL, NULL));
     assert(tensor_check_equal(c_exp, c, 0.0001));
 
     // Release queue
