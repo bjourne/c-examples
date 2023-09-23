@@ -42,17 +42,6 @@
 #define HA_trim (2 *  MAT_A_BLOCK_HEIGHT)
 #define WB_trim WB
 
-static cl_device_id
-device_first(cl_platform_id platform_id) {
-    cl_uint n_devices;
-    cl_device_id *devices;
-
-    ocl_get_devices(platform_id, &n_devices, &devices);
-    cl_device_id device_id = devices[0];
-    free(devices);
-    return device_id;
-}
-
 static  void
 reorder_within_blocks(float * src,
                       float * dst,
@@ -131,34 +120,27 @@ main(int argc, char *argv[]) {
 
     printf("** Setting up OpenCL **\n");
 
-    printf("Getting platform and device\n");
-    cl_uint n_platforms;
-    cl_platform_id *platforms;
-    ocl_get_platforms(&n_platforms, &platforms);
-
-    int idx = atoi(argv[1]);
-    cl_platform_id plat_id = platforms[idx];
-
-    cl_device_id dev = device_first(plat_id);
-    assert(dev);
+    cl_platform_id platform;
+    cl_device_id dev;
+    cl_context ctx;
+    int plat_idx = atoi(argv[1]);
+    ocl_check_err(ocl_basic_setup(plat_idx, 0, &platform, &dev, &ctx, NULL));
     ocl_print_device_details(dev, 0);
-
-    cl_int err;
-    cl_context ctx = clCreateContext(NULL, 1, &dev, NULL, NULL, &err);
-    ocl_check_err(err);
 
     printf("Loading kernels\n");
     cl_program program;
     cl_kernel kernels[3];
-    assert(ocl_load_kernels(ctx, dev, argv[2],
-                            3, (char *[]){"loadA", "loadB", "store"},
-                            &program, kernels));
+    ocl_check_err(ocl_load_kernels(
+                      ctx, dev, argv[2],
+                      3, (char *[]){"loadA", "loadB", "store"},
+                      &program, kernels));
 
     // Create four queues
     cl_queue_properties props[] = {
         CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0
     };
     cl_command_queue queues[4];
+    cl_int err;
     for (int i = 0; i < 4; i++) {
         queues[i] = clCreateCommandQueueWithProperties(ctx, dev,
                                                        props, &err);
@@ -192,26 +174,28 @@ main(int argc, char *argv[]) {
 
 
     // LoadA kernel
+    printf("Initializing LoadA kernel\n");
     unsigned int mat_a_num_vectors_in_row_of_blocks =
         MAT_A_NUM_VECTORS_IN_ROW_OF_BLOCKS;
     unsigned char mat_a_num_blocks_in_col = MAT_A_NUM_BLOCKS_IN_COL;
     unsigned char mat_b_num_blocks_in_row = MAT_B_NUM_BLOCKS_IN_ROW;
 
-    ocl_set_kernel_arguments(
-        kernels[0], 8,
-        sizeof(cl_mem), (void *)&dev_a,
-        sizeof(unsigned int), (void *)&mat_a_num_vectors_in_row_of_blocks,
-        sizeof(unsigned char), (void *)&mat_a_num_blocks_in_col,
-        sizeof(unsigned char), (void *)&mat_b_num_blocks_in_row);
+    ocl_check_err(ocl_set_kernel_arguments(
+                      kernels[0], 4,
+                      sizeof(cl_mem), (void *)&dev_a,
+                      sizeof(unsigned int), (void *)&mat_a_num_vectors_in_row_of_blocks,
+                      sizeof(unsigned char), (void *)&mat_a_num_blocks_in_col,
+                      sizeof(unsigned char), (void *)&mat_b_num_blocks_in_row));
 
     // LoadB kernel
+    printf("Initializing LoadB kernel\n");
     unsigned int mat_b_num_vectors_in_col_of_blocks =
         MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS;
     unsigned int mat_b_num_vectors_in_matrix =
         MAT_B_NUM_VECTORS_IN_MATRIX;
 
     ocl_set_kernel_arguments(
-        kernels[1], 8,
+        kernels[1], 4,
         sizeof(cl_mem), (void *)&dev_b,
         sizeof(unsigned int), (void *)&mat_b_num_vectors_in_col_of_blocks,
         sizeof(unsigned int), (void *)&mat_b_num_vectors_in_matrix,
@@ -221,7 +205,7 @@ main(int argc, char *argv[]) {
     int mat_c_num_coalesced_words = WC * HC / PE_COLS;
 
     ocl_set_kernel_arguments(
-        kernels[2], 4,
+        kernels[2], 2,
         sizeof(cl_mem), (void *)&dev_c,
         sizeof(int), (void *)&mat_c_num_coalesced_words);
 
@@ -283,9 +267,6 @@ main(int argc, char *argv[]) {
     }
     clReleaseProgram(program);
     clReleaseContext(ctx);
-
-    // Free more stuff
-    free(platforms);
 
     // Free tensors
     tensor_free(a);
