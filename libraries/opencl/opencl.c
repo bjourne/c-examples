@@ -254,14 +254,15 @@ cl_int
 ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
                  int n_kernels, char *names[],
                  cl_program *program, cl_kernel *kernels) {
-    char *data = NULL, *log = NULL;
+    char *data;
     size_t n_data;
-    cl_int err;
+
     if (!files_read(path, &data, &n_data)) {
         return OCL_FILE_NOT_FOUND;
     }
 
     // Check file extension
+    cl_int err;
     if (!strcmp(paths_ext(path), "cl")) {
         *program = clCreateProgramWithSource(
             ctx, 1,
@@ -274,39 +275,36 @@ ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
             &n_data, (const unsigned char **)&data,
             &err, NULL);
     }
-    ocl_check_err(err);
+    free(data);
+    if (err != CL_SUCCESS) {
+        return err;
+    }
 
     err = clBuildProgram(*program, 1, &dev, NULL, NULL, NULL);
     if (err != CL_SUCCESS) {
         printf("Build failed: %s\n", err_str(err));
         size_t n_log;
-        err = clGetProgramBuildInfo(*program, dev, CL_PROGRAM_BUILD_LOG,
-                                    0, NULL, &n_log);
-        ocl_check_err(err);
+        cl_int err2 = clGetProgramBuildInfo(*program, dev, CL_PROGRAM_BUILD_LOG,
+                                            0, NULL, &n_log);
+        ocl_check_err(err2);
         assert(n_log > 0);
 
         // Acquire, print, and free the log.
-        log = (char *)malloc(n_log);
+        char * log = (char *)malloc(n_log);
         clGetProgramBuildInfo(*program, dev,
                               CL_PROGRAM_BUILD_LOG, n_log, log, NULL);
         printf("%s\n", log);
-        goto err;
+        free(log);
+        return err;
     }
 
     for (int i = 0; i < n_kernels; i++) {
         kernels[i] = clCreateKernel(*program, names[i], &err);
-        ocl_check_err(err);
+        if (err != CL_SUCCESS) {
+            return err;
+        }
     }
-    free(data);
     return CL_SUCCESS;
- err:
-    if (data) {
-        free(data);
-    }
-    if (log) {
-        free(log);
-    }
-    return false;
 }
 
 
