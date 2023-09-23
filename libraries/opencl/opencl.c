@@ -357,11 +357,9 @@ ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
 
 cl_int
 ocl_create_and_fill_buffer(cl_context ctx, cl_mem_flags flags,
-                           cl_command_queue queue,
-                           size_t n_bytes, void *src,
-                           cl_mem *mem) {
+                           cl_command_queue queue, void *src,
+                           size_t n_bytes, cl_mem *mem) {
     cl_int err;
-
     *mem = clCreateBuffer(
         ctx, flags,
         n_bytes, NULL, &err);
@@ -377,6 +375,18 @@ ocl_create_and_fill_buffer(cl_context ctx, cl_mem_flags flags,
     }
     return CL_SUCCESS;
 }
+
+cl_int
+ocl_create_empty_buffer(cl_context ctx, cl_mem_flags flags,
+                           size_t n_bytes, cl_mem *mem) {
+    cl_int err;
+    *mem = clCreateBuffer(
+        ctx, flags,
+        n_bytes, NULL, &err);
+    return err;
+}
+
+
 
 cl_int
 ocl_basic_setup(cl_uint plat_idx, cl_uint dev_idx,

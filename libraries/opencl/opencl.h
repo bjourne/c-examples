@@ -62,11 +62,13 @@ void *
 ocl_get_platform_info(cl_platform_id platform,
                       cl_platform_info info);
 
-// Create a buffer and fill it with data.
+// Buffer creation functions
 cl_int
 ocl_create_and_fill_buffer(cl_context ctx, cl_mem_flags flags,
-                           cl_command_queue queue,
-                           size_t n_bytes, void *src,
-                           cl_mem *mem);
+                           cl_command_queue queue, void *src,
+                           size_t n_bytes, cl_mem *mem);
+cl_int
+ocl_create_empty_buffer(cl_context ctx, cl_mem_flags flags,
+                        size_t n_bytes, cl_mem *mem);
 
 #endif

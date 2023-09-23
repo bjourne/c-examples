@@ -75,15 +75,13 @@ main(int argc, char *argv[]) {
 
     // One buffer for the input to the kernel and another one for the
     // dct-ized result.
-    cl_mem mem_image;
+    cl_mem mem_image, mem_dct;
     err = ocl_create_and_fill_buffer(ctx, CL_MEM_READ_ONLY,
-                                     queue,
-                                     IMAGE_N_BYTES, image->data,
-                                     &mem_image);
-
-    cl_mem mem_dct = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY,
-                                    IMAGE_N_BYTES, NULL, &err);
+                                     queue,image->data,
+                                     IMAGE_N_BYTES, &mem_image);
     ocl_check_err(err);
+    err = ocl_create_empty_buffer(ctx, CL_MEM_WRITE_ONLY,
+                                  IMAGE_N_BYTES, &mem_dct);
 
 
     // Run kernels
