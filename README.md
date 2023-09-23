@@ -121,7 +121,17 @@ The project is built using the build tool
 
 Windows, Linux and OS X is supported.
 
-## Design Philosophy
+## Design Philosophy and Coding Style
 
 Structs are not private. I have good reasons for making them public,
 but I forgot what they are now.
+
+I prefer function declarations split over multiple lines, with the
+return type and function attributes on a separate line. Like this:
+
+    cl_int
+    ocl_create_buffer_and_write(cl_context ctx, cl_command_queue queue,
+                                size_t n_bytes, void *host_ptr,
+                                cl_mem *mem);
+Lines shouldn't be longer 73-75 characters since that is how long my
+side-by-side Emacs frames are.
