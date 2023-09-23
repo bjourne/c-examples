@@ -137,7 +137,7 @@ run_mandelbrot(const char *name) {
     double nanos_per_pixel = (double)delta / N_PIXELS;
     double secs = (double)delta / (1000 * 1000 * 1000);
 
-#ifdef HAVE_PNG
+
     tensor *t = tensor_init(3, (int[]){3, HEIGHT, WIDTH});
     tensor_fill_const(t, 0);
     for (uint32_t h = 0; h < HEIGHT; h++) {
@@ -146,11 +146,12 @@ run_mandelbrot(const char *name) {
             t->data[N_PIXELS * chan + WIDTH * h + w] = col;
         }
     }
+#ifdef HAVE_PNG
     char fname[256];
     sprintf(fname, "mandelbrot-%s.png", name);
     assert(tensor_write_png(t, fname));
-    tensor_free(t);
 #endif
+    tensor_free(t);
     free(pixels);
     printf("== %s ==\n", name);
     printf("%.2f seconds\n", secs);
