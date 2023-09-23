@@ -4,11 +4,11 @@ from pathlib import Path
 from subprocess import PIPE, Popen
 
 def options(ctx):
-    for tool in {'compiler_c', 'compiler_cxx'}:
+    for tool in {'compiler_c', 'compiler_cxx', 'pkgconfig'}:
         ctx.load_tool(tool)
 
 def configure(ctx):
-    for tool in {'compiler_c', 'compiler_cxx'}:
+    for tool in {'compiler_c', 'compiler_cxx', 'pkgconfig'}:
         ctx.load_tool(tool)
     ctx.define('_GNU_SOURCE', 1)
     if ctx.env.CC_NAME == 'msvc':
@@ -51,22 +51,19 @@ def configure(ctx):
         ctx.find_program('aoc', var='AOC', mandatory = False)
         ctx.find_program('aocl', var='AOCLEXE', mandatory = False)
         if ctx.env['AOCLEXE']:
-            ctx.check_cfg(path = 'aocl', args = 'compile-config',
+            ctx.check_cfg(path = 'aocl', args = ['compile-config'],
                           package = '', uselib_store = 'AOCL', mandatory = False)
-            ctx.check_cfg(path = 'aocl', args = 'linkflags',
+            ctx.check_cfg(path = 'aocl', args = ['linkflags'],
                           package = '', uselib_store = 'AOCL', mandatory = False)
 
         llvm_libs = ['core', 'executionengine', 'mcjit', 'native']
-        args = [
+        llvm_args = [
             '--cflags',
             '--ldflags',
-            '--libs',
-            ' '.join(llvm_libs),
-            '--system-libs'
-        ]
-        ctx.check_cfg(path = 'llvm-config-3.9',
-                      args = ' '.join(args),
-                      package = '',
+            '--libs'
+        ] + llvm_libs + ['--system-libs']
+        ctx.check_cfg(path = 'llvm-config',
+                      args = llvm_args,
                       uselib_store = 'LLVM',
                       mandatory = False,
                       msg = 'Checking for \'llvm-3.9\'')
