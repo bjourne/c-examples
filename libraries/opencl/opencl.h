@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
 //
 // All functions should return a cl_int, indicating whether an error
 // occurred.

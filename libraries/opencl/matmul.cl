@@ -1,3 +1,4 @@
+// Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
 __kernel void
 matmul(
     const int a_cols, const int b_rows, const int b_cols,
