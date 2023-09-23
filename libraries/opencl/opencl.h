@@ -30,10 +30,13 @@ ocl_print_device_details(cl_device_id dev, int ind);
 
 // Convenience functions
 cl_int
-ocl_basic_setup(cl_uint plat_idx, cl_uint dev_idx,
-                cl_platform_id *platform,
-                cl_device_id *device,
-                cl_context *ctx);
+ocl_basic_setup(
+    cl_uint plat_idx, cl_uint dev_idx,
+    cl_platform_id *platform,
+    cl_device_id *device,
+    cl_context *ctx,
+    cl_command_queue *queue
+);
 
 // Platform and device functions
 cl_int

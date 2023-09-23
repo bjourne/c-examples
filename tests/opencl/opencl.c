@@ -33,24 +33,12 @@ test_load_kernel() {
     tensor_fill_rand_range(b, 100);
 
     cl_int err;
-    cl_uint n_platforms;
-    cl_platform_id *platforms;
-    ocl_get_platforms(&n_platforms, &platforms);
-
-    cl_uint n_devices;
-    cl_device_id *devices;
-    ocl_get_devices(platforms[0], &n_devices, &devices);
-
-    cl_device_id dev = devices[0];
-
+    cl_platform_id platform;
+    cl_device_id dev;
+    cl_context ctx;
+    cl_command_queue queue;
+    ocl_check_err(ocl_basic_setup(0, 0, &platform, &dev, &ctx, &queue));
     ocl_print_device_details(dev, 0);
-
-    cl_context ctx = clCreateContext(NULL, 1, devices, NULL, NULL, &err);
-    ocl_check_err(err);
-
-    cl_command_queue queue = clCreateCommandQueueWithProperties(
-        ctx, dev, 0, &err);
-    ocl_check_err(err);
 
     // Load kernel
     cl_program program;
@@ -69,7 +57,6 @@ test_load_kernel() {
                                              b_size, &mem_b));
     ocl_check_err(ocl_create_empty_buffer(ctx, CL_MEM_WRITE_ONLY,
                                           c_size, &mem_c));
-
 
     // Run kernel
     const size_t local[2] = {4, 4};
@@ -106,8 +93,6 @@ test_load_kernel() {
     clReleaseKernel(kernel);
     clReleaseProgram(program);
     clReleaseContext(ctx);
-    free(platforms);
-    free(devices);
 
     tensor_free(a);
     tensor_free(b);

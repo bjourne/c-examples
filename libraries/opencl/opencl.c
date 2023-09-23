@@ -390,7 +390,8 @@ cl_int
 ocl_basic_setup(cl_uint plat_idx, cl_uint dev_idx,
                 cl_platform_id *platform,
                 cl_device_id *device,
-                cl_context *ctx) {
+                cl_context *ctx,
+                cl_command_queue *queue) {
     cl_int err;
 
     cl_uint n_platforms;
@@ -412,14 +413,14 @@ ocl_basic_setup(cl_uint plat_idx, cl_uint dev_idx,
     *device = devices[dev_idx];
 
     *ctx = clCreateContext(NULL, 1, device, NULL, NULL, &err);
-
     if (err != CL_SUCCESS) {
-        free(devices);
-        free(platforms);
-        return err;
+        goto done;
     }
+    *queue = clCreateCommandQueueWithProperties(
+        *ctx, *device, 0, &err);
 
+ done:
     free(devices);
     free(platforms);
-    return CL_SUCCESS;
+    return err;
 }

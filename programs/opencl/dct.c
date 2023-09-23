@@ -43,15 +43,12 @@ main(int argc, char *argv[]) {
     cl_platform_id platform;
     cl_device_id device;
     cl_context ctx;
+    cl_command_queue queue;
     cl_int err = ocl_basic_setup(idx, 0,
-                                 &platform, &device, &ctx);
+                                 &platform, &device, &ctx, &queue);
     ocl_check_err(err);
 
     ocl_print_device_details(device, 0);
-
-    cl_command_queue queue = clCreateCommandQueueWithProperties(
-        ctx, device, 0, &err);
-    ocl_check_err(err);
 
     cl_program program;
     char *names[2] = {"dct8x8", "dct8x8_sd"};
