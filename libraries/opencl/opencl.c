@@ -386,18 +386,17 @@ ocl_create_empty_buffer(cl_context ctx, cl_mem_flags flags,
 
 
 
-// If queue is NULL no queue is initialized.
+// If queue is NULL the queue is initialized.
 cl_int
 ocl_basic_setup(cl_uint plat_idx, cl_uint dev_idx,
                 cl_platform_id *platform,
                 cl_device_id *device,
                 cl_context *ctx,
                 cl_command_queue *queue) {
-    cl_int err;
-
     cl_uint n_platforms;
     cl_platform_id *platforms;
-    if (ocl_get_platforms(&n_platforms, &platforms) != CL_SUCCESS) {
+    cl_int err = ocl_get_platforms(&n_platforms, &platforms);
+    if (err != CL_SUCCESS) {
         return err;
     }
     if (plat_idx >= n_platforms) {
@@ -419,7 +418,7 @@ ocl_basic_setup(cl_uint plat_idx, cl_uint dev_idx,
     }
     if (queue) {
         *queue = clCreateCommandQueueWithProperties(
-            *ctx, *device, 0, &err);
+            *ctx, *device, NULL, &err);
     }
  done:
     free(devices);
