@@ -198,7 +198,10 @@ def build(ctx):
         'benchmark' : ['BENCHMARK_OBJS', 'DT_OBJS'],
         'collectors' : ['GC_OBJS', 'DT_OBJS', 'QF_OBJS'],
         'datatypes' : ['BENCHMARK_OBJS', 'DT_OBJS', 'RANDOM_OBJS'],
+        'diophantine' : {'DIO_OBJS', 'DT_OBJS', 'M'},
+        'fastio' : {'FASTIO_OBJS'},
         'file3d' : {'FILE3D_OBJS', 'DT_OBJS', 'LINALG_OBJS', 'M'},
+        'files' : {'DT_OBJS', 'FILES_OBJS'},
         'ieee754' : ['IEEE754_OBJS', 'DT_OBJS', 'RANDOM_OBJS'],
         'isect' : {'LINALG_OBJS', 'DT_OBJS', 'M', 'ISECT_OBJS'},
         'linalg' : {'LINALG_OBJS', 'DT_OBJS', 'M', 'RANDOM_OBJS'},
@@ -216,16 +219,12 @@ def build(ctx):
         'paths' : {'PATHS_OBJS', 'DT_OBJS'},
         'quickfit' : ['DT_OBJS', 'QF_OBJS'],
         'random' : {'DT_OBJS', 'RANDOM_OBJS'},
+        'tensors' : {'TENSORS_OBJS', 'DT_OBJS', 'PNG', 'M'},
         'threads' : {'DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS'}
     }
     for lib, deps in tests.items():
         build_tests(ctx, lib, deps)
 
-    build_tests(ctx, 'fastio', ['FASTIO_OBJS'])
-    build_tests(ctx, 'files', ['DT_OBJS', 'FILES_OBJS'])
-
-    build_tests(ctx, 'diophantine', ['DIO_OBJS', 'DT_OBJS', 'M'])
-    build_tests(ctx, 'tensors', ['TENSORS_OBJS', 'DT_OBJS', 'PNG', 'M'])
     noinst_program(ctx, ['programs/ntimes.c',
                          'programs/ntimes-loops.c'],
                    'programs/ntimes',
