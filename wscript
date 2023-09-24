@@ -127,9 +127,19 @@ def build_library(ctx, libname, target, uses, defines):
 def build_aoc(ctx, src, deps):
     aocx = str(src.with_suffix('.aocx'))
     dir = aocx.split('.')[0]
+
+    aoc_cmd = ' '.join([
+        "${AOC}",
+        "-march=emulator",
+        # Include the project's root directory
+        "-I..",
+        "${SRC[0]}",
+        "-o",
+        "${TGT[0]}",
+        "-report"])
+
     # Need to remove the log directory otherwise aoc gets angry.
-    rules = ['rm -rf ${TGT[1]}',
-             '${AOC} -march=emulator ${SRC[0]} -o ${TGT[0]} -report']
+    rules = ['rm -rf ${TGT[1]}', aoc_cmd]
     ctx(rule = ' && '.join(rules),
         source = [str(s) for s in [src] + deps],
         target = [aocx, dir])
