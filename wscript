@@ -93,11 +93,13 @@ def build_tests(ctx, path, use):
     for test in tests:
         from_path = test.path_from(ctx.path)
         target = splitext(from_path)[0]
-        noinst_program(ctx, [test], target, use, "c cprogram")
+        noinst_program(ctx, [test], target, use, ["c", "cprogram"])
 
 def build_program(ctx, fname, use):
     base, ext = splitext(fname)
-    features = "c cprogram" if ext == ".c" else "cxx cxxprogram"
+    cprog = ["c", "cprogram"]
+    cxxprog = ["cxx", "cxxprogram"]
+    features = cprog if ext == ".c" else cxxprog
     source = 'programs/%s' % fname
     target = 'programs/%s' % base
     noinst_program(ctx, [source], target, use, features)
@@ -109,12 +111,12 @@ def build_library(ctx, libname, target, uses, defines):
 
     # https://gitlab.com/ita1024/waf/-/issues/2412
     uses = sorted(uses)
-    ctx(features = 'c',
+    ctx(features = ['c'],
         source = objs,
         use = uses,
         target = target,
         defines = defines)
-    ctx(features = 'c cstlib',
+    ctx(features = ['c', 'cstlib'],
         target = libname,
         use = [target] + uses,
         defs = defs_file,
@@ -239,7 +241,7 @@ def build(ctx):
                          'programs/ntimes-loops.c'],
                    'programs/ntimes',
                    ['PTHREAD', 'DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS'],
-                   "c cprogram")
+                   ["c", "cprogram"])
 
     progs = [
         ('cpu.c', {'DT_OBJS'}),
