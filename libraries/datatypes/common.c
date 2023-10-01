@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020, 2022 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019-2020, 2022-2023 Björn A. Lindqvist
 #include <assert.h>
 #include <inttypes.h>
 #include <stdarg.h>
@@ -71,9 +71,9 @@ nano_count() {
 
 void
 timed_run(void (*func)()) {
-    size_t start = nano_count();
+    uint64_t start = nano_count();
     (func)();
-    size_t end = nano_count();
+    uint64_t end = nano_count();
     double secs = (double)(end - start) / 1000 / 1000 / 1000;
     printf("-> %.3f seconds\n", secs);
 }
