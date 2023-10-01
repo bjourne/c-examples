@@ -326,7 +326,7 @@ tensor_write_png(tensor *me, char *filename) {
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 int src = c * width * height + y * width + x;
-                int dst = 3*(y * width + x) + c;
+                int dst = 3 * (y * width + x) + c;
                 image[dst] = me->data[src];
             }
         }
@@ -615,11 +615,6 @@ tensor_linear_new(tensor *weights, tensor *bias, tensor *src) {
     tensor_linear(weights, bias, src, dst);
     return dst;
 }
-
-////////////////////////////////////////////////////////////////////////
-// Multiply
-////////////////////////////////////////////////////////////////////////
-
 
 void
 tensor_transpose(tensor *src, tensor *dst) {
