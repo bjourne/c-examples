@@ -8,7 +8,7 @@
 char *fname = NULL;
 
 static float
-matrix_5x5_1[5][5] = {
+mat_5x5_1[5][5] = {
     {0, 1, 4, 3, 2},
     {1, 3, 4, 0, 4},
     {2, 2, 4, 1, 1},
@@ -18,12 +18,26 @@ matrix_5x5_1[5][5] = {
 
 // Transposed 5x5_1
 static float
-matrix_5x5_2[5][5] = {
+mat_5x5_2[5][5] = {
     {0, 1, 2, 2, 0},
     {1, 3, 2, 1, 0},
     {4, 4, 4, 3, 3},
     {3, 0, 1, 3, 1},
     {2, 4, 1, 2, 0}
+};
+
+static float
+mat_2x4[2][4] = {
+    {1, 2, 3, 4},
+    {5, 6, 7, 8}
+};
+
+static float
+mat_2x4_t[4][2] = {
+    {1, 5},
+    {2, 6},
+    {3, 7},
+    {4, 8}
 };
 
 void
@@ -160,7 +174,7 @@ test_conv2d_padded() {
             { 8, 13, 27, 16}
         }
     };
-    tensor *src = tensor_init_from_data((float *)matrix_5x5_1,
+    tensor *src = tensor_init_from_data((float *)mat_5x5_1,
                                         3, (int[]){1, 5, 5});
     tensor *weight = tensor_init_from_data((float *)weight_data,
                                            4, (int[]){1, 1, 2, 2});
@@ -1179,10 +1193,10 @@ test_softmax() {
 
 void
 test_transpose() {
-    tensor *src = tensor_init_from_data((float *)matrix_5x5_1,
+    tensor *src = tensor_init_from_data((float *)mat_5x5_1,
                                         2, (int[]){5, 5});
     tensor *dst = tensor_init(2, (int[]){5, 5});
-    tensor *dst_ref = tensor_init_from_data((float *)matrix_5x5_2,
+    tensor *dst_ref = tensor_init_from_data((float *)mat_5x5_2,
                                             2, (int[]){5, 5});
     tensor_transpose(src, dst);
     tensor_check_equal(dst, dst_ref, LINALG_EPSILON);
@@ -1190,6 +1204,18 @@ test_transpose() {
     tensor_free(dst);
     tensor_free(dst_ref);
     tensor_free(src);
+
+    tensor *t1 = tensor_init_from_data((float *)mat_2x4,
+                                       2, (int[]){2, 4});
+    tensor *t2 = tensor_init(2, (int[]){4, 2});
+    tensor *t2_ref = tensor_init_from_data((float *)mat_2x4_t,
+                                           2, (int[]){4, 2});
+    tensor_transpose(t1, t2);
+    tensor_check_equal(t2, t2_ref, LINALG_EPSILON);
+
+    tensor_free(t1);
+    tensor_free(t2);
+    tensor_free(t2_ref);
 }
 
 void
