@@ -5,32 +5,33 @@
 #include "tensors/tensors.h"
 #include "tensors/multiply.h"
 #include "opencl/opencl.h"
+#include "opencl/matmul.h"
 
 void
 test_load_kernel() {
-    // Create tensor matrices.
-    int SIZE = 1024;
+    // A has dimension MxK, b KxN, and c MxN
+    const int M = 4096;
+    const int N = 4096;
+    const int K = 4096;
 
-    int a_rows = SIZE;
-    int a_cols = SIZE;
-    int b_rows = SIZE;
-    int b_cols = SIZE;
+    assert(M % TILE_SIZE == 0);
+    assert(N % TILE_SIZE == 0);
+    assert(K % TILE_SIZE == 0);
 
-    tensor *a = tensor_init(2, (int[]){a_rows, a_cols});
-    tensor *b = tensor_init(2, (int[]){b_rows, b_cols});
-    tensor *c = tensor_init(2, (int[]){a_rows, b_cols});
-    tensor *c_exp = tensor_init(2, (int[]){a_rows, b_cols});
+    tensor *a = tensor_init(2, (int[]){M, K});
+    tensor *b = tensor_init(2, (int[]){K, N});
+    tensor *c = tensor_init(2, (int[]){M, N});
+    tensor *c_exp = tensor_init(2, (int[]){M, N});
 
-    int a_els = a_rows * a_cols;
-    int b_els = b_rows * b_cols;
-    int c_els = a_rows * b_cols;
+    size_t a_size = M * K * sizeof(float);
+    size_t b_size = K * N * sizeof(float);
+    size_t c_size = M * N * sizeof(float);
 
-    size_t a_size = a_els * sizeof(float);
-    size_t b_size = b_els * sizeof(float);
-    size_t c_size = c_els * sizeof(float);
+    tensor_fill_rand_range(a, 10);
+    tensor_fill_rand_range(b, 10);
 
-    tensor_fill_rand_range(a, 100);
-    tensor_fill_rand_range(b, 100);
+    // Multiply to reference
+    tensor_multiply(a, b, c_exp);
 
     cl_platform_id platform;
     cl_device_id dev;
@@ -38,13 +39,16 @@ test_load_kernel() {
     cl_command_queue queue;
     ocl_check_err(ocl_basic_setup(0, 0, &platform, &dev, &ctx, &queue));
     ocl_print_device_details(dev, 0);
+    printf("\n");
 
-    // Load kernel
+    // Load kernels
+    char *kernel_names[] = {"matmul_tiled", "matmul_naive"};
     cl_program program;
-    cl_kernel kernel;
-    ocl_check_err(ocl_load_kernels(ctx, dev, "libraries/opencl/matmul.cl",
-                                   1, (char *[]){"matmul"},
-                                   &program, &kernel));
+    cl_kernel kernels[2];
+    ocl_check_err(ocl_load_kernels(
+                      ctx, dev, "libraries/opencl/matmul.cl",
+                      2, kernel_names,
+                      &program, kernels));
 
     // Create buffers
     cl_mem mem_a, mem_b, mem_c;
@@ -57,28 +61,35 @@ test_load_kernel() {
     ocl_check_err(ocl_create_empty_buffer(ctx, CL_MEM_WRITE_ONLY,
                                           c_size, &mem_c));
 
-    // Run kernel
-    const size_t local[2] = {4, 4};
-    const size_t global[2] = {a_rows, b_cols};
-
-    ocl_check_err(ocl_run_nd_kernel(
-                      queue, kernel, 2, global, local, 6,
-                      sizeof(int), (void*)&a_cols,
-                      sizeof(int), (void*)&b_rows,
-                      sizeof(int), (void*)&b_cols,
-                      sizeof(cl_mem), (void*)&mem_a,
-                      sizeof(cl_mem), (void*)&mem_b,
-                      sizeof(cl_mem), (void*)&mem_c));
-
-    // Multiply to reference
-    tensor_multiply(a, b, c_exp);
-
-    // Read from device
-    ocl_check_err(clEnqueueReadBuffer(
-                      queue, mem_c, CL_TRUE,
-                      0, c_size, c->data,
-                      0, NULL, NULL));
-    assert(tensor_check_equal(c_exp, c, 0.0001));
+    // Run kernels
+    size_t local_sizes[2][2] = {
+        // Sizes tuned for Quadro P400 card
+        {TILE_SIZE, TILE_SIZE},
+        {8, 8}
+    };
+    for (int i = 0; i < 2; i++) {
+        uint64_t start = nano_count();
+        ocl_check_err(ocl_run_nd_kernel(
+                          queue, kernels[i], 2,
+                          (size_t[]){M, N},
+                          local_sizes[i],
+                          6,
+                          sizeof(int), (void*)&M,
+                          sizeof(int), (void*)&N,
+                          sizeof(int), (void*)&K,
+                          sizeof(cl_mem), (void*)&mem_a,
+                          sizeof(cl_mem), (void*)&mem_b,
+                          sizeof(cl_mem), (void*)&mem_c));
+        printf("Kernel %12s: %6.2fs\n",
+               kernel_names[i],
+               nanos_to_secs(nano_count() - start));
+        // Read from device
+        ocl_check_err(clEnqueueReadBuffer(
+                          queue, mem_c, CL_TRUE,
+                          0, c_size, c->data,
+                          0, NULL, NULL));
+        assert(tensor_check_equal(c_exp, c, 0.0001));
+    }
 
     // Release queue
     clFlush(queue);
@@ -90,7 +101,9 @@ test_load_kernel() {
     clReleaseMemObject(mem_b);
     clReleaseMemObject(mem_c);
 
-    clReleaseKernel(kernel);
+    for (size_t i = 0; i < ARRAY_SIZE(kernels); i++) {
+        clReleaseKernel(kernels[i]);
+    }
     clReleaseProgram(program);
     clReleaseContext(ctx);
 
