@@ -7,12 +7,30 @@
 #include "opencl/opencl.h"
 #include "opencl/matmul.h"
 
+static void
+init_arrays(tensor *a, tensor *b) {
+    for (int i = 0; i < a->dims[0]; i++) {
+        for (int j = 0; j < a->dims[1]; j++) {
+            a->data[i * a->dims[1] + j] = i;
+        }
+    }
+    for (int i = 0; i < b->dims[0]; i++) {
+        for (int j = 0; j < b->dims[1]; j++) {
+            b->data[i * b->dims[1] + j] = j;
+        }
+    }
+    printf("== A ==\n");
+    tensor_print(a, "%5.0f", false);
+    printf("== B ==\n");
+    tensor_print(b, "%5.0f", false);
+}
+
 void
 test_load_kernel() {
     // A has dimension MxK, b KxN, and c MxN
-    const int M = 4096;
-    const int N = 4096;
-    const int K = 4096;
+    const int M = 4;
+    const int N = 4;
+    const int K = 4;
 
     assert(M % TILE_SIZE == 0);
     assert(N % TILE_SIZE == 0);
@@ -27,8 +45,9 @@ test_load_kernel() {
     size_t b_size = K * N * sizeof(float);
     size_t c_size = M * N * sizeof(float);
 
-    tensor_fill_rand_range(a, 10);
-    tensor_fill_rand_range(b, 10);
+    init_arrays(a, b);
+    /* tensor_fill_rand_range(a, 10); */
+    /* tensor_fill_rand_range(b, 10); */
 
     // Multiply to reference
     tensor_multiply(a, b, c_exp);
@@ -42,12 +61,16 @@ test_load_kernel() {
     printf("\n");
 
     // Load kernels
-    char *kernel_names[] = {"matmul_tiled", "matmul_naive"};
+    char *kernel_names[] = {
+        "matmul_tiled_simd",
+        "matmul_tiled",
+        "matmul_naive"
+    };
     cl_program program;
-    cl_kernel kernels[2];
+    cl_kernel kernels[3];
     ocl_check_err(ocl_load_kernels(
                       ctx, dev, "libraries/opencl/matmul.cl",
-                      2, kernel_names,
+                      3, kernel_names,
                       &program, kernels));
 
     // Create buffers
@@ -62,16 +85,22 @@ test_load_kernel() {
                                           c_size, &mem_c));
 
     // Run kernels
-    size_t local_sizes[2][2] = {
+    size_t local_sizes[3][2] = {
         // Sizes tuned for Quadro P400 card
+        {TILE_SIZE / WORK_SIZE, TILE_SIZE},
         {TILE_SIZE, TILE_SIZE},
         {8, 8}
     };
-    for (int i = 0; i < 2; i++) {
+    size_t global_sizes[3][2] = {
+        {M /    WORK_SIZE, N},
+        {M, N},
+        {M, N}
+    };
+    for (int i = 0; i < 1; i++) {
         uint64_t start = nano_count();
         ocl_check_err(ocl_run_nd_kernel(
                           queue, kernels[i], 2,
-                          (size_t[]){M, N},
+                          global_sizes[i],
                           local_sizes[i],
                           6,
                           sizeof(int), (void*)&M,
@@ -80,7 +109,7 @@ test_load_kernel() {
                           sizeof(cl_mem), (void*)&mem_a,
                           sizeof(cl_mem), (void*)&mem_b,
                           sizeof(cl_mem), (void*)&mem_c));
-        printf("Kernel %12s: %6.2fs\n",
+        printf("Kernel %-20s: %6.2fs\n",
                kernel_names[i],
                nanos_to_secs(nano_count() - start));
         // Read from device
@@ -88,6 +117,13 @@ test_load_kernel() {
                           queue, mem_c, CL_TRUE,
                           0, c_size, c->data,
                           0, NULL, NULL));
+
+        printf("== C ==\n");
+        tensor_print(c, "%5.0f", false);
+
+        printf("== C ref ==\n");
+        tensor_print(c_exp, "%5.0f", false);
+
         assert(tensor_check_equal(c_exp, c, 0.0001));
     }
 
