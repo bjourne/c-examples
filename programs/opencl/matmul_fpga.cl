@@ -55,11 +55,11 @@ kernel void loadA(global volatile vec_float_t* restrict A,
 
 
     uchar block_col_id = 1;
-
-    // Note: It's important for all counters that wrap around
-    // to be zero-based, so that the modN loop recombine algorithm will work
-    // If they reset to 1, loop recombine transform needs to conservatively assume
-    // that the reset condition is less than the initial value, which would break the transform.
+    // Note: It's important for all counters that wrap around to be
+    // zero-based, so that the modN loop recombine algorithm will work
+    // If they reset to 1, loop recombine transform needs to
+    // conservatively assume that the reset condition is less than the
+    // initial value, which would break the transform.
     uint vector_id_in_block = 0;
     uint vector_id_in_row_of_blocks = 0;
     uint vector_id_global = 0;
