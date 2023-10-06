@@ -71,7 +71,7 @@ nano_count() {
 
 double
 nanos_to_secs(uint64_t nanos) {
-    return nanos / 1000 / 1000 / 1000;
+    return (double)nanos / 1000 / 1000 / 1000;
 }
 
 void
