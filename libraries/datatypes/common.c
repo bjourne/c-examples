@@ -69,12 +69,17 @@ nano_count() {
 #endif
 }
 
+double
+nanos_to_secs(uint64_t nanos) {
+    return nanos / 1000 / 1000 / 1000;
+}
+
 void
 timed_run(void (*func)()) {
     uint64_t start = nano_count();
     (func)();
     uint64_t end = nano_count();
-    double secs = (double)(end - start) / 1000 / 1000 / 1000;
+    double secs = nanos_to_secs(end - start);
     printf("-> %.3f seconds\n", secs);
 }
 

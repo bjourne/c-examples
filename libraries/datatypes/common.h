@@ -42,6 +42,7 @@ void *malloc_aligned(size_t alignment, size_t size);
 // Timing
 void timed_run(void (*func)());
 uint64_t nano_count();
+double nanos_to_secs(uint64_t nanos);
 
 // Random
 // I happen to like rand(), but one should also consider
