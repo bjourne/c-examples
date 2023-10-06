@@ -2,8 +2,8 @@
 #ifndef MATMUL_H
 #define MATMUL_H
 
-#define TILE_SIZE   4
-#define WORK_SIZE   2
-#define RTS         (TILE_SIZE / WORK_SIZE)
+#define TILE_SIZE   32
+#define WPT         16
+#define RTS (TILE_SIZE / WPT)
 
 #endif
