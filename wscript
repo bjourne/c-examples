@@ -80,6 +80,7 @@ def configure(ctx):
         ctx.check(lib = 'pthread', mandatory = False)
         ctx.check(lib = 'OpenCL', mandatory = True, use = ['AOCL'])
         ctx.check(header_name = 'CL/cl.h', use = ['AOCL'])
+        ctx.check(lib = 'mpi', mandatory = True)
 
 def noinst_program(ctx, source, target, use, features):
     assert type(source) == list
@@ -263,6 +264,7 @@ def build(ctx):
         # New fast strlen
         (['fast-strlen.c'], ['DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS']),
         (['yahtzee.c'], ['DT_OBJS', 'THREADS_OBJS', 'PTHREAD']),
+        (['openmpi/pi.c'], {'DT_OBJS', 'RANDOM_OBJS', 'MPI'})
     ]
 
     linux_progs = [
