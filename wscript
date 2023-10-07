@@ -97,15 +97,16 @@ def build_tests(ctx, lib, deps):
         noinst_program(ctx, [test], target, deps, ["c", "cprogram"])
 
 def build_program(ctx, source, use):
-    base = source[0].stem
     ext = source[0].suffix
     progdir = Path('programs')
+
+    # Compute target
+    target = progdir / source[0].with_suffix('')
 
     cprog = ["c", "cprogram"]
     cxxprog = ["cxx", "cxxprogram"]
     features = cprog if ext == ".c" else cxxprog
     source = [progdir / s for s in source] # 'programs/%s' % fname
-    target = progdir / base
     noinst_program(ctx, source, target, use, features)
 
 def build_library(ctx, libname, target, uses, defines):
@@ -261,7 +262,7 @@ def build(ctx):
         (['strlen.c'], {'DT_OBJS'}),
         # New fast strlen
         (['fast-strlen.c'], ['DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS']),
-        (['yahtzee.c'], ['DT_OBJS', 'THREADS_OBJS', 'PTHREAD'])
+        (['yahtzee.c'], ['DT_OBJS', 'THREADS_OBJS', 'PTHREAD']),
     ]
 
     linux_progs = [
