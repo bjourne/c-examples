@@ -83,26 +83,30 @@ def configure(ctx):
 
 def noinst_program(ctx, source, target, use, features):
     assert type(source) == list
+    source = [str(s) for s in source]
+    target = str(target)
     ctx(features = features,
         source = source, target = target,
         use = sorted(use), install_path = None)
 
-def build_tests(ctx, path, use):
-    path = 'tests/%s' % path
-    tests = ctx.path.ant_glob('%s/*.c' % path)
+def build_tests(ctx, lib, deps):
+    path = Path('tests') / lib
+    tests = path.glob('*.c')
     for test in tests:
-        from_path = test.path_from(ctx.path)
-        target = splitext(from_path)[0]
-        noinst_program(ctx, [test], target, use, ["c", "cprogram"])
+        target = path / test.stem
+        noinst_program(ctx, [test], target, deps, ["c", "cprogram"])
 
-def build_program(ctx, fname, use):
-    base, ext = splitext(fname)
+def build_program(ctx, source, use):
+    base = source[0].stem
+    ext = source[0].suffix
+    progdir = Path('programs')
+
     cprog = ["c", "cprogram"]
     cxxprog = ["cxx", "cxxprogram"]
     features = cprog if ext == ".c" else cxxprog
-    source = 'programs/%s' % fname
-    target = 'programs/%s' % base
-    noinst_program(ctx, [source], target, use, features)
+    source = [progdir / s for s in source] # 'programs/%s' % fname
+    target = progdir / base
+    noinst_program(ctx, source, target, use, features)
 
 def build_library(ctx, libname, target, uses, defines):
     path = 'libraries/%s' % libname
@@ -244,54 +248,65 @@ def build(ctx):
                    ["c", "cprogram"])
 
     progs = [
-        ('cpu.c', {'DT_OBJS'}),
-        ('fenwick.c', {'FASTIO_OBJS'}),
-        ('mandelbrot.c', {'DT_OBJS', 'LINALG_OBJS', 'M', 'TENSORS_OBJS'}),
-        ('memperf.c', ['DT_OBJS']),
-        ('multimap.cpp', ['DT_OBJS']),
-        ('smallpt.cpp', ['GOMP']),
-        ('npyread.c', ['NPY_OBJS']),
-        ('simd.c', []),
-        ('prodcon.c', {'DT_OBJS', 'THREADS_OBJS', 'RANDOM_OBJS'}),
+        (['cpu.c'], {'DT_OBJS'}),
+        (['fenwick.c'], {'FASTIO_OBJS'}),
+        (['mandelbrot.c'], {'DT_OBJS', 'LINALG_OBJS', 'M', 'TENSORS_OBJS'}),
+        (['memperf.c'], ['DT_OBJS']),
+        (['multimap.cpp'], ['DT_OBJS']),
+        (['smallpt.cpp'], ['GOMP']),
+        (['npyread.c'], ['NPY_OBJS']),
+        (['simd.c'], {}),
+        (['prodcon.c'], {'DT_OBJS', 'THREADS_OBJS', 'RANDOM_OBJS'}),
         # Old fast strlen
-        ('strlen.c', ['DT_OBJS']),
+        (['strlen.c'], {'DT_OBJS'}),
         # New fast strlen
-        ('fast-strlen.c', ['DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS']),
-        ('yahtzee.c', ['DT_OBJS', 'THREADS_OBJS', 'PTHREAD'])
+        (['fast-strlen.c'], ['DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS']),
+        (['yahtzee.c'], ['DT_OBJS', 'THREADS_OBJS', 'PTHREAD'])
     ]
+
     linux_progs = [
-        ('opencl/dct.c', [
+        (['opencl/dct.c'], [
             'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS',
             'TENSORS_OBJS', 'PNG', 'M', 'GOMP',
             'DT_OBJS'
         ]),
-        ('opencl/fpga.c', {
+        (['opencl/fpga.c'], {
             'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS',
             'TENSORS_OBJS', 'PNG', 'M', 'DT_OBJS'
         }),
-        ('opencl/list.c', {'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS'}),
-        ('sigsegv.c', {}),
+        (['opencl/list.c'], {'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS'}),
+        (['sigsegv.c'], {}),
     ]
     if ctx.env.DEST_OS == 'linux':
         progs.extend(linux_progs)
 
-    for cfile, deps in progs:
-        build_program(ctx, cfile, deps)
-
-    # Conditional targets
+    not_win32_progs = [
+        (['capstack.c'], {'DT_OBJS', 'GC_OBJS', 'QF_OBJS'})
+    ]
     if ctx.env.DEST_OS != 'win32':
-        build_program(ctx, 'capstack.c',
-                      ['DT_OBJS', 'GC_OBJS', 'QF_OBJS'])
-    else:
-        build_program(ctx, 'winthreads.c', [])
+        progs.extend(not_win32_progs)
+
+    win32_progs = [
+        (['winthreads.c'], [])
+    ]
+    if ctx.env.DEST_OS == 'win32':
+        progs.extend(win32_progs)
 
     if ctx.env['LIB_PCRE']:
-        build_program(ctx, 'pcre.c', ['PCRE'])
+        progs.append((['pcre.c'], ['PCRE']))
+
     if ctx.env['LIB_LLVM']:
-        build_program(ctx, 'llvm-wbc.c', ['LLVM'])
-        build_program(ctx, 'llvm-rbc.c', ['LLVM'])
+        progs.extend([
+            (['llvm-wbc.c'], ['LLVM']),
+            (['llvm-rbc.c'], ['LLVM']),
+        ])
     if ctx.env['LIB_GL'] and ctx.env['LIB_X11']:
-        build_program(ctx, 'gl-fbconfigs.c', ['GL', 'X11'])
+        progs.append((['gl-fbconfigs.c'], {'GL', 'X11'}))
+
+    progs = [([Path(s) for s in source], deps)
+             for (source, deps) in progs]
+    for files, deps in progs:
+        build_program(ctx, files, deps)
 
     if ctx.env['AOC']:
         kernels = [
