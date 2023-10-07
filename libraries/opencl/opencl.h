@@ -43,7 +43,11 @@ cl_int
 ocl_get_platforms(cl_uint *n_platforms, cl_platform_id **platforms);
 void ocl_get_devices(cl_platform_id platform,
                      cl_uint *n_devices, cl_device_id **devices);
+
+// Error handling
 void ocl_check_err(cl_int err);
+void ocl_check_err2(cl_int err, char *file, int line);
+#define OCL_CHECK_ERR(err) ocl_check_err2(err, __FILE__, __LINE__)
 
 // CL_SUCCESS on success.
 cl_int
@@ -73,5 +77,10 @@ ocl_create_and_fill_buffer(cl_context ctx, cl_mem_flags flags,
 cl_int
 ocl_create_empty_buffer(cl_context ctx, cl_mem_flags flags,
                         size_t n_bytes, cl_mem *mem);
+
+// Since we wrap writes, we also wrap reads.
+cl_int
+ocl_read_buffer(cl_command_queue queue, void *dst,
+                size_t n_bytes, cl_mem mem);
 
 #endif

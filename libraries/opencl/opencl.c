@@ -94,6 +94,23 @@ ocl_check_err(cl_int err) {
     assert(false);
 }
 
+void
+ocl_check_err2(cl_int err, char *file, int line) {
+    if (err == CL_SUCCESS)  {
+        return;
+    }
+    const char *s = err_str(err);
+    const char *key1 = "OpenCL error";
+    const char *key2 = "Caused by";
+    if (s) {
+        printf("%-12s: %s\n", key1, s);
+    } else {
+        printf("%-12s: %d\n", key1, err);
+    }
+    printf("%-12s: %s:%d\n", key2, file, line);
+    exit(2);
+}
+
 static void
 print_prefix(int ind) {
     for (int i = 0; i < ind; i++) {
@@ -384,6 +401,14 @@ ocl_create_empty_buffer(cl_context ctx, cl_mem_flags flags,
     return err;
 }
 
+cl_int
+ocl_read_buffer(cl_command_queue queue, void *dst,
+                size_t n_bytes, cl_mem mem) {
+    return clEnqueueReadBuffer(
+        queue, mem, CL_TRUE,
+        0, n_bytes, dst,
+        0, NULL, NULL);
+}
 
 
 // If queue is NULL the queue is initialized.

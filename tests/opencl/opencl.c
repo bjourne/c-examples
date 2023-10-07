@@ -30,9 +30,9 @@ init_arrays(tensor *a, tensor *b) {
 void
 test_load_kernel() {
     // A has dimension MxK, b KxN, and c MxN
-    const int M = 2048;
+    const int M = 4096;
     const int N = 2048;
-    const int K = 2048;
+    const int K = 4096;
 
     assert(M % TILE_SIZE == 0);
     assert(N % TILE_SIZE == 0);
@@ -97,7 +97,7 @@ test_load_kernel() {
         {M, N}
     };
 
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 3; i++) {
         uint64_t start = nano_count();
         ocl_check_err(ocl_run_nd_kernel(
                           queue, kernels[i], 2,
@@ -115,10 +115,7 @@ test_load_kernel() {
                nanos_to_secs(nano_count() - start));
 
         // Read from device
-        ocl_check_err(clEnqueueReadBuffer(
-                          queue, mem_c, CL_TRUE,
-                          0, c_size, c->data,
-                          0, NULL, NULL));
+        ocl_check_err(ocl_read_buffer(queue, c->data, c_size, mem_c));
 
         /* printf("== C ==\n"); */
         /* tensor_print(c, "%5.0f", false); */

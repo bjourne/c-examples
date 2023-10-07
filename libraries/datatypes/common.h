@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020, 2022 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019-2020, 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef DATATYPES_COMMON_H
 #define DATATYPES_COMMON_H
 
@@ -31,11 +31,6 @@ void error(char *fmt, ...);
 // Utility
 #define ARRAY_SIZE(a)       (sizeof((a))/sizeof((a)[0]))
 
-// Debug stuff
-#define PRINT_RUN_INT(title, func) \
-    printf("=== %s\n", title); timed_run(&func); printf("\n")
-#define PRINT_RUN(func) PRINT_RUN_INT(#func, func)
-
 // Allocating aligned memory
 void *malloc_aligned(size_t alignment, size_t size);
 
@@ -43,6 +38,16 @@ void *malloc_aligned(size_t alignment, size_t size);
 void timed_run(void (*func)());
 uint64_t nano_count();
 double nanos_to_secs(uint64_t nanos);
+
+#define PRINT_RUN_INT(title, func) \
+    printf("=== %s\n", title); timed_run(&func); printf("\n")
+#define PRINT_RUN(func) PRINT_RUN_INT(#func, func)
+
+#define PRINT_CODE_TIME(code, fmt) {                        \
+        uint64_t _start = nano_count();                     \
+        (code);                                             \
+        printf(fmt, nanos_to_secs(nano_count() - _start));  \
+    }
 
 // Random
 // I happen to like rand(), but one should also consider
