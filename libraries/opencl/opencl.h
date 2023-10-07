@@ -71,8 +71,13 @@ ocl_get_platform_info(cl_platform_id platform,
 
 // Buffer creation functions
 cl_int
+ocl_create_and_write_buffer(cl_context ctx, cl_mem_flags flags,
+                            cl_command_queue queue, void *src,
+                            size_t n_bytes, cl_mem *mem);
+cl_int
 ocl_create_and_fill_buffer(cl_context ctx, cl_mem_flags flags,
-                           cl_command_queue queue, void *src,
+                           cl_command_queue queue,
+                           void *pattern, size_t pattern_size,
                            size_t n_bytes, cl_mem *mem);
 cl_int
 ocl_create_empty_buffer(cl_context ctx, cl_mem_flags flags,

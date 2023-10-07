@@ -16,7 +16,9 @@
 const char *
 err_str(cl_int err) {
     switch (err) {
-        ERR_RETURN_STRING(OCL_FILE_NOT_FOUND)
+        ERR_RETURN_STRING(OCL_FILE_NOT_FOUND                )
+        ERR_RETURN_STRING(OCL_BAD_PLATFORM_IDX              )
+        ERR_RETURN_STRING(OCL_BAD_DEVICE_IDX                )
         ERR_RETURN_STRING(CL_SUCCESS                        )
         ERR_RETURN_STRING(CL_DEVICE_NOT_FOUND               )
         ERR_RETURN_STRING(CL_DEVICE_NOT_AVAILABLE           )
@@ -371,9 +373,9 @@ ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
 }
 
 cl_int
-ocl_create_and_fill_buffer(cl_context ctx, cl_mem_flags flags,
-                           cl_command_queue queue, void *src,
-                           size_t n_bytes, cl_mem *mem) {
+ocl_create_and_write_buffer(cl_context ctx, cl_mem_flags flags,
+                            cl_command_queue queue, void *src,
+                            size_t n_bytes, cl_mem *mem) {
     cl_int err;
     *mem = clCreateBuffer(
         ctx, flags,
@@ -390,6 +392,31 @@ ocl_create_and_fill_buffer(cl_context ctx, cl_mem_flags flags,
     }
     return CL_SUCCESS;
 }
+
+
+cl_int
+ocl_create_and_fill_buffer(cl_context ctx, cl_mem_flags flags,
+                           cl_command_queue queue,
+                           void *pattern, size_t pattern_size,
+                           size_t n_bytes, cl_mem *mem) {
+    cl_int err;
+    *mem = clCreateBuffer(
+        ctx, flags,
+        n_bytes, NULL, &err);
+    if (err != CL_SUCCESS) {
+        return err;
+    }
+    err = clEnqueueFillBuffer(queue, *mem,
+                              pattern, pattern_size,
+                              0, n_bytes,
+                              0, NULL, NULL);
+    if (err != CL_SUCCESS) {
+        clReleaseMemObject(*mem);
+        return err;
+    }
+    return CL_SUCCESS;
+}
+
 
 cl_int
 ocl_create_empty_buffer(cl_context ctx, cl_mem_flags flags,

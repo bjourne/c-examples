@@ -75,12 +75,12 @@ test_load_kernel() {
 
     // Create buffers
     cl_mem mem_a, mem_b, mem_c;
-    ocl_check_err(ocl_create_and_fill_buffer(ctx, CL_MEM_READ_ONLY,
+    ocl_check_err(ocl_create_and_write_buffer(ctx, CL_MEM_READ_ONLY,
                                              queue, a->data,
                                              a_size, &mem_a));
-    ocl_check_err(ocl_create_and_fill_buffer(ctx, CL_MEM_READ_ONLY,
-                                             queue, b->data,
-                                             b_size, &mem_b));
+    ocl_check_err(ocl_create_and_write_buffer(ctx, CL_MEM_READ_ONLY,
+                                              queue, b->data,
+                                              b_size, &mem_b));
     ocl_check_err(ocl_create_empty_buffer(ctx, CL_MEM_WRITE_ONLY,
                                           c_size, &mem_c));
 
