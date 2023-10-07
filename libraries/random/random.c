@@ -64,6 +64,15 @@ rnd_pcg32_rand_range_fill(uint32_t *mem, uint32_t lim, size_t n) {
     }
 }
 
+double
+rnd_pcg32_rand_double_0_to_1() {
+    // This is the same algorithm used by _randommodule.c in the
+    // Python source. See the comments in that file.
+    uint32_t a = rnd_pcg32_rand() >> 5;
+    uint32_t b = rnd_pcg32_rand() >> 6;
+    return (a*67108864.0+b) * (1.0/9007199254740992.0);
+}
+
 void
 rnd_pcg32_rand_uniform_fill_float(float *mem, size_t n) {
     ensure_initialized();

@@ -33,10 +33,18 @@ test_initing() {
     assert(aft.initialized);
 }
 
+void
+test_doubles() {
+    printf("Some doubles [0,1):\n");
+    for (uint32_t i = 0; i < 10; i++) {
+        printf("%20.16f\n", rnd_pcg32_rand_double_0_to_1());
+    }
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_initing);
     PRINT_RUN(test_random);
     PRINT_RUN(test_rand_range);
-
+    PRINT_RUN(test_doubles);
 }

@@ -23,6 +23,9 @@ uint32_t rnd_pcg32_rand();
 // Bias-avoiding, so it's better than rnd_pcg32_rand() % N.
 uint32_t rnd_pcg32_rand_range(uint32_t lim);
 
+// Random double in the interval [0, 1)
+double rnd_pcg32_rand_double_0_to_1();
+
 // Generate a sequence of random numbers 0 <= r < lim.
 void
 rnd_pcg32_rand_range_fill(uint32_t *mem, uint32_t lim, size_t n);
