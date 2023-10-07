@@ -264,7 +264,14 @@ def build(ctx):
         # New fast strlen
         (['fast-strlen.c'], ['DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS']),
         (['yahtzee.c'], ['DT_OBJS', 'THREADS_OBJS', 'PTHREAD']),
-        (['openmpi/pi.c'], {'DT_OBJS', 'RANDOM_OBJS', 'MPI'})
+        (['openmpi/heat.c'], {
+            'DT_OBJS',
+            'RANDOM_OBJS',
+            'MPI',
+            'TENSORS_OBJS',
+            'M'
+        }),
+        (['openmpi/pi.c'], {'DT_OBJS', 'RANDOM_OBJS', 'MPI'}),
     ]
 
     linux_progs = [
