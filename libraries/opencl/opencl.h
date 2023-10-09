@@ -42,8 +42,9 @@ ocl_basic_setup(
 // Platform and device functions
 cl_int
 ocl_get_platforms(cl_uint *n_platforms, cl_platform_id **platforms);
-void ocl_get_devices(cl_platform_id platform,
-                     cl_uint *n_devices, cl_device_id **devices);
+cl_int
+ocl_get_devices(cl_platform_id platform,
+                cl_uint *n_devices, cl_device_id **devices);
 
 // Error handling
 void ocl_check_err(cl_int err);

@@ -160,22 +160,21 @@ ocl_get_platforms(cl_uint *n_platforms, cl_platform_id **platforms) {
     return clGetPlatformIDs(*n_platforms, *platforms, NULL);
 }
 
-
-
-void
+cl_int
 ocl_get_devices(cl_platform_id platform,
                 cl_uint *n_devices, cl_device_id **devices) {
 
     cl_int err;
     err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, NULL, n_devices);
-    ocl_check_err(err);
+    if (err != CL_SUCCESS) {
+        return err;
+    }
 
     *devices = (cl_device_id *)malloc(
         sizeof(cl_device_id) * *n_devices);
 
-    err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL,
-                         *n_devices, *devices, NULL);
-    ocl_check_err(err);
+    return clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL,
+                          *n_devices, *devices, NULL);
 }
 
 void
@@ -260,7 +259,7 @@ ocl_print_platform_details(cl_platform_id plat) {
     cl_uint n_devices;
     cl_device_id *devices;
 
-    ocl_get_devices(plat, &n_devices, &devices);
+    ocl_check_err(ocl_get_devices(plat, &n_devices, &devices));
     printf("%-15s: %d\n", "Devices", n_devices);
     for (cl_uint i = 0; i < n_devices; i++) {
         ocl_print_device_details(devices[i], 2);
@@ -459,7 +458,10 @@ ocl_basic_setup(cl_uint plat_idx, cl_uint dev_idx,
 
     cl_uint n_devices;
     cl_device_id *devices;
-    ocl_get_devices(*platform, &n_devices, &devices);
+    err = ocl_get_devices(*platform, &n_devices, &devices);
+    if (err != CL_SUCCESS) {
+        return err;
+    }
     if (dev_idx >= n_devices) {
         return OCL_BAD_DEVICE_IDX;
     }
