@@ -56,7 +56,7 @@ test_load_kernel() {
     cl_device_id dev;
     cl_context ctx;
     cl_command_queue queue;
-    ocl_check_err(ocl_basic_setup(0, 0, &platform, &dev, &ctx, &queue));
+    ocl_check_err(ocl_basic_setup(0, 0, &platform, &dev, &ctx, 1, &queue));
     ocl_print_device_details(dev, 0);
     printf("\n");
 

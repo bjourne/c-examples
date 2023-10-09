@@ -45,7 +45,7 @@ main(int argc, char *argv[]) {
     cl_context ctx;
     cl_command_queue queue;
     cl_int err = ocl_basic_setup(idx, 0,
-                                 &platform, &device, &ctx, &queue);
+                                 &platform, &device, &ctx, 1, &queue);
     ocl_check_err(err);
 
     ocl_print_device_details(device, 0);
@@ -54,10 +54,10 @@ main(int argc, char *argv[]) {
     char *names[2] = {"dct8x8", "dct8x8_sd"};
     cl_kernel kernels[2];
     printf("* Loading kernel\n");
-    err = ocl_load_kernels(ctx, device, fname,
-                           2, names,
-                           &program, kernels);
-    ocl_check_err(err);
+    ocl_check_err(ocl_load_kernels(
+                      ctx, device, fname,
+                      2, names,
+                      &program, kernels));
 
     // Allocate and initialize tensors
     printf("* Initializing tensors\n");
@@ -73,9 +73,9 @@ main(int argc, char *argv[]) {
     // One buffer for the input to the kernel and another one for the
     // dct-ized result.
     cl_mem mem_image, mem_dct;
-    err = ocl_create_and_fill_buffer(ctx, CL_MEM_READ_ONLY,
-                                     queue,image->data,
-                                     IMAGE_N_BYTES, &mem_image);
+    err = ocl_create_and_write_buffer(ctx, CL_MEM_READ_ONLY,
+                                      queue, image->data,
+                                      IMAGE_N_BYTES, &mem_image);
     ocl_check_err(err);
     err = ocl_create_empty_buffer(ctx, CL_MEM_WRITE_ONLY,
                                   IMAGE_N_BYTES, &mem_dct);

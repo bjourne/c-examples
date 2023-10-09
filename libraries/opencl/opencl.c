@@ -271,7 +271,7 @@ ocl_print_platform_details(cl_platform_id plat) {
 
 cl_int
 ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
-                 int n_kernels, char *names[],
+                 size_t n_kernels, char *names[],
                  cl_program *program, cl_kernel *kernels) {
     char *data;
     size_t n_data;
@@ -317,7 +317,7 @@ ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
         return err;
     }
 
-    for (int i = 0; i < n_kernels; i++) {
+    for (size_t i = 0; i < n_kernels; i++) {
         kernels[i] = clCreateKernel(*program, names[i], &err);
         if (err != CL_SUCCESS) {
             return err;
@@ -444,7 +444,8 @@ ocl_basic_setup(cl_uint plat_idx, cl_uint dev_idx,
                 cl_platform_id *platform,
                 cl_device_id *device,
                 cl_context *ctx,
-                cl_command_queue *queue) {
+                size_t n_queues,
+                cl_command_queue *queues) {
     cl_uint n_platforms;
     cl_platform_id *platforms;
     cl_int err = ocl_get_platforms(&n_platforms, &platforms);
@@ -468,9 +469,16 @@ ocl_basic_setup(cl_uint plat_idx, cl_uint dev_idx,
     if (err != CL_SUCCESS) {
         goto done;
     }
-    if (queue) {
-        *queue = clCreateCommandQueueWithProperties(
+    for (size_t i = 0; i < n_queues; i++) {
+        queues[i] = clCreateCommandQueueWithProperties(
             *ctx, *device, NULL, &err);
+        if (err != CL_SUCCESS) {
+            for (size_t j = 0; j < i; j++) {
+                clReleaseCommandQueue(queues[j]);
+            }
+            clReleaseContext(*ctx);
+            goto done;
+        }
     }
  done:
     free(devices);

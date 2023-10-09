@@ -124,7 +124,7 @@ main(int argc, char *argv[]) {
     cl_device_id dev;
     cl_context ctx;
     int plat_idx = atoi(argv[1]);
-    ocl_check_err(ocl_basic_setup(plat_idx, 0, &platform, &dev, &ctx, NULL));
+    OCL_CHECK_ERR(ocl_basic_setup(plat_idx, 0, &platform, &dev, &ctx, 0, NULL));
     ocl_print_device_details(dev, 0);
 
     printf("Loading kernels\n");

@@ -35,7 +35,8 @@ ocl_basic_setup(
     cl_platform_id *platform,
     cl_device_id *device,
     cl_context *ctx,
-    cl_command_queue *queue
+    size_t n_queues,
+    cl_command_queue *queues
 );
 
 // Platform and device functions
@@ -52,7 +53,7 @@ void ocl_check_err2(cl_int err, char *file, int line);
 // CL_SUCCESS on success.
 cl_int
 ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
-                 int n_kernels, char *names[],
+                 size_t n_kernels, char *names[],
                  cl_program *program, cl_kernel *kernels);
 
 cl_int
