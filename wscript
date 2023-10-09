@@ -200,7 +200,8 @@ def build(ctx):
         # When not using aocl, AOCL will be empty and -lOpenCL will be
         # found by other means.
         'opencl' : ('OPENCL_OBJS',
-                    {'AOCL', 'DT_OBJS', 'FILES_OBJS', 'OPENCL'}, []),
+                    {'AOCL', 'DT_OBJS', 'FILES_OBJS', 'OPENCL', 'PATHS_OBJS'},
+                    []),
         'paths' : ('PATHS_OBJS', {}, []),
         'quickfit' : ('QF_OBJS', ['DT_OBJS'], []),
         'npy' : ('NPY_OBJS', {'M'}, []),
@@ -275,6 +276,7 @@ def build(ctx):
     ]
 
     linux_progs = [
+        (['opencl/comm.c'], {'OPENCL', 'OPENCL_OBJS', 'RANDOM_OBJS'}),
         (['opencl/dct.c'], [
             'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS',
             'TENSORS_OBJS', 'PNG', 'M', 'GOMP',
