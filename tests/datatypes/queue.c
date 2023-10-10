@@ -18,14 +18,23 @@ test_queue() {
 void
 test_queue_fill() {
     queue *q = queue_init(2, sizeof(int), false);
-    int v1 = 123, v2 = 321;
+    int v1 = 123, v2 = 321, v3 = 999;
     assert(queue_add(q, &v1));
     assert(queue_add(q, &v2));
+
     assert(!queue_add(q, &v2));
     assert(queue_remove(q, &v1));
     assert(v1 == 123);
+    assert(q->n_elements == 1);
+    assert(queue_add(q, &v3));
+    assert(q->n_elements == 2);
+
     assert(queue_remove(q, &v2));
     assert(v2 == 321);
+    assert(q->n_elements == 1);
+
+    assert(queue_remove(q, &v2));
+    assert(v2 == 999);
     assert(q->n_elements == 0);
     queue_free(q);
 }

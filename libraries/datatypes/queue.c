@@ -1,12 +1,14 @@
 // Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <stdio.h>
 #include <string.h>
+#include "common.h"
 #include "queue.h"
 
 queue*
 queue_init(size_t capacity, size_t el_size, bool growable) {
     queue *me = malloc(sizeof(queue));
-    me->array = malloc(el_size * capacity);
+    size_t n_bytes = el_size * (capacity + 1);
+    me->array = malloc(n_bytes);
     me->growable = growable;
     me->capacity = capacity;
     me->el_size = el_size;
@@ -27,7 +29,8 @@ queue_add(queue *me, void *src) {
     me->n_elements++;
     if (me->n_elements == me->capacity && me->growable) {
         me->capacity = me->capacity + me->capacity / 2;
-        me->array = realloc(me->array, me->capacity * me->el_size);
+        size_t n_bytes = me->el_size * (me->capacity + 1);
+        me->array = realloc(me->array, n_bytes);
     }
     return true;
 }
