@@ -37,11 +37,11 @@ synced_queue_free(synced_queue *me) {
     free(me);
 }
 
-    static void
-    spin_while_full(volatile synced_queue *me) {
-        while (me->queue->n_elements == me->queue->capacity) {
-        }
+static void
+spin_while_full(volatile synced_queue *me) {
+    while (me->queue->n_elements == me->queue->capacity) {
     }
+}
 
 void
 synced_queue_add(synced_queue *me, void *value) {
