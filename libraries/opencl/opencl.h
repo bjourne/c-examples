@@ -74,8 +74,9 @@ ocl_get_platform_info(cl_platform_id platform,
 // Buffer creation functions
 cl_int
 ocl_create_and_write_buffer(cl_context ctx, cl_mem_flags flags,
-                            cl_command_queue queue, void *src,
-                            size_t n_bytes, cl_mem *mem);
+                            cl_command_queue queue,
+                            void *src, size_t n_bytes,
+                            cl_mem *mem);
 cl_int
 ocl_create_and_fill_buffer(cl_context ctx, cl_mem_flags flags,
                            cl_command_queue queue,
@@ -89,5 +90,11 @@ ocl_create_empty_buffer(cl_context ctx, cl_mem_flags flags,
 cl_int
 ocl_read_buffer(cl_command_queue queue, void *dst,
                 size_t n_bytes, cl_mem mem);
+
+// Pipe creation
+cl_int
+ocl_create_pipe(cl_context ctx,
+                cl_uint packet_size, cl_uint n_packets,
+                cl_mem *mem);
 
 #endif

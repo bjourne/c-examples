@@ -298,7 +298,7 @@ ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
         return err;
     }
 
-    err = clBuildProgram(*program, 1, &dev, NULL, NULL, NULL);
+    err = clBuildProgram(*program, 1, &dev, "-cl-std=CL2.0", NULL, NULL);
     if (err != CL_SUCCESS) {
         printf("Build failed: %s\n", err_str(err));
         size_t n_log;
@@ -419,7 +419,7 @@ ocl_create_and_fill_buffer(cl_context ctx, cl_mem_flags flags,
 
 cl_int
 ocl_create_empty_buffer(cl_context ctx, cl_mem_flags flags,
-                           size_t n_bytes, cl_mem *mem) {
+                        size_t n_bytes, cl_mem *mem) {
     cl_int err;
     *mem = clCreateBuffer(
         ctx, flags,
@@ -485,5 +485,18 @@ ocl_basic_setup(cl_uint plat_idx, cl_uint dev_idx,
  done:
     free(devices);
     free(platforms);
+    return err;
+}
+
+cl_int
+ocl_create_pipe(cl_context ctx,
+                cl_uint packet_size, cl_uint n_packets,
+                cl_mem *mem) {
+    cl_int err;
+    *mem = clCreatePipe(
+        ctx, CL_MEM_READ_WRITE,
+        packet_size, n_packets,
+        NULL, &err
+    );
     return err;
 }

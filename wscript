@@ -95,7 +95,8 @@ def build_tests(ctx, lib, deps):
     tests = path.glob('*.c')
     for test in tests:
         target = path / test.stem
-        noinst_program(ctx, [test], target, deps, ["c", "cprogram"])
+        noinst_program(ctx, [test], target, deps,
+                       ["c", "cprogram"])
 
 def build_program(ctx, source, use):
     ext = source[0].suffix
@@ -244,18 +245,14 @@ def build(ctx):
     for lib, deps in tests.items():
         build_tests(ctx, lib, deps)
 
-    noinst_program(ctx, ['programs/ntimes.c',
-                         'programs/ntimes-loops.c'],
-                   'programs/ntimes',
-                   ['PTHREAD', 'DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS'],
-                   ["c", "cprogram"])
-
     progs = [
         (['cpu.c'], {'DT_OBJS'}),
         (['fenwick.c'], {'FASTIO_OBJS'}),
         (['mandelbrot.c'], {'DT_OBJS', 'LINALG_OBJS', 'M', 'TENSORS_OBJS'}),
         (['memperf.c'], ['DT_OBJS']),
         (['multimap.cpp'], ['DT_OBJS']),
+        (['ntimes.c', 'ntimes-loops.c'],
+         ['PTHREAD', 'DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS']),
         (['smallpt.cpp'], ['GOMP']),
         (['npyread.c'], ['NPY_OBJS']),
         (['simd.c'], {}),
