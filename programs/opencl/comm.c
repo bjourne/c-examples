@@ -65,7 +65,7 @@ main(int argc, char *argv[]) {
     ocl_print_device_details(device, 0);
 
     // Setup IO memory
-    const uint32_t N_ARR = 10;
+    const uint32_t N_ARR = 200;
 
     ocl_dblbuf arr, ret;
     OCL_CHECK_ERR(
@@ -103,7 +103,7 @@ main(int argc, char *argv[]) {
         ocl_set_kernel_arguments(
             kernels[0], 2,
             sizeof(uint32_t), &N_ARR,
-            sizeof(cl_mem), (void *)&arr.mem
+            sizeof(cl_mem), (void *)&ret.mem
         )
     );
     OCL_CHECK_ERR(
@@ -124,6 +124,10 @@ main(int argc, char *argv[]) {
         )
     );
     clWaitForEvents(2, events);
+
+    ocl_dblbuf_pull(&ret, queues[0]);
+    printf("Answer: %d\n", ((int32_t *)ret.ptr)[0]);
+
 
     ocl_dblbuf_free(&arr);
     ocl_dblbuf_free(&ret);
