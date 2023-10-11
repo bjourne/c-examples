@@ -167,9 +167,9 @@ ocl_get_devices(cl_platform_id platform,
 }
 
 static void
-print_device_info_numeric(cl_device_id dev, int ind,
-                          char *key, cl_device_info param_name,
-                          size_t size) {
+print_device_info_num(cl_device_id dev, int ind,
+                      char *key, cl_device_info param_name,
+                      size_t size) {
     uint64_t val;
     clGetDeviceInfo(dev, param_name, size, &val, NULL);
     print_prefix(ind);
@@ -202,16 +202,16 @@ ocl_print_device_details(cl_device_id dev, int ind) {
         print_device_info_str(dev, ind, attr_types[i], attr_names[i]);
     }
 
-    print_device_info_numeric(dev, ind,
+    print_device_info_num(dev, ind,
                               "Compute units",
                               CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint));
-    print_device_info_numeric(dev, ind,
+    print_device_info_num(dev, ind,
                               "Global memory",
                               CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong));
-    print_device_info_numeric(dev, ind,
+    print_device_info_num(dev, ind,
                               "Max allocation",
                               CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong));
-    print_device_info_numeric(dev, ind,
+    print_device_info_num(dev, ind,
                               "Max wg. size",
                               CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(cl_ulong));
 
@@ -373,7 +373,7 @@ ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
     if (err != CL_SUCCESS) {
         return err;
     }
-    return clWaitForEvents(1, &event);
+    return ocl_poll_event_until(event, CL_COMPLETE, 50);
 }
 
 cl_int
@@ -504,4 +504,26 @@ ocl_create_pipe(cl_context ctx,
         NULL, &err
     );
     return err;
+}
+
+// Event handling
+cl_int
+ocl_poll_event_until(cl_event event,
+                     cl_int exec_status,
+                     cl_uint millis) {
+    while (true) {
+        cl_int value;
+        cl_int err = clGetEventInfo(event,
+                                    CL_EVENT_COMMAND_EXECUTION_STATUS,
+                                    sizeof(cl_int),
+                                    &value,
+                                    NULL);
+        if (err != CL_SUCCESS) {
+            return err;
+        }
+        if (value == exec_status) {
+            return CL_SUCCESS;
+        }
+        sleep_cp(millis);
+    }
 }

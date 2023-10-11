@@ -45,13 +45,16 @@ ocl_get_platforms(cl_uint *n_platforms, cl_platform_id **platforms);
 cl_int
 ocl_get_devices(cl_platform_id platform,
                 cl_uint *n_devices, cl_device_id **devices);
+void *
+ocl_get_platform_info(cl_platform_id platform,
+                      cl_platform_info info);
 
 // Error handling
 void ocl_check_err(cl_int err);
 void ocl_check_err2(cl_int err, char *file, int line);
 #define OCL_CHECK_ERR(err) ocl_check_err2(err, __FILE__, __LINE__)
 
-// CL_SUCCESS on success.
+// Loading and running kernels
 cl_int
 ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
                  size_t n_kernels, char *names[],
@@ -67,9 +70,6 @@ ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
                   const size_t *local,
                   int n_args, ...);
 
-void *
-ocl_get_platform_info(cl_platform_id platform,
-                      cl_platform_info info);
 
 // Buffer creation functions
 cl_int
@@ -96,5 +96,9 @@ cl_int
 ocl_create_pipe(cl_context ctx,
                 cl_uint packet_size, cl_uint n_packets,
                 cl_mem *mem);
+
+// Event handling
+cl_int
+ocl_poll_event_until(cl_event event, cl_int exec_status, cl_uint millis);
 
 #endif
