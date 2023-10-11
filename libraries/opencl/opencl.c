@@ -120,17 +120,6 @@ print_prefix(int ind) {
     }
 }
 
-static void
-print_device_info_str(cl_device_id dev,
-                      cl_device_info attr, char *attr_name) {
-    size_t n_bytes;
-    clGetDeviceInfo(dev, attr, 0, NULL, &n_bytes);
-    char *bytes = (char *)malloc(n_bytes);
-    clGetDeviceInfo(dev, attr, n_bytes, bytes, NULL);
-    printf("%-15s: %s\n", attr_name, bytes);
-    free(bytes);
-}
-
 void *
 ocl_get_platform_info(cl_platform_id platform,
                       cl_platform_info attr) {
@@ -177,6 +166,28 @@ ocl_get_devices(cl_platform_id platform,
                           *n_devices, *devices, NULL);
 }
 
+static void
+print_device_info_numeric(cl_device_id dev, int ind,
+                          char *key, cl_device_info param_name,
+                          size_t size) {
+    uint64_t val;
+    clGetDeviceInfo(dev, param_name, size, &val, NULL);
+    print_prefix(ind);
+    printf("%-15s: %ld\n", key, val);
+}
+
+static void
+print_device_info_str(cl_device_id dev, int ind,
+                      cl_device_info attr, char *attr_name) {
+    size_t n_bytes;
+    clGetDeviceInfo(dev, attr, 0, NULL, &n_bytes);
+    char *bytes = (char *)malloc(n_bytes);
+    clGetDeviceInfo(dev, attr, n_bytes, bytes, NULL);
+    print_prefix(ind);
+    printf("%-15s: %s\n", attr_name, bytes);
+    free(bytes);
+}
+
 void
 ocl_print_device_details(cl_device_id dev, int ind) {
     char *attr_names[] = {
@@ -188,27 +199,21 @@ ocl_print_device_details(cl_device_id dev, int ind) {
         CL_DEVICE_OPENCL_C_VERSION
     };
     for (size_t i = 0; i < ARRAY_SIZE(attr_types); i++) {
-        print_prefix(ind);
-        print_device_info_str(dev, attr_types[i], attr_names[i]);
+        print_device_info_str(dev, ind, attr_types[i], attr_names[i]);
     }
 
-    print_prefix(ind);
-    cl_uint n_compute_units;
-    clGetDeviceInfo(dev, CL_DEVICE_MAX_COMPUTE_UNITS,
-                    sizeof(cl_uint), &n_compute_units, NULL);
-    printf("%-15s: %d\n", "Compute units", n_compute_units);
-
-    print_prefix(ind);
-    cl_ulong n_mem;
-    clGetDeviceInfo(dev, CL_DEVICE_GLOBAL_MEM_SIZE,
-                    sizeof(cl_ulong), &n_mem, NULL);
-    printf("%-15s: %ld\n", "Global memory", n_mem);
-
-    print_prefix(ind);
-    cl_ulong n_alloc;
-    clGetDeviceInfo(dev, CL_DEVICE_MAX_MEM_ALLOC_SIZE,
-                    sizeof(cl_ulong), &n_alloc, NULL);
-    printf("%-15s: %ld\n", "Max allocation", n_alloc);
+    print_device_info_numeric(dev, ind,
+                              "Compute units",
+                              CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint));
+    print_device_info_numeric(dev, ind,
+                              "Global memory",
+                              CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong));
+    print_device_info_numeric(dev, ind,
+                              "Max allocation",
+                              CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong));
+    print_device_info_numeric(dev, ind,
+                              "Max wg. size",
+                              CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(cl_ulong));
 
     print_prefix(ind);
     size_t n_bytes;
