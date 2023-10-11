@@ -373,7 +373,7 @@ ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
     if (err != CL_SUCCESS) {
         return err;
     }
-    return ocl_poll_event_until(event, CL_COMPLETE, 50);
+    return ocl_poll_event_until(event, CL_COMPLETE, 10);
 }
 
 cl_int
