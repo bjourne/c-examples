@@ -12,8 +12,14 @@ test_malloc_aligned() {
     free(data);
 }
 
+void
+test_sleep() {
+    sleep_cp(5000);
+}
+
 int
 main(int argc, char *argv[]) {
     rand_init(0);
     PRINT_RUN(test_malloc_aligned);
+    PRINT_RUN(test_sleep);
 }

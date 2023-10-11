@@ -6,8 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
 #ifdef _WIN32
 #include <windows.h>
+#else
+#include <unistd.h>
 #endif
 
 void *
@@ -94,4 +97,13 @@ rand_init(unsigned int seed) {
         seed = (unsigned int)time(NULL);
     }
     srand(seed);
+}
+
+void
+sleep_cp(unsigned int millis) {
+    #ifdef _WIN32
+        Sleep(millis);
+    #else
+        usleep(millis * 1000);
+    #endif // _WIN32
 }

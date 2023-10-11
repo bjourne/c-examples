@@ -38,6 +38,7 @@ void *malloc_aligned(size_t alignment, size_t size);
 void timed_run(void (*func)());
 uint64_t nano_count();
 double nanos_to_secs(uint64_t nanos);
+void sleep_cp(unsigned int millis);
 
 #define PRINT_RUN_INT(title, func) \
     printf("=== %s\n", title); timed_run(&func); printf("\n")
