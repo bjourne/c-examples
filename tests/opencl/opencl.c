@@ -2,33 +2,20 @@
 #include <assert.h>
 #include <string.h>
 #include "datatypes/common.h"
-#include "tensors/tensors.h"
-#include "tensors/multiply.h"
 #include "opencl/opencl.h"
 #include "opencl/matmul.h"
+#include "random/random.h"
+#include "tensors/tensors.h"
+#include "tensors/multiply.h"
 
 static void
 init_arrays(tensor *a, tensor *b) {
     tensor_fill_rand_range(a, 100);
     tensor_fill_rand_range(b, 100);
-    /* for (int i = 0; i < a->dims[0]; i++) { */
-    /*     for (int j = 0; j < a->dims[1]; j++) { */
-    /*         a->data[i * a->dims[1] + j] = i; */
-    /*     } */
-    /* } */
-    /* for (int i = 0; i < b->dims[0]; i++) { */
-    /*     for (int j = 0; j < b->dims[1]; j++) { */
-    /*         b->data[i * b->dims[1] + j] = j; */
-    /*     } */
-    /* } */
-    /* printf("== A ==\n"); */
-    /* tensor_print(a, "%5.0f", false); */
-    /* printf("== B ==\n"); */
-    /* tensor_print(b, "%5.0f", false); */
 }
 
 void
-test_load_kernel() {
+test_matmul() {
     // A has dimension MxK, b KxN, and c MxN
     const int M = 4096;
     const int N = 2048;
@@ -99,7 +86,7 @@ test_load_kernel() {
 
     for (int i = 0; i < 3; i++) {
         uint64_t start = nano_count();
-        ocl_check_err(ocl_run_nd_kernel(
+        OCL_CHECK_ERR(ocl_run_nd_kernel(
                           queue, kernels[i], 2,
                           global_sizes[i],
                           local_sizes[i],
@@ -116,13 +103,6 @@ test_load_kernel() {
 
         // Read from device
         ocl_check_err(ocl_read_buffer(queue, c->data, c_size, mem_c));
-
-        /* printf("== C ==\n"); */
-        /* tensor_print(c, "%5.0f", false); */
-
-        /* printf("== C ref ==\n"); */
-        /* tensor_print(c_exp, "%5.0f", false); */
-
         assert(tensor_check_equal(c_exp, c, 0.0001));
     }
 
@@ -148,8 +128,103 @@ test_load_kernel() {
     tensor_free(c_exp);
 }
 
+void
+test_add_reduce() {
+    cl_platform_id platform;
+    cl_device_id dev;
+    cl_context ctx;
+    cl_command_queue queue;
+    ocl_check_err(ocl_basic_setup(1, 0, &platform, &dev, &ctx, 1, &queue));
+    ocl_print_device_details(dev, 0);
+    printf("\n");
+
+    uint32_t R = 100;
+    uint32_t n_arr = 2 * 1024 * 1000 * 1000;
+
+    // Largest allocation on my GPU is 512mb
+    uint32_t n_chunk = 128 * 1000 * 1000;
+
+    size_t n_bytes_chunk = n_chunk * sizeof(cl_int);
+    size_t n_bytes_arr = n_arr * sizeof(int32_t);
+
+    int32_t *arr = malloc(n_bytes_arr);
+    rnd_pcg32_rand_range_fill((uint32_t *)arr, R + 1, n_arr);
+    for (uint32_t i = 0; i < n_arr; i++) {
+        arr[i] -= (R / 2);
+    }
+
+    int32_t sum = 0;
+    PRINT_CODE_TIME({
+            for (uint32_t i = 0; i < n_arr; i++) {
+                sum += arr[i];
+            }
+        }, "CPU sum took %.2fs\n");
+    printf("CPU sum %d\n", sum);
+
+    // Create OpenCL buffers
+    cl_mem mem_buf, mem_ret;
+    OCL_CHECK_ERR(
+        ocl_create_empty_buffer(
+            ctx, CL_MEM_READ_ONLY,
+            n_bytes_chunk,
+            &mem_buf
+        )
+    );
+    OCL_CHECK_ERR(
+        ocl_create_empty_buffer(
+            ctx, CL_MEM_READ_ONLY,
+            sizeof(cl_int),
+            &mem_ret
+        )
+    );
+
+    cl_program program;
+    cl_kernel kernel;
+    OCL_CHECK_ERR(
+        ocl_load_kernels(
+            ctx, dev, "libraries/opencl/add_reduce.cl",
+            1, (char *[]){"add_reduce"},
+            &program, &kernel
+        )
+    );
+
+    uint32_t ofs = 0;
+    int32_t ocl_sum = 0;
+    while (ofs < n_arr) {
+        // Copy part to device
+        OCL_CHECK_ERR(clEnqueueWriteBuffer(queue, mem_buf, CL_TRUE,
+                                           0, n_bytes_chunk, &arr[ofs],
+                                           0, NULL, NULL));
+        // Run kernel
+        OCL_CHECK_ERR(
+            ocl_run_nd_kernel(
+                queue, kernel, 1,
+                (size_t[]){512},
+                (size_t[]){512},
+                3,
+                sizeof(cl_uint), &n_chunk,
+                sizeof(cl_mem), (void*)&mem_buf,
+                sizeof(cl_mem), (void*)&mem_ret
+            )
+        );
+        cl_int ret;
+        OCL_CHECK_ERR(ocl_read_buffer(queue, &ret, sizeof(cl_int), mem_ret));
+        ocl_sum += ret;
+        ofs += n_chunk;
+    }
+    printf("OpenCL sum %d\n", ocl_sum);
+
+    free(arr);
+    clReleaseMemObject(mem_buf);
+    clReleaseMemObject(mem_ret);
+    clReleaseCommandQueue(queue);
+    clReleaseKernel(kernel);
+    clReleaseProgram(program);
+    clReleaseContext(ctx);
+}
+
 int
 main(int argc, char *argv[]) {
-    rand_init(1234);
-    PRINT_RUN(test_load_kernel);
+    PRINT_RUN(test_add_reduce);
+    PRINT_RUN(test_matmul);
 }
