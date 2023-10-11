@@ -80,7 +80,7 @@ def configure(ctx):
         ctx.check(lib = 'pthread', mandatory = False)
         ctx.check(lib = 'OpenCL', mandatory = True, use = ['AOCL'])
         ctx.check(header_name = 'CL/cl.h', use = ['AOCL'])
-        ctx.check(lib = 'mpi', mandatory = True)
+        ctx.check(lib = 'mpi', mandatory = False)
 
 def noinst_program(ctx, source, target, use, features):
     assert type(source) == list
@@ -262,15 +262,8 @@ def build(ctx):
         # New fast strlen
         (['fast-strlen.c'], ['DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS']),
         (['yahtzee.c'], ['DT_OBJS', 'THREADS_OBJS', 'PTHREAD']),
-        (['openmpi/heat.c'], {
-            'DT_OBJS',
-            'RANDOM_OBJS',
-            'MPI',
-            'TENSORS_OBJS',
-            'M'
-        }),
-        (['openmpi/pi.c'], {'DT_OBJS', 'RANDOM_OBJS', 'MPI'}),
     ]
+
 
     linux_progs = [
         (['opencl/comm.c'], {'OPENCL', 'OPENCL_OBJS', 'RANDOM_OBJS'}),
@@ -303,6 +296,18 @@ def build(ctx):
 
     if ctx.env['LIB_PCRE']:
         progs.append((['pcre.c'], ['PCRE']))
+
+    if ctx.env['LIB_MPI']:
+        progs.extend([
+            (['openmpi/heat.c'], {
+                'DT_OBJS',
+                'RANDOM_OBJS',
+                'MPI',
+                'TENSORS_OBJS',
+                'M'
+            }),
+            (['openmpi/pi.c'], {'DT_OBJS', 'RANDOM_OBJS', 'MPI'})
+        ])
 
     if ctx.env['LIB_LLVM']:
         progs.extend([
