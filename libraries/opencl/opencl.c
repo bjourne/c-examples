@@ -218,6 +218,10 @@ ocl_print_device_details(cl_device_id dev, int ind) {
         dev, ind,
         "Max wg. size",
         CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(cl_ulong));
+    print_device_info_num(
+        dev, ind,
+        "Local mem. size",
+        CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong));
 
     print_prefix(ind);
     size_t n_bytes;
