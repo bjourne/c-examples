@@ -202,18 +202,22 @@ ocl_print_device_details(cl_device_id dev, int ind) {
         print_device_info_str(dev, ind, attr_types[i], attr_names[i]);
     }
 
-    print_device_info_num(dev, ind,
-                              "Compute units",
-                              CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint));
-    print_device_info_num(dev, ind,
-                              "Global memory",
-                              CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong));
-    print_device_info_num(dev, ind,
-                              "Max allocation",
-                              CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong));
-    print_device_info_num(dev, ind,
-                              "Max wg. size",
-                              CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(cl_ulong));
+    print_device_info_num(
+        dev, ind,
+        "Compute units",
+        CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint));
+    print_device_info_num(
+        dev, ind,
+        "Global memory",
+        CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong));
+    print_device_info_num(
+        dev, ind,
+        "Max allocation",
+        CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong));
+    print_device_info_num(
+        dev, ind,
+        "Max wg. size",
+        CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(cl_ulong));
 
     print_prefix(ind);
     size_t n_bytes;
