@@ -11,18 +11,18 @@ matmul_tiled_simd(
     const __global float* B,
     __global float* C
 ) {
-    // row in [0..TILE_SIZE)
+    // row in [0..TILE_SIZE_SIMD)
     const int lr = get_local_id(0);
-    // col in [0..TILE_SIZE/WPT)
+    // col in [0..TILE_SIZE_SIMD/WPT)
     const int lc = get_local_id(1);
 
     // Row ID of C (0..M)
-    const int gr = TILE_SIZE*get_group_id(0) + lr;
+    const int gr = TILE_SIZE_SIMD*get_group_id(0) + lr;
     // Col ID of C (0..N)
-    const int gc = TILE_SIZE*get_group_id(1) + lc;
+    const int gc = TILE_SIZE_SIMD*get_group_id(1) + lc;
 
-    __local float At[TILE_SIZE][TILE_SIZE];
-    __local float Bt[TILE_SIZE][TILE_SIZE];
+    __local float At[TILE_SIZE_SIMD][TILE_SIZE_SIMD];
+    __local float Bt[TILE_SIZE_SIMD][TILE_SIZE_SIMD];
 
     // Initialise the accumulation registers
     float acc[WPT];
@@ -31,11 +31,11 @@ matmul_tiled_simd(
     }
 
     // Loop over all tiles
-    const uint n_tiles = K / TILE_SIZE;
+    const uint n_tiles = K / TILE_SIZE_SIMD;
     for (uint t=0; t < n_tiles; t++) {
 
         // Load one tile of A and B into local memory
-        const uint tbase = TILE_SIZE * t;
+        const uint tbase = TILE_SIZE_SIMD * t;
         for (int w=0; w < WPT; w++) {
             const uint tr = tbase + lr;
             const uint tc = tbase + lc;
@@ -51,7 +51,7 @@ matmul_tiled_simd(
         barrier(CLK_LOCAL_MEM_FENCE);
 
         // Perform the computation for a single tile
-        for (uint k=0; k < TILE_SIZE; k++) {
+        for (uint k=0; k < TILE_SIZE_SIMD; k++) {
             for (uint w=0; w < WPT; w++) {
                 acc[w] += At[k][lr] * Bt[lc + w*RTS][k];
             }

@@ -17,13 +17,13 @@ init_arrays(tensor *a, tensor *b) {
 void
 test_matmul() {
     // A has dimension MxK, b KxN, and c MxN
-    const int M = 4096;
+    const int M = 2048;
     const int N = 2048;
-    const int K = 4096;
+    const int K = 2048;
 
-    assert(M % TILE_SIZE == 0);
-    assert(N % TILE_SIZE == 0);
-    assert(K % TILE_SIZE == 0);
+    assert(M % TILE_SIZE_SIMD == 0);
+    assert(N % TILE_SIZE_SIMD == 0);
+    assert(K % TILE_SIZE_SIMD == 0);
 
     tensor *a = tensor_init(2, (int[]){M, K});
     tensor *b = tensor_init(2, (int[]){K, N});
@@ -43,7 +43,7 @@ test_matmul() {
     cl_device_id dev;
     cl_context ctx;
     cl_command_queue queue;
-    ocl_check_err(ocl_basic_setup(0, 0, &platform, &dev, &ctx, 1, &queue));
+    OCL_CHECK_ERR(ocl_basic_setup(0, 0, &platform, &dev, &ctx, 1, &queue));
     ocl_print_device_details(dev, 0);
     printf("\n");
 
@@ -62,19 +62,25 @@ test_matmul() {
 
     // Create buffers
     cl_mem mem_a, mem_b, mem_c;
-    ocl_check_err(ocl_create_and_write_buffer(ctx, CL_MEM_READ_ONLY,
-                                             queue, a->data,
-                                             a_size, &mem_a));
-    ocl_check_err(ocl_create_and_write_buffer(ctx, CL_MEM_READ_ONLY,
-                                              queue, b->data,
-                                              b_size, &mem_b));
-    ocl_check_err(ocl_create_empty_buffer(ctx, CL_MEM_WRITE_ONLY,
-                                          c_size, &mem_c));
+    OCL_CHECK_ERR(
+        ocl_create_and_write_buffer(ctx, CL_MEM_READ_ONLY,
+                                    queue, a->data,
+                                    a_size, &mem_a
+        ));
+    OCL_CHECK_ERR(
+        ocl_create_and_write_buffer(ctx, CL_MEM_READ_ONLY,
+                                    queue, b->data,
+                                    b_size, &mem_b
+        ));
+    OCL_CHECK_ERR(
+        ocl_create_empty_buffer(ctx, CL_MEM_WRITE_ONLY,
+                                c_size, &mem_c
+        ));
 
     // Run kernels
     size_t local_sizes[3][2] = {
         // Sizes tuned for Quadro P400 card
-        {TILE_SIZE, TILE_SIZE / WPT},
+        {TILE_SIZE_SIMD, TILE_SIZE_SIMD / WPT},
         {TILE_SIZE, TILE_SIZE},
         {8, 8}
     };
@@ -134,12 +140,12 @@ test_add_reduce() {
     cl_device_id dev;
     cl_context ctx;
     cl_command_queue queue;
-    ocl_check_err(ocl_basic_setup(1, 0, &platform, &dev, &ctx, 1, &queue));
+    ocl_check_err(ocl_basic_setup(0, 0, &platform, &dev, &ctx, 1, &queue));
     ocl_print_device_details(dev, 0);
     printf("\n");
 
     uint32_t R = 100;
-    uint32_t n_arr = 2 * 1024 * 1000 * 1000;
+    uint32_t n_arr = 1 * 1024 * 1000 * 1000;
 
     // Largest allocation on my GPU is 512mb
     uint32_t n_chunk = 128 * 1000 * 1000;
@@ -147,6 +153,7 @@ test_add_reduce() {
     size_t n_bytes_chunk = n_chunk * sizeof(cl_int);
     size_t n_bytes_arr = n_arr * sizeof(int32_t);
 
+    printf("Allocating %ld bytes\n", n_bytes_arr);
     int32_t *arr = malloc(n_bytes_arr);
     rnd_pcg32_rand_range_fill((uint32_t *)arr, R + 1, n_arr);
     for (uint32_t i = 0; i < n_arr; i++) {
@@ -154,12 +161,13 @@ test_add_reduce() {
     }
 
     int32_t sum = 0;
-    PRINT_CODE_TIME({
-            for (uint32_t i = 0; i < n_arr; i++) {
-                sum += arr[i];
-            }
-        }, "CPU sum took %.2fs\n");
+    uint64_t start = nano_count();
+    for (uint32_t i = 0; i < n_arr; i++) {
+        sum += arr[i];
+    }
     printf("CPU sum %d\n", sum);
+    printf("CPU sum took %.2fs\n", nanos_to_secs(nano_count() - start));
+
 
     // Create OpenCL buffers
     cl_mem mem_buf, mem_ret;
@@ -188,8 +196,18 @@ test_add_reduce() {
         )
     );
 
+    cl_ulong max_wg;
+    OCL_CHECK_ERR(
+        clGetDeviceInfo(
+            dev, CL_DEVICE_MAX_WORK_GROUP_SIZE,
+            sizeof(cl_ulong), &max_wg, NULL
+        )
+    );
+    printf("Using workgroup size %lu\n", max_wg);
+
     uint32_t ofs = 0;
     int32_t ocl_sum = 0;
+    start = nano_count();
     while (ofs < n_arr) {
         // Copy part to device
         OCL_CHECK_ERR(clEnqueueWriteBuffer(queue, mem_buf, CL_TRUE,
@@ -199,8 +217,8 @@ test_add_reduce() {
         OCL_CHECK_ERR(
             ocl_run_nd_kernel(
                 queue, kernel, 1,
-                (size_t[]){512},
-                (size_t[]){512},
+                (size_t[]){max_wg},
+                (size_t[]){max_wg},
                 3,
                 sizeof(cl_uint), &n_chunk,
                 sizeof(cl_mem), (void*)&mem_buf,
@@ -208,11 +226,15 @@ test_add_reduce() {
             )
         );
         cl_int ret;
-        OCL_CHECK_ERR(ocl_read_buffer(queue, &ret, sizeof(cl_int), mem_ret));
+        OCL_CHECK_ERR(
+            ocl_read_buffer(queue, &ret, sizeof(cl_int), mem_ret
+            )
+        );
         ocl_sum += ret;
         ofs += n_chunk;
     }
     printf("OpenCL sum %d\n", ocl_sum);
+    printf("Took %.2fs\n", nanos_to_secs(nano_count() - start));
 
     free(arr);
     clReleaseMemObject(mem_buf);
