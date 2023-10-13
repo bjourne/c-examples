@@ -82,6 +82,21 @@ def configure(ctx):
         ctx.check(header_name = 'CL/cl.h', use = ['AOCL'])
         ctx.check(lib = 'mpi', mandatory = False)
 
+        ctx.find_program("nvcc", var="NVCC")
+        prefix = Path(ctx.env["NVCC"][0]).parent.parent
+        includes = [str(prefix / "include")]
+
+        libpath = [prefix / x for x in ["lib64", "lib64/stubs", "lib", "lib/stubs"]]
+        libpath = [str(p) for p in libpath if p.exists()]
+
+        ctx.check(header_name="cuda.h",
+                  includes = includes,
+                  libpath = libpath,
+                  lib = "cudart",
+                  uselib_store = 'CUDA')
+
+
+
 def noinst_program(ctx, source, target, use, features):
     assert type(source) == list
     source = [str(s) for s in source]
@@ -189,6 +204,7 @@ def build(ctx):
     libs = {
         'benchmark' : ('BENCHMARK_OBJS', {}, benchmark_flags),
         'collectors' : ('GC_OBJS', {'QF_OBJS'}, []),
+        'cud' : ('CUD_OBJS', {"CUDA"}, []),
         'datatypes' : ('DT_OBJS', {}, []),
         'diophantine' : ('DIO_OBJS', {}, []),
         'fastio' : ('FASTIO_OBJS', {}, []),
@@ -213,10 +229,11 @@ def build(ctx):
     for lib, (sym, deps, defs) in libs.items():
         build_library(ctx, lib, sym, deps, defs)
 
-    # Building all tests here
+    # Building all library tests here
     tests = {
         'benchmark' : ['BENCHMARK_OBJS', 'DT_OBJS'],
         'collectors' : ['GC_OBJS', 'DT_OBJS', 'QF_OBJS'],
+        'cud' : {'CUD_OBJS', 'DT_OBJS', 'CUDA'},
         'datatypes' : ['BENCHMARK_OBJS', 'DT_OBJS', 'RANDOM_OBJS'],
         'diophantine' : {'DIO_OBJS', 'DT_OBJS', 'M'},
         'fastio' : {'FASTIO_OBJS'},
