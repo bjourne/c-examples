@@ -54,7 +54,7 @@ main(int argc, char *argv[]) {
     // Setup OpenCL
     if (argc != 3) {
         printf("Usage: %s platform-id kernel-path\n", argv[0]);
-        printf("E.g. programs/opencl/comm.cl for kernel path.\n");
+        printf("E.g. programs/opencl/comm.cl or (comm2.cl) for kernel path.\n");
         exit(1);
     }
     int plat_idx = atoi(argv[1]);
@@ -75,17 +75,11 @@ main(int argc, char *argv[]) {
     // Setup IO memory
     const uint32_t N_ARR = 200;
 
-    ocl_dblbuf arr, ret;
+    ocl_dblbuf arr;
     OCL_CHECK_ERR(
         ocl_dblbuf_init(
             &arr, ctx,
-            CL_MEM_READ_ONLY, sizeof(cl_int) * N_ARR
-        )
-    );
-    OCL_CHECK_ERR(
-        ocl_dblbuf_init(
-            &ret, ctx,
-            CL_MEM_WRITE_ONLY, sizeof(cl_int) * 1
+            CL_MEM_READ_WRITE, sizeof(cl_int) * N_ARR
         )
     );
     for (uint32_t i = 0; i < N_ARR; i++) {
@@ -111,7 +105,7 @@ main(int argc, char *argv[]) {
         ocl_set_kernel_arguments(
             kernels[0], 2,
             sizeof(uint32_t), &N_ARR,
-            sizeof(cl_mem), (void *)&ret.mem
+            sizeof(cl_mem), (void *)&arr.mem
         )
     );
     OCL_CHECK_ERR(
@@ -133,13 +127,11 @@ main(int argc, char *argv[]) {
     );
     clWaitForEvents(2, events);
 
-    ocl_dblbuf_pull(&ret, queues[0]);
-    printf("Answer: %d\n", ((int32_t *)ret.ptr)[0]);
+    ocl_dblbuf_pull(&arr, queues[0]);
+    printf("Answer: %d\n", ((int32_t *)arr.ptr)[0]);
 
 
     ocl_dblbuf_free(&arr);
-    ocl_dblbuf_free(&ret);
-
     for (uint32_t i = 0; i < N_KERNELS; i++) {
         clReleaseCommandQueue(queues[i]);
         clReleaseKernel(kernels[i]);
