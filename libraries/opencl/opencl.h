@@ -6,6 +6,7 @@
 #define OPENCL_H
 
 #include <stdbool.h>
+#include "pretty/pretty.h"
 
 #define CL_TARGET_OPENCL_VERSION 300
 
@@ -26,7 +27,7 @@ void
 ocl_print_platform_details(cl_platform_id plat);
 
 void
-ocl_print_device_details(cl_device_id dev, int ind);
+ocl_print_device_details(cl_device_id dev, pretty_printer *pp);
 
 // Convenience functions
 cl_int

@@ -70,7 +70,7 @@ main(int argc, char *argv[]) {
             N_KERNELS, queues
         )
     );
-    ocl_print_device_details(device, 0);
+    ocl_print_device_details(device, NULL);
 
     // Setup IO memory
     const uint32_t N_ARR = 200;
@@ -93,7 +93,7 @@ main(int argc, char *argv[]) {
     }
     OCL_CHECK_ERR(ocl_dblbuf_push(&arr, queues[0]));
 
-    /* // Load program */
+    // Load program
     cl_program program;
     cl_kernel kernels[2];
     OCL_CHECK_ERR(

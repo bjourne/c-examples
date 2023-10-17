@@ -7,6 +7,7 @@
 #include "datatypes/common.h"
 #include "files/files.h"
 #include "paths/paths.h"
+#include "pretty/pretty.h"
 #include "opencl.h"
 
 #define ERR_RETURN_STRING(x) case x: return #x;
@@ -113,13 +114,6 @@ ocl_check_err2(cl_int err, char *file, int line) {
     exit(2);
 }
 
-static void
-print_prefix(int ind) {
-    for (int i = 0; i < ind; i++) {
-        printf(" ");
-    }
-}
-
 void *
 ocl_get_platform_info(cl_platform_id platform,
                       cl_platform_info attr) {
@@ -167,29 +161,34 @@ ocl_get_devices(cl_platform_id platform,
 }
 
 static void
-print_device_info_num(cl_device_id dev, int ind,
+print_device_info_num(cl_device_id dev, pretty_printer *pp,
                       char *key, cl_device_info param_name,
                       size_t size) {
     uint64_t val;
     clGetDeviceInfo(dev, param_name, size, &val, NULL);
-    print_prefix(ind);
-    printf("%-15s: %ld\n", key, val);
+    pp_print_key_value(pp, key, "%ld", val);
 }
 
 static void
-print_device_info_str(cl_device_id dev, int ind,
+print_device_info_str(cl_device_id dev, pretty_printer *pp,
                       cl_device_info attr, char *attr_name) {
     size_t n_bytes;
     clGetDeviceInfo(dev, attr, 0, NULL, &n_bytes);
     char *bytes = (char *)malloc(n_bytes);
     clGetDeviceInfo(dev, attr, n_bytes, bytes, NULL);
-    print_prefix(ind);
-    printf("%-15s: %s\n", attr_name, bytes);
+    pp_print_key_value(pp, attr_name, "%s", bytes);
     free(bytes);
 }
 
 void
-ocl_print_device_details(cl_device_id dev, int ind) {
+ocl_print_device_details(cl_device_id dev, pretty_printer *pp) {
+    pretty_printer *use_pp;
+    if (!pp) {
+        use_pp = pp_init();
+    } else {
+        use_pp = pp;
+    }
+
     char *attr_names[] = {
         "Name", "Version", "Driver", "C Version"
     };
@@ -199,37 +198,40 @@ ocl_print_device_details(cl_device_id dev, int ind) {
         CL_DEVICE_OPENCL_C_VERSION
     };
     for (size_t i = 0; i < ARRAY_SIZE(attr_types); i++) {
-        print_device_info_str(dev, ind, attr_types[i], attr_names[i]);
+        print_device_info_str(dev, use_pp, attr_types[i], attr_names[i]);
     }
 
     print_device_info_num(
-        dev, ind,
+        dev, use_pp,
         "Compute units",
         CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint));
     print_device_info_num(
-        dev, ind,
+        dev, use_pp,
         "Global memory",
         CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong));
     print_device_info_num(
-        dev, ind,
+        dev, use_pp,
         "Max allocation",
         CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong));
     print_device_info_num(
-        dev, ind,
+        dev, use_pp,
         "Max wg. size",
         CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(cl_ulong));
     print_device_info_num(
-        dev, ind,
+        dev, use_pp,
         "Local mem. size",
         CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong));
 
-    print_prefix(ind);
+    //print_prefix(ind);
     size_t n_bytes;
     clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES,
                     0, NULL, &n_bytes);
     size_t *d = (size_t *)malloc(n_bytes);
     clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES, n_bytes, d, NULL);
-    printf("%-15s: %ld, %ld, %ld\n", "Max work items", d[0], d[1], d[2]);
+
+    pp_print_key_value(use_pp,
+                       "Max work items",
+                       "%ld:%ld:%ld", d[0], d[1], d[2]);
     free(d);
 
     cl_device_info flags[] = {
@@ -244,12 +246,14 @@ ocl_print_device_details(cl_device_id dev, int ind) {
     };
 
     for (size_t i = 0; i < ARRAY_SIZE(flags); i++) {
-        print_prefix(ind);
         cl_bool val;
         cl_int err = clGetDeviceInfo(dev, flags[i],
                                      sizeof(cl_bool), &val, NULL);
-        printf("%-15s: %s\n", names[i],
-               BOOL_TO_YES_NO(err == CL_SUCCESS && val));
+        pp_print_key_value(use_pp, names[i], "%s",
+                           BOOL_TO_YES_NO(err == CL_SUCCESS && val));
+    }
+    if (!pp) {
+        pp_free(use_pp);
     }
 }
 
@@ -263,22 +267,28 @@ ocl_print_platform_details(cl_platform_id plat) {
         "Name", "Vendor",
         "Version", "Profile", "Extensions"
     };
+
+    pretty_printer *pp = pp_init();
     for (size_t i = 0; i < ARRAY_SIZE(attr_names); i++) {
         char *info = (char *)ocl_get_platform_info(plat,
                                                    attr_types[i]);
-        printf("%-15s: %s\n", attr_names[i], info);
+        pp_print_key_value(pp, attr_names[i], "%s", info);
         free(info);
     }
     cl_uint n_devices;
     cl_device_id *devices;
 
     ocl_check_err(ocl_get_devices(plat, &n_devices, &devices));
-    printf("%-15s: %d\n", "Devices", n_devices);
-    for (cl_uint i = 0; i < n_devices; i++) {
-        ocl_print_device_details(devices[i], 2);
-    }
-    free(devices);
+    pp_print_key_value(pp, "Devices", "%d", n_devices);
     printf("\n");
+    pp->indent++;
+    for (cl_uint i = 0; i < n_devices; i++) {
+        ocl_print_device_details(devices[i], pp);
+    }
+    pp->indent--;
+    printf("\n");
+    free(devices);
+    pp_free(pp);
 }
 
 cl_int

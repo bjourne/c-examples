@@ -82,21 +82,20 @@ def configure(ctx):
         ctx.check(header_name = 'CL/cl.h', use = ['AOCL'])
         ctx.check(lib = 'mpi', mandatory = False)
 
-        ret = ctx.find_program("nvcc", var="NVCC", mandatory = False)
-        if ret:
-            prefix = Path(ctx.env["NVCC"][0]).parent.parent
-            includes = [str(prefix / "include")]
+    ret = ctx.find_program("nvcc", var="NVCC", mandatory = False)
+    if ret:
+        prefix = Path(ctx.env["NVCC"][0]).parent.parent
+        includes = [str(prefix / "include")]
 
-            libdirs = ["lib64", "lib64/stubs", "lib", "lib/stubs"]
-            libpath = [prefix / x for x in libdirs]
-            libpath = [str(p) for p in libpath if p.exists()]
+        libdirs = ["lib64", "lib64/stubs", "lib", "lib/stubs"]
+        libpath = [prefix / x for x in libdirs]
+        libpath = [str(p) for p in libpath if p.exists()]
 
-            ctx.check(header_name="cuda.h",
-                      includes = includes,
-                      libpath = libpath,
-                      lib = "cudart",
-                      uselib_store = 'CUDA')
-        print(ctx.env)
+        ctx.check(header_name="cuda.h",
+                  includes = includes,
+                  libpath = libpath,
+                  lib = "cudart",
+                  uselib_store = 'CUDA')
 
 
 
@@ -219,9 +218,11 @@ def build(ctx):
         # When not using aocl, AOCL will be empty and -lOpenCL will be
         # found by other means.
         'opencl' : ('OPENCL_OBJS', {
-            'AOCL', 'DT_OBJS', 'FILES_OBJS', 'OPENCL', 'PATHS_OBJS'
+            'AOCL', 'DT_OBJS', 'FILES_OBJS', 'OPENCL',
+            'PATHS_OBJS', 'PRETTY_OBJS'
         }, []),
         'paths' : ('PATHS_OBJS', {}, []),
+        'pretty' : ('PRETTY_OBJS', {}, []),
         'quickfit' : ('QF_OBJS', ['DT_OBJS'], []),
         'npy' : ('NPY_OBJS', {'M'}, []),
         'random' : ('RANDOM_OBJS', {}, []),
@@ -253,6 +254,7 @@ def build(ctx):
             'TENSORS_OBJS'
         },
         'paths' : {'PATHS_OBJS', 'DT_OBJS'},
+        'pretty' : {'DT_OBJS', 'PRETTY_OBJS'},
         'quickfit' : ['DT_OBJS', 'QF_OBJS'],
         'random' : {'DT_OBJS', 'RANDOM_OBJS'},
         'tensors' : {'TENSORS_OBJS', 'DT_OBJS', 'PNG', 'M'},
