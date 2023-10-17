@@ -19,7 +19,7 @@ __kernel void
 producer(uint n, __global int *arr) {
     uint tot = 0;
     for (uint i = 0; i < n; i++) {
-        write_channel_intel(chan, arr[i]);
+        write_channel_intel(to_consumer, arr[i]);
         tot += read_channel_intel(to_producer);
     }
     arr[0] = tot;
