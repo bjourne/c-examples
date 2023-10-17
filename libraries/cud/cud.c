@@ -41,6 +41,12 @@ cud_print_system_details() {
     pretty_printer *pp = pp_init();
     pp->key_width = 18;
 
+    int rt;
+    CUD_ASSERT(cudaRuntimeGetVersion(&rt));
+    int rt_maj = rt / 1000;
+    int rt_min = (rt - rt_maj * 1000) / 10;
+
+    pp_print_key_value(pp, "Runtime", "%d.%d", rt_maj, rt_min);
     pp_print_key_value(pp, "N. of devices", "%d", cnt);
     printf("\n");
     pp->indent++;
