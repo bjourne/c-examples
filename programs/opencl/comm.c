@@ -51,13 +51,21 @@ ocl_dblbuf_pull(ocl_dblbuf *buf, cl_command_queue queue) {
 
 int
 main(int argc, char *argv[]) {
+    // Setup OpenCL
+    if (argc != 3) {
+        printf("Usage: %s platform-id kernel-path\n", argv[0]);
+        printf("E.g. programs/opencl/comm.cl for kernel path.\n");
+        exit(1);
+    }
+    int plat_idx = atoi(argv[1]);
+
     cl_platform_id platform;
     cl_device_id device;
     cl_context ctx;
     cl_command_queue queues[N_KERNELS];
     OCL_CHECK_ERR(
         ocl_basic_setup(
-            1, 0,
+            plat_idx, 0,
             &platform, &device, &ctx,
             N_KERNELS, queues
         )
@@ -91,7 +99,7 @@ main(int argc, char *argv[]) {
     OCL_CHECK_ERR(
         ocl_load_kernels(
             ctx, device,
-            "programs/opencl/comm.cl",
+            argv[2],
             2, (char*[]){"consumer", "producer"},
             &program, kernels
         )
