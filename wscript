@@ -261,7 +261,7 @@ def build(ctx):
         'threads' : {'DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS'}
     }
     if ctx.env['LIB_CUDA']:
-        libs['cud'] = ('CUD_OBJS', {"CUDA"}, [])
+        libs['cud'] = ('CUD_OBJS', {"CUDA", "PRETTY_OBJS"}, [])
         tests['cud'] = {'CUD_OBJS', 'DT_OBJS', 'CUDA'}
 
     for lib, (sym, deps, defs) in libs.items():

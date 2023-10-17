@@ -36,6 +36,10 @@ to teach myself about garbage collection strategies.
 * `ref-counting-cycles.[ch]` - Reference counting with cycle detection
 * `mark-sweep.[ch]` - Mark & Sweep gc
 
+### `libraries/cud`
+
+Small wrapper for CUDA libraries.
+
 ### `libraries/datatypes`
 
 Standard datatypes for C programming like `vector` and
@@ -84,6 +88,10 @@ Of course, this assumes that `aocl` and related programs are on the
 `PATH`. To run the built programs the OpenCL library must be linkable:
 
     LD_LIBRARY_PATH=/path/to/opencl ./build/programs/opencl/prog
+
+### `libraries/pretty`
+
+Simple pretty-printing.
 
 ### `libraries/random`
 

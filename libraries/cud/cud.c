@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include "cud/cud.h"
+#include "pretty/pretty.h"
 
 #define RETURN_STRING(x) case x: return #x
 
@@ -31,24 +32,55 @@ cud_assert(cudaError_t st, char *file, int line) {
     abort();
 }
 
-#define KEY_WIDTH   "24"
-
+// See https://stackoverflow.com/questions/14800009/how-to-get-properties-from-active-cuda-device
 void
 cud_print_system_details() {
     int cnt;
     CUD_ASSERT(cudaGetDeviceCount(&cnt));
 
-    printf("%-" KEY_WIDTH "s: %d\n", "N. of devices", cnt);
+    pretty_printer *pp = pp_init();
+    pp->key_width = 18;
+
+    pp_print_key_value(pp, "N. of devices", "%d", cnt);
+    printf("\n");
+    pp->indent++;
     for (int i = 0; i < cnt; i++) {
         struct cudaDeviceProp props;
         CUD_ASSERT(cudaGetDeviceProperties(&props, i));
-        printf("%-" KEY_WIDTH "s: %d.%d\n",
-               "Compute cap.", props.major, props.minor);
-        printf("%-" KEY_WIDTH "s: %d\n",
-               "Max n. of thr./block",
-               props.maxThreadsPerBlock);
-        printf("%-" KEY_WIDTH "s: %d\n",
-               "Max n. of thr./mproc.",
-               props.maxThreadsPerMultiProcessor);
+        int cr = props.memoryClockRate;
+        int bw = props.memoryBusWidth;
+        size_t gm = props.totalGlobalMem;
+        pp_print_key_value(
+            pp, "Name",
+            "%s", props.name);
+        pp_print_key_value(
+            pp, "Compute cap.",
+            "%d.%d", props.major, props.minor);
+        pp_print_key_value(
+            pp, "Warp size",
+            "%d", props.warpSize);
+        pp_print_key_value(
+            pp, "Mem. clock",
+            "%d MHz", cr / 1000);
+        pp_print_key_value(
+            pp, "Bus width",
+            "%d bit", bw);
+        pp_print_key_value(
+            pp, "Max mem. bw",
+            "%.1f GB/s", 2.0 * cr * (bw / 8) / 1.0e6);
+        pp_print_key_value(
+            pp, "Global memory",
+            "%.2f GB", (double)gm / (1000.0 * 1000.0 * 1000.0));
+        pp_print_key_value(
+            pp, "Shared mem./block",
+            "%.1f kB", (double)props.sharedMemPerBlock / 1000.0);
+        pp_print_key_value(
+            pp, "Max thr./block",
+            "%d", props.maxThreadsPerBlock);
+        pp_print_key_value(
+            pp, "Max thr./mproc.",
+            "%d", props.maxThreadsPerMultiProcessor);
     }
+    pp->indent--;
+    pp_free(pp);
 }
