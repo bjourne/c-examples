@@ -82,18 +82,21 @@ def configure(ctx):
         ctx.check(header_name = 'CL/cl.h', use = ['AOCL'])
         ctx.check(lib = 'mpi', mandatory = False)
 
-        ctx.find_program("nvcc", var="NVCC")
-        prefix = Path(ctx.env["NVCC"][0]).parent.parent
-        includes = [str(prefix / "include")]
+        ret = ctx.find_program("nvcc", var="NVCC", mandatory = False)
+        if ret:
+            prefix = Path(ctx.env["NVCC"][0]).parent.parent
+            includes = [str(prefix / "include")]
 
-        libpath = [prefix / x for x in ["lib64", "lib64/stubs", "lib", "lib/stubs"]]
-        libpath = [str(p) for p in libpath if p.exists()]
+            libdirs = ["lib64", "lib64/stubs", "lib", "lib/stubs"]
+            libpath = [prefix / x for x in libdirs]
+            libpath = [str(p) for p in libpath if p.exists()]
 
-        ctx.check(header_name="cuda.h",
-                  includes = includes,
-                  libpath = libpath,
-                  lib = "cudart",
-                  uselib_store = 'CUDA')
+            ctx.check(header_name="cuda.h",
+                      includes = includes,
+                      libpath = libpath,
+                      lib = "cudart",
+                      uselib_store = 'CUDA')
+        print(ctx.env)
 
 
 
@@ -204,7 +207,6 @@ def build(ctx):
     libs = {
         'benchmark' : ('BENCHMARK_OBJS', {}, benchmark_flags),
         'collectors' : ('GC_OBJS', {'QF_OBJS'}, []),
-        'cud' : ('CUD_OBJS', {"CUDA"}, []),
         'datatypes' : ('DT_OBJS', {}, []),
         'diophantine' : ('DIO_OBJS', {}, []),
         'fastio' : ('FASTIO_OBJS', {}, []),
@@ -216,9 +218,9 @@ def build(ctx):
         'ieee754' : ('IEEE754_OBJS', {}, []),
         # When not using aocl, AOCL will be empty and -lOpenCL will be
         # found by other means.
-        'opencl' : ('OPENCL_OBJS',
-                    {'AOCL', 'DT_OBJS', 'FILES_OBJS', 'OPENCL', 'PATHS_OBJS'},
-                    []),
+        'opencl' : ('OPENCL_OBJS', {
+            'AOCL', 'DT_OBJS', 'FILES_OBJS', 'OPENCL', 'PATHS_OBJS'
+        }, []),
         'paths' : ('PATHS_OBJS', {}, []),
         'quickfit' : ('QF_OBJS', ['DT_OBJS'], []),
         'npy' : ('NPY_OBJS', {'M'}, []),
@@ -226,14 +228,11 @@ def build(ctx):
         'tensors' : ('TENSORS_OBJS', {'PNG', 'RANDOM_OBJS'}, []),
         'threads' : ('THREADS_OBJS', {}, [])
     }
-    for lib, (sym, deps, defs) in libs.items():
-        build_library(ctx, lib, sym, deps, defs)
 
     # Building all library tests here
     tests = {
         'benchmark' : ['BENCHMARK_OBJS', 'DT_OBJS'],
         'collectors' : ['GC_OBJS', 'DT_OBJS', 'QF_OBJS'],
-        'cud' : {'CUD_OBJS', 'DT_OBJS', 'CUDA'},
         'datatypes' : ['BENCHMARK_OBJS', 'DT_OBJS', 'RANDOM_OBJS'],
         'diophantine' : {'DIO_OBJS', 'DT_OBJS', 'M'},
         'fastio' : {'FASTIO_OBJS'},
@@ -259,6 +258,12 @@ def build(ctx):
         'tensors' : {'TENSORS_OBJS', 'DT_OBJS', 'PNG', 'M'},
         'threads' : {'DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS'}
     }
+    if ctx.env['LIB_CUDA']:
+        libs['cud'] = ('CUD_OBJS', {"CUDA"}, [])
+        tests['cud'] = {'CUD_OBJS', 'DT_OBJS', 'CUDA'}
+
+    for lib, (sym, deps, defs) in libs.items():
+        build_library(ctx, lib, sym, deps, defs)
     for lib, deps in tests.items():
         build_tests(ctx, lib, deps)
 
@@ -347,6 +352,6 @@ def build(ctx):
         ]
         base = Path('programs/opencl')
         for kernel, deps in kernels:
-            src = Path('programs/opencl') / kernel
+            src = base / kernel
             deps = [base / d for d in deps]
             build_aoc(ctx, src, deps)
