@@ -26,16 +26,12 @@ main(int argc, char *argv[]) {
     npy_format_dims(arr, buf);
     printf("Dimensions: %s\n", buf);
 
-    int n_columns = 100;
+    size_t n_columns = 100;
     struct winsize w;
     if (!ioctl(STDOUT_FILENO, TIOCGWINSZ, &w)) {
         n_columns = w.ws_col;
     }
-    npy_pp *pp = npy_pp_init(1, n_columns, " ");
-
-    npy_pp_print_arr(pp, arr);
-
-    npy_pp_free(pp);
+    npy_pp_arr(arr, 1, n_columns, " ");
     npy_free(arr);
     return 0;
 }
