@@ -55,7 +55,6 @@ pp_print_key_value(
     printf("%s\n", buf);
 }
 
-
 #define PRINT_EL_AT(tp_char, v_val, tp_tp)  \
     if (tp == (tp_char) && v == (v_val)) {  \
         printf(fmt, ((tp_tp *)data)[i]);    \
@@ -118,12 +117,14 @@ pp_row(pretty_printer *me, size_t dim_idx) {
         indent(dim_idx);
     }
     pp_puts(me, "[");
-    for (size_t i = 0; i < cnt - 1; i++) {
-        pp_value(me, i);
-        fputs(me->sep, stdout);
-    }
-    if (cnt) {
-        pp_value(me, cnt - 1);
+    if (cnt > 0) {
+        for (size_t i = 0; i < cnt - 1; i++) {
+            pp_value(me, i);
+            fputs(me->sep, stdout);
+        }
+        if (cnt) {
+            pp_value(me, cnt - 1);
+        }
     }
     pp_puts(me, "]");
 }
@@ -195,8 +196,8 @@ cell_width(
         }
         return width;
     }
-    double max = 0;
-    double min = 0;
+    double max = 1;
+    double min = 1;
     for (size_t i = 0; i < n_els; i++) {
         double at = value_at_as_double(type, el_size, i, arr);
         if (at < min) {

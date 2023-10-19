@@ -59,9 +59,17 @@ test_break_lines() {
     pp_free(pp);
 }
 
+void
+test_empty_array() {
+    pretty_printer *pp = pp_init();
+    pp_print_array(pp, 'f', 4, 1, (size_t[]){0}, NULL);
+    pp_free(pp);
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_key_values);
     PRINT_RUN(test_2d_array);
     PRINT_RUN(test_break_lines);
+    PRINT_RUN(test_empty_array);
 }

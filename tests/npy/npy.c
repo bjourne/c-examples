@@ -27,19 +27,14 @@ test_pretty_print() {
     npy_arr *arr2 = npy_load("tests/npy/rands.npy");
     npy_arr *arr3 = npy_load("tests/npy/empty.npy");
 
-    int n_columns = 100;
+    size_t n_columns = 100;
     struct winsize w;
     if (!ioctl(STDOUT_FILENO, TIOCGWINSZ, &w)) {
         n_columns = w.ws_col;
     }
-    npy_pp *pp = npy_pp_init(1, n_columns, " ");
-    npy_pp_print_arr(pp, arr);
-    pp->n_columns = 78;
-    pp->sep = ", ";
-    npy_pp_print_arr(pp, arr2);
-    npy_pp_print_arr(pp, arr3);
-
-    npy_pp_free(pp);
+    npy_pp_arr(arr, 1, n_columns, " ");
+    npy_pp_arr(arr2, 1, 78, ",");
+    npy_pp_arr(arr3, 1, 78, ",");
     npy_free(arr);
     npy_free(arr2);
     npy_free(arr3);
@@ -48,9 +43,7 @@ test_pretty_print() {
 void
 test_pretty_print_bytes() {
     npy_arr *arr = npy_load("tests/npy/bytes.npy");
-    npy_pp *pp = npy_pp_init(1, 100, " ");
-    npy_pp_print_arr(pp, arr);
-    npy_pp_free(pp);
+    npy_pp_arr(arr, 1, 100, " ");
     npy_free(arr);
 }
 

@@ -17,14 +17,15 @@ typedef struct {
     char *sep;
 
     // Data set when pretty-printing arrays.
+    void *arr;
     char type;
     size_t el_size;
     size_t n_dims;
     size_t dims[PP_MAX_N_DIMS];
 
+    // Get updated when pp_print_array runs.
     bool is_first_on_line;
     char fmt[256];
-    void *arr;
     size_t value_idx;
     bool break_lines;
     size_t n_items_per_line;
