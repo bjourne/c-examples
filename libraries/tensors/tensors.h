@@ -36,6 +36,11 @@ typedef enum {
     TENSOR_UNARY_OP_EXP
 } tensor_unary_op;
 
+typedef enum {
+    TENSOR_BINARY_OP_ADD = 0,
+    TENSOR_BINARY_OP_MUL
+} tensor_binary_op;
+
 typedef struct {
     int dims[TENSOR_MAX_N_DIMS];
     int n_dims;
@@ -111,6 +116,14 @@ void tensor_print(tensor *me, const char *fmt, bool py_fmt);
 size_t tensor_n_elements(tensor *me);
 void tensor_flatten(tensor *me, int from);
 
+// Unary ops
+void tensor_unary(tensor *src, tensor *dst, tensor_unary_op op);
+
+// Fills
+void tensor_fill_const(tensor *t, float v);
+void tensor_fill_rand_range(tensor *t, float high);
+void tensor_fill_range(tensor *me, float start);
+
 // Conv2d
 void tensor_conv2d(tensor *weight, tensor *bias,
                    int stride, int padding,
@@ -135,14 +148,6 @@ tensor *tensor_linear_new(tensor *weights, tensor *bias, tensor *src);
 
 // Transpose
 void tensor_transpose(tensor *src, tensor *dst);
-
-// Unary ops
-void tensor_unary(tensor *me, tensor_unary_op op);
-
-// Fills
-void tensor_fill_const(tensor *t, float v);
-void tensor_fill_rand_range(tensor *t, float high);
-void tensor_fill_range(tensor *me, float start);
 
 #ifdef HAVE_PNG
 // Png support
