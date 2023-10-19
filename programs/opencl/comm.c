@@ -73,17 +73,17 @@ main(int argc, char *argv[]) {
     ocl_print_device_details(device, NULL);
 
     // Setup IO memory
-    const uint32_t N_ARR = 200;
+    const uint32_t N_ARR = 1000;
 
     ocl_dblbuf arr;
     OCL_CHECK_ERR(
         ocl_dblbuf_init(
             &arr, ctx,
-            CL_MEM_READ_WRITE, sizeof(cl_int) * N_ARR
+            CL_MEM_READ_WRITE, sizeof(cl_uint) * N_ARR
         )
     );
     for (uint32_t i = 0; i < N_ARR; i++) {
-        ((int32_t *)arr.ptr)[i] = i;
+        ((uint32_t *)arr.ptr)[i] = i % 10;
     }
     OCL_CHECK_ERR(ocl_dblbuf_push(&arr, queues[0]));
 
