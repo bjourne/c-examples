@@ -1282,6 +1282,14 @@ test_scans() {
     tensor_free(dst_ref);
 }
 
+void
+test_print_tensor() {
+    tensor *src = tensor_init_from_data((float *)mat_5x5_1,
+                                        3, (int[]){1, 5, 5});
+    tensor_print(src, true, 3, 80, ", ");
+    tensor_free(src);
+}
+
 int
 main(int argc, char *argv[]) {
     rand_init(1234);
@@ -1319,4 +1327,5 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_too_big);
     PRINT_RUN(test_random_filling);
     PRINT_RUN(test_scans);
+    PRINT_RUN(test_print_tensor);
 }

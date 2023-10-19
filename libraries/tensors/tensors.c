@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "datatypes/common.h"
+#include "pretty/pretty.h"
 #include "random/random.h"
 #include "tensors.h"
 
@@ -88,48 +89,30 @@ tensor_check_equal(tensor *t1, tensor *t2, float epsilon) {
 // Printing
 ////////////////////////////////////////////////////////////////////////
 void
-tensor_print(tensor *me, const char *fmt, bool py_fmt) {
-    int n_dims = me->n_dims;
-    int *dims = me->dims;
-
-    // Will improve this later
-    assert(n_dims == 2);
-
-    int height = dims[n_dims - 2];
-    int width = dims[n_dims - 1];
-
-    printf("Dims: ");
-    print_dims(n_dims, dims);
-    printf("\n");
-    for (int y = 0; y < height; y++) {
-        if (py_fmt) {
-            if (y == 0) {
-                printf("[");
-            } else {
-                printf(" ");
-            }
-            printf("[");
-        }
-        for (int x = 0; x < width; x++) {
-            printf(fmt, me->data[width * y + x]);
-            if (x < width - 1) {
-                if (py_fmt) {
-                    printf(",");
-                }
-                printf(" ");
-            }
-        }
-        if (py_fmt) {
-            printf("]");
-            if (y < height - 1) {
-                printf(",");
-            } else {
-                printf("]");
-            }
-        }
+tensor_print(tensor *me,
+             bool print_header,
+             size_t n_decimals, size_t n_columns, char *sep) {
+    if (print_header) {
+        printf("Dims: ");
+        print_dims(me->n_dims, me->dims);
         printf("\n");
     }
-    printf("\n");
+    pretty_printer *pp = pp_init();
+    pp->n_decimals = n_decimals;
+    pp->n_columns = n_columns;
+    pp->sep = sep;
+
+    // Should use size_t everywhere
+    size_t n_dims = me->n_dims;
+    size_t dims[PP_MAX_N_DIMS];
+    for (int i = 0; i < me->n_dims; i++) {
+        dims[i] = me->dims[i];
+    }
+    pp_print_array(pp,
+                   'f', 4,
+                   n_dims, dims,
+                   me->data);
+    pp_free(pp);
 }
 
 

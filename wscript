@@ -226,7 +226,7 @@ def build(ctx):
         'quickfit' : ('QF_OBJS', {'DT_OBJS'}, []),
         'npy' : ('NPY_OBJS', {'PRETTY_OBJS', 'M'}, []),
         'random' : ('RANDOM_OBJS', {}, []),
-        'tensors' : ('TENSORS_OBJS', {'PNG', 'RANDOM_OBJS'}, []),
+        'tensors' : ('TENSORS_OBJS', {'PNG', 'PRETTY_OBJS', 'RANDOM_OBJS'}, []),
         'threads' : ('THREADS_OBJS', {}, [])
     }
 

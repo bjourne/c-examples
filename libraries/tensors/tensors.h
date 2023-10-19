@@ -110,7 +110,9 @@ bool tensor_check_equal(tensor *t1, tensor *t2, float eps);
 bool tensor_check_dims(tensor *me, int n_dims, int dims[]);
 
 // Printing
-void tensor_print(tensor *me, const char *fmt, bool py_fmt);
+void tensor_print(tensor *me, bool print_header,
+                  size_t n_decimals, size_t n_columns,
+                  char *sep);
 
 // Utility
 size_t tensor_n_elements(tensor *me);
