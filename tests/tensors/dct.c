@@ -364,7 +364,7 @@ test_8x8_nvidia() {
     tensor_dct2d_blocks(image, output2, 8, 8);
     assert(tensor_check_equal(output, output2, 0.1));
 
-    tensor_print(output, "%7.2f", false);
+    tensor_print(output, false, 2, 100, " ");
 
     tensor_free(image);
     tensor_free(output);

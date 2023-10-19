@@ -129,11 +129,11 @@ main(int argc, char *argv[]) {
 
     if (IMAGE_WIDTH < 100) {
         printf("* Input:\n");
-        tensor_print(image, "%4.0f", false);
+        tensor_print(image, true, 0, 80, " ");
         printf("* Reference:\n");
-        tensor_print(ref, "%4.0f", false);
+        tensor_print(ref, true, 0, 80, " ");
         printf("* Output:\n");
-        tensor_print(output, "%4.0f", false);
+        tensor_print(output, true, 0, 80, " ");
     }
     tensor_check_equal(output, ref, 0.01);
 

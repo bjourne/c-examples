@@ -24,9 +24,6 @@
 // Simulation steps
 #define N_STEPS 10
 
-// Pretty printing
-#define GRID_FMT "%6.2f"
-
 // Message tags
 #define MSG_BEGIN       1
 #define MSG_ROW_UP      2
@@ -82,7 +79,7 @@ main(int argc, char *argv[]) {
     if (my_id == 0) {
         // Initialize grid
         U0->data[(GRID_Y / 2) * GRID_X + GRID_X / 2] = 500;
-        tensor_print(U0, GRID_FMT, false);
+        tensor_print(U0, false, 2, 100, ", ");
 
         // Distribute work to workers
         uint32_t div = GRID_Y / n_workers;
@@ -111,7 +108,7 @@ main(int argc, char *argv[]) {
             uint32_t ofs1 = offsets[i][1];
             recv_rows(U0, ofs0, ofs1 - ofs0, src, MSG_DONE);
         }
-        tensor_print(U0, GRID_FMT, false);
+        tensor_print(U0, false, 2, 100, ", ");
     }
 
     if (my_id != 0) {
