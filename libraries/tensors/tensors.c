@@ -214,7 +214,7 @@ tensor_free(tensor *t) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-// Scalar Ops
+// Unary ops
 ////////////////////////////////////////////////////////////////////////
 void
 tensor_unary(tensor *src, tensor *dst, tensor_unary_op op) {
@@ -236,6 +236,30 @@ tensor_unary(tensor *src, tensor *dst, tensor_unary_op op) {
         }
     } else {
         assert(false);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+// Scans
+////////////////////////////////////////////////////////////////////////
+void tensor_scan(tensor *src, tensor *dst,
+                 tensor_binary_op op, bool exclusive, float seed) {
+    size_t n = tensor_n_elements(src);
+    assert(n == tensor_n_elements(dst));
+
+    float at0 = exclusive ? seed : 0.0;
+    for (size_t i = 0; i < n; i++) {
+        float v = src->data[i];
+        float at1;
+        if (op == TENSOR_BINARY_OP_ADD) {
+            at1 = at0 + v;
+        } else if (op == TENSOR_BINARY_OP_MUL) {
+            at1 = at0 * v;
+        } else {
+            assert(false);
+        }
+        dst->data[i] = exclusive ? at0 : at1;
+        at0 = at1;
     }
 }
 

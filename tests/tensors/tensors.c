@@ -50,6 +50,13 @@ arr_5_after_relu[5] = {
 };
 static int
 dim_5[1] = {5};
+static int
+dim_10[1] = {10};
+
+static float
+arr_10_triangular_numbers[11] = {
+    0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55
+};
 
 void
 test_from_png() {
@@ -1254,6 +1261,27 @@ test_random_filling() {
     tensor_free(mat);
 }
 
+void
+test_scans() {
+    tensor *src = tensor_init(1, dim_10);
+    tensor *dst = tensor_init(1, dim_10);
+    tensor *dst_ref = tensor_init_from_data(
+        &arr_10_triangular_numbers[1], 1, dim_10);
+
+    tensor_fill_range(src, 1.0);
+    tensor_scan(src, dst, TENSOR_BINARY_OP_ADD, false, 0.0);
+    tensor_check_equal(dst, dst_ref, LINALG_EPSILON);
+
+    tensor_scan(src, dst, TENSOR_BINARY_OP_ADD, true, 0.0);
+    memcpy(dst_ref->data, &arr_10_triangular_numbers[0],
+           sizeof(float) * 10);
+    tensor_check_equal(dst, dst_ref, LINALG_EPSILON);
+
+    tensor_free(src);
+    tensor_free(dst);
+    tensor_free(dst_ref);
+}
+
 int
 main(int argc, char *argv[]) {
     rand_init(1234);
@@ -1290,4 +1318,5 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_transpose);
     PRINT_RUN(test_too_big);
     PRINT_RUN(test_random_filling);
+    PRINT_RUN(test_scans);
 }

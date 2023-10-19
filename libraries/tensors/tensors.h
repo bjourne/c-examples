@@ -119,6 +119,10 @@ void tensor_flatten(tensor *me, int from);
 // Unary ops
 void tensor_unary(tensor *src, tensor *dst, tensor_unary_op op);
 
+// Scans
+void tensor_scan(tensor *src, tensor *dst, tensor_binary_op op,
+                 bool exclusive, float seed);
+
 // Fills
 void tensor_fill_const(tensor *t, float v);
 void tensor_fill_rand_range(tensor *t, float high);
