@@ -222,7 +222,7 @@ def build(ctx):
             'PATHS_OBJS', 'PRETTY_OBJS'
         }, []),
         'paths' : ('PATHS_OBJS', {}, []),
-        'pretty' : ('PRETTY_OBJS', {}, []),
+        'pretty' : ('PRETTY_OBJS', {'M'}, []),
         'quickfit' : ('QF_OBJS', ['DT_OBJS'], []),
         'npy' : ('NPY_OBJS', {'M'}, []),
         'random' : ('RANDOM_OBJS', {}, []),
