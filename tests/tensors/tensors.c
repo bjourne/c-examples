@@ -40,6 +40,17 @@ mat_2x4_t[4][2] = {
     {4, 8}
 };
 
+static float
+arr_5[5] = {
+    -4.0, 0.0, -20.0, 3.0, 2.0
+};
+static float
+arr_5_after_relu[5] = {
+    0.0, 0.0, 0.0, 3.0, 2.0
+};
+static int
+dim_5[1] = {5};
+
 void
 test_from_png() {
     #ifdef HAVE_PNG
@@ -767,13 +778,11 @@ test_max_pool_image() {
 void
 test_relu() {
     tensor *src = tensor_init_from_data(
-        (float *)(float[]){-4.0, 0.0, -20.0, 3.0, 2.0},
-        1, (int[]){5});
+        (float *)arr_5, 1, dim_5);
     tensor *expected = tensor_init_from_data(
-        (float *)(float[]){0.0, 0.0, 0.0, 3.0, 2.0},
-        1, (int[]){5});
+        (float *)arr_5_after_relu, 1, dim_5);
 
-    tensor_relu(src);
+    tensor_unary(src, TENSOR_UNARY_OP_RELU);
     tensor_check_equal(src, expected, LINALG_EPSILON);
 
     tensor_free(src);
@@ -882,7 +891,7 @@ test_cifar10() {
     tensor_fill_rand_range(x0, 10);
 
     tensor *x1 = tensor_conv2d_new(conv1, conv1_bias, 1, 0, x0);
-    tensor_relu(x1);
+    tensor_unary(x1, TENSOR_UNARY_OP_RELU);
 
     assert(x1->dims[0] == 6);
     assert(x1->dims[1] == 28);
@@ -895,7 +904,7 @@ test_cifar10() {
     assert(x2->dims[2] == 14);
 
     tensor *x3 = tensor_conv2d_new(conv2, conv2_bias, 1, 0, x2);
-    tensor_relu(x3);
+    tensor_unary(x3, TENSOR_UNARY_OP_RELU);
     assert(x3->dims[0] == 16);
     assert(x3->dims[1] == 10);
     assert(x3->dims[2] == 10);
@@ -909,11 +918,11 @@ test_cifar10() {
     tensor_check_dims(x4, 1, (int[]){400});
 
     tensor *x5 = tensor_linear_new(fc1, fc1_bias, x4);
-    tensor_relu(x5);
+    tensor_unary(x5, TENSOR_UNARY_OP_RELU);
     assert(tensor_check_dims(x5, 1, (int[]){120}));
 
     tensor *x6 = tensor_linear_new(fc2, fc2_bias, x5);
-    tensor_relu(x6);
+    tensor_unary(x6, TENSOR_UNARY_OP_RELU);
     assert(x6->n_dims == 1);
     assert(x6->dims[0] == 84);
 
@@ -1182,7 +1191,7 @@ void
 test_softmax() {
     tensor *t = tensor_init_from_data((float *)(float[]){-1, 0, 3, 5},
                                       1, (int[]){4});
-    tensor_softmax(t);
+    tensor_unary(t, TENSOR_UNARY_OP_SOFTMAX);
     assert(approx_eq(t->data[0], 0.00216569646006f));
     assert(approx_eq(t->data[1], 0.00588697333334f));
     assert(approx_eq(t->data[2], 0.11824302025266f));

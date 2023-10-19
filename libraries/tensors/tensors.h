@@ -2,7 +2,9 @@
 #ifndef TENSOR_H
 #define TENSOR_H
 
+#include <stddef.h>
 #include <stdbool.h>
+
 
 #define TENSOR_MAX_N_DIMS   10
 
@@ -20,13 +22,19 @@ typedef enum {
     TENSOR_ERR_TOO_BIG
 } tensor_error_type;
 
-typedef  enum {
+typedef enum {
     TENSOR_LAYER_LINEAR = 0,
     TENSOR_LAYER_CONV2D,
     TENSOR_LAYER_MAX_POOL2D,
     TENSOR_LAYER_RELU,
     TENSOR_LAYER_FLATTEN
 } tensor_layer_type;
+
+typedef enum {
+    TENSOR_UNARY_OP_RELU = 0,
+    TENSOR_UNARY_OP_SOFTMAX,
+    TENSOR_UNARY_OP_EXP
+} tensor_unary_op;
 
 typedef struct {
     int dims[TENSOR_MAX_N_DIMS];
@@ -86,6 +94,7 @@ typedef struct {
 
 } tensor_layer_stack;
 
+// Init & free
 tensor *tensor_init(int n_dims, int dims[]);
 tensor *tensor_init_copy(tensor *orig);
 tensor *tensor_init_from_data(float *data, int n_dims, int dims[]);
@@ -127,9 +136,10 @@ tensor *tensor_linear_new(tensor *weights, tensor *bias, tensor *src);
 // Transpose
 void tensor_transpose(tensor *src, tensor *dst);
 
-// Scalar ops
-void tensor_relu(tensor *t);
-void tensor_softmax(tensor *t);
+// Unary ops
+void tensor_unary(tensor *me, tensor_unary_op op);
+
+// Fills
 void tensor_fill_const(tensor *t, float v);
 void tensor_fill_rand_range(tensor *t, float high);
 void tensor_fill_range(tensor *me, float start);

@@ -217,13 +217,30 @@ tensor_free(tensor *t) {
 // Scalar Ops
 ////////////////////////////////////////////////////////////////////////
 void
-tensor_relu(tensor *me) {
+tensor_unary(tensor *me, tensor_unary_op op) {
     size_t n = tensor_n_elements(me);
-    for (size_t i  = 0; i < n; i++) {
-        me->data[i] = MAX(me->data[i], 0.0f);
+    if (op == TENSOR_UNARY_OP_RELU) {
+        for (size_t i = 0; i < n; i++) {
+            me->data[i] = MAX(me->data[i], 0.0f);
+        }
+    } else if (op == TENSOR_UNARY_OP_SOFTMAX) {
+        float tot = 0.0;
+        for (size_t i = 0; i < n; i++) {
+            float v = exp(me->data[i]);
+            me->data[i] = v;
+            tot += v;
+        }
+        for (size_t i = 0; i < n; i++) {
+            me->data[i] /= tot;
+        }
+    } else {
+        assert(false);
     }
 }
 
+////////////////////////////////////////////////////////////////////////
+// Fills
+////////////////////////////////////////////////////////////////////////
 void
 tensor_fill_const(tensor *me, float v) {
     size_t n = tensor_n_elements(me);
@@ -252,20 +269,6 @@ tensor_fill_range(tensor *me, float start) {
     for (size_t i = 0; i < n; i++) {
         me->data[i] = start;
         start += 1.0;
-    }
-}
-
-void
-tensor_softmax(tensor *me) {
-    float tot = 0.0;
-    size_t n = tensor_n_elements(me);
-    for (size_t i = 0; i < n; i++) {
-        float v = exp(me->data[i]);
-        me->data[i] = v;
-        tot += v;
-    }
-    for (size_t i = 0; i < n; i++) {
-        me->data[i] /= tot;
     }
 }
 
@@ -748,7 +751,7 @@ tensor_layer_apply_new(tensor_layer *me, tensor *input) {
                                  input);
     } else if (t == TENSOR_LAYER_RELU) {
         tensor *output = tensor_init_copy(input);
-        tensor_relu(output);
+        tensor_unary(output, TENSOR_UNARY_OP_RELU);
         return output;
     } else if (t == TENSOR_LAYER_MAX_POOL2D) {
         return tensor_max_pool2d_new(me->max_pool2d.kernel_width,
@@ -834,7 +837,7 @@ tensor_layer_stack_apply_new(tensor_layer_stack *me, tensor *input) {
         // Content is in dst after
         bool swap = false;
         if (t == TENSOR_LAYER_RELU) {
-            tensor_relu(src);
+            tensor_unary(src, TENSOR_UNARY_OP_RELU);
         } else if (t == TENSOR_LAYER_CONV2D) {
             tensor_conv2d(l->conv2d.weight, l->conv2d.bias,
                           l->conv2d.stride, l->conv2d.padding,
