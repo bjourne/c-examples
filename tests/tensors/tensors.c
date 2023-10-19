@@ -1,5 +1,6 @@
 // Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
+#include <math.h>
 #include <string.h>
 #include "datatypes/common.h"
 #include "linalg/linalg.h"
@@ -50,8 +51,6 @@ arr_5_after_relu[5] = {
 };
 static int
 dim_5[1] = {5};
-static int
-dim_10[1] = {10};
 
 static float
 arr_10_triangular_numbers[11] = {
@@ -1263,14 +1262,35 @@ test_random_filling() {
 
 void
 test_scans() {
-    tensor *src = tensor_init(1, dim_10);
-    tensor *dst = tensor_init(1, dim_10);
+    size_t n = 10;
+    int dim[1] = {n};
+    tensor *src = tensor_init(1, dim);
+    tensor *dst = tensor_init(1, dim);
     tensor *dst_ref = tensor_init_from_data(
-        &arr_10_triangular_numbers[1], 1, dim_10);
+        &arr_10_triangular_numbers[1], 1, dim);
 
     tensor_fill_range(src, 1.0);
     tensor_scan(src, dst, TENSOR_BINARY_OP_ADD, false, 0.0);
     tensor_check_equal(dst, dst_ref, LINALG_EPSILON);
+
+    // Compare with parallel O(n log n) algo
+    tensor *in = tensor_init_copy(src);
+    tensor *out = tensor_init(1, dim);
+    size_t l2 = (size_t)ceil(log2(n)) ;
+    for (uint32_t d = 0; d < l2; d++) {
+        for (uint32_t i = 0; i < n; i++) {
+            int32_t link = i - (1 << d);
+            if (link >= 0) {
+                out->data[i] = in->data[i] + in->data[link];
+            } else {
+                out->data[i] = in->data[i];
+            }
+        }
+        tensor *tmp = in;
+        in = out;
+        out = tmp;
+    }
+    tensor_check_equal(in, dst_ref, LINALG_EPSILON);
 
     tensor_scan(src, dst, TENSOR_BINARY_OP_ADD, true, 0.0);
     memcpy(dst_ref->data, &arr_10_triangular_numbers[0],
@@ -1280,6 +1300,8 @@ test_scans() {
     tensor_free(src);
     tensor_free(dst);
     tensor_free(dst_ref);
+    tensor_free(in);
+    tensor_free(out);
 }
 
 void
