@@ -41,6 +41,13 @@ void
 pp_print_key_value(pretty_printer *me,
                    char *key,
                    char *value_fmt, ...);
+void
+pp_print_key_value_with_unit(
+    pretty_printer *me,
+    char *key,
+    double quantity,
+    char *unit
+);
 
 void
 pp_print_array(
@@ -49,6 +56,9 @@ pp_print_array(
     size_t n_dims, size_t dims[],
     void *arr
 );
+
+void
+pp_humanize_quantity(double q, char *unit, size_t n_decimals, char *buf);
 
 
 #endif

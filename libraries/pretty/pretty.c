@@ -55,6 +55,35 @@ pp_print_key_value(
     printf("%s\n", buf);
 }
 
+void
+pp_print_key_value_with_unit(
+    pretty_printer *me,
+    char *key,
+    double quantity,
+    char *unit
+) {
+    char buf[256];
+    pp_humanize_quantity(quantity, unit, me->n_decimals, buf);
+    pp_print_key_value(me, key, buf);
+}
+
+static char *
+prefixes[] ={"", "k", "M", "G"};
+
+void
+pp_humanize_quantity(double q, char *unit, size_t n_decimals, char *buf) {
+    size_t i = 0;
+    while (q > 1000.0) {
+        i++;
+        q = q / 1000.0;
+    }
+    assert(i <= 3);
+    char *pf = prefixes[i];
+    char fmt[256];
+    sprintf(fmt, "%%.%ldf %%s%%s", n_decimals);
+    sprintf(buf, fmt, q, pf, unit);
+}
+
 #define PRINT_EL_AT(tp_char, v_val, tp_tp)  \
     if (tp == (tp_char) && v == (v_val)) {  \
         printf(fmt, ((tp_tp *)data)[i]);    \

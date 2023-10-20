@@ -39,6 +39,7 @@ cud_print_system_details() {
     CUD_ASSERT(cudaGetDeviceCount(&cnt));
 
     pretty_printer *pp = pp_init();
+    pp->n_decimals = 2;
     pp->key_width = 18;
 
     int rt;
@@ -46,7 +47,16 @@ cud_print_system_details() {
     int rt_maj = rt / 1000;
     int rt_min = (rt - rt_maj * 1000) / 10;
 
+    size_t free, total;
+    CUD_ASSERT(cudaMemGetInfo(&free, &total));
+
     pp_print_key_value(pp, "Runtime", "%d.%d", rt_maj, rt_min);
+    pp_print_key_value_with_unit(
+        pp, "Total memory",
+        total, "B");
+    pp_print_key_value_with_unit(
+        pp, "Free memory",
+        free, "B");
     pp_print_key_value(pp, "N. of devices", "%d", cnt);
     printf("\n");
     pp->indent++;
@@ -66,26 +76,26 @@ cud_print_system_details() {
             pp, "Warp size",
             "%d", props.warpSize);
         pp_print_key_value(
-            pp, "Mem. clock",
-            "%d MHz", cr / 1000);
-        pp_print_key_value(
-            pp, "Bus width",
-            "%d bit", bw);
-        pp_print_key_value(
-            pp, "Max mem. bw",
-            "%.1f GB/s", 2.0 * cr * (bw / 8) / 1.0e6);
-        pp_print_key_value(
-            pp, "Global memory",
-            "%.2f GB", (double)gm / (1000.0 * 1000.0 * 1000.0));
-        pp_print_key_value(
-            pp, "Shared mem./block",
-            "%.1f kB", (double)props.sharedMemPerBlock / 1000.0);
-        pp_print_key_value(
             pp, "Max thr./block",
             "%d", props.maxThreadsPerBlock);
         pp_print_key_value(
             pp, "Max thr./mproc.",
             "%d", props.maxThreadsPerMultiProcessor);
+        pp_print_key_value_with_unit(pp, "Mem. clock", cr * 1000.0, "Hz");
+        pp->n_decimals = 0;
+        pp_print_key_value_with_unit(pp, "Bus width", bw, "bit");
+        pp->n_decimals = 2;
+        pp_print_key_value_with_unit(
+            pp, "Max mem. bw",
+            1000.0 * 2.0 * cr * (bw / 8), "B/s");
+
+        pp_print_key_value_with_unit(
+            pp, "Global memory",
+            gm, "B");
+
+        pp_print_key_value_with_unit(
+            pp, "Shared mem./block",
+            props.sharedMemPerBlock, "B");
     }
     pp->indent--;
     pp_free(pp);
