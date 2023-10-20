@@ -8,6 +8,7 @@ add_reduce(const uint N, const __global int *A, __global int *ans) {
 
     uint ofs0 = n_els * id;
     uint ofs1 = ofs0 + n_els;
+    ofs1 = ofs1 > N ? N : ofs1;
 
     int sum = 0;
     for (uint i = ofs0; i < ofs1; i++) {

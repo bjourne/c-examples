@@ -145,12 +145,12 @@ test_add_reduce() {
     printf("\n");
 
     uint32_t R = 100;
-    uint32_t n_arr = 1 * 1024 * 1000 * 1000;
+    uint32_t n_arr = 100 * 1000 * 1000;
 
     // Largest allocation on my GPU is 512mb
     uint32_t n_chunk = 128 * 1000 * 1000;
 
-    size_t n_bytes_chunk = n_chunk * sizeof(cl_int);
+    size_t n_bytes_chunk = MIN(n_chunk, n_arr) * sizeof(cl_int);
     size_t n_bytes_arr = n_arr * sizeof(int32_t);
 
     printf("Allocating %ld bytes\n", n_bytes_arr);
@@ -190,7 +190,7 @@ test_add_reduce() {
     cl_kernel kernel;
     OCL_CHECK_ERR(
         ocl_load_kernels(
-            ctx, dev, "libraries/opencl/add_reduce.cl",
+            ctx, dev, "tests/opencl/add_reduce.cl",
             1, (char *[]){"add_reduce"},
             &program, &kernel
         )
