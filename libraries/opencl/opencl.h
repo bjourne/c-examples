@@ -102,4 +102,49 @@ ocl_create_pipe(cl_context ctx,
 cl_int
 ocl_poll_event_until(cl_event event, cl_int exec_status, cl_uint millis);
 
+// "Object-oriented" interface. Idea is to make an interface to save
+// lots of boilerplate code.
+typedef struct {
+    cl_platform_id platform;
+    cl_device_id device;
+    cl_context context;
+    size_t n_buffers;
+    cl_mem *buffers;
+    size_t n_queues;
+    cl_command_queue *queues;
+    size_t n_kernels;
+    cl_kernel *kernels;
+    cl_program program;
+    cl_int err;
+} ocl_ctx;
+
+ocl_ctx *ocl_ctx_init(cl_uint plat_idx, cl_uint dev_idx, bool print);
+void ocl_ctx_free(ocl_ctx *me);
+
+cl_int
+ocl_ctx_load_kernels(
+    ocl_ctx *me,
+    const char *path,
+    size_t n_kernels,
+    char *names[]
+);
+
+cl_int ocl_ctx_add_queue(ocl_ctx *me);
+
+cl_int
+ocl_ctx_add_buffer(
+    ocl_ctx *me,
+    cl_mem_flags flags,
+    size_t n_bytes
+);
+
+cl_int
+ocl_ctx_write_buffer(
+    ocl_ctx *me,
+    size_t queue_idx,
+    size_t buffer_idx,
+    void *arr,
+    size_t n_bytes
+);
+
 #endif

@@ -545,3 +545,103 @@ ocl_poll_event_until(cl_event event,
         sleep_cp(millis);
     }
 }
+
+////////////////////////////////////////////////////////////////////////
+// Object-oriented interface
+////////////////////////////////////////////////////////////////////////
+
+// Hackiiish
+#define OCL_CTX_MAX_QUEUES      10
+#define OCL_CTX_MAX_KERNELS     10
+#define OCL_CTX_MAX_BUFFERS     10
+
+ocl_ctx *
+ocl_ctx_init(cl_uint plat_idx, cl_uint dev_idx, bool print) {
+    ocl_ctx *me = malloc(sizeof(ocl_ctx));
+    me->n_queues = 0;
+    me->queues = malloc(sizeof(cl_command_queue) * OCL_CTX_MAX_QUEUES);
+    me->n_kernels = 0;
+    me->kernels = malloc(sizeof(cl_kernel) * OCL_CTX_MAX_KERNELS);
+    me->n_buffers = 0;
+    me->buffers = malloc(sizeof(cl_mem) * OCL_CTX_MAX_BUFFERS);
+    me->err = ocl_basic_setup(plat_idx, dev_idx,
+                              &me->platform, &me->device,
+                              &me->context, 0, NULL);
+    if (me->err == CL_SUCCESS && print) {
+        ocl_print_device_details(me->device, 0);
+        printf("\n");
+    }
+    return me;
+}
+
+void
+ocl_ctx_free(ocl_ctx *me) {
+    for (size_t i = 0; i < me->n_queues; i++) {
+        OCL_CHECK_ERR(clFlush(me->queues[i]));
+        OCL_CHECK_ERR(clFinish(me->queues[i]));
+        clReleaseCommandQueue(me->queues[i]);
+    }
+    for (size_t i = 0; i < me->n_kernels; i++) {
+        clReleaseKernel(me->kernels[i]);
+    }
+    for (size_t i = 0; i < me->n_buffers; i++) {
+        clReleaseMemObject(me->buffers[i]);
+    }
+    clReleaseProgram(me->program);
+    clReleaseContext(me->context);
+    free(me->buffers);
+    free(me->kernels);
+    free(me->queues);
+    free(me);
+}
+
+cl_int
+ocl_ctx_load_kernels(ocl_ctx *me,
+                     const char *path,
+                     size_t n_kernels,
+                     char *names[]) {
+    assert(me->n_kernels == 0 && n_kernels < OCL_CTX_MAX_KERNELS);
+    me->n_kernels = n_kernels;
+    return ocl_load_kernels(me->context, me->device, path,
+                            n_kernels, names,
+                            &me->program, me->kernels);
+}
+
+cl_int
+ocl_ctx_add_buffer(ocl_ctx *me, cl_mem_flags flags, size_t n_bytes) {
+    cl_int err;
+    me->buffers[me->n_buffers] =
+        clCreateBuffer(me->context, flags, n_bytes, NULL, &err);
+    if (err != CL_SUCCESS) {
+        return err;
+    }
+    me->n_buffers++;
+    return CL_SUCCESS;
+}
+
+cl_int
+ocl_ctx_add_queue(ocl_ctx *me) {
+    cl_int err;
+    me->queues[me->n_queues] = clCreateCommandQueueWithProperties(
+        me->context, me->device, NULL, &err
+    );
+    if (err != CL_SUCCESS) {
+        return err;
+    }
+    me->n_queues++;
+    return CL_SUCCESS;
+}
+
+cl_int
+ocl_ctx_write_buffer(ocl_ctx *me,
+                     size_t queue_idx,
+                     size_t buffer_idx,
+                     void *arr,
+                     size_t n_bytes) {
+    return clEnqueueWriteBuffer(
+        me->queues[queue_idx],
+        me->buffers[buffer_idx],
+        CL_TRUE,
+        0, n_bytes, arr,
+        0, NULL, NULL);
+}

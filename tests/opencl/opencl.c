@@ -55,7 +55,7 @@ test_matmul() {
     };
     cl_program program;
     cl_kernel kernels[3];
-    ocl_check_err(ocl_load_kernels(
+    OCL_CHECK_ERR(ocl_load_kernels(
                       ctx, dev, "libraries/opencl/matmul.cl",
                       3, kernel_names,
                       &program, kernels));
@@ -140,7 +140,7 @@ test_add_reduce() {
     cl_device_id dev;
     cl_context ctx;
     cl_command_queue queue;
-    ocl_check_err(ocl_basic_setup(0, 0, &platform, &dev, &ctx, 1, &queue));
+    OCL_CHECK_ERR(ocl_basic_setup(0, 0, &platform, &dev, &ctx, 1, &queue));
     ocl_print_device_details(dev, 0);
     printf("\n");
 
@@ -245,8 +245,39 @@ test_add_reduce() {
     clReleaseContext(ctx);
 }
 
+void
+test_prefix_sum() {
+    ocl_ctx *ctx = ocl_ctx_init(0, 0, true);
+    OCL_CHECK_ERR(ctx->err);
+
+    OCL_CHECK_ERR(
+        ocl_ctx_load_kernels(
+            ctx,
+            "tests/opencl/prefix_sum.cl",
+            1, (char *[]){"prefix_sum"}
+        )
+    );
+    uint32_t range = 100;
+    size_t n_arr = 1000;
+    size_t n_bytes = sizeof(float) * n_arr;
+    int32_t *arr = malloc(n_bytes);
+    rnd_pcg32_rand_range_fill((uint32_t *)arr, range + 1, n_arr);
+    for (uint32_t i = 0; i < n_arr; i++) {
+        arr[i] -= (range / 2);
+    }
+    OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, CL_MEM_WRITE_ONLY, n_bytes));
+    OCL_CHECK_ERR(ocl_ctx_add_queue(ctx));
+    OCL_CHECK_ERR(
+        ocl_ctx_write_buffer(ctx, 0, 0, (void *)arr, n_bytes)
+    );
+
+    ocl_ctx_free(ctx);
+    free(arr);
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_add_reduce);
     PRINT_RUN(test_matmul);
+    PRINT_RUN(test_prefix_sum);
 }
