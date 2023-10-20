@@ -62,14 +62,14 @@ ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
                  cl_program *program, cl_kernel *kernels);
 
 cl_int
-ocl_set_kernel_arguments(cl_kernel kernel, int n_args, ...);
+ocl_set_kernel_arguments(cl_kernel kernel, size_t n_args, ...);
 
 cl_int
 ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
                   cl_uint work_dim,
                   const size_t *global,
                   const size_t *local,
-                  int n_args, ...);
+                  size_t n_args, ...);
 
 
 // Buffer creation functions
@@ -121,30 +121,26 @@ typedef struct {
 ocl_ctx *ocl_ctx_init(cl_uint plat_idx, cl_uint dev_idx, bool print);
 void ocl_ctx_free(ocl_ctx *me);
 
-cl_int
-ocl_ctx_load_kernels(
-    ocl_ctx *me,
-    const char *path,
-    size_t n_kernels,
-    char *names[]
-);
+cl_int ocl_ctx_load_kernels(ocl_ctx *me, const char *path,
+                            size_t n_kernels, char *names[]);
 
 cl_int ocl_ctx_add_queue(ocl_ctx *me);
 
-cl_int
-ocl_ctx_add_buffer(
-    ocl_ctx *me,
-    cl_mem_flags flags,
-    size_t n_bytes
-);
+cl_int ocl_ctx_add_buffer(ocl_ctx *me, cl_mem_flags flags, size_t n_bytes);
 
-cl_int
-ocl_ctx_write_buffer(
-    ocl_ctx *me,
-    size_t queue_idx,
-    size_t buffer_idx,
-    void *arr,
-    size_t n_bytes
-);
+cl_int ocl_ctx_write_buffer(ocl_ctx *me,
+                            size_t queue_idx, size_t buffer_idx,
+                            void *arr, size_t n_bytes);
+
+cl_int ocl_ctx_read_buffer(ocl_ctx *me,
+                           size_t queue_idx, size_t buffer_idx,
+                           void *arr, size_t n_bytes);
+
+cl_int ocl_ctx_run_kernel(ocl_ctx *me,
+                          size_t queue_idx, size_t kernel_idx,
+                          size_t work_dim,
+                          const size_t *global, const size_t *local,
+                          size_t n_args, ...);
+
 
 #endif

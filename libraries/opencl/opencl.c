@@ -363,7 +363,7 @@ set_kernel_arguments(cl_kernel kernel, int n_args, va_list ap) {
 }
 
 cl_int
-ocl_set_kernel_arguments(cl_kernel kernel, int n_args, ...) {
+ocl_set_kernel_arguments(cl_kernel kernel, size_t n_args, ...) {
     va_list ap;
     va_start(ap, n_args);
     cl_int err = set_kernel_arguments(kernel, n_args, ap);
@@ -376,7 +376,7 @@ ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
                   cl_uint work_dim,
                   const size_t *global,
                   const size_t *local,
-                  int n_args, ...) {
+                  size_t n_args, ...) {
     va_list ap;
     va_start(ap, n_args);
     cl_int err = set_kernel_arguments(kernel, n_args, ap);
@@ -644,4 +644,45 @@ ocl_ctx_write_buffer(ocl_ctx *me,
         CL_TRUE,
         0, n_bytes, arr,
         0, NULL, NULL);
+}
+
+cl_int
+ocl_ctx_read_buffer(ocl_ctx *me,
+                    size_t queue_idx,
+                    size_t buffer_idx,
+                    void *arr,
+                    size_t n_bytes) {
+    return ocl_read_buffer(
+        me->queues[queue_idx],
+        arr, n_bytes,
+        me->buffers[buffer_idx]
+    );
+}
+
+cl_int
+ocl_ctx_run_kernel(
+    ocl_ctx *me,
+    size_t queue_idx,
+    size_t kernel_idx,
+    size_t work_dim,
+    const size_t *global,
+    const size_t *local,
+    size_t n_args, ...
+) {
+    cl_kernel kernel = me->kernels[kernel_idx];
+    cl_command_queue queue = me->queues[queue_idx];
+    va_list ap;
+    va_start(ap, n_args);
+    cl_int err = set_kernel_arguments(kernel, n_args, ap);
+    va_end(ap);
+    if (err != CL_SUCCESS) {
+        return err;
+    }
+    cl_event event;
+    err = clEnqueueNDRangeKernel(queue, kernel, work_dim, NULL,
+                                 global, local, 0, NULL, &event);
+    if (err != CL_SUCCESS) {
+        return err;
+    }
+    return ocl_poll_event_until(event, CL_COMPLETE, 10);
 }

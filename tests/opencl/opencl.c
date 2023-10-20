@@ -148,7 +148,7 @@ test_add_reduce() {
     uint32_t n_arr = 100 * 1000 * 1000;
 
     // Largest allocation on my GPU is 512mb
-    uint32_t n_chunk = 128 * 1000 * 1000;
+    uint32_t n_chunk = 50 * 1000 * 1000;
 
     size_t n_bytes_chunk = MIN(n_chunk, n_arr) * sizeof(cl_int);
     size_t n_bytes_arr = n_arr * sizeof(int32_t);
@@ -245,11 +245,34 @@ test_add_reduce() {
     clReleaseContext(ctx);
 }
 
+// So many wrappers...
+cl_int
+ocl_ctx_add_tensor_buffer(ocl_ctx *me, cl_mem_flags flags, tensor *t) {
+    size_t n_bytes = sizeof(float) * tensor_n_elements(t);
+    return ocl_ctx_add_buffer(me, flags, n_bytes);
+}
+
+cl_int
+ocl_ctx_write_tensor(ocl_ctx *me,
+                     size_t queue_idx, size_t buffer_idx,
+                     tensor *t) {
+    size_t n_bytes = sizeof(float) * tensor_n_elements(t);
+    return ocl_ctx_write_buffer(me, queue_idx, buffer_idx, t->data, n_bytes);
+}
+
+cl_int
+ocl_ctx_read_tensor(ocl_ctx *me,
+                    size_t queue_idx, size_t buffer_idx,
+                    tensor *t) {
+    size_t n_bytes = sizeof(float) * tensor_n_elements(t);
+    return ocl_ctx_read_buffer(me, queue_idx, buffer_idx, t->data, n_bytes);
+}
+
+
 void
 test_prefix_sum() {
     ocl_ctx *ctx = ocl_ctx_init(0, 0, true);
     OCL_CHECK_ERR(ctx->err);
-
     OCL_CHECK_ERR(
         ocl_ctx_load_kernels(
             ctx,
@@ -257,22 +280,38 @@ test_prefix_sum() {
             1, (char *[]){"prefix_sum"}
         )
     );
-    uint32_t range = 100;
-    size_t n_arr = 1000;
-    size_t n_bytes = sizeof(float) * n_arr;
-    int32_t *arr = malloc(n_bytes);
-    rnd_pcg32_rand_range_fill((uint32_t *)arr, range + 1, n_arr);
-    for (uint32_t i = 0; i < n_arr; i++) {
-        arr[i] -= (range / 2);
-    }
-    OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, CL_MEM_WRITE_ONLY, n_bytes));
     OCL_CHECK_ERR(ocl_ctx_add_queue(ctx));
-    OCL_CHECK_ERR(
-        ocl_ctx_write_buffer(ctx, 0, 0, (void *)arr, n_bytes)
-    );
 
-    ocl_ctx_free(ctx);
-    free(arr);
+    size_t n_arr = 10 * 1000 * 1000;
+    tensor *arr = tensor_init(1, (int[]){n_arr});
+    tensor *pf = tensor_init(1, (int[]){n_arr});
+    tensor *pf_exp = tensor_init(1, (int[]){n_arr});
+    tensor_fill_rand_range(arr, 1);
+
+    // Get result from OpenCL
+    OCL_CHECK_ERR(ocl_ctx_add_tensor_buffer(ctx, CL_MEM_READ_ONLY, arr));
+    OCL_CHECK_ERR(ocl_ctx_add_tensor_buffer(ctx, CL_MEM_WRITE_ONLY, pf));
+    OCL_CHECK_ERR(ocl_ctx_write_tensor(ctx, 0, 0, arr));
+    OCL_CHECK_ERR(
+        ocl_ctx_run_kernel(
+            ctx, 0, 0, 1, (size_t[]){256}, NULL,
+            3,
+            sizeof(cl_ulong), &n_arr,
+            sizeof(cl_mem), (void *)&ctx->buffers[0],
+            sizeof(cl_mem), (void *)&ctx->buffers[1]
+        )
+    );
+    OCL_CHECK_ERR(ocl_ctx_read_tensor(ctx, 0, 1, pf));
+
+    // From CPU
+    tensor_scan(arr, pf_exp, TENSOR_BINARY_OP_ADD, true, 0.0);
+
+    // Numerical instabilities
+    assert(tensor_check_equal(pf, pf_exp, 1000));
+
+    tensor_free(arr);
+    tensor_free(pf);
+    tensor_free(pf_exp);
 }
 
 int
