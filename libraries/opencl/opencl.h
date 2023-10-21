@@ -29,17 +29,6 @@ ocl_print_platform_details(cl_platform_id plat);
 void
 ocl_print_device_details(cl_device_id dev, pretty_printer *pp);
 
-// Convenience functions
-cl_int
-ocl_basic_setup(
-    cl_uint plat_idx, cl_uint dev_idx,
-    cl_platform_id *platform,
-    cl_device_id *device,
-    cl_context *ctx,
-    size_t n_queues,
-    cl_command_queue *queues
-);
-
 // Platform and device functions
 cl_int
 ocl_get_platforms(cl_uint *n_platforms, cl_platform_id **platforms);
@@ -101,6 +90,17 @@ ocl_create_pipe(cl_context ctx,
 // Event handling
 cl_int
 ocl_poll_event_until(cl_event event, cl_int exec_status, cl_uint millis);
+
+// Convenience functions
+cl_int
+ocl_basic_setup(
+    cl_uint plat_idx, cl_uint dev_idx,
+    cl_platform_id *platform,
+    cl_device_id *device,
+    cl_context *ctx,
+    size_t n_queues,
+    cl_command_queue *queues
+);
 
 // "Object-oriented" interface. Idea is to make an interface to save
 // lots of boilerplate code.

@@ -161,15 +161,6 @@ ocl_get_devices(cl_platform_id platform,
 }
 
 static void
-print_device_info_num(cl_device_id dev, pretty_printer *pp,
-                      char *key, cl_device_info param_name,
-                      size_t size) {
-    uint64_t val;
-    clGetDeviceInfo(dev, param_name, size, &val, NULL);
-    pp_print_key_value(pp, key, "%ld", val);
-}
-
-static void
 print_device_info_str(cl_device_id dev, pretty_printer *pp,
                       cl_device_info attr, char *attr_name) {
     size_t n_bytes;
@@ -201,26 +192,36 @@ ocl_print_device_details(cl_device_id dev, pretty_printer *pp) {
         print_device_info_str(dev, use_pp, attr_types[i], attr_names[i]);
     }
 
-    print_device_info_num(
-        dev, use_pp,
+    char *keys[] = {
         "Compute units",
-        CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint));
-    print_device_info_num(
-        dev, use_pp,
         "Global memory",
-        CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong));
-    print_device_info_num(
-        dev, use_pp,
         "Max allocation",
-        CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong));
-    print_device_info_num(
-        dev, use_pp,
         "Max wg. size",
-        CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(cl_ulong));
-    print_device_info_num(
-        dev, use_pp,
-        "Local mem. size",
-        CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong));
+        "Local mem. size"
+    };
+    cl_device_info params[] = {
+        CL_DEVICE_MAX_COMPUTE_UNITS,
+        CL_DEVICE_GLOBAL_MEM_SIZE,
+        CL_DEVICE_MAX_MEM_ALLOC_SIZE,
+        CL_DEVICE_MAX_WORK_GROUP_SIZE,
+        CL_DEVICE_LOCAL_MEM_SIZE
+    };
+    size_t sizes[] = {
+        sizeof(cl_uint),
+        sizeof(cl_ulong),
+        sizeof(cl_ulong),
+        sizeof(cl_ulong),
+        sizeof(cl_ulong)
+    };
+    char *suffixes[] = {"", "B", "B", "", "B"};
+    for (size_t i = 0; i < 5; i++) {
+        char *suf = suffixes[i];
+        char *key = keys[i];
+        uint64_t val;
+        clGetDeviceInfo(dev, params[i], sizes[i], &val, NULL);
+        use_pp->n_decimals = !strcmp(suf, "") ? 0 : 2;
+        pp_print_key_value_with_unit(pp, key, val, suf);
+    }
 
     //print_prefix(ind);
     size_t n_bytes;
