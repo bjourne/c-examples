@@ -218,9 +218,9 @@ ocl_print_device_details(cl_device_id dev, pretty_printer *pp) {
         char *suf = suffixes[i];
         char *key = keys[i];
         uint64_t val;
-        clGetDeviceInfo(dev, params[i], sizes[i], &val, NULL);
+        OCL_CHECK_ERR(clGetDeviceInfo(dev, params[i], sizes[i], &val, NULL));
         use_pp->n_decimals = !strcmp(suf, "") ? 0 : 2;
-        pp_print_key_value_with_unit(pp, key, val, suf);
+        pp_print_key_value_with_unit(use_pp, key, (double)val, suf);
     }
 
     //print_prefix(ind);
