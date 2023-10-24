@@ -200,12 +200,13 @@ tensor_free(tensor *t) {
 // Unary ops
 ////////////////////////////////////////////////////////////////////////
 void
-tensor_unary(tensor *src, tensor *dst, tensor_unary_op op) {
+tensor_unary(tensor *src, tensor *dst,
+             tensor_unary_op op, float scalar) {
     size_t n = tensor_n_elements(src);
     assert(n == tensor_n_elements(dst));
-    if (op == TENSOR_UNARY_OP_RELU) {
+    if (op == TENSOR_UNARY_OP_MAX) {
         for (size_t i = 0; i < n; i++) {
-            dst->data[i] = MAX(src->data[i], 0.0f);
+            dst->data[i] = MAX(src->data[i], scalar);
         }
     } else if (op == TENSOR_UNARY_OP_SOFTMAX) {
         float tot = 0.0;
@@ -214,8 +215,15 @@ tensor_unary(tensor *src, tensor *dst, tensor_unary_op op) {
             dst->data[i] = v;
             tot += v;
         }
+        tensor_unary(dst, dst, TENSOR_UNARY_OP_DIV, tot);
+
+    } else if (op == TENSOR_UNARY_OP_DIV) {
         for (size_t i = 0; i < n; i++) {
-            dst->data[i] /= tot;
+            dst->data[i] = src->data[i] / scalar;
+        }
+    } else if (op == TENSOR_UNARY_OP_ADD) {
+        for (size_t i = 0; i < n; i++) {
+            dst->data[i] = src->data[i] + scalar;
         }
     } else {
         assert(false);
@@ -759,7 +767,7 @@ tensor_layer_apply_new(tensor_layer *me, tensor *input) {
                                  input);
     } else if (t == TENSOR_LAYER_RELU) {
         tensor *output = tensor_init_copy(input);
-        tensor_unary(output, output, TENSOR_UNARY_OP_RELU);
+        tensor_unary(output, output, TENSOR_UNARY_OP_MAX, 0);
         return output;
     } else if (t == TENSOR_LAYER_MAX_POOL2D) {
         return tensor_max_pool2d_new(me->max_pool2d.kernel_width,
@@ -845,7 +853,7 @@ tensor_layer_stack_apply_new(tensor_layer_stack *me, tensor *input) {
         // Content is in dst after
         bool swap = false;
         if (t == TENSOR_LAYER_RELU) {
-            tensor_unary(src, src, TENSOR_UNARY_OP_RELU);
+            tensor_unary(src, src, TENSOR_UNARY_OP_MAX, 0);
         } else if (t == TENSOR_LAYER_CONV2D) {
             tensor_conv2d(l->conv2d.weight, l->conv2d.bias,
                           l->conv2d.stride, l->conv2d.padding,

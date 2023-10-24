@@ -788,7 +788,7 @@ test_relu() {
     tensor *expected = tensor_init_from_data(
         (float *)arr_5_after_relu, 1, dim_5);
 
-    tensor_unary(src, src, TENSOR_UNARY_OP_RELU);
+    tensor_unary(src, src, TENSOR_UNARY_OP_MAX, 0);
     tensor_check_equal(src, expected, LINALG_EPSILON);
 
     tensor_free(src);
@@ -897,7 +897,7 @@ test_cifar10() {
     tensor_fill_rand_range(x0, 10);
 
     tensor *x1 = tensor_conv2d_new(conv1, conv1_bias, 1, 0, x0);
-    tensor_unary(x1, x1, TENSOR_UNARY_OP_RELU);
+    tensor_unary(x1, x1, TENSOR_UNARY_OP_MAX, 0);
 
     assert(x1->dims[0] == 6);
     assert(x1->dims[1] == 28);
@@ -910,7 +910,7 @@ test_cifar10() {
     assert(x2->dims[2] == 14);
 
     tensor *x3 = tensor_conv2d_new(conv2, conv2_bias, 1, 0, x2);
-    tensor_unary(x3, x3, TENSOR_UNARY_OP_RELU);
+    tensor_unary(x3, x3, TENSOR_UNARY_OP_MAX, 0);
     assert(x3->dims[0] == 16);
     assert(x3->dims[1] == 10);
     assert(x3->dims[2] == 10);
@@ -924,11 +924,11 @@ test_cifar10() {
     tensor_check_dims(x4, 1, (int[]){400});
 
     tensor *x5 = tensor_linear_new(fc1, fc1_bias, x4);
-    tensor_unary(x5, x5, TENSOR_UNARY_OP_RELU);
+    tensor_unary(x5, x5, TENSOR_UNARY_OP_MAX, 0);
     assert(tensor_check_dims(x5, 1, (int[]){120}));
 
     tensor *x6 = tensor_linear_new(fc2, fc2_bias, x5);
-    tensor_unary(x6, x6, TENSOR_UNARY_OP_RELU);
+    tensor_unary(x6, x6, TENSOR_UNARY_OP_MAX, 0);
     assert(x6->n_dims == 1);
     assert(x6->dims[0] == 84);
 
@@ -1197,7 +1197,7 @@ void
 test_softmax() {
     tensor *t = tensor_init_from_data((float *)(float[]){-1, 0, 3, 5},
                                       1, (int[]){4});
-    tensor_unary(t, t, TENSOR_UNARY_OP_SOFTMAX);
+    tensor_unary(t, t, TENSOR_UNARY_OP_SOFTMAX, 0);
     assert(approx_eq(t->data[0], 0.00216569646006f));
     assert(approx_eq(t->data[1], 0.00588697333334f));
     assert(approx_eq(t->data[2], 0.11824302025266f));

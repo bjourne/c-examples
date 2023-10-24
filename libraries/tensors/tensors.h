@@ -31,9 +31,11 @@ typedef enum {
 } tensor_layer_type;
 
 typedef enum {
-    TENSOR_UNARY_OP_RELU = 0,
-    TENSOR_UNARY_OP_SOFTMAX,
-    TENSOR_UNARY_OP_EXP
+    TENSOR_UNARY_OP_SOFTMAX = 0,
+    TENSOR_UNARY_OP_EXP,
+    TENSOR_UNARY_OP_ADD,
+    TENSOR_UNARY_OP_DIV,
+    TENSOR_UNARY_OP_MAX
 } tensor_unary_op;
 
 typedef enum {
@@ -119,7 +121,8 @@ size_t tensor_n_elements(tensor *me);
 void tensor_flatten(tensor *me, int from);
 
 // Unary ops
-void tensor_unary(tensor *src, tensor *dst, tensor_unary_op op);
+void tensor_unary(tensor *src, tensor *dst,
+                  tensor_unary_op op, float scalar);
 
 // Scans
 void tensor_scan(tensor *src, tensor *dst, tensor_binary_op op,
