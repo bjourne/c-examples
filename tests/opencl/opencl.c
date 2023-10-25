@@ -334,7 +334,7 @@ test_count() {
                       ctx, CL_MEM_WRITE_ONLY, sizeof(int32_t)));
     OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, 0, arr, n_bytes));
 
-    int32_t cnt;
+    int32_t cnt[2];
     char *names[] = {
         "count_divisible",
         "count_divisible_simd"
@@ -349,8 +349,8 @@ test_count() {
                       sizeof(int32_t), &n_els,
                       sizeof(cl_mem), &ctx->buffers[0],
                       sizeof(cl_mem), &ctx->buffers[1]));
-    OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, 0, 1, &cnt, sizeof(int32_t)));
-    printf("count %d\n", cnt);
+    OCL_CHECK_ERR(ocl_ctx_read_buffer(
+                      ctx, 0, 1, &cnt[0], sizeof(int32_t)));
 
     OCL_CHECK_ERR(ocl_ctx_run_kernel(
                       ctx, 0, 1, 1,
@@ -358,8 +358,9 @@ test_count() {
                       sizeof(int32_t), &n_els,
                       sizeof(cl_mem), &ctx->buffers[0],
                       sizeof(cl_mem), &ctx->buffers[1]));
-    OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, 0, 1, &cnt, sizeof(int32_t)));
-    printf("count %d\n", cnt);
+    OCL_CHECK_ERR(ocl_ctx_read_buffer(
+                      ctx, 0, 1, &cnt[1], sizeof(int32_t)));
+    assert(cnt[0] == cnt[1]);
 
     free(arr);
     ocl_ctx_free(ctx);
