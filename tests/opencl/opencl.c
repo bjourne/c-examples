@@ -286,20 +286,23 @@ test_prefix_sum() {
     tensor *arr = tensor_init(1, (int[]){n_arr});
     tensor *pf = tensor_init(1, (int[]){n_arr});
     tensor *pf_exp = tensor_init(1, (int[]){n_arr});
-    tensor_fill_rand_range(arr, 1);
+    tensor_fill_rand_range(arr, 2);
+    tensor_unary(arr, arr, TENSOR_UNARY_OP_ADD, -1.0);
 
     // Get result from OpenCL
     OCL_CHECK_ERR(ocl_ctx_add_tensor_buffer(ctx, CL_MEM_READ_ONLY, arr));
     OCL_CHECK_ERR(ocl_ctx_add_tensor_buffer(ctx, CL_MEM_WRITE_ONLY, pf));
     OCL_CHECK_ERR(ocl_ctx_write_tensor(ctx, 0, 0, arr));
-    OCL_CHECK_ERR(
-        ocl_ctx_run_kernel(
-            ctx, 0, 0, 1, (size_t[]){256}, NULL,
-            3,
-            sizeof(cl_ulong), &n_arr,
-            sizeof(cl_mem), (void *)&ctx->buffers[0],
-            sizeof(cl_mem), (void *)&ctx->buffers[1]
-        )
+    PRINT_CODE_TIME(
+        OCL_CHECK_ERR(
+            ocl_ctx_run_kernel(
+                ctx, 0, 0, 1, (size_t[]){128}, NULL,
+                3,
+                sizeof(cl_ulong), &n_arr,
+                sizeof(cl_mem), (void *)&ctx->buffers[0],
+                sizeof(cl_mem), (void *)&ctx->buffers[1]
+            )
+        ), "Took %.2fs\n"
     );
     OCL_CHECK_ERR(ocl_ctx_read_tensor(ctx, 0, 1, pf));
 
@@ -307,11 +310,59 @@ test_prefix_sum() {
     tensor_scan(arr, pf_exp, TENSOR_BINARY_OP_ADD, true, 0.0);
 
     // Numerical instabilities
-    assert(tensor_check_equal(pf, pf_exp, 1000));
-
+    assert(tensor_check_equal(pf, pf_exp, 100));
+    ocl_ctx_free(ctx);
     tensor_free(arr);
     tensor_free(pf);
     tensor_free(pf_exp);
+}
+
+void
+test_count() {
+
+
+    uint32_t n_els = 10 * 1000 * 1000;
+    uint32_t n_bytes = sizeof(int32_t) * n_els;
+    int32_t *arr = malloc_aligned(64, n_bytes);
+    rnd_pcg32_rand_range_fill((uint32_t *)arr, 100, n_els);
+
+    ocl_ctx *ctx = ocl_ctx_init(0, 0, true);
+    OCL_CHECK_ERR(ocl_ctx_add_queue(ctx));
+
+    OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, CL_MEM_READ_ONLY, n_bytes));
+    OCL_CHECK_ERR(ocl_ctx_add_buffer(
+                      ctx, CL_MEM_WRITE_ONLY, sizeof(int32_t)));
+    OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, 0, arr, n_bytes));
+
+    int32_t cnt;
+    char *names[] = {
+        "count_divisible",
+        "count_divisible_simd"
+    };
+    OCL_CHECK_ERR(ocl_ctx_load_kernels(
+                      ctx, "tests/opencl/count.cl",
+                      2, names));
+
+    OCL_CHECK_ERR(ocl_ctx_run_kernel(
+                      ctx, 0, 0, 1,
+                      (size_t[]){32}, NULL, 3,
+                      sizeof(int32_t), &n_els,
+                      sizeof(cl_mem), &ctx->buffers[0],
+                      sizeof(cl_mem), &ctx->buffers[1]));
+    OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, 0, 1, &cnt, sizeof(int32_t)));
+    printf("count %d\n", cnt);
+
+    OCL_CHECK_ERR(ocl_ctx_run_kernel(
+                      ctx, 0, 1, 1,
+                      (size_t[]){16}, NULL, 3,
+                      sizeof(int32_t), &n_els,
+                      sizeof(cl_mem), &ctx->buffers[0],
+                      sizeof(cl_mem), &ctx->buffers[1]));
+    OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, 0, 1, &cnt, sizeof(int32_t)));
+    printf("count %d\n", cnt);
+
+    free(arr);
+    ocl_ctx_free(ctx);
 }
 
 int
@@ -319,4 +370,5 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_add_reduce);
     PRINT_RUN(test_matmul);
     PRINT_RUN(test_prefix_sum);
+    PRINT_RUN(test_count);
 }
