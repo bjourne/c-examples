@@ -129,7 +129,7 @@ pp_puts(pretty_printer *me, char *s) {
         pp_print_prefix(me);
         me->is_first_on_line = false;
     }
-    printf(s);
+    printf("%s", s);
 }
 
 static void
