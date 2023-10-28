@@ -322,7 +322,8 @@ ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
         return err;
     }
 
-    err = clBuildProgram(*program, 1, &dev, "-cl-std=CL2.0", NULL, NULL);
+    err = clBuildProgram(*program, 1, &dev,
+                         "-cl-std=CL2.0 -Werror", NULL, NULL);
     if (err != CL_SUCCESS) {
         printf("Build failed: %s\n", err_str(err));
         size_t n_log;
