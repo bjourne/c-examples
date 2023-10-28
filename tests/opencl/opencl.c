@@ -319,8 +319,6 @@ test_prefix_sum() {
 
 void
 test_count() {
-
-
     uint32_t n_els = 10 * 1000 * 1000;
     uint32_t n_bytes = sizeof(int32_t) * n_els;
     int32_t *arr = malloc_aligned(64, n_bytes);
@@ -366,10 +364,57 @@ test_count() {
     ocl_ctx_free(ctx);
 }
 
+typedef struct {
+    uint32_t prio;
+    uint32_t recv;
+    uint32_t data;
+    uint32_t padding;
+} mail;
+
+#define N_WORK_ITEMS     8
+
+void
+test_heap() {
+    uint32_t N = 100;
+    uint32_t T = 100;
+    uint32_t n_bytes = sizeof(mail) * N * T;
+
+    mail *msgs = malloc_aligned(64, n_bytes);
+    for (uint32_t i = 0; i < N * T; i++) {
+        msgs[i].prio = 1 + rnd_pcg32_rand_range(20);
+        msgs[i].recv = rnd_pcg32_rand_range(N_WORK_ITEMS);
+        msgs[i].data = rnd_pcg32_rand_range(10000);
+    }
+
+    /* uint32_t *arr = malloc_aligned(64, n_bytes); */
+    /* rnd_pcg32_rand_range_fill(arr, 100, N * T); */
+
+    ocl_ctx *ctx = ocl_ctx_init(0, 0, true);
+    OCL_CHECK_ERR(ocl_ctx_add_queue(ctx));
+
+    OCL_CHECK_ERR(ocl_ctx_load_kernels(
+                      ctx, "tests/opencl/heap.cl",
+                      1, (char *[]){"run_heap"}));
+
+    OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, CL_MEM_READ_ONLY, n_bytes));
+    OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, 0, msgs, n_bytes));
+
+    OCL_CHECK_ERR(ocl_ctx_run_kernel(
+                      ctx, 0, 0, 1,
+                      (size_t[]){N_WORK_ITEMS}, NULL, 3,
+                      sizeof(uint32_t), &T,
+                      sizeof(uint32_t), &N,
+                      sizeof(cl_mem), &ctx->buffers[0]));
+
+    ocl_ctx_free(ctx);
+    free(msgs);
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_add_reduce);
     PRINT_RUN(test_matmul);
     PRINT_RUN(test_prefix_sum);
     PRINT_RUN(test_count);
+    PRINT_RUN(test_heap);
 }

@@ -3,13 +3,13 @@
 // Count the number of elements divisible by 7, with and without SIMD.
 
 // On my machine int16 is slighty faster than int8.
-#define VECTOR_WIDTH 16
+#define VECTOR_WIDTH 8
 #include "libraries/opencl/utils.cl"
 
 __kernel void
 count_divisible(const uint N,
                 const __global uint * restrict arr,
-                __global ulong * restrict cnt) {
+                __global uint * restrict cnt) {
 
     uint gs = get_local_size(0);
     uint id = get_local_id(0);
@@ -29,7 +29,7 @@ count_divisible(const uint N,
 __kernel void
 count_divisible_simd(const int N,
                      const __global int * restrict arr,
-                     __global ulong * restrict cnt) {
+                     __global uint * restrict cnt) {
     int gs = get_local_size(0);
     int id = get_local_id(0);
 
