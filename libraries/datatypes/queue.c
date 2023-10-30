@@ -47,6 +47,20 @@ queue_remove(queue *me, void *dst) {
     return true;
 }
 
+// Get indices so that [r0, r1) and [0, r2) iterates the queue in FIFO
+// order. This function is more convenient than modulo arithmetic.
+void
+queue_ranges(queue *me, size_t *r0, size_t *r1, size_t *r2) {
+    *r0 = me->tail;
+    if (me->head >= me->tail) {
+        *r1 = me->head;
+        *r2 = 0;
+    } else {
+        *r1 = me->capacity + 1;
+        *r2 = me->head;
+    }
+}
+
 void
 queue_free(queue *me) {
     free(me->array);

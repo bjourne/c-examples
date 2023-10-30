@@ -21,5 +21,6 @@ queue* queue_init(size_t capacity, size_t el_size, bool growable);
 bool queue_add(queue *me, void *src);
 bool queue_remove(queue *me, void *dst);
 void queue_free(queue *me);
+void queue_ranges(queue *me, size_t *r0, size_t *r1, size_t *r2);
 
 #endif
