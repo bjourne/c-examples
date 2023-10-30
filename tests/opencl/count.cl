@@ -6,24 +6,19 @@
 #define VECTOR_WIDTH 8
 #include "libraries/opencl/utils.cl"
 
+// It appears that interleaving accesses is more efficient on scalar
+// kernels. At least it is on my GPU.
 __kernel void
 count_divisible(const uint N,
                 const __global uint * restrict arr,
                 __global uint * restrict cnt) {
-
     uint gs = get_local_size(0);
     uint id = get_local_id(0);
-    ranges r = slice_work(N, gs, id, 1);
     uint lcnt = 0;
-    for (uint i = r.c0; i < r.c1; i++) {
-        if (arr[i] % 7 == 0) {
-            lcnt++;
-        }
+    for (uint i = id; i < N; i += gs) {
+        lcnt += arr[i] % 7 == 0 ? 1 : 0;
     }
-    lcnt = work_group_reduce_add(lcnt);
-    if (id == 0) {
-        cnt[0] = lcnt;
-    }
+    cnt[0] = work_group_reduce_add(lcnt);
 }
 
 __kernel void
@@ -46,12 +41,37 @@ count_divisible_simd(const int N,
             rem++;
         }
     }
-    int lcnt = 0;
+    int lcnt = rem;
     for (int i = 0; i < VECTOR_WIDTH; i++) {
         lcnt += scnt[i];
     }
-    lcnt = work_group_reduce_add(lcnt);
-    if (id == 0) {
-        cnt[0] = lcnt;
+    cnt[0] = work_group_reduce_add(lcnt);
+}
+
+// But it is not more efficient on SIMD kernels.
+__kernel void
+count_divisible_simd2(const int N,
+                      const __global int * restrict arr,
+                      __global uint * restrict cnt) {
+    int gs = get_local_size(0);
+    int id = get_local_id(0);
+    uint n_chunks = N / VECTOR_WIDTH;
+
+    // First do all chunks
+    vint scnt = 0;
+    for (uint i = id; i < n_chunks; i += gs) {
+        vint a = VLOAD_AT(i * VECTOR_WIDTH, arr);
+        vint mask = (a % 7) == 0;
+        scnt -= mask;
     }
+    uint lcnt = 0;
+    for (uint i = n_chunks * VECTOR_WIDTH + id; i < N; i += gs) {
+        if (arr[i] % 7 == 0) {
+            lcnt++;
+        }
+    }
+    for (int i = 0; i < VECTOR_WIDTH; i++) {
+        lcnt += scnt[i];
+    }
+    cnt[0] = work_group_reduce_add(lcnt);
 }

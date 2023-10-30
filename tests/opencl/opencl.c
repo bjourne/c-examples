@@ -319,7 +319,7 @@ test_prefix_sum() {
 
 void
 test_count() {
-    uint32_t n_els = 10 * 1000 * 1000;
+    uint32_t n_els = 500 * 1000 * 1000;
     uint32_t n_bytes = sizeof(int32_t) * n_els;
     int32_t *arr = malloc_aligned(64, n_bytes);
     rnd_pcg32_rand_range_fill((uint32_t *)arr, 100, n_els);
@@ -332,33 +332,31 @@ test_count() {
                       ctx, CL_MEM_WRITE_ONLY, sizeof(int32_t)));
     OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, 0, arr, n_bytes));
 
-    int32_t cnt[2];
+    int32_t cnt[3];
     char *names[] = {
         "count_divisible",
-        "count_divisible_simd"
+        "count_divisible_simd",
+        "count_divisible_simd2"
     };
     OCL_CHECK_ERR(ocl_ctx_load_kernels(
                       ctx, "tests/opencl/count.cl",
-                      2, names));
-
-    OCL_CHECK_ERR(ocl_ctx_run_kernel(
-                      ctx, 0, 0, 1,
-                      (size_t[]){32}, NULL, 3,
-                      sizeof(int32_t), &n_els,
-                      sizeof(cl_mem), &ctx->buffers[0],
-                      sizeof(cl_mem), &ctx->buffers[1]));
-    OCL_CHECK_ERR(ocl_ctx_read_buffer(
-                      ctx, 0, 1, &cnt[0], sizeof(int32_t)));
-
-    OCL_CHECK_ERR(ocl_ctx_run_kernel(
-                      ctx, 0, 1, 1,
-                      (size_t[]){16}, NULL, 3,
-                      sizeof(int32_t), &n_els,
-                      sizeof(cl_mem), &ctx->buffers[0],
-                      sizeof(cl_mem), &ctx->buffers[1]));
-    OCL_CHECK_ERR(ocl_ctx_read_buffer(
-                      ctx, 0, 1, &cnt[1], sizeof(int32_t)));
+                      3, names));
+    for (uint32_t i = 0; i < 3; i++) {
+        char buf[256];
+        sprintf(buf, "%-23s took %%.2fs\n", names[i]);
+        PRINT_CODE_TIME(
+            OCL_CHECK_ERR(ocl_ctx_run_kernel(
+                              ctx, 0, i, 1,
+                              (size_t[]){256}, NULL, 3,
+                              sizeof(int32_t), &n_els,
+                              sizeof(cl_mem), &ctx->buffers[0],
+                              sizeof(cl_mem), &ctx->buffers[1])),
+            buf);
+        OCL_CHECK_ERR(ocl_ctx_read_buffer(
+                          ctx, 0, 1, &cnt[i], sizeof(int32_t)));
+    }
     assert(cnt[0] == cnt[1]);
+    assert(cnt[1] == cnt[2]);
 
     free(arr);
     ocl_ctx_free(ctx);
