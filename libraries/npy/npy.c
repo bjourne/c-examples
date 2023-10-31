@@ -60,24 +60,6 @@ npy_n_elements(npy_arr *me) {
     if (tp == (tp_val) && v == (v_val)) \
         return (double)((cast)me->data)[i];
 
-double
-npy_value_at_as_double(npy_arr *me, size_t i) {
-    char tp = me->type;
-    int v = me->el_size;
-
-    // Macro-magic here.
-    DOUBLE_CAST('i', 1, int8_t *);
-    DOUBLE_CAST('i', 4, int32_t *);
-    DOUBLE_CAST('i', 8, int64_t *);
-    DOUBLE_CAST('b', 1, uint8_t *);
-    DOUBLE_CAST('u', 1, uint8_t *);
-    DOUBLE_CAST('u', 4, uint32_t *);
-    DOUBLE_CAST('u', 8, uint64_t *);
-    DOUBLE_CAST('f', 4, float *);
-    DOUBLE_CAST('f', 8, double *);
-    assert(false);
-}
-
 static void
 transpose_data(npy_arr *me) {
     assert(me->n_dims == 2);

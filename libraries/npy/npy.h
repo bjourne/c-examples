@@ -61,7 +61,6 @@ void npy_format_dims(npy_arr *arr, char *buf);
 npy_arr *npy_load(const char *fname);
 npy_error npy_save(npy_arr *me, const char *fname);
 void npy_free(npy_arr *me);
-double npy_value_at_as_double(npy_arr *me, size_t i);
 
 // Pretty prints the array
 void npy_pp_arr(npy_arr *arr, size_t n_decimals, size_t n_columns, char *sep);
