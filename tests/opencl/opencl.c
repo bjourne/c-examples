@@ -108,7 +108,7 @@ test_matmul() {
                nanos_to_secs(nano_count() - start));
 
         // Read from device
-        ocl_check_err(ocl_read_buffer(queue, c->data, c_size, mem_c));
+        OCL_CHECK_ERR(ocl_read_buffer(queue, c->data, c_size, mem_c));
         assert(tensor_check_equal(c_exp, c, 0.0001));
     }
 

@@ -46,7 +46,7 @@ main(int argc, char *argv[]) {
     cl_command_queue queue;
     cl_int err = ocl_basic_setup(idx, 0,
                                  &platform, &device, &ctx, 1, &queue);
-    ocl_check_err(err);
+    OCL_CHECK_ERR(err);
 
     ocl_print_device_details(device, 0);
 
@@ -54,7 +54,7 @@ main(int argc, char *argv[]) {
     char *names[2] = {"dct8x8", "dct8x8_sd"};
     cl_kernel kernels[2];
     printf("* Loading kernel\n");
-    ocl_check_err(ocl_load_kernels(
+    OCL_CHECK_ERR(ocl_load_kernels(
                       ctx, device, fname,
                       2, names,
                       &program, kernels));
@@ -76,7 +76,7 @@ main(int argc, char *argv[]) {
     err = ocl_create_and_write_buffer(ctx, CL_MEM_READ_ONLY,
                                       queue, image->data,
                                       IMAGE_N_BYTES, &mem_image);
-    ocl_check_err(err);
+    OCL_CHECK_ERR(err);
     err = ocl_create_empty_buffer(ctx, CL_MEM_WRITE_ONLY,
                                   IMAGE_N_BYTES, &mem_dct);
 
@@ -125,7 +125,7 @@ main(int argc, char *argv[]) {
     err = clEnqueueReadBuffer(queue, mem_dct, CL_TRUE,
                               0, IMAGE_N_BYTES, output->data,
                               0, NULL, NULL);
-    ocl_check_err(err);
+    OCL_CHECK_ERR(err);
 
     if (IMAGE_WIDTH < 100) {
         printf("* Input:\n");

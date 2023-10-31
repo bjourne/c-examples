@@ -40,9 +40,8 @@ ocl_get_platform_info(cl_platform_id platform,
                       cl_platform_info info);
 
 // Error handling
-void ocl_check_err(cl_int err);
-void ocl_check_err2(cl_int err, char *file, int line);
-#define OCL_CHECK_ERR(err) ocl_check_err2(err, __FILE__, __LINE__)
+void ocl_check_err(cl_int err, char *file, int line);
+#define OCL_CHECK_ERR(err) ocl_check_err(err, __FILE__, __LINE__)
 
 // Loading and running kernels
 cl_int

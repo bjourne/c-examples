@@ -84,21 +84,7 @@ err_str(cl_int err) {
 }
 
 void
-ocl_check_err(cl_int err) {
-    if (err == CL_SUCCESS)  {
-        return;
-    }
-    const char *s = err_str(err);
-    if (s) {
-        printf("OpenCL error: %s\n", s);
-    } else {
-        printf("Unknown OpenCL error: %d\n", err);
-    }
-    assert(false);
-}
-
-void
-ocl_check_err2(cl_int err, char *file, int line) {
+ocl_check_err(cl_int err, char *file, int line) {
     if (err == CL_SUCCESS)  {
         return;
     }
@@ -120,11 +106,11 @@ ocl_get_platform_info(cl_platform_id platform,
     size_t n_bytes;
     cl_int err;
     err = clGetPlatformInfo(platform, attr, 0, NULL, &n_bytes);
-    ocl_check_err(err);
+    OCL_CHECK_ERR(err);
     void *bytes = (void *)malloc(n_bytes);
     clGetPlatformInfo(platform, attr,
                       n_bytes, bytes, NULL);
-    ocl_check_err(err);
+    OCL_CHECK_ERR(err);
     return bytes;
 }
 
@@ -279,7 +265,7 @@ ocl_print_platform_details(cl_platform_id plat) {
     cl_uint n_devices;
     cl_device_id *devices;
 
-    ocl_check_err(ocl_get_devices(plat, &n_devices, &devices));
+    OCL_CHECK_ERR(ocl_get_devices(plat, &n_devices, &devices));
     pp_print_key_value(pp, "Devices", "%d", n_devices);
     printf("\n");
     pp->indent++;
@@ -329,7 +315,7 @@ ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
         size_t n_log;
         cl_int err2 = clGetProgramBuildInfo(*program, dev, CL_PROGRAM_BUILD_LOG,
                                             0, NULL, &n_log);
-        ocl_check_err(err2);
+        OCL_CHECK_ERR(err2);
         assert(n_log > 0);
 
         // Acquire, print, and free the log.

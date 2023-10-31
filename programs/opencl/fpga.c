@@ -130,7 +130,7 @@ main(int argc, char *argv[]) {
     printf("Loading kernels\n");
     cl_program program;
     cl_kernel kernels[3];
-    ocl_check_err(ocl_load_kernels(
+    OCL_CHECK_ERR(ocl_load_kernels(
                       ctx, dev, argv[2],
                       3, (char *[]){"loadA", "loadB", "store"},
                       &program, kernels));
@@ -144,7 +144,7 @@ main(int argc, char *argv[]) {
     for (int i = 0; i < 4; i++) {
         queues[i] = clCreateCommandQueueWithProperties(ctx, dev,
                                                        props, &err);
-        ocl_check_err(err);
+        OCL_CHECK_ERR(err);
     }
 
     printf("Creating device buffers\n");
@@ -154,23 +154,23 @@ main(int argc, char *argv[]) {
 
     cl_mem dev_a = clCreateBuffer(ctx, CL_MEM_READ_ONLY, n_bytes_a,
                                   NULL, &err);
-    ocl_check_err(err);
+    OCL_CHECK_ERR(err);
     cl_mem dev_b = clCreateBuffer(ctx, CL_MEM_READ_ONLY, n_bytes_b,
                                   NULL, &err);
-    ocl_check_err(err);
+    OCL_CHECK_ERR(err);
     cl_mem dev_c = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY, n_bytes_c,
                                   NULL, &err);
-    ocl_check_err(err);
+    OCL_CHECK_ERR(err);
 
     printf("Writing to device buffer A\n");
     err = clEnqueueWriteBuffer(queues[0], dev_a, CL_TRUE, 0, n_bytes_a,
                                a_blocked->data, 0, NULL, NULL);
-    ocl_check_err(err);
+    OCL_CHECK_ERR(err);
 
     printf("Writing to device buffer B\n");
     err = clEnqueueWriteBuffer(queues[1], dev_b, CL_TRUE, 0, n_bytes_a,
                                b_transpose_blocked->data, 0, NULL, NULL);
-    ocl_check_err(err);
+    OCL_CHECK_ERR(err);
 
 
     // LoadA kernel
@@ -180,7 +180,7 @@ main(int argc, char *argv[]) {
     unsigned char mat_a_num_blocks_in_col = MAT_A_NUM_BLOCKS_IN_COL;
     unsigned char mat_b_num_blocks_in_row = MAT_B_NUM_BLOCKS_IN_ROW;
 
-    ocl_check_err(ocl_set_kernel_arguments(
+    OCL_CHECK_ERR(ocl_set_kernel_arguments(
                       kernels[0], 4,
                       sizeof(cl_mem), (void *)&dev_a,
                       sizeof(unsigned int), (void *)&mat_a_num_vectors_in_row_of_blocks,
@@ -218,17 +218,17 @@ main(int argc, char *argv[]) {
                                      1, NULL, global, local,
                                      0, NULL,
                                      &events[i]);
-        ocl_check_err(err);
+        OCL_CHECK_ERR(err);
     }
     for(int i=0; i < 3; i++) {
         err = clFlush(queues[i]);
-        ocl_check_err(err);
+        OCL_CHECK_ERR(err);
     }
 
     for(int i = 0; i < 3; i++) {
         printf("Finishing queue %d.\n", i);
         err = clFinish(queues[i]);
-        ocl_check_err(err);
+        OCL_CHECK_ERR(err);
     }
     printf("Kernel execution complete\n");
 
@@ -237,10 +237,10 @@ main(int argc, char *argv[]) {
         cl_ulong start, end;
         err = clGetEventProfilingInfo(events[i], CL_PROFILING_COMMAND_END,
                                       sizeof(cl_ulong), &end, NULL);
-        ocl_check_err(err);
+        OCL_CHECK_ERR(err);
         err = clGetEventProfilingInfo(events[i], CL_PROFILING_COMMAND_START,
                                       sizeof(cl_ulong), &start, NULL);
-        ocl_check_err(err);
+        OCL_CHECK_ERR(err);
         double time = 1.0e-9 * (end - start);
         printf("%.6f\n", time);
     }
@@ -249,7 +249,7 @@ main(int argc, char *argv[]) {
     err = clEnqueueReadBuffer(queues[3], dev_c, CL_TRUE, 0,
                               n_bytes_c, c->data,
                               0, NULL, NULL);
-    ocl_check_err(err);
+    OCL_CHECK_ERR(err);
     tensor_check_equal(c, c_golden_blocked_reordered, LINALG_EPSILON);
 
     // Release OpenCL
@@ -258,8 +258,8 @@ main(int argc, char *argv[]) {
     clReleaseMemObject(dev_c);
 
     for(int i = 0; i < 4; i++) {
-        ocl_check_err(clFlush(queues[i]));
-        ocl_check_err(clFinish(queues[i]));
+        OCL_CHECK_ERR(clFlush(queues[i]));
+        OCL_CHECK_ERR(clFinish(queues[i]));
         clReleaseCommandQueue(queues[i]);
     }
     for (int i = 0; i < 3; i++) {
