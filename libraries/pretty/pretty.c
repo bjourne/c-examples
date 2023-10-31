@@ -107,6 +107,7 @@ pp_value(pretty_printer *me, size_t row_idx) {
     }
     bool printed = false;
     PRINT_EL_AT('i', 1, int8_t);
+    PRINT_EL_AT('i', 2, int16_t);
     PRINT_EL_AT('i', 4, int32_t);
     PRINT_EL_AT('i', 8, int64_t);
     PRINT_EL_AT('u', 1, uint8_t);
@@ -200,6 +201,7 @@ static double
 value_at_as_double(char type, size_t el_size, size_t i, void *arr) {
     // Macro-magic here.
     DOUBLE_CAST('i', 1, int8_t *);
+    DOUBLE_CAST('i', 2, int16_t *);
     DOUBLE_CAST('i', 4, int32_t *);
     DOUBLE_CAST('i', 8, int64_t *);
     DOUBLE_CAST('b', 1, uint8_t *);
