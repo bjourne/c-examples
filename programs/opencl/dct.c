@@ -14,8 +14,8 @@
 
 int
 main(int argc, char *argv[]) {
-    const int IMAGE_WIDTH = 1024;
-    const int IMAGE_HEIGHT = 1024;
+    const int IMAGE_WIDTH = 16;
+    const int IMAGE_HEIGHT = 16;
     const int IMAGE_WIDTH_BLOCKS = IMAGE_WIDTH / BLOCK_SIZE;
     const int IMAGE_HEIGHT_BLOCKS = IMAGE_HEIGHT / BLOCK_SIZE;
     const int IMAGE_N_BYTES = IMAGE_WIDTH * IMAGE_HEIGHT * sizeof(float);
@@ -40,24 +40,16 @@ main(int argc, char *argv[]) {
     int idx = atoi(argv[1]);
     char *fname = argv[2];
 
-    cl_platform_id platform;
-    cl_device_id device;
-    cl_context ctx;
-    cl_command_queue queue;
-    cl_int err = ocl_basic_setup(idx, 0,
-                                 &platform, &device, &ctx, 1, &queue);
-    OCL_CHECK_ERR(err);
+    ocl_ctx *ctx = ocl_ctx_init(idx, 0, true);
+    OCL_CHECK_ERR(ctx->err);
+    OCL_CHECK_ERR(ocl_ctx_add_queue(ctx));
 
-    ocl_print_device_details(device, 0);
-
-    cl_program program;
+    //cl_program program;
     char *names[2] = {"dct8x8", "dct8x8_sd"};
-    cl_kernel kernels[2];
-    printf("* Loading kernel\n");
-    OCL_CHECK_ERR(ocl_load_kernels(
-                      ctx, device, fname,
-                      2, names,
-                      &program, kernels));
+    //cl_kernel kernels[2];
+    printf("* Loading kernels\n");
+    OCL_CHECK_ERR(ocl_ctx_load_kernels(
+                      ctx, fname, 2, names));
 
     // Allocate and initialize tensors
     printf("* Initializing tensors\n");
@@ -72,60 +64,37 @@ main(int argc, char *argv[]) {
 
     // One buffer for the input to the kernel and another one for the
     // dct-ized result.
-    cl_mem mem_image, mem_dct;
-    err = ocl_create_and_write_buffer(ctx, CL_MEM_READ_ONLY,
-                                      queue, image->data,
-                                      IMAGE_N_BYTES, &mem_image);
-    OCL_CHECK_ERR(err);
-    err = ocl_create_empty_buffer(ctx, CL_MEM_WRITE_ONLY,
-                                  IMAGE_N_BYTES, &mem_dct);
+    OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, CL_MEM_READ_ONLY, IMAGE_N_BYTES));
+    OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, CL_MEM_WRITE_ONLY, IMAGE_N_BYTES));
+    OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, 0, image->data, IMAGE_N_BYTES));
 
+    size_t wg_sizes[2][2] = {
+        {IMAGE_HEIGHT_BLOCKS, IMAGE_WIDTH_BLOCKS},
+        {IMAGE_HEIGHT_BLOCKS, IMAGE_WIDTH_BLOCKS}
+    };
 
-    // Run kernels
-    printf("* Running kernel %s\n", names[0]);
-    uint64_t start = nano_count();
-    uint32_t n_iter = 1000;
-    for (uint32_t i = 0; i < n_iter; i++) {
-        ocl_run_nd_kernel(queue, kernels[0],
-                          2, (size_t[]){
-                              IMAGE_HEIGHT_BLOCKS,
-                              IMAGE_WIDTH
-                          }, NULL,
-                          4,
-                          sizeof(cl_mem), (void *)&mem_image,
-                          sizeof(cl_mem), (void *)&mem_dct,
-                          sizeof(cl_uint), (void *)&IMAGE_HEIGHT,
-                          sizeof(cl_uint), (void *)&IMAGE_WIDTH);
+    for (uint32_t i = 1; i < 2; i++) {
+        printf("* Running kernel %s\n", names[i]);
+        uint64_t start = nano_count();
+        uint32_t n_iter = 10;
+        for (uint32_t j = 0; j < n_iter; j++) {
+            OCL_CHECK_ERR(ocl_ctx_run_kernel(
+                              ctx, 0, i,
+                              2, wg_sizes[i], NULL,
+                              4,
+                              sizeof(cl_mem), (void *)&ctx->buffers[0],
+                              sizeof(cl_mem), (void *)&ctx->buffers[1],
+                              sizeof(cl_uint), (void *)&IMAGE_HEIGHT,
+                              sizeof(cl_uint), (void *)&IMAGE_WIDTH));
+        }
+        uint64_t end = nano_count();
+        double ms_per_kernel = ((double)(end - start) / 1000 / 1000) / n_iter;
+        printf("\\--> %.2f ms/kernel\n", ms_per_kernel);
+
+        OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, 0, 1,
+                                          output->data, IMAGE_N_BYTES));
+        tensor_check_equal(output, ref, 0.01);
     }
-    uint64_t end = nano_count();
-    double ms_per_kernel = ((double)(end - start) / 1000 / 1000) / n_iter;
-    printf("\\--> %.2f ms/kernel\n", ms_per_kernel);
-
-    printf("* Running kernel %s\n", names[1]);
-    start = nano_count();
-    n_iter = 1000;
-    for (uint32_t i = 0; i < n_iter; i++) {
-        ocl_run_nd_kernel(queue, kernels[1],
-                          2, (size_t[]){
-                              IMAGE_HEIGHT_BLOCKS,
-                              IMAGE_WIDTH_BLOCKS
-                          }, NULL,
-                          4,
-                          sizeof(cl_mem), (void *)&mem_image,
-                          sizeof(cl_mem), (void *)&mem_dct,
-                          sizeof(cl_uint), (void *)&IMAGE_HEIGHT,
-                          sizeof(cl_uint), (void *)&IMAGE_WIDTH);
-    }
-    end = nano_count();
-    ms_per_kernel = ((double)(end - start) / 1000 / 1000) / n_iter;
-    printf("\\--> %.2f ms/kernel\n", ms_per_kernel);
-
-    // Read data
-    printf("* Reading device data\n");
-    err = clEnqueueReadBuffer(queue, mem_dct, CL_TRUE,
-                              0, IMAGE_N_BYTES, output->data,
-                              0, NULL, NULL);
-    OCL_CHECK_ERR(err);
 
     if (IMAGE_WIDTH < 100) {
         printf("* Input:\n");
@@ -135,28 +104,12 @@ main(int argc, char *argv[]) {
         printf("* Output:\n");
         tensor_print(output, true, 0, 80, " ");
     }
-    tensor_check_equal(output, ref, 0.01);
 
     // Free tensors
     tensor_free(image);
     tensor_free(ref);
     tensor_free(output);
 
-    // Teardown OpenCL
-
-    // Release queue
-    clFlush(queue);
-    clFinish(queue);
-    clReleaseCommandQueue(queue);
-
-    // Free OpenCL memory
-    clReleaseMemObject(mem_image);
-    clReleaseMemObject(mem_dct);
-
-    for (int i = 0; i < 2; i++) {
-        clReleaseKernel(kernels[i]);
-    }
-    clReleaseProgram(program);
-    clReleaseContext(ctx);
+    ocl_ctx_free(ctx);
     return 0;
 }

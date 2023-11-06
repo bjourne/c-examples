@@ -1,5 +1,3 @@
-#define BLOCKDIM_X      8
-#define BLOCKDIM_Y      8
 #define BLOCK_SIZE      8
 
 // a = sqrt(2) * cos(1 * pi / 16)
@@ -46,10 +44,11 @@ dct8(float *in, float *out){
 }
 
 // Separable filter approach, I think.
-
+// This kernel doesn't work. Will have to fix it sometime.
 // Image dimensions must be divisible by 8.
 __kernel __attribute__((reqd_work_group_size(1, 8, 1)))
-void dct8x8(
+void
+dct8x8(
     __global float * restrict src,
     __global float * restrict dst,
     uint height, uint width
@@ -96,12 +95,12 @@ void dct8x8(
 }
 
 inline void
-transpose(float *buf) {
+transpose(float buf[BLOCK_SIZE][BLOCK_SIZE]) {
     for (uint i = 0; i < BLOCK_SIZE; i++) {
         for (int j = i + 1; j < BLOCK_SIZE; j++) {
-            float t = buf[i * BLOCK_SIZE + j];
-            buf[i * BLOCK_SIZE + j] = buf[j * BLOCK_SIZE + i];
-            buf[j * BLOCK_SIZE + i] = t;
+            float t = buf[i][j];
+            buf[i][j] = buf[j][i];
+            buf[j][i] = t;
         }
     }
 }
@@ -113,30 +112,29 @@ dct8x8_sd(
     __global float * restrict dst,
     uint height, uint width
 ) {
-    float buf0[BLOCK_SIZE * BLOCK_SIZE];
-    float buf1[BLOCK_SIZE * BLOCK_SIZE];
+    float buf0[BLOCK_SIZE][BLOCK_SIZE];
+    float buf1[BLOCK_SIZE][BLOCK_SIZE];
     uint y0 = BLOCK_SIZE * get_global_id(0);
     uint x0 = BLOCK_SIZE * get_global_id(1);
     for (uint y1 = 0; y1 < BLOCK_SIZE; y1++) {
         for (uint x1 = 0; x1 < BLOCK_SIZE; x1++) {
             uint src_addr = (y0 + y1) * width + x0 + x1;
-            uint buf_addr = y1 * BLOCK_SIZE + x1;
-            buf0[buf_addr] = src[src_addr];
+            buf0[y1][x1] = src[src_addr];
         }
     }
     for (uint i = 0; i < BLOCK_SIZE; i++) {
-        dct8(&buf0[BLOCK_SIZE * i], &buf1[BLOCK_SIZE * i]);
+        dct8((float *)&buf0[i], (float *)&buf1[i]);
     }
     transpose(buf1);
     for (uint i = 0; i < BLOCK_SIZE; i++) {
-        dct8(&buf1[BLOCK_SIZE * i], &buf0[BLOCK_SIZE * i]);
+        dct8((float *)&buf1[i], (float *)&buf0[i]);
     }
     transpose(buf0);
     for (uint y1 = 0; y1 < BLOCK_SIZE; y1++) {
         for (uint x1 = 0; x1 < BLOCK_SIZE; x1++) {
             uint dst_addr = (y0 + y1) * width + x0 + x1;
             uint buf_addr = y1 * BLOCK_SIZE + x1;
-            dst[dst_addr] = buf0[buf_addr];
+            dst[dst_addr] = buf0[y1][x1];
         }
     }
 }
