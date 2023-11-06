@@ -388,6 +388,7 @@ test_heap() {
     /* rnd_pcg32_rand_range_fill(arr, 100, N * T); */
 
     ocl_ctx *ctx = ocl_ctx_init(0, 0, true);
+    OCL_CHECK_ERR(ctx->err);
     OCL_CHECK_ERR(ocl_ctx_add_queue(ctx));
 
     OCL_CHECK_ERR(ocl_ctx_load_kernels(
