@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022, 2024 Björn A. Lindqvist <bjourne@gmail.com>
 
 #include "diophantine.h"
 
@@ -24,12 +24,23 @@ gcd_ext(int a, int b, int *g, int *x, int *y) {
 bool
 dio_solve_eq(int a, int b, int c,
              int *x0, int *xk, int *y0, int *yk) {
-
+    if (a == 0 && b == 0) {
+        if (c == 0) {
+            *x0 = 0;
+            *y0 = 0;
+            *xk = 1;
+            *yk = 1;
+            return true;
+        } else {
+            return false;
+        }
+    }
     int g, x, y;
     gcd_ext(a, b, &g, &x, &y);
     if (c % g != 0) {
         return false;
     }
+
     *x0 = x * c / g;
     *y0 = y * c / g;
     *xk = b / g;
