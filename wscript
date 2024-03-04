@@ -207,7 +207,7 @@ def build(ctx):
         'benchmark' : ('BENCHMARK_OBJS', {}, benchmark_flags),
         'collectors' : ('GC_OBJS', {'QF_OBJS'}, []),
         'datatypes' : ('DT_OBJS', {}, []),
-        'diophantine' : ('DIO_OBJS', {}, []),
+        'diophantine' : ('DIO_OBJS', {'RANDOM_OBJS'}, []),
         'fastio' : ('FASTIO_OBJS', {}, []),
         'file3d' : ('FILE3D_OBJS',
                     {'PATHS_OBJS', 'DT_OBJS', 'LINALG_OBJS'}, []),
