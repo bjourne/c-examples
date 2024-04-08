@@ -122,6 +122,11 @@ typedef struct {
 } ocl_ctx_buf;
 
 typedef struct {
+    size_t size;
+    void *value;
+} ocl_ctx_arg;
+
+typedef struct {
     cl_platform_id platform;
     cl_device_id device;
     cl_context context;
@@ -164,5 +169,7 @@ cl_int ocl_ctx_run_kernel(ocl_ctx *me,
                           size_t work_dim,
                           const size_t *global, const size_t *local,
                           size_t n_args, ...);
+cl_int
+ocl_ctx_set_kernels_arguments(ocl_ctx *me, ...);
 
 #endif

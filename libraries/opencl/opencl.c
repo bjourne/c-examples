@@ -625,6 +625,26 @@ ocl_ctx_load_kernels(ocl_ctx *me,
 }
 
 cl_int
+ocl_ctx_set_kernels_arguments(ocl_ctx *me, ...) {
+    va_list ap;
+    va_start(ap, me);
+    for (size_t i = 0; i < me->n_kernels; i++) {
+        size_t n_args = va_arg(ap, size_t);
+        ocl_ctx_arg *args = va_arg(ap, void *);
+        for (size_t j = 0; j < n_args; j++) {
+            size_t size = args[j].size;
+            void *value = args[j].value;
+            cl_int err = clSetKernelArg(me->kernels[i], j, size, value);
+            if (err != CL_SUCCESS) {
+                return err;
+            }
+        }
+    }
+    va_end(ap);
+    return CL_SUCCESS;
+}
+
+cl_int
 ocl_ctx_add_buffer(ocl_ctx *me, ocl_ctx_buf buf) {
     cl_int err;
     size_t idx = me->n_buffers;

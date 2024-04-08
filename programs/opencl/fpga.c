@@ -177,13 +177,6 @@ main(int argc, char *argv[]) {
     unsigned char mat_a_num_blocks_in_col = MAT_A_NUM_BLOCKS_IN_COL;
     unsigned char mat_b_num_blocks_in_row = MAT_B_NUM_BLOCKS_IN_ROW;
 
-    OCL_CHECK_ERR(ocl_set_kernel_arguments(
-                      ctx->kernels[0], 4,
-                      n_mem, (void *)&ctx->buffers[BUF_A].ptr,
-                      n_uint, (void *)&mat_a_num_vectors_in_row_of_blocks,
-                      n_uchar, (void *)&mat_a_num_blocks_in_col,
-                      n_uchar, (void *)&mat_b_num_blocks_in_row));
-
     // LoadB kernel
     printf("Initializing LoadB kernel\n");
     unsigned int mat_b_num_vectors_in_col_of_blocks =
@@ -191,20 +184,29 @@ main(int argc, char *argv[]) {
     unsigned int mat_b_num_vectors_in_matrix =
         MAT_B_NUM_VECTORS_IN_MATRIX;
 
-    ocl_set_kernel_arguments(
-        ctx->kernels[1], 4,
-        n_mem, (void *)&ctx->buffers[BUF_B].ptr,
-        n_uint, (void *)&mat_b_num_vectors_in_col_of_blocks,
-        n_uint, (void *)&mat_b_num_vectors_in_matrix,
-        n_uchar, (void *)&mat_a_num_blocks_in_col);
-
     // Store kernel
     int mat_c_num_coalesced_words = WC * HC / PE_COLS;
-
-    ocl_set_kernel_arguments(
-        ctx->kernels[2], 2,
-        sizeof(cl_mem), (void *)&ctx->buffers[BUF_C].ptr,
-        sizeof(int), (void *)&mat_c_num_coalesced_words);
+    ocl_ctx_arg kern_a_args[] = {
+        {n_mem, &ctx->buffers[BUF_A].ptr},
+        {n_uint, &mat_a_num_vectors_in_row_of_blocks},
+        {n_uchar, &mat_a_num_blocks_in_col},
+        {n_uchar, &mat_b_num_blocks_in_row}
+    };
+    ocl_ctx_arg kern_b_args[] = {
+        {n_mem, &ctx->buffers[BUF_B].ptr},
+        {n_uint, &mat_b_num_vectors_in_col_of_blocks},
+        {n_uint, &mat_b_num_vectors_in_matrix},
+        {n_uchar, &mat_a_num_blocks_in_col}
+    };
+    ocl_ctx_arg kern_store_args[] = {
+        {n_mem, &ctx->buffers[BUF_C].ptr},
+        {n_uint, &mat_c_num_coalesced_words}
+    };
+    OCL_CHECK_ERR(ocl_ctx_set_kernels_arguments(
+                      ctx,
+                      ARRAY_SIZE(kern_a_args), kern_a_args,
+                      ARRAY_SIZE(kern_b_args), kern_b_args,
+                      ARRAY_SIZE(kern_store_args), kern_store_args));
 
     // Queue kernels
     size_t local[] = {1};
