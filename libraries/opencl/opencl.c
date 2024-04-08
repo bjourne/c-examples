@@ -392,7 +392,7 @@ ocl_create_and_write_buffer(cl_context ctx, cl_mem_flags flags,
     if (err != CL_SUCCESS) {
         return err;
     }
-    err = ocl_fill_buffer(queue, pattern, pattern_size, n_bytes, *mem);
+    err = ocl_write_buffer(queue, src, n_bytes, *mem);
     if (err != CL_SUCCESS) {
         clReleaseMemObject(*mem);
     }
@@ -412,10 +412,7 @@ ocl_create_and_fill_buffer(cl_context ctx, cl_mem_flags flags,
     if (err != CL_SUCCESS) {
         return err;
     }
-    err = clEnqueueFillBuffer(queue, *mem,
-                              pattern, pattern_size,
-                              0, n_bytes,
-                              0, NULL, NULL);
+    err = ocl_fill_buffer(queue, pattern, pattern_size, n_bytes, *mem);
     if (err != CL_SUCCESS) {
         clReleaseMemObject(*mem);
         return err;
