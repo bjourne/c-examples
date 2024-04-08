@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022, 2024 Björn A. Lindqvist <bjourne@gmail.com>
 //
 // Benchmarks 8x8 dct on tensors
 #include <assert.h>
@@ -39,6 +39,7 @@ main(int argc, char *argv[]) {
 
     int idx = atoi(argv[1]);
     char *fname = argv[2];
+    assert(fname);
 
     ocl_ctx *ctx = ocl_ctx_init(idx, 0, true);
     OCL_CHECK_ERR(ctx->err);
@@ -49,8 +50,8 @@ main(int argc, char *argv[]) {
     //cl_kernel kernels[2];
     printf("* Loading kernels\n");
     OCL_CHECK_ERR(ocl_ctx_load_kernels(
-                      ctx, "-cl-std=CL2.0 -Werror",
-                      fname,
+                      ctx,
+                      fname, "-cl-std=CL2.0 -Werror",
                       2, names));
 
     // Allocate and initialize tensors
@@ -66,9 +67,11 @@ main(int argc, char *argv[]) {
 
     // One buffer for the input to the kernel and another one for the
     // dct-ized result.
-    OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, CL_MEM_READ_ONLY, IMAGE_N_BYTES));
-    OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, CL_MEM_WRITE_ONLY, IMAGE_N_BYTES));
-    OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, 0, image->data, IMAGE_N_BYTES));
+    OCL_CHECK_ERR(ocl_ctx_add_buffer(
+                      ctx, (ocl_ctx_buf){0, IMAGE_N_BYTES, CL_MEM_READ_ONLY}));
+    OCL_CHECK_ERR(ocl_ctx_add_buffer(
+                      ctx, (ocl_ctx_buf){0, IMAGE_N_BYTES, CL_MEM_WRITE_ONLY}));
+    OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, 0, image->data));
 
     size_t wg_sizes[2][2] = {
         {IMAGE_HEIGHT_BLOCKS, IMAGE_WIDTH_BLOCKS},
@@ -93,8 +96,7 @@ main(int argc, char *argv[]) {
         double ms_per_kernel = ((double)(end - start) / 1000 / 1000) / n_iter;
         printf("\\--> %.2f ms/kernel\n", ms_per_kernel);
 
-        OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, 0, 1,
-                                          output->data, IMAGE_N_BYTES));
+        OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, 0, 1, output->data));
         tensor_check_equal(output, ref, 0.01);
     }
 

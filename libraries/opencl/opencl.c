@@ -568,9 +568,9 @@ ocl_poll_event_until(cl_event event,
 ////////////////////////////////////////////////////////////////////////
 
 // Hackiiish
-#define OCL_CTX_MAX_QUEUES      10
-#define OCL_CTX_MAX_KERNELS     10
-#define OCL_CTX_MAX_BUFFERS     10
+#define OCL_CTX_MAX_QUEUES      20
+#define OCL_CTX_MAX_KERNELS     20
+#define OCL_CTX_MAX_BUFFERS     20
 
 ocl_ctx *
 ocl_ctx_init(cl_uint plat_idx, cl_uint dev_idx, bool print) {
@@ -602,7 +602,7 @@ ocl_ctx_free(ocl_ctx *me) {
         clReleaseKernel(me->kernels[i]);
     }
     for (size_t i = 0; i < me->n_buffers; i++) {
-        clReleaseMemObject(me->buffers[i]);
+        clReleaseMemObject(me->buffers[i].ptr);
     }
     clReleaseProgram(me->program);
     clReleaseContext(me->context);
@@ -625,13 +625,20 @@ ocl_ctx_load_kernels(ocl_ctx *me,
 }
 
 cl_int
-ocl_ctx_add_buffer(ocl_ctx *me, cl_mem_flags flags, size_t n_bytes) {
+ocl_ctx_add_buffer(ocl_ctx *me, ocl_ctx_buf buf) {
     cl_int err;
-    me->buffers[me->n_buffers] =
-        clCreateBuffer(me->context, flags, n_bytes, NULL, &err);
+    size_t idx = me->n_buffers;
+    size_t n_bytes = buf.n_bytes;
+
+    buf.ptr = clCreateBuffer(me->context, buf.flags, n_bytes, NULL, &err);
+    me->buffers[idx] = buf;
     if (err != CL_SUCCESS) {
         return err;
     }
+    #if OCL_DEBUG == 1
+    printf("%-8s %10ld bytes as buffer %2ld (%p).\n",
+           "Created", n_bytes, idx, buf.ptr);
+    #endif
     me->n_buffers++;
     return CL_SUCCESS;
 }
@@ -652,27 +659,34 @@ ocl_ctx_add_queue(ocl_ctx *me) {
 cl_int
 ocl_ctx_write_buffer(ocl_ctx *me,
                      size_t queue_idx,
-                     size_t buffer_idx,
-                     void *arr,
-                     size_t n_bytes) {
-    return clEnqueueWriteBuffer(
-        me->queues[queue_idx],
-        me->buffers[buffer_idx],
-        CL_TRUE,
-        0, n_bytes, arr,
-        0, NULL, NULL);
+                     size_t buf_idx,
+                     void *arr) {
+    ocl_ctx_buf buf = me->buffers[buf_idx];
+    cl_command_queue q = me->queues[queue_idx];
+    assert(buf.ptr);
+    return ocl_write_buffer(q, arr, buf.n_bytes, buf.ptr);
 }
 
 cl_int
+ocl_ctx_fill_buffer(ocl_ctx *me,
+                    size_t queue_idx, size_t buf_idx,
+                    void *pat, size_t pat_size) {
+    ocl_ctx_buf buf = me->buffers[buf_idx];
+    assert(buf.ptr);
+    cl_command_queue q = me->queues[queue_idx];
+    return ocl_fill_buffer(q, pat, pat_size, buf.n_bytes, buf.ptr);
+}
+
+
+cl_int
 ocl_ctx_read_buffer(ocl_ctx *me,
-                    size_t queue_idx,
-                    size_t buffer_idx,
-                    void *arr,
-                    size_t n_bytes) {
+                    size_t queue_idx, size_t buf_idx,
+                    void *arr) {
+    ocl_ctx_buf buf = me->buffers[buf_idx];
     return ocl_read_buffer(
         me->queues[queue_idx],
-        arr, n_bytes,
-        me->buffers[buffer_idx]
+        arr, buf.n_bytes,
+        buf.ptr
     );
 }
 

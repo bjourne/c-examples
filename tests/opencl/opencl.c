@@ -250,24 +250,22 @@ test_add_reduce() {
 // So many wrappers...
 cl_int
 ocl_ctx_add_tensor_buffer(ocl_ctx *me, cl_mem_flags flags, tensor *t) {
-    size_t n_bytes = sizeof(float) * tensor_n_elements(t);
-    return ocl_ctx_add_buffer(me, flags, n_bytes);
+    ocl_ctx_buf buf = {0, sizeof(float) * tensor_n_elements(t), flags};
+    return ocl_ctx_add_buffer(me, buf);
 }
 
 cl_int
 ocl_ctx_write_tensor(ocl_ctx *me,
                      size_t queue_idx, size_t buffer_idx,
                      tensor *t) {
-    size_t n_bytes = sizeof(float) * tensor_n_elements(t);
-    return ocl_ctx_write_buffer(me, queue_idx, buffer_idx, t->data, n_bytes);
+    return ocl_ctx_write_buffer(me, queue_idx, buffer_idx, t->data);
 }
 
 cl_int
 ocl_ctx_read_tensor(ocl_ctx *me,
                     size_t queue_idx, size_t buffer_idx,
                     tensor *t) {
-    size_t n_bytes = sizeof(float) * tensor_n_elements(t);
-    return ocl_ctx_read_buffer(me, queue_idx, buffer_idx, t->data, n_bytes);
+    return ocl_ctx_read_buffer(me, queue_idx, buffer_idx, t->data);
 }
 
 
@@ -329,10 +327,12 @@ test_count() {
     ocl_ctx *ctx = ocl_ctx_init(0, 0, true);
     OCL_CHECK_ERR(ocl_ctx_add_queue(ctx));
 
-    OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, CL_MEM_READ_ONLY, n_bytes));
     OCL_CHECK_ERR(ocl_ctx_add_buffer(
-                      ctx, CL_MEM_WRITE_ONLY, sizeof(int32_t)));
-    OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, 0, arr, n_bytes));
+                      ctx, (ocl_ctx_buf){0, n_bytes, CL_MEM_READ_ONLY}));
+
+    OCL_CHECK_ERR(ocl_ctx_add_buffer(
+                      ctx, (ocl_ctx_buf){0, sizeof(int32_t), CL_MEM_WRITE_ONLY}));
+    OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, 0, arr));
 
     int32_t cnt[3];
     char *names[] = {
@@ -355,8 +355,7 @@ test_count() {
                               sizeof(cl_mem), &ctx->buffers[0],
                               sizeof(cl_mem), &ctx->buffers[1])),
             buf);
-        OCL_CHECK_ERR(ocl_ctx_read_buffer(
-                          ctx, 0, 1, &cnt[i], sizeof(int32_t)));
+        OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, 0, 1, &cnt[i]));
     }
     assert(cnt[0] == cnt[1]);
     assert(cnt[1] == cnt[2]);
@@ -396,8 +395,9 @@ test_heap() {
                       "tests/opencl/heap.cl", "-Werror",
                       1, (char *[]){"run_heap"}));
 
-    OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, CL_MEM_READ_ONLY, n_bytes));
-    OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, 0, msgs, n_bytes));
+    OCL_CHECK_ERR(ocl_ctx_add_buffer(
+                      ctx, (ocl_ctx_buf){0, n_bytes, CL_MEM_READ_ONLY}));
+    OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, 0, msgs));
 
     OCL_CHECK_ERR(ocl_ctx_run_kernel(
                       ctx, 0, 0, 1,

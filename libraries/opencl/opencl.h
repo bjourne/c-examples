@@ -116,11 +116,18 @@ ocl_basic_setup(
 // "Object-oriented" interface. Idea is to make an interface to save
 // lots of boilerplate code.
 typedef struct {
+    cl_mem ptr;
+    size_t n_bytes;
+    cl_mem_flags flags;
+} ocl_ctx_buf;
+
+typedef struct {
     cl_platform_id platform;
     cl_device_id device;
     cl_context context;
     size_t n_buffers;
-    cl_mem *buffers;
+    ocl_ctx_buf *buffers;
+
     size_t n_queues;
     cl_command_queue *queues;
     size_t n_kernels;
@@ -138,21 +145,24 @@ cl_int ocl_ctx_load_kernels(ocl_ctx *me,
 
 cl_int ocl_ctx_add_queue(ocl_ctx *me);
 
-cl_int ocl_ctx_add_buffer(ocl_ctx *me, cl_mem_flags flags, size_t n_bytes);
+cl_int
+ocl_ctx_add_buffer(ocl_ctx *me, ocl_ctx_buf buf);
 
 cl_int ocl_ctx_write_buffer(ocl_ctx *me,
-                            size_t queue_idx, size_t buffer_idx,
-                            void *arr, size_t n_bytes);
+                            size_t queue_idx, size_t buf_idx,
+                            void *arr);
+cl_int ocl_ctx_fill_buffer(ocl_ctx *me,
+                           size_t queue_idx, size_t buf_idx,
+                           void *pattern, size_t pattern_size);
 
 cl_int ocl_ctx_read_buffer(ocl_ctx *me,
-                           size_t queue_idx, size_t buffer_idx,
-                           void *arr, size_t n_bytes);
+                           size_t queue_idx, size_t buf_idx,
+                           void *arr);
 
 cl_int ocl_ctx_run_kernel(ocl_ctx *me,
                           size_t queue_idx, size_t kernel_idx,
                           size_t work_dim,
                           const size_t *global, const size_t *local,
                           size_t n_args, ...);
-
 
 #endif
