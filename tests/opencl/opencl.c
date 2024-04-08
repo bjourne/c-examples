@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2024 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <string.h>
 #include "datatypes/common.h"
@@ -319,7 +319,7 @@ test_prefix_sum() {
 
 void
 test_count() {
-    uint32_t n_els = 500 * 1000 * 1000;
+    uint32_t n_els = 100 * 1000 * 1000;
     uint32_t n_bytes = sizeof(int32_t) * n_els;
     int32_t *arr = malloc_aligned(64, n_bytes);
     rnd_pcg32_rand_range_fill((uint32_t *)arr, 100, n_els);
@@ -369,10 +369,9 @@ typedef struct {
     uint32_t padding;
 } mail;
 
-#define N_WORK_ITEMS     8
-
 void
 test_heap() {
+    uint32_t N_WORK_ITEMS = 4;
     uint32_t N = 100;
     uint32_t T = 100;
     uint32_t n_bytes = sizeof(mail) * N * T;
@@ -381,11 +380,9 @@ test_heap() {
     for (uint32_t i = 0; i < N * T; i++) {
         msgs[i].prio = 1 + rnd_pcg32_rand_range(20);
         msgs[i].recv = rnd_pcg32_rand_range(N_WORK_ITEMS);
-        msgs[i].data = rnd_pcg32_rand_range(10000);
+        msgs[i].data = rnd_pcg32_rand_range(1000);
     }
 
-    /* uint32_t *arr = malloc_aligned(64, n_bytes); */
-    /* rnd_pcg32_rand_range_fill(arr, 100, N * T); */
 
     ocl_ctx *ctx = ocl_ctx_init(0, 0, true);
     OCL_CHECK_ERR(ctx->err);

@@ -1,11 +1,10 @@
-// Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2023-2024 Björn A. Lindqvist <bjourne@gmail.com>
 //
 // This kernel demonstrates how work items in a workgroup can
 // communicate with each other.
 #define VECTOR_WIDTH    8
 #include "libraries/opencl/utils.cl"
-#define MAILBOX_SIZE    40
-#define N_WORK_ITEMS     8
+#define MAILBOX_SIZE    100
 
 typedef struct {
     uint prio;
@@ -59,6 +58,8 @@ mailbox_take(mailbox *me) {
     return min;
 }
 
+#define N_WORK_ITEMS 4
+
 __kernel void
 run_heap(const uint T, const uint N, __global mail *mails) {
     uint me = get_local_id(0);
@@ -103,13 +104,4 @@ run_heap(const uint T, const uint N, __global mail *mails) {
             }
         }
     }
-
-
-    /* uint n_rem = 0; */
-    /* for (uint i = 0; i < N_WORK_ITEMS; i++) { */
-    /*     n_rem += boxes[i][me].n_mails; */
-    /* } */
-    /* printf("%2d: %d mails deliviered, %d remailing, lowest prio %d\n", */
-    /*        me, n_del, n_rem, */
-    /*        boxes[0][me].mails[0].prio); */
 }
