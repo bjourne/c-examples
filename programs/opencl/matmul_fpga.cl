@@ -24,19 +24,6 @@
 /*     C is a N x M matrix */
 #include "programs/opencl/matmul_fpga_config.h"
 
-struct nvec_float_t {
-    vec_float_t data[LVEC];
-};
-
-struct nvec_float_t_bool {
-    vec_float_t data[LVEC];
-    bool c;  // indicates a new row/column pair
-};
-
-struct cols_floats {
-    float drain_data[PE_COLS];
-};
-
 #pragma OPENCL EXTENSION cl_intel_channels : enable
 
 channel struct nvec_float_t_bool loadAChannel __attribute__((depth(64)));

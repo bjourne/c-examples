@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2024 Björn A. Lindqvist <bjourne@gmail.com>
 //
 // Demonstrates how to run an AOT-compiled kernel on an FPGA.
 #include <assert.h>
@@ -15,6 +15,22 @@
 #define HOST
 #include "matmul_fpga_config.h"
 
+#define SCALING_FACTOR  8
+
+#define HA (64 * MAT_A_BLOCK_HEIGHT)             // Matrix A height
+#define WA (SCALING_FACTOR * MAT_A_BLOCK_WIDTH)  // Matrix A width
+
+#define HB WA                                   // Matrix B height
+#define WB (64 * MAT_B_BLOCK_WIDTH)              // Matrix B width
+
+#define HC HA                                   // Matrix C height
+#define WC WB                                   // Matrix C width
+
+
+// A+B+C matrices = 1.47 GB (with scaling factor 24)
+// S10 EA board DDR memory = 2 GB
+
+
 #define MAT_A_NUM_BLOCKS_IN_ROW             (WA / MAT_A_BLOCK_WIDTH)
 #define MAT_A_NUM_BLOCKS_IN_COL             (HA / MAT_A_BLOCK_HEIGHT)
 #define MAT_A_NUM_VECTORS_IN_ROW_OF_BLOCKS  (MAT_A_NUM_BLOCKS_IN_ROW * MAT_A_BLOCK_NUM_VECTORS)
@@ -24,17 +40,6 @@
 #define MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS  (MAT_B_NUM_BLOCKS_IN_COL * MAT_B_BLOCK_NUM_VECTORS)
 #define MAT_B_NUM_VECTORS_IN_MATRIX         (MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS * MAT_B_NUM_BLOCKS_IN_ROW)
 
-#define MAT_B_BLOCK_HEIGHT          MAT_A_BLOCK_WIDTH
-#define MAT_B_BLOCK_WIDTH           (COLUMNS_INTERLEAVED * PE_COLS)
-
-#define HA (4 * MAT_A_BLOCK_HEIGHT)             // Matrix A height
-#define WA (8 * MAT_A_BLOCK_WIDTH)             // Matrix A width
-
-#define HB WA                                   // Matrix B height
-#define WB (4 * MAT_B_BLOCK_WIDTH)              // Matrix B width
-
-#define HC HA                                   // Matrix C height
-#define WC WB                                   // Matrix C width
 
 // Gold stuff
 #define COMPUTE_GOLD_BLOCK_SIZE 64
@@ -67,6 +72,13 @@ main(int argc, char *argv[]) {
         printf("Usage: %s platform-index kernel-path\n", argv[0]);
         exit(1);
     }
+
+    // Type sizes
+    size_t n_uint = sizeof(cl_uint);
+    size_t n_uchar = sizeof(cl_uchar);
+    size_t n_ulong = sizeof(cl_ulong);
+    size_t n_mem = sizeof(cl_mem);
+    size_t n_float = sizeof(float);
 
     tensor *a = tensor_init(2, (int[]){HA, WA});
     tensor *a_blocked = tensor_init(2, (int[]){HA, WA});
@@ -149,30 +161,21 @@ main(int argc, char *argv[]) {
     }
 
     printf("Creating device buffers\n");
-    size_t n_bytes_a = HA * WA * sizeof(float);
-    size_t n_bytes_b = HB * WB * sizeof(float);
-    size_t n_bytes_c = HC * WC * sizeof(float);
+    size_t n_bytes_a = HA * WA * n_float;
+    size_t n_bytes_b = HB * WB * n_float;
+    size_t n_bytes_c = HC * WC * n_float;
 
-    cl_mem dev_a = clCreateBuffer(ctx, CL_MEM_READ_ONLY, n_bytes_a,
-                                  NULL, &err);
-    OCL_CHECK_ERR(err);
-    cl_mem dev_b = clCreateBuffer(ctx, CL_MEM_READ_ONLY, n_bytes_b,
-                                  NULL, &err);
-    OCL_CHECK_ERR(err);
-    cl_mem dev_c = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY, n_bytes_c,
-                                  NULL, &err);
-    OCL_CHECK_ERR(err);
-
-    printf("Writing to device buffer A\n");
-    err = clEnqueueWriteBuffer(queues[0], dev_a, CL_TRUE, 0, n_bytes_a,
-                               a_blocked->data, 0, NULL, NULL);
-    OCL_CHECK_ERR(err);
-
-    printf("Writing to device buffer B\n");
-    err = clEnqueueWriteBuffer(queues[1], dev_b, CL_TRUE, 0, n_bytes_a,
-                               b_transpose_blocked->data, 0, NULL, NULL);
-    OCL_CHECK_ERR(err);
-
+    cl_mem dev_a, dev_b, dev_c;
+    OCL_CHECK_ERR(ocl_create_and_write_buffer(
+                      ctx, CL_MEM_READ_ONLY, queues[0],
+                      a_blocked->data, n_bytes_a,
+                      &dev_a));
+    OCL_CHECK_ERR(ocl_create_and_write_buffer(
+                      ctx, CL_MEM_READ_ONLY, queues[1],
+                      b_transpose_blocked->data, n_bytes_b,
+                      &dev_b));
+    OCL_CHECK_ERR(ocl_create_empty_buffer(
+                      ctx, CL_MEM_WRITE_ONLY, n_bytes_c, &dev_c));
 
     // LoadA kernel
     printf("Initializing LoadA kernel\n");
@@ -183,10 +186,10 @@ main(int argc, char *argv[]) {
 
     OCL_CHECK_ERR(ocl_set_kernel_arguments(
                       kernels[0], 4,
-                      sizeof(cl_mem), (void *)&dev_a,
-                      sizeof(unsigned int), (void *)&mat_a_num_vectors_in_row_of_blocks,
-                      sizeof(unsigned char), (void *)&mat_a_num_blocks_in_col,
-                      sizeof(unsigned char), (void *)&mat_b_num_blocks_in_row));
+                      n_mem, (void *)&dev_a,
+                      n_uint, (void *)&mat_a_num_vectors_in_row_of_blocks,
+                      n_uchar, (void *)&mat_a_num_blocks_in_col,
+                      n_uchar, (void *)&mat_b_num_blocks_in_row));
 
     // LoadB kernel
     printf("Initializing LoadB kernel\n");
@@ -197,10 +200,10 @@ main(int argc, char *argv[]) {
 
     ocl_set_kernel_arguments(
         kernels[1], 4,
-        sizeof(cl_mem), (void *)&dev_b,
-        sizeof(unsigned int), (void *)&mat_b_num_vectors_in_col_of_blocks,
-        sizeof(unsigned int), (void *)&mat_b_num_vectors_in_matrix,
-        sizeof(unsigned char), (void *)&mat_a_num_blocks_in_col);
+        n_mem, (void *)&dev_b,
+        n_uint, (void *)&mat_b_num_vectors_in_col_of_blocks,
+        n_uint, (void *)&mat_b_num_vectors_in_matrix,
+        n_uchar, (void *)&mat_a_num_blocks_in_col);
 
     // Store kernel
     int mat_c_num_coalesced_words = WC * HC / PE_COLS;
@@ -215,15 +218,14 @@ main(int argc, char *argv[]) {
     size_t global[] = {1};
     cl_event events[3];
     for (int i = 0; i < 3; i++) {
-        err = clEnqueueNDRangeKernel(queues[i], kernels[i],
-                                     1, NULL, global, local,
-                                     0, NULL,
-                                     &events[i]);
-        OCL_CHECK_ERR(err);
+        OCL_CHECK_ERR(clEnqueueNDRangeKernel(
+                          queues[i], kernels[i],
+                          1, NULL, global, local,
+                          0, NULL,
+                          &events[i]));
     }
     for(int i=0; i < 3; i++) {
-        err = clFlush(queues[i]);
-        OCL_CHECK_ERR(err);
+        OCL_CHECK_ERR(clFlush(queues[i]));
     }
 
     for(int i = 0; i < 3; i++) {
@@ -236,21 +238,16 @@ main(int argc, char *argv[]) {
     // Compute execution time
     for (int i = 0; i < 3; i++) {
         cl_ulong start, end;
-        err = clGetEventProfilingInfo(events[i], CL_PROFILING_COMMAND_END,
-                                      sizeof(cl_ulong), &end, NULL);
-        OCL_CHECK_ERR(err);
-        err = clGetEventProfilingInfo(events[i], CL_PROFILING_COMMAND_START,
-                                      sizeof(cl_ulong), &start, NULL);
-        OCL_CHECK_ERR(err);
+        OCL_CHECK_ERR(clGetEventProfilingInfo(events[i], CL_PROFILING_COMMAND_END,
+                                              n_ulong, &end, NULL));
+        OCL_CHECK_ERR(clGetEventProfilingInfo(events[i], CL_PROFILING_COMMAND_START,
+                                              n_ulong, &start, NULL));
         double time = 1.0e-9 * (end - start);
         printf("%.6f\n", time);
     }
 
     // We use the fourth queue to read data back.
-    err = clEnqueueReadBuffer(queues[3], dev_c, CL_TRUE, 0,
-                              n_bytes_c, c->data,
-                              0, NULL, NULL);
-    OCL_CHECK_ERR(err);
+    OCL_CHECK_ERR(ocl_read_buffer(queues[3], c->data, n_bytes_c, dev_c));
     tensor_check_equal(c, c_golden_blocked_reordered, LINALG_EPSILON);
 
     // Release OpenCL

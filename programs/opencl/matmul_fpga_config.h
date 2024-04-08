@@ -4,19 +4,23 @@
 // This is important but it is not enforced:
 // PE_ROWS + PE_COLS <= ROWS_INTERLEAVED
 
-// Good settings for Arria 10.
+// design space exploration of three vector sizes: float4, float8 and float16
 #define DOT_PROD_VECTOR_SIZE     8
 
-#define PE_ROWS                  10
-#define PE_COLS                  16
-#define ROWS_INTERLEAVED         32
-#define COLUMNS_INTERLEAVED      64
+#define FORCE_DOT_4              0
 
-#define MAT_A_BLOCK_WIDTH           (16 * DOT_PROD_VECTOR_SIZE)
-#define MAT_A_BLOCK_HEIGHT          (ROWS_INTERLEAVED * PE_ROWS)
+#define PE_ROWS                  2
+#define PE_COLS                  2
+
+#define ROWS_INTERLEAVED         8
+
+#define COLUMNS_INTERLEAVED      8
 
 #define ACCUM_SHIFT_REG_SIZE        (ROWS_INTERLEAVED * COLUMNS_INTERLEAVED)
+#define C_OUT_SHIFT_REG_SIZE        ACCUM_SHIFT_REG_SIZE
 
+#define MAT_A_BLOCK_WIDTH           (16 * DOT_PROD_VECTOR_SIZE)
+#define MAT_A_BLOCK_HEIGHT          (ROWS_INTERLEAVED   * PE_ROWS)
 #define MAT_A_BLOCK_SIZE            (MAT_A_BLOCK_HEIGHT * MAT_A_BLOCK_WIDTH)
 #define MAT_A_BLOCK_NUM_VECTORS     (MAT_A_BLOCK_SIZE   / DOT_PROD_VECTOR_SIZE)
 
@@ -32,28 +36,32 @@
 #define VECTOR_FLOAT8_ZERO          (float8)(VECTOR_FLOAT4_ZERO,VECTOR_FLOAT4_ZERO)
 #define VECTOR_FLOAT16_ZERO         (float16)(VECTOR_FLOAT8_ZERO,VECTOR_FLOAT8_ZERO)
 
-#define ROW_VECS                    (MAT_A_BLOCK_WIDTH / DOT_PROD_VECTOR_SIZE)
+#define VEC                         DOT_PROD_VECTOR_SIZE
+#define ROWS                        PE_ROWS
+#define COLS                        PE_COLS
+#define COLS_INTERLEAVED            COLUMNS_INTERLEAVED
+
+#define ROW_VECS                    (MAT_A_BLOCK_WIDTH / VEC)
 #define ROW_VECS_MASK               (ROW_VECS - 1)
 
-#define SWAP_RANGE                  (ROWS_INTERLEAVED * COLUMNS_INTERLEAVED * ROW_VECS)
+#define SWAP_RANGE                  (ROWS_INTERLEAVED * COLS_INTERLEAVED * ROW_VECS)
 #define SWAP_RANGE_MASK             (SWAP_RANGE - 1)
 
 #define RANGE                       (2 * SWAP_RANGE)
 #define RANGE_MASK                  (RANGE - 1)
 
 #ifndef HOST
-
-#if DOT_PROD_VECTOR_SIZE==4
-    typedef float4 vec_float_t;
-    #define VECTOR_ZERO         VECTOR_FLOAT4_ZERO
-#elif DOT_PROD_VECTOR_SIZE==8
-    typedef float8 vec_float_t;
-    #define VECTOR_ZERO         VECTOR_FLOAT8_ZERO
-#elif DOT_PROD_VECTOR_SIZE==16
-    typedef float16 vec_float_t;
-    #define VECTOR_ZERO         VECTOR_FLOAT16_ZERO
-#else
-    #error Unsupported DOT_PROD_VECTOR_SIZE
+    #if DOT_PROD_VECTOR_SIZE==4
+        typedef float4 vec_float_t;
+        #define VECTOR_ZERO         VECTOR_FLOAT4_ZERO
+    #elif DOT_PROD_VECTOR_SIZE==8
+        typedef float8 vec_float_t;
+        #define VECTOR_ZERO         VECTOR_FLOAT8_ZERO
+    #elif DOT_PROD_VECTOR_SIZE==16
+        typedef float16 vec_float_t;
+        #define VECTOR_ZERO         VECTOR_FLOAT16_ZERO
+    #else
+        #error Unsupported DOT_PROD_VECTOR_SIZE
 #endif
 
 struct vec_float_t_bool {
@@ -61,55 +69,70 @@ struct vec_float_t_bool {
     bool  c;  // indicates a new row/column pair
 };
 
-#define LVEC 1
+#ifndef LVEC
+   #define LVEC 1
+#endif
+
+struct nvec_float_t {
+    vec_float_t data[LVEC];
+};
+
+struct nvec_float_t_bool {
+    vec_float_t data[LVEC];
+    bool  c;  // indicates a new row/column pair
+};
+
+struct cols_floats {
+    float drain_data[PE_COLS];
+};
 
 // The number of rows rounded up to the next power of 2
-#if PE_ROWS <= 1
+#if ROWS <= 1
     #define BANKROWS 1
-#elif PE_ROWS <= 2
+#elif ROWS <= 2
     #define BANKROWS 2
-#elif PE_ROWS <= 4
+#elif ROWS <= 4
     #define BANKROWS 4
-#elif PE_ROWS <= 8
+#elif ROWS <= 8
     #define BANKROWS 8
-#elif PE_ROWS <= 16
+#elif ROWS <= 16
     #define BANKROWS 16
-#elif PE_ROWS <= 32
+#elif ROWS <= 32
     #define BANKROWS 32
-#elif PE_ROWS <= 64
+#elif ROWS <= 64
     #define BANKROWS 64
-#elif PE_ROWS <= 128
+#elif ROWS <= 128
     #define BANKROWS 128
-#elif PE_ROWS <= 256
+#elif ROWS <= 256
     #define BANKROWS 256
 #else
-    #error "PE_ROWS too large, BANKROWS cannot be defined"
+    #error "ROWS too large, BANKROWS cannot be defined"
 #endif
 
 // The number of columns rounded up to the next power of 2
-#if PE_COLS <= 1
+#if COLS <= 1
     #define BANKCOLS 1
-#elif PE_COLS <= 2
+#elif COLS <= 2
     #define BANKCOLS 2
-#elif PE_COLS <= 4
+#elif COLS <= 4
     #define BANKCOLS 4
-#elif PE_COLS <= 8
+#elif COLS <= 8
     #define BANKCOLS 8
-#elif PE_COLS <= 16
+#elif COLS <= 16
     #define BANKCOLS 16
-#elif PE_COLS <= 32
+#elif COLS <= 32
     #define BANKCOLS 32
-#elif PE_COLS <= 64
+#elif COLS <= 64
     #define BANKCOLS 64
-#elif PE_COLS <= 128
+#elif COLS <= 128
     #define BANKCOLS 128
-#elif PE_COLS <= 256
+#elif COLS <= 256
     #define BANKCOLS 256
 #else
-    #error "PE_COLS too large, BANKCOLS cannot be defined"
+    #error "COLS too large, BANKCOLS cannot be defined"
 #endif
 
-#endif
 
+#endif
 
 #endif // _PE_SYSTOLIC_ARRAY_H_
