@@ -280,7 +280,7 @@ test_prefix_sum() {
             1, (char *[]){"prefix_sum"}
         )
     );
-    OCL_CHECK_ERR(ocl_ctx_add_queue(ctx));
+    OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, NULL));
 
     size_t n_arr = 10 * 1000 * 1000;
     tensor *arr = tensor_init(1, (int[]){n_arr});
@@ -325,7 +325,7 @@ test_count() {
     rnd_pcg32_rand_range_fill((uint32_t *)arr, 100, n_els);
 
     ocl_ctx *ctx = ocl_ctx_init(0, 0, true);
-    OCL_CHECK_ERR(ocl_ctx_add_queue(ctx));
+    OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, NULL));
 
     OCL_CHECK_ERR(ocl_ctx_add_buffer(
                       ctx, (ocl_ctx_buf){0, n_bytes, CL_MEM_READ_ONLY}));
@@ -388,7 +388,7 @@ test_heap() {
 
     ocl_ctx *ctx = ocl_ctx_init(0, 0, true);
     OCL_CHECK_ERR(ctx->err);
-    OCL_CHECK_ERR(ocl_ctx_add_queue(ctx));
+    OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, NULL));
 
     OCL_CHECK_ERR(ocl_ctx_load_kernels(
                       ctx,

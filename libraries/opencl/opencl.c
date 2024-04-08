@@ -644,10 +644,10 @@ ocl_ctx_add_buffer(ocl_ctx *me, ocl_ctx_buf buf) {
 }
 
 cl_int
-ocl_ctx_add_queue(ocl_ctx *me) {
+ocl_ctx_add_queue(ocl_ctx *me, cl_queue_properties *props) {
     cl_int err;
     me->queues[me->n_queues] = clCreateCommandQueueWithProperties(
-        me->context, me->device, NULL, &err
+        me->context, me->device, props, &err
     );
     if (err != CL_SUCCESS) {
         return err;

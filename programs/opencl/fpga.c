@@ -66,6 +66,12 @@ reorder_within_blocks(float * src,
     assert(word_id == num_elems);
 }
 
+typedef enum {
+    BUF_A = 0,
+    BUF_B,
+    BUF_C
+} buf_type;
+
 int
 main(int argc, char *argv[]) {
     if (argc != 3) {
@@ -132,32 +138,20 @@ main(int argc, char *argv[]) {
 
     printf("** Setting up OpenCL **\n");
 
-    cl_platform_id platform;
-    cl_device_id dev;
-    cl_context ctx;
     int plat_idx = atoi(argv[1]);
-    OCL_CHECK_ERR(ocl_basic_setup(plat_idx, 0, &platform, &dev, &ctx, 0, NULL));
-    ocl_print_device_details(dev, 0);
+    ocl_ctx *ctx = ocl_ctx_init(plat_idx, 0, true);
 
     printf("Loading kernels\n");
-    cl_program program;
-    cl_kernel kernels[3];
-    OCL_CHECK_ERR(ocl_load_kernels(
-                      ctx, dev,
+    OCL_CHECK_ERR(ocl_ctx_load_kernels(
+                      ctx,
                       argv[2], "-cl-std=CL2.0 -Werror",
-                      3, (char *[]){"loadA", "loadB", "store"},
-                      &program, kernels));
+                      3, (char *[]){"loadA", "loadB", "store"}));
 
-    // Create four queues
     cl_queue_properties props[] = {
         CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0
     };
-    cl_command_queue queues[4];
-    cl_int err;
     for (int i = 0; i < 4; i++) {
-        queues[i] = clCreateCommandQueueWithProperties(ctx, dev,
-                                                       props, &err);
-        OCL_CHECK_ERR(err);
+        OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, props));
     }
 
     printf("Creating device buffers\n");
@@ -165,17 +159,16 @@ main(int argc, char *argv[]) {
     size_t n_bytes_b = HB * WB * n_float;
     size_t n_bytes_c = HC * WC * n_float;
 
-    cl_mem dev_a, dev_b, dev_c;
-    OCL_CHECK_ERR(ocl_create_and_write_buffer(
-                      ctx, CL_MEM_READ_ONLY, queues[0],
-                      a_blocked->data, n_bytes_a,
-                      &dev_a));
-    OCL_CHECK_ERR(ocl_create_and_write_buffer(
-                      ctx, CL_MEM_READ_ONLY, queues[1],
-                      b_transpose_blocked->data, n_bytes_b,
-                      &dev_b));
-    OCL_CHECK_ERR(ocl_create_empty_buffer(
-                      ctx, CL_MEM_WRITE_ONLY, n_bytes_c, &dev_c));
+    ocl_ctx_buf bufs[3] = {
+        {0, n_bytes_a, CL_MEM_READ_ONLY},
+        {0, n_bytes_b, CL_MEM_READ_ONLY},
+        {0, n_bytes_c, CL_MEM_WRITE_ONLY}
+    };
+    for (int i = 0; i < 3; i++) {
+        OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, bufs[i]));
+    }
+    OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, BUF_A, a_blocked->data));
+    OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 1, BUF_B, b_transpose_blocked->data));
 
     // LoadA kernel
     printf("Initializing LoadA kernel\n");
@@ -185,8 +178,8 @@ main(int argc, char *argv[]) {
     unsigned char mat_b_num_blocks_in_row = MAT_B_NUM_BLOCKS_IN_ROW;
 
     OCL_CHECK_ERR(ocl_set_kernel_arguments(
-                      kernels[0], 4,
-                      n_mem, (void *)&dev_a,
+                      ctx->kernels[0], 4,
+                      n_mem, (void *)&ctx->buffers[BUF_A].ptr,
                       n_uint, (void *)&mat_a_num_vectors_in_row_of_blocks,
                       n_uchar, (void *)&mat_a_num_blocks_in_col,
                       n_uchar, (void *)&mat_b_num_blocks_in_row));
@@ -199,8 +192,8 @@ main(int argc, char *argv[]) {
         MAT_B_NUM_VECTORS_IN_MATRIX;
 
     ocl_set_kernel_arguments(
-        kernels[1], 4,
-        n_mem, (void *)&dev_b,
+        ctx->kernels[1], 4,
+        n_mem, (void *)&ctx->buffers[BUF_B].ptr,
         n_uint, (void *)&mat_b_num_vectors_in_col_of_blocks,
         n_uint, (void *)&mat_b_num_vectors_in_matrix,
         n_uchar, (void *)&mat_a_num_blocks_in_col);
@@ -209,8 +202,8 @@ main(int argc, char *argv[]) {
     int mat_c_num_coalesced_words = WC * HC / PE_COLS;
 
     ocl_set_kernel_arguments(
-        kernels[2], 2,
-        sizeof(cl_mem), (void *)&dev_c,
+        ctx->kernels[2], 2,
+        sizeof(cl_mem), (void *)&ctx->buffers[BUF_C].ptr,
         sizeof(int), (void *)&mat_c_num_coalesced_words);
 
     // Queue kernels
@@ -219,21 +212,15 @@ main(int argc, char *argv[]) {
     cl_event events[3];
     for (int i = 0; i < 3; i++) {
         OCL_CHECK_ERR(clEnqueueNDRangeKernel(
-                          queues[i], kernels[i],
+                          ctx->queues[i], ctx->kernels[i],
                           1, NULL, global, local,
                           0, NULL,
                           &events[i]));
     }
-    for(int i=0; i < 3; i++) {
-        OCL_CHECK_ERR(clFlush(queues[i]));
-    }
-
     for(int i = 0; i < 3; i++) {
-        printf("Finishing queue %d.\n", i);
-        err = clFinish(queues[i]);
-        OCL_CHECK_ERR(err);
+        OCL_CHECK_ERR(clFlush(ctx->queues[i]));
+        OCL_CHECK_ERR(clFinish(ctx->queues[i]));
     }
-    printf("Kernel execution complete\n");
 
     // Compute execution time
     for (int i = 0; i < 3; i++) {
@@ -247,24 +234,10 @@ main(int argc, char *argv[]) {
     }
 
     // We use the fourth queue to read data back.
-    OCL_CHECK_ERR(ocl_read_buffer(queues[3], c->data, n_bytes_c, dev_c));
+    OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, 3, BUF_C, c->data));
     tensor_check_equal(c, c_golden_blocked_reordered, LINALG_EPSILON);
 
-    // Release OpenCL
-    clReleaseMemObject(dev_a);
-    clReleaseMemObject(dev_b);
-    clReleaseMemObject(dev_c);
-
-    for(int i = 0; i < 4; i++) {
-        OCL_CHECK_ERR(clFlush(queues[i]));
-        OCL_CHECK_ERR(clFinish(queues[i]));
-        clReleaseCommandQueue(queues[i]);
-    }
-    for (int i = 0; i < 3; i++) {
-        clReleaseKernel(kernels[i]);
-    }
-    clReleaseProgram(program);
-    clReleaseContext(ctx);
+    ocl_ctx_free(ctx);
 
     // Free tensors
     tensor_free(a);

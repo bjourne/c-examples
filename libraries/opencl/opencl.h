@@ -143,7 +143,7 @@ cl_int ocl_ctx_load_kernels(ocl_ctx *me,
                             const char *path, const char *options,
                             size_t n_kernels, char *names[]);
 
-cl_int ocl_ctx_add_queue(ocl_ctx *me);
+cl_int ocl_ctx_add_queue(ocl_ctx *me, cl_queue_properties *props);
 
 cl_int
 ocl_ctx_add_buffer(ocl_ctx *me, ocl_ctx_buf buf);

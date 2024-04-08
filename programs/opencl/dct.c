@@ -43,7 +43,7 @@ main(int argc, char *argv[]) {
 
     ocl_ctx *ctx = ocl_ctx_init(idx, 0, true);
     OCL_CHECK_ERR(ctx->err);
-    OCL_CHECK_ERR(ocl_ctx_add_queue(ctx));
+    OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, NULL));
 
     //cl_program program;
     char *names[2] = {"dct8x8", "dct8x8_sd"};
