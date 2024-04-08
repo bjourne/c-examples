@@ -56,7 +56,8 @@ test_matmul() {
     cl_program program;
     cl_kernel kernels[3];
     OCL_CHECK_ERR(ocl_load_kernels(
-                      ctx, dev, "libraries/opencl/matmul.cl",
+                      ctx, dev,
+                      "libraries/opencl/matmul.cl", "-Werror",
                       3, kernel_names,
                       &program, kernels));
 
@@ -190,7 +191,8 @@ test_add_reduce() {
     cl_kernel kernel;
     OCL_CHECK_ERR(
         ocl_load_kernels(
-            ctx, dev, "tests/opencl/add_reduce.cl",
+            ctx, dev,
+            "tests/opencl/add_reduce.cl", "-Werror",
             1, (char *[]){"add_reduce"},
             &program, &kernel
         )
@@ -276,7 +278,7 @@ test_prefix_sum() {
     OCL_CHECK_ERR(
         ocl_ctx_load_kernels(
             ctx,
-            "tests/opencl/prefix_sum.cl",
+            "tests/opencl/prefix_sum.cl", "-Werror",
             1, (char *[]){"prefix_sum"}
         )
     );
@@ -339,7 +341,8 @@ test_count() {
         "count_divisible_simd2"
     };
     OCL_CHECK_ERR(ocl_ctx_load_kernels(
-                      ctx, "tests/opencl/count.cl",
+                      ctx,
+                      "tests/opencl/count.cl", "-Werror",
                       3, names));
     for (uint32_t i = 0; i < 3; i++) {
         char buf[256];
@@ -389,7 +392,8 @@ test_heap() {
     OCL_CHECK_ERR(ocl_ctx_add_queue(ctx));
 
     OCL_CHECK_ERR(ocl_ctx_load_kernels(
-                      ctx, "tests/opencl/heap.cl",
+                      ctx,
+                      "tests/opencl/heap.cl", "-Werror",
                       1, (char *[]){"run_heap"}));
 
     OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, CL_MEM_READ_ONLY, n_bytes));

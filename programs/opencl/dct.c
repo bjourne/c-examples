@@ -49,7 +49,9 @@ main(int argc, char *argv[]) {
     //cl_kernel kernels[2];
     printf("* Loading kernels\n");
     OCL_CHECK_ERR(ocl_ctx_load_kernels(
-                      ctx, fname, 2, names));
+                      ctx, "-cl-std=CL2.0 -Werror",
+                      fname,
+                      2, names));
 
     // Allocate and initialize tensors
     printf("* Initializing tensors\n");

@@ -131,7 +131,8 @@ main(int argc, char *argv[]) {
     cl_program program;
     cl_kernel kernels[3];
     OCL_CHECK_ERR(ocl_load_kernels(
-                      ctx, dev, argv[2],
+                      ctx, dev,
+                      argv[2], "-cl-std=CL2.0 -Werror",
                       3, (char *[]){"loadA", "loadB", "store"},
                       &program, kernels));
 

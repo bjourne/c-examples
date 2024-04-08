@@ -279,7 +279,8 @@ ocl_print_platform_details(cl_platform_id plat) {
 }
 
 cl_int
-ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
+ocl_load_kernels(cl_context ctx, cl_device_id dev,
+                 const char *path, const char *options,
                  size_t n_kernels, char *names[],
                  cl_program *program, cl_kernel *kernels) {
     char *data;
@@ -308,14 +309,12 @@ ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
         return err;
     }
 
-    err = clBuildProgram(*program, 1, &dev,
-                         "-cl-std=CL2.0 -Werror", NULL, NULL);
+    err = clBuildProgram(*program, 1, &dev, options, NULL, NULL);
     if (err != CL_SUCCESS) {
         printf("Build failed: %s\n", err_str(err));
         size_t n_log;
-        cl_int err2 = clGetProgramBuildInfo(*program, dev, CL_PROGRAM_BUILD_LOG,
-                                            0, NULL, &n_log);
-        OCL_CHECK_ERR(err2);
+        OCL_CHECK_ERR(clGetProgramBuildInfo(*program, dev, CL_PROGRAM_BUILD_LOG,
+                                            0, NULL, &n_log));
         assert(n_log > 0);
 
         // Acquire, print, and free the log.
@@ -335,7 +334,6 @@ ocl_load_kernels(cl_context ctx, cl_device_id dev, const char *path,
     }
     return CL_SUCCESS;
 }
-
 
 static cl_int
 set_kernel_arguments(cl_kernel kernel, int n_args, va_list ap) {
@@ -382,6 +380,7 @@ ocl_run_nd_kernel(cl_command_queue queue, cl_kernel kernel,
     return ocl_poll_event_until(event, CL_COMPLETE, 10);
 }
 
+// Buffer creation functions
 cl_int
 ocl_create_and_write_buffer(cl_context ctx, cl_mem_flags flags,
                             cl_command_queue queue, void *src,
@@ -393,14 +392,11 @@ ocl_create_and_write_buffer(cl_context ctx, cl_mem_flags flags,
     if (err != CL_SUCCESS) {
         return err;
     }
-    err = clEnqueueWriteBuffer(queue, *mem, CL_TRUE,
-                               0, n_bytes, src,
-                               0, NULL, NULL);
+    err = ocl_fill_buffer(queue, pattern, pattern_size, n_bytes, *mem);
     if (err != CL_SUCCESS) {
         clReleaseMemObject(*mem);
-        return err;
     }
-    return CL_SUCCESS;
+    return err;
 }
 
 
@@ -438,6 +434,42 @@ ocl_create_empty_buffer(cl_context ctx, cl_mem_flags flags,
     return err;
 }
 
+// Buffer write functions
+cl_int
+ocl_write_buffer(cl_command_queue queue, void *src,
+                 size_t n_bytes, cl_mem mem) {
+    #if OCL_DEBUG == 1
+    printf("%-8s %10ld bytes to buffer %p from %p.\n",
+           "Writing", n_bytes, mem, src);
+    #endif
+    cl_int err = clEnqueueWriteBuffer(queue, mem, CL_TRUE,
+                                      0, n_bytes, src,
+                                      0, NULL, NULL);
+    if (err != CL_SUCCESS) {
+        return err;
+    }
+    return clFinish(queue);
+}
+
+cl_int
+ocl_fill_buffer(cl_command_queue queue,
+                void *pattern, size_t pattern_size,
+                size_t n_bytes, cl_mem mem) {
+    #if OCL_DEBUG == 1
+    printf("%-8s %10ld bytes to buffer %p.\n",
+           "Filling", n_bytes, mem);
+    #endif
+    cl_int err = clEnqueueFillBuffer(queue, mem,
+                                     pattern, pattern_size,
+                                     0, n_bytes,
+                                     0, NULL, NULL);
+    if (err != CL_SUCCESS) {
+        return err;
+    }
+    return clFinish(queue);
+}
+
+// Buffer read functions
 cl_int
 ocl_read_buffer(cl_command_queue queue, void *dst,
                 size_t n_bytes, cl_mem mem) {
@@ -585,12 +617,12 @@ ocl_ctx_free(ocl_ctx *me) {
 
 cl_int
 ocl_ctx_load_kernels(ocl_ctx *me,
-                     const char *path,
-                     size_t n_kernels,
-                     char *names[]) {
+                     const char *path, const char *options,
+                     size_t n_kernels, char *names[]) {
     assert(me->n_kernels == 0 && n_kernels < OCL_CTX_MAX_KERNELS);
     me->n_kernels = n_kernels;
-    return ocl_load_kernels(me->context, me->device, path,
+    return ocl_load_kernels(me->context, me->device,
+                            path, options,
                             n_kernels, names,
                             &me->program, me->kernels);
 }

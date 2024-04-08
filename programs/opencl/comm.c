@@ -93,7 +93,7 @@ main(int argc, char *argv[]) {
     OCL_CHECK_ERR(
         ocl_load_kernels(
             ctx, device,
-            argv[2],
+            argv[2], "-cl-std=CL2.0 -Werror",
             2, (char*[]){"consumer", "producer"},
             &program, kernels
         )
