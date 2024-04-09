@@ -17,11 +17,11 @@
 
 #define SCALING_FACTOR  8
 
-#define HA (64 * MAT_A_BLOCK_HEIGHT)             // Matrix A height
+#define HA (32 * MAT_A_BLOCK_HEIGHT)             // Matrix A height
 #define WA (SCALING_FACTOR * MAT_A_BLOCK_WIDTH)  // Matrix A width
 
 #define HB WA                                   // Matrix B height
-#define WB (64 * MAT_B_BLOCK_WIDTH)              // Matrix B width
+#define WB (32 * MAT_B_BLOCK_WIDTH)              // Matrix B width
 
 #define HC HA                                   // Matrix C height
 #define WC WB                                   // Matrix C width
@@ -52,10 +52,10 @@ reorder_within_blocks(float * src,
                       float * dst,
                       int height, int width,
                       int num_sys_arr_columns, int block_width) {
-    int num_elems = height * width;
+    int n_els = height * width;
     int column_interleaving = block_width / num_sys_arr_columns;
     int word_id = 0;
-    for (int i = 0; i < num_elems; i += block_width) {
+    for (int i = 0; i < n_els; i += block_width) {
         for (int j = 0; j < column_interleaving; j++) {
             for (int k = 0; k < num_sys_arr_columns ; k++) {
                 dst[word_id] = src[i + j + k * column_interleaving];
@@ -63,7 +63,7 @@ reorder_within_blocks(float * src,
             }
         }
     }
-    assert(word_id == num_elems);
+    assert(word_id == n_els);
 }
 
 typedef enum {

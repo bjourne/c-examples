@@ -9,8 +9,8 @@
 
 #define FORCE_DOT_4              0
 
-#define PE_ROWS                  2
-#define PE_COLS                  2
+#define PE_ROWS                  4
+#define PE_COLS                  4
 
 #define ROWS_INTERLEAVED         8
 
