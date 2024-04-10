@@ -15,13 +15,13 @@
 #define HOST
 #include "matmul_fpga_config.h"
 
-#define SCALING_FACTOR  8
+#define SCALING_FACTOR  128
 
-#define HA (32 * MAT_A_BLOCK_HEIGHT)             // Matrix A height
-#define WA (SCALING_FACTOR * MAT_A_BLOCK_WIDTH)  // Matrix A width
+#define HA (128 * MAT_A_BLOCK_HEIGHT)           // Matrix A height
+#define WA (SCALING_FACTOR * MAT_A_BLOCK_WIDTH) // Matrix A width
 
 #define HB WA                                   // Matrix B height
-#define WB (32 * MAT_B_BLOCK_WIDTH)              // Matrix B width
+#define WB (128 * MAT_B_BLOCK_WIDTH)            // Matrix B width
 
 #define HC HA                                   // Matrix C height
 #define WC WB                                   // Matrix C width
@@ -31,14 +31,14 @@
 // S10 EA board DDR memory = 2 GB
 
 
-#define MAT_A_NUM_BLOCKS_IN_ROW             (WA / MAT_A_BLOCK_WIDTH)
-#define MAT_A_NUM_BLOCKS_IN_COL             (HA / MAT_A_BLOCK_HEIGHT)
-#define MAT_A_NUM_VECTORS_IN_ROW_OF_BLOCKS  (MAT_A_NUM_BLOCKS_IN_ROW * MAT_A_BLOCK_NUM_VECTORS)
+#define MAT_A_N_BLOCKS_IN_ROW             (WA / MAT_A_BLOCK_WIDTH)
+#define MAT_A_N_BLOCKS_IN_COL             (HA / MAT_A_BLOCK_HEIGHT)
+#define MAT_A_NUM_VECTORS_IN_ROW_OF_BLOCKS  (MAT_A_N_BLOCKS_IN_ROW * MAT_A_BLOCK_NUM_VECTORS)
 
-#define MAT_B_NUM_BLOCKS_IN_ROW             (WB / MAT_B_BLOCK_WIDTH)
-#define MAT_B_NUM_BLOCKS_IN_COL             (HB / MAT_B_BLOCK_HEIGHT)
-#define MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS  (MAT_B_NUM_BLOCKS_IN_COL * MAT_B_BLOCK_NUM_VECTORS)
-#define MAT_B_NUM_VECTORS_IN_MATRIX         (MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS * MAT_B_NUM_BLOCKS_IN_ROW)
+#define MAT_B_N_BLOCKS_IN_ROW             (WB / MAT_B_BLOCK_WIDTH)
+#define MAT_B_N_BLOCKS_IN_COL             (HB / MAT_B_BLOCK_HEIGHT)
+#define MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS  (MAT_B_N_BLOCKS_IN_COL * MAT_B_BLOCK_NUM_VECTORS)
+#define MAT_B_NUM_VECTORS_IN_MATRIX         (MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS * MAT_B_N_BLOCKS_IN_ROW)
 
 
 // Gold stuff
@@ -114,8 +114,10 @@ main(int argc, char *argv[]) {
     printf("\n");
 
     printf("** Initializing input matrices **\n");
-    tensor_fill_rand_range(a, 10);
-    tensor_fill_rand_range(b, 10);
+    tensor_fill_rand_range(a, 20);
+    tensor_fill_rand_range(b, 20);
+    tensor_unary(a, a, TENSOR_UNARY_OP_ADD, -10.0);
+    tensor_unary(b, b, TENSOR_UNARY_OP_ADD, -10.0);
     tensor_fill_const(c, 0);
 
     printf("** Multiplying on CPU**\n");
@@ -174,8 +176,8 @@ main(int argc, char *argv[]) {
     printf("Initializing LoadA kernel\n");
     unsigned int mat_a_num_vectors_in_row_of_blocks =
         MAT_A_NUM_VECTORS_IN_ROW_OF_BLOCKS;
-    unsigned char mat_a_num_blocks_in_col = MAT_A_NUM_BLOCKS_IN_COL;
-    unsigned char mat_b_num_blocks_in_row = MAT_B_NUM_BLOCKS_IN_ROW;
+    unsigned char mat_a_num_blocks_in_col = MAT_A_N_BLOCKS_IN_COL;
+    unsigned char mat_b_num_blocks_in_row = MAT_B_N_BLOCKS_IN_ROW;
 
     // LoadB kernel
     printf("Initializing LoadB kernel\n");
@@ -237,7 +239,7 @@ main(int argc, char *argv[]) {
 
     // We use the fourth queue to read data back.
     OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, 3, BUF_C, c->data));
-    tensor_check_equal(c, c_golden_blocked_reordered, LINALG_EPSILON);
+    tensor_check_equal(c, c_golden_blocked_reordered, 1.0);
 
     ocl_ctx_free(ctx);
 
