@@ -324,7 +324,7 @@ test_count() {
     int32_t *arr = malloc_aligned(64, n_bytes);
     rnd_pcg32_rand_range_fill((uint32_t *)arr, 100, n_els);
 
-    ocl_ctx *ctx = ocl_ctx_init(0, 0, true);
+    ocl_ctx *ctx = ocl_ctx_init(1, 0, true);
     OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, NULL));
 
     OCL_CHECK_ERR(ocl_ctx_add_buffer(
@@ -342,7 +342,7 @@ test_count() {
     };
     OCL_CHECK_ERR(ocl_ctx_load_kernels(
                       ctx,
-                      "tests/opencl/count.cl", "-Werror",
+                      "tests/opencl/count.cl", "-Werror -cl-std=CL2.0",
                       3, names));
     for (uint32_t i = 0; i < 3; i++) {
         char buf[256];
@@ -410,6 +410,56 @@ test_heap() {
     free(msgs);
 }
 
+void
+test_sobel() {
+    ocl_ctx *ctx = ocl_ctx_init(1, 0, true);
+    OCL_CHECK_ERR(ctx->err);
+
+    OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, NULL));
+
+    size_t n_mem = sizeof(cl_mem);
+    size_t n_uint = sizeof(uint32_t);
+
+    size_t ROWS = 1024;
+    size_t COLS = 1024;
+    uint32_t n_pixels = ROWS * COLS;
+    uint32_t n_thresh = 128;
+    size_t n_bytes = n_uint * n_pixels;
+
+    char opts[256];
+    sprintf(opts, "-Werror -D ROWS=%ld -D COLS=%ld", ROWS, COLS);
+
+    OCL_CHECK_ERR(ocl_ctx_load_kernels(
+                      ctx,
+                      "tests/opencl/sobel.cl", opts,
+                      1, (char *[]){"kern_main"}));
+
+    ocl_ctx_buf buf[] = {
+        {0, n_bytes, CL_MEM_READ_ONLY},
+        {0, n_bytes, CL_MEM_WRITE_ONLY}
+    };
+    for (size_t i = 0; i < ARRAY_SIZE(buf); i++) {
+        OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, buf[i]));
+    }
+    ocl_ctx_arg kern_args[] = {
+        {n_mem, &ctx->buffers[0].ptr},
+        {n_mem, &ctx->buffers[1].ptr},
+        {n_uint, &n_pixels},
+        {n_uint, &n_thresh}
+    };
+    OCL_CHECK_ERR(ocl_ctx_set_kernels_arguments(
+                      ctx,
+                      ARRAY_SIZE(kern_args), kern_args));
+    size_t work_size[] = {1};
+    printf("Computing on %ld*%ld image...\n", ROWS, COLS);
+    OCL_CHECK_ERR(ocl_ctx_run_kernel(
+                      ctx, 0, 0, 1,
+                      work_size, work_size, 0));
+
+
+    ocl_ctx_free(ctx);
+}
+
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_add_reduce);
@@ -417,4 +467,5 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_prefix_sum);
     PRINT_RUN(test_count);
     PRINT_RUN(test_heap);
+    PRINT_RUN(test_sobel);
 }
