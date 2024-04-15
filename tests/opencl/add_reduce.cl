@@ -1,10 +1,10 @@
-// Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2023-2024 Björn A. Lindqvist <bjourne@gmail.com>
 
 __kernel void
 add_reduce(const uint N, const __global int *A, __global int *ans) {
 
     uint id = get_local_id(0);
-    uint n_els = N / get_local_size(0);
+    uint n_els = N / get_local_size(0) + 1;
 
     uint ofs0 = n_els * id;
     uint ofs1 = ofs0 + n_els;

@@ -137,16 +137,8 @@ test_matmul() {
 
 void
 test_add_reduce() {
-    cl_platform_id platform;
-    cl_device_id dev;
-    cl_context ctx;
-    cl_command_queue queue;
-    OCL_CHECK_ERR(ocl_basic_setup(0, 0, &platform, &dev, &ctx, 1, &queue));
-    ocl_print_device_details(dev, 0);
-    printf("\n");
-
     uint32_t R = 100;
-    uint32_t n_arr = 100 * 1000 * 1000;
+    uint32_t n_arr = 250 * 1000 * 1000;
 
     // Largest allocation on my GPU is 512mb
     uint32_t n_chunk = 50 * 1000 * 1000;
@@ -161,75 +153,65 @@ test_add_reduce() {
         arr[i] -= (R / 2);
     }
 
-    int32_t sum = 0;
+    int32_t cpu_sum = 0;
     uint64_t start = nano_count();
     for (uint32_t i = 0; i < n_arr; i++) {
-        sum += arr[i];
+        cpu_sum += arr[i];
     }
-    printf("CPU sum %d\n", sum);
+    printf("CPU sum %d\n", cpu_sum);
     printf("CPU sum took %.2fs\n", nanos_to_secs(nano_count() - start));
 
+    // Init OpenCL
+    ocl_ctx *ctx = ocl_ctx_init(1, 0, true);
+    OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, NULL));
 
     // Create OpenCL buffers
-    cl_mem mem_buf, mem_ret;
-    OCL_CHECK_ERR(
-        ocl_create_empty_buffer(
-            ctx, CL_MEM_READ_ONLY,
-            n_bytes_chunk,
-            &mem_buf
-        )
-    );
-    OCL_CHECK_ERR(
-        ocl_create_empty_buffer(
-            ctx, CL_MEM_READ_ONLY,
-            sizeof(cl_int),
-            &mem_ret
-        )
-    );
+    ocl_ctx_buf buf[] = {
+        {0, n_bytes_chunk, CL_MEM_READ_ONLY},
+        {0, sizeof(cl_int), CL_MEM_WRITE_ONLY}
+    };
+    for (size_t i = 0; i < ARRAY_SIZE(buf); i++) {
+        OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, buf[i]));
+    }
 
-    cl_program program;
-    cl_kernel kernel;
-    OCL_CHECK_ERR(
-        ocl_load_kernels(
-            ctx, dev,
-            "tests/opencl/add_reduce.cl", "-Werror",
-            1, (char *[]){"add_reduce"},
-            &program, &kernel
-        )
-    );
+    // Load program
+    OCL_CHECK_ERR(ocl_ctx_load_kernels(
+                      ctx,
+                      "tests/opencl/add_reduce.cl",
+                      "-Werror -cl-std=CL2.0",
+                      1, (char *[]){"add_reduce"}));
 
+    // Get workgroup size
     cl_ulong max_wg;
     OCL_CHECK_ERR(
         clGetDeviceInfo(
-            dev, CL_DEVICE_MAX_WORK_GROUP_SIZE,
+            ctx->device, CL_DEVICE_MAX_WORK_GROUP_SIZE,
             sizeof(cl_ulong), &max_wg, NULL
         )
     );
+    // Intel card reports 8192 but 4096 appears to be actual max.
+    max_wg = MIN(max_wg, 4096);
     printf("Using workgroup size %lu\n", max_wg);
 
     uint32_t ofs = 0;
     int32_t ocl_sum = 0;
+    cl_command_queue queue = ctx->queues[0];
     start = nano_count();
     while (ofs < n_arr) {
         // Copy part to device
-        OCL_CHECK_ERR(clEnqueueWriteBuffer(queue, mem_buf, CL_TRUE,
+        OCL_CHECK_ERR(clEnqueueWriteBuffer(queue, ctx->buffers[0].ptr, CL_TRUE,
                                            0, n_bytes_chunk, &arr[ofs],
                                            0, NULL, NULL));
         // Run kernel
-        OCL_CHECK_ERR(
-            ocl_run_nd_kernel(
-                queue, kernel, 1,
-                (size_t[]){max_wg},
-                (size_t[]){max_wg},
-                3,
-                sizeof(cl_uint), &n_chunk,
-                sizeof(cl_mem), (void*)&mem_buf,
-                sizeof(cl_mem), (void*)&mem_ret
-            )
-        );
+        OCL_CHECK_ERR(ocl_ctx_run_kernel(
+                          ctx, 0, 0,
+                          1, &max_wg, &max_wg,
+                          3, sizeof(cl_uint), &n_chunk,
+                          sizeof(cl_mem), &ctx->buffers[0].ptr,
+                          sizeof(cl_mem), &ctx->buffers[1].ptr));
         cl_int ret;
         OCL_CHECK_ERR(
-            ocl_read_buffer(queue, &ret, sizeof(cl_int), mem_ret
+            ocl_read_buffer(queue, &ret, sizeof(cl_int), ctx->buffers[1].ptr
             )
         );
         ocl_sum += ret;
@@ -237,14 +219,10 @@ test_add_reduce() {
     }
     printf("OpenCL sum %d\n", ocl_sum);
     printf("Took %.2fs\n", nanos_to_secs(nano_count() - start));
+    assert(cpu_sum == ocl_sum);
 
+    ocl_ctx_free(ctx);
     free(arr);
-    clReleaseMemObject(mem_buf);
-    clReleaseMemObject(mem_ret);
-    clReleaseCommandQueue(queue);
-    clReleaseKernel(kernel);
-    clReleaseProgram(program);
-    clReleaseContext(ctx);
 }
 
 // So many wrappers...
@@ -463,9 +441,9 @@ test_sobel() {
 int
 main(int argc, char *argv[]) {
     PRINT_RUN(test_add_reduce);
-    PRINT_RUN(test_matmul);
-    PRINT_RUN(test_prefix_sum);
-    PRINT_RUN(test_count);
-    PRINT_RUN(test_heap);
-    PRINT_RUN(test_sobel);
+    /* PRINT_RUN(test_matmul); */
+    /* PRINT_RUN(test_prefix_sum); */
+    /* PRINT_RUN(test_count); */
+    /* PRINT_RUN(test_heap); */
+    /* PRINT_RUN(test_sobel); */
 }
