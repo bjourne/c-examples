@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2023-2024 Björn A. Lindqvist <bjourne@gmail.com>
 //
 // Generates Mandelbrot set images.
 //
@@ -17,12 +17,49 @@
 
 #define HEIGHT (3 * 1024)
 #define WIDTH (3 * 1920)
+
 #define N_PIXELS (HEIGHT * WIDTH)
 #define MAX_ITER 500
 #define MIN_X -2.00
 #define MAX_X  0.47
 #define MIN_Y -1.12
 #define MAX_Y  1.12
+
+static void
+mandelbrot_avx512(float *ptr, float _y, float _min_x, float _scale_x) {
+    assert(WIDTH % 16 == 0);
+    float16 iota = f16_set_16x(
+        0, 1, 2, 3, 4, 5, 6, 7,
+        8, 9, 10, 11, 12, 13, 14, 15
+    );
+    float16 min_x = f16_set_1x(_min_x);
+    float16 scale_x = f16_set_1x(_scale_x);
+    float16 y = f16_set_1x(_y);
+    for (uint32_t _w = 0; _w < WIDTH; _w += 16) {
+        float16 w = f16_add(iota, f16_set_1x(_w));
+        float16 x = f16_add(min_x, f16_mul(w, scale_x));
+        float16 u = f16_0();
+        float16 v = f16_0();
+        float16 u2 = f16_0();
+        float16 v2 = f16_0();
+        int16 cnt = i16_0();
+        for (uint32_t i = 0; i < MAX_ITER; i++) {
+            __mmask16 mask = f16_cmp_lte(f16_add(u2, v2), f16_4());
+            if (!mask) {
+                break;
+            }
+            v = f16_fma(f16_add(u, u), v, y);
+            u = f16_add(f16_sub(u2, v2), x);
+            u2 = f16_mul(u, u);
+            v2 = f16_mul(v, v);
+            cnt = i16_add_masked(cnt, i16_1(), mask);
+        }
+        float16 fcnt = f16_set_16x_i16(cnt);
+        fcnt = f16_div(fcnt, f16_set_1x(MAX_ITER));
+        f16_store(fcnt, ptr);
+        ptr += 16;
+    }
+}
 
 static void
 mandelbrot_avx2(float *ptr, float _y, float _min_x, float _scale_x) {
@@ -112,17 +149,21 @@ mandelbrot_scalar(float *ptr, float y, float min_x, float scale_x) {
 
 static void
 run_mandelbrot(const char *name) {
-    int chan = -1;
     void (*fun)(float *, float, float, float) = NULL;
+
+    int chans[2];
     if (!strcmp(name, "scalar")) {
-        chan = 0;
+        chans[0] = 0; chans[1] = 1;
         fun = mandelbrot_scalar;
     } else if (!strcmp(name, "sse")) {
-        chan = 1;
+        chans[0] = 1; chans[1] = 2;
         fun = mandelbrot_sse;
     } else if (!strcmp(name, "avx2")) {
-        chan = 2;
+        chans[0] = 2; chans[1] = 0;
         fun = mandelbrot_avx2;
+    } else if (!strcmp(name, "avx512")) {
+        chans[0] = 0; chans[1] = 0;
+        fun = mandelbrot_avx512;
     }
     float scale_x = (MAX_X - MIN_X) / WIDTH;
     float scale_y = (MAX_Y - MIN_Y) / HEIGHT;
@@ -143,7 +184,9 @@ run_mandelbrot(const char *name) {
     for (uint32_t h = 0; h < HEIGHT; h++) {
         for (uint32_t w = 0; w < WIDTH; w++) {
             uint8_t col = pixels[WIDTH * h + w] * 255;
-            t->data[N_PIXELS * chan + WIDTH * h + w] = col;
+            for (uint32_t i = 0; i < 2; i++) {
+                t->data[N_PIXELS * chans[i] + WIDTH * h + w] = col;
+            }
         }
     }
 #ifdef HAVE_PNG
@@ -160,8 +203,9 @@ run_mandelbrot(const char *name) {
 
 int
 main(int argc, char *argv[]) {
-    run_mandelbrot("scalar");
-    run_mandelbrot("sse");
-    run_mandelbrot("avx2");
+    char *types[] = {"scalar", "sse", "avx2", "avx512"};
+    for (uint32_t i = 0; i < 4; i++) {
+        run_mandelbrot(types[i]);
+    }
     return 0;
 }
