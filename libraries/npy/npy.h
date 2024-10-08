@@ -51,7 +51,8 @@ typedef struct {
 } npy_arr;
 
 // Initializes an array from contiguous memory. Note that unless copy
-// is true the function steals the pointer.
+// is true you might not want to call npy_free on the array as the
+// function steals the pointer.
 npy_arr *
 npy_init(char type, int el_size,
          int n_dims, int *dims,

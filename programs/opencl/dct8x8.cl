@@ -1,3 +1,4 @@
+// Copyright (C) 2024 Björn A. Lindqvist <bjourne@gmail.com>
 #define BLOCK_SIZE      8
 
 // a = sqrt(2) * cos(1 * pi / 16)
