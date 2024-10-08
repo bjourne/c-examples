@@ -1,4 +1,4 @@
-// Copyright (C) 2019, 2023 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019, 2023-2024 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef LINALG_SIMD_H
 #define LINALG_SIMD_H
 
@@ -335,8 +335,6 @@ i4_print(int4 r) {
 typedef __m256d double4;
 typedef __m256i int8;
 typedef __m256i long4;
-
-// float8
 typedef __m256 float8;
 
 inline void
@@ -627,8 +625,114 @@ d4_cvt_i4(double4 r) {
     return l4_cvt_i4((long4)r);
 }
 
+#endif
 
+#ifdef __AVX512F__
 
+typedef __m512 float16;
+typedef __m512i int16;
+
+inline float16
+f16_set_16x(
+    float a, float b, float c, float d,
+    float e, float f, float g, float h,
+    float i, float j, float k, float l,
+    float m, float n, float o, float p
+) {
+    return _mm512_set_ps(
+        p, o, n, m, l, k, j, i,
+        h, g, f, e, d, c, b, a
+    );
+}
+
+inline float16
+f16_set_1x(float a) {
+    return _mm512_set1_ps(a);
+}
+
+inline float16
+f16_add(float16 a, float16 b) {
+    return _mm512_add_ps(a, b);
+}
+
+inline float16
+f16_sub(float16 a, float16 b) {
+    return _mm512_sub_ps(a, b);
+}
+
+inline float16
+f16_mul(float16 a, float16 b) {
+    return _mm512_mul_ps(a, b);
+}
+
+inline float16
+f16_div(float16 a, float16 b) {
+    return _mm512_div_ps(a, b);
+}
+
+inline float16
+f16_0() {
+    return _mm512_setzero_ps();
+}
+
+inline float16
+f16_4() {
+    return f16_set_1x(4);
+}
+
+inline __mmask16
+f16_cmp_lte(float16 a, float16 b) {
+    return _mm512_cmp_ps_mask(a, b, _CMP_LE_OQ);
+}
+
+inline float16
+f16_fma(float16 a, float16 b, float16 c) {
+    return _mm512_fmadd_ps(a, b, c);
+}
+
+inline float16
+f16_set_16x_i16(int16 a) {
+    return _mm512_cvtepi32_ps(a);
+}
+
+inline void
+f16_store(float16 r, float *ptr) {
+    _mm512_store_ps(ptr, r);
+}
+
+inline int16
+i16_set_1x(int a) {
+    return _mm512_set1_epi32(a);
+}
+
+inline int16
+i16_0() {
+    return _mm512_setzero_si512();
+}
+
+inline int16
+i16_1() {
+    return i16_set_1x(1);
+}
+
+inline int16
+i16_add_masked(int16 a, int16 b, __mmask16 mask) {
+    return _mm512_mask_add_epi32(a, mask, a, b);
+}
+
+inline void
+i16_print(int16 r) {
+    int32_t d[16];
+    _mm512_storeu_si512((__m256i *)d, r);
+    printf("{");
+    for (uint32_t i = 0; i < 16; i++) {
+        printf("%3d", d[i]);
+        if (i < 15) {
+            printf(", ");
+        }
+    }
+    printf("}");
+}
 
 #endif
 
