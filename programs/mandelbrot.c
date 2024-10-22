@@ -153,7 +153,7 @@ static void
 run_mandelbrot(const char *name) {
     void (*fun)(float *, float, float, float) = NULL;
 
-    int chans[2];
+    int chans[2] = {0};
     if (!strcmp(name, "scalar")) {
         chans[0] = 0; chans[1] = 1;
         fun = mandelbrot_scalar;
