@@ -1,4 +1,4 @@
-# Copyright (C) 2019-2020, 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
+# Copyright (C) 2019-2020, 2022-2024 Björn A. Lindqvist <bjourne@gmail.com>
 from os.path import splitext
 from pathlib import Path
 from subprocess import PIPE, Popen
@@ -41,21 +41,20 @@ def configure(ctx):
     extra_flags = speed_flags
     ctx.env.append_unique('CFLAGS', base_c_flags + extra_flags)
     ctx.env.append_unique('CXXFLAGS', base_cxx_flags + extra_flags)
-
     ctx.env.append_value('INCLUDES', ['libraries'])
     dest_os = ctx.env.DEST_OS
     if dest_os == 'linux':
         ctx.check(lib = 'X11', mandatory = False)
         ctx.check(lib = 'GL', mandatory = False)
     if dest_os != 'win32':
-        ctx.find_program('aoc', var='AOC', mandatory = False)
-        ctx.find_program('aocl', var='AOCLEXE', mandatory = False)
-        if ctx.env['AOCLEXE']:
-            ctx.check_cfg(path = 'aocl', args = ['compile-config'],
-                          package = '', uselib_store = 'AOCL', mandatory = False)
-            ctx.check_cfg(path = 'aocl', args = ['linkflags'],
-                          package = '', uselib_store = 'AOCL', mandatory = False)
-
+        # This stuff interferes with oneAPI
+        # ctx.find_program('aoc', var='AOC', mandatory = False)
+        # ctx.find_program('aocl', var='AOCLEXE', mandatory = False)
+        # if ctx.env['AOCLEXE']:
+        #     ctx.check_cfg(path = 'aocl', args = ['compile-config'],
+        #                   package = '', uselib_store = 'AOCL', mandatory = False)
+        #     ctx.check_cfg(path = 'aocl', args = ['linkflags'],
+        #                   package = '', uselib_store = 'AOCL', mandatory = False)
         llvm_libs = ['core', 'executionengine', 'mcjit', 'native']
         llvm_args = [
             '--cflags',
@@ -78,9 +77,23 @@ def configure(ctx):
         ctx.check(lib = 'gomp', mandatory = True, uselib_store = 'GOMP')
         ctx.check(lib = 'm', mandatory = False)
         ctx.check(lib = 'pthread', mandatory = False)
-        ctx.check(lib = 'OpenCL', mandatory = True, use = ['AOCL'])
-        ctx.check(header_name = 'CL/cl.h', use = ['AOCL'])
+        ctx.check(lib = 'OpenCL', mandatory = True)
+        ctx.check(header_name = 'CL/cl.h')
         ctx.check(lib = 'mpi', mandatory = False)
+
+    # We grab compilation and link flags for CUDA and oneAPI by
+    # locating respective toolkit's compiler.
+    ret = ctx.find_program("icpx", var="ICPX", mandatory = False)
+    if ret:
+        prefix = Path(ctx.env["ICPX"][0]).parent.parent
+        incl_base = prefix / 'include'
+        incl_sycl = incl_base / 'sycl'
+        includes = [str(incl) for incl in [incl_base, incl_sycl]]
+        ctx.check(header_name = "CL/sycl.hpp",
+                  includes = includes,
+                  lib = 'sycl',
+                  cxxflags = '-Wno-deprecated-declarations',
+                  uselib_store = 'SYCL')
 
     ret = ctx.find_program("nvcc", var="NVCC", mandatory = False)
     if ret:
@@ -90,13 +103,11 @@ def configure(ctx):
         libdirs = ["lib64", "lib64/stubs", "lib", "lib/stubs"]
         libpath = [prefix / x for x in libdirs]
         libpath = [str(p) for p in libpath if p.exists()]
-
         ctx.check(header_name="cuda.h",
                   includes = includes,
                   libpath = libpath,
                   lib = "cudart",
                   uselib_store = 'CUDA')
-
 
 
 def noinst_program(ctx, source, target, use, features):
@@ -301,8 +312,11 @@ def build(ctx):
             'TENSORS_OBJS', 'PNG', 'M', 'DT_OBJS'
         }),
         (['opencl/list.c'], {'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS'}),
-        (['sigsegv.c'], {}),
+        (['sigsegv.c'], {})
     ]
+
+
+
     if ctx.env.DEST_OS == 'linux':
         progs.extend(linux_progs)
 
@@ -319,7 +333,10 @@ def build(ctx):
         progs.extend(win32_progs)
 
     if ctx.env['LIB_PCRE']:
-        progs.append((['pcre.c'], ['PCRE']))
+        progs.append((['pcre.c'], {'PCRE'}))
+
+    if ctx.env['LIB_SYCL']:
+        progs.append((['sycl-list.cpp'], {'SYCL'}))
 
     if ctx.env['LIB_MPI']:
         progs.extend([
