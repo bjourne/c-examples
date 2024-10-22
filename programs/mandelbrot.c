@@ -28,6 +28,7 @@
 static void
 mandelbrot_avx512(float *ptr, float _y, float _min_x, float _scale_x) {
     assert(WIDTH % 16 == 0);
+    #ifdef __AVX512F__
     float16 iota = f16_set_16x(
         0, 1, 2, 3, 4, 5, 6, 7,
         8, 9, 10, 11, 12, 13, 14, 15
@@ -59,6 +60,7 @@ mandelbrot_avx512(float *ptr, float _y, float _min_x, float _scale_x) {
         f16_store(fcnt, ptr);
         ptr += 16;
     }
+    #endif
 }
 
 static void
@@ -203,8 +205,13 @@ run_mandelbrot(const char *name) {
 
 int
 main(int argc, char *argv[]) {
-    char *types[] = {"scalar", "sse", "avx2", "avx512"};
-    for (uint32_t i = 0; i < 4; i++) {
+    char *types[] = {
+        "scalar", "sse", "avx2",
+        #ifdef __AVX512F__
+        "avx512"
+        #endif
+    };
+    for (uint32_t i = 0; i < ARRAY_SIZE(types); i++) {
         run_mandelbrot(types[i]);
     }
     return 0;
