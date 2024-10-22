@@ -47,7 +47,9 @@ dct8(float *in, float *out){
 // Separable filter approach, I think.
 // This kernel doesn't work. Will have to fix it sometime.
 // Image dimensions must be divisible by 8.
-__kernel __attribute__((reqd_work_group_size(1, 8, 1)))
+__attribute__((uses_global_work_offset(0)))
+__attribute__((reqd_work_group_size(1, 8, 1)))
+__kernel
 void
 dct8x8(
     __global float * restrict src,
@@ -107,6 +109,7 @@ transpose(float buf[BLOCK_SIZE][BLOCK_SIZE]) {
 }
 
 // This kernel should run fast on fpgas.
+__attribute__((uses_global_work_offset(0)))
 __kernel void
 dct8x8_sd(
     __global float * restrict src,
