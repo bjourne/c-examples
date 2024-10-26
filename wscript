@@ -89,11 +89,13 @@ def configure(ctx):
         incl_base = prefix / 'include'
         incl_sycl = incl_base / 'sycl'
         includes = [str(incl) for incl in [incl_base, incl_sycl]]
-        ctx.check(header_name = "CL/sycl.hpp",
-                  includes = includes,
-                  lib = 'sycl',
-                  cxxflags = '-Wno-deprecated-declarations',
-                  uselib_store = 'SYCL')
+        ctx.check(
+            header_name = "CL/sycl.hpp",
+            includes = includes,
+            lib = 'sycl',
+            cxxflags = ['-Wno-attributes', '-Wno-deprecated-declarations'],
+            uselib_store = 'SYCL'
+        )
 
     ret = ctx.find_program("nvcc", var="NVCC", mandatory = False)
     if ret:

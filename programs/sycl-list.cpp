@@ -3,9 +3,11 @@
 // This program uses SYCL to list OpenCL devices on the host. To
 // compile it, ensure that oneAPI has been activated with something
 // like: source ~/intel/oneapi/setvars.sh
-#include <CL/sycl.hpp>
 #include <map>
 #include <vector>
+
+#include <CL/sycl.hpp>
+#include <sycl/ext/intel/fpga_extensions.hpp>
 
 #include <stdio.h>
 
@@ -100,6 +102,23 @@ join_strings(vector<string> l) {
         s += e + " ";
     }
     return s;
+}
+
+static auto
+exception_handler(exception_list lst) {
+}
+
+
+template <typename DeviceSelector>
+static string
+get_selector_device(const DeviceSelector &sel) {
+    string name = "";
+    try {
+        queue q(sel, exception_handler);
+        return GET_DEVICE_INFO(q.get_device(), name);
+    } catch (sycl::exception const &e) {
+        return "No device";
+    }
 }
 
 int
@@ -263,6 +282,24 @@ main() {
         pp->indent--;
         printf("\n");
     }
+
+    pp_print_printf(pp, "Selector platforms\n");
+
+    pp->indent++;
+    string key_vals[][2] = {
+        {"default", get_selector_device(default_selector_v)},
+        {"accelerator", get_selector_device(accelerator_selector_v)},
+        {"cpu", get_selector_device(cpu_selector_v)},
+        {"gpu", get_selector_device(gpu_selector_v)},
+        {"fpga", get_selector_device(ext::intel::fpga_selector_v)},
+        {"fpga emu", get_selector_device(ext::intel::fpga_emulator_selector_v)},
+        {"fpga sim", get_selector_device(ext::intel::fpga_simulator_selector_v)}
+    };
+    for (auto e : key_vals) {
+        pp_print_key_value(pp, e[0].c_str(), e[1].c_str());
+    }
+    pp->indent--;
+
     pp_free(pp);
     return 0;
 }
