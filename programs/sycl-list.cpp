@@ -17,17 +17,15 @@ extern "C" {
 using namespace cl::sycl;
 using namespace std;
 
-#define GET_PLATFORM_INFO(plat, prop) plat.get_info<info::platform::prop>()
-#define GET_DEVICE_INFO(dev, prop) dev.get_info<info::device::prop>()
-#define GET_DEVICE_INFO_INT(dev, prop) to_string(dev.get_info<info::device::prop>())
 #define BOOL_TO_YES_NO(x) ((x) ? "yes" : "no")
 
-#define GET_DEVICE_KEY_VAL(dev, key, prop) \
-    {key, GET_DEVICE_INFO(dev, prop)}
-#define GET_DEVICE_KEY_VAL_BOOL(dev, key, prop) \
-    {key, BOOL_TO_YES_NO(GET_DEVICE_INFO(dev, prop))}
-#define GET_DEVICE_KEY_VAL_INT(dev, key, prop) \
-    {key, to_string(GET_DEVICE_INFO(dev, prop))}
+#define GET_PLATFORM_INFO(plat, prop) plat.get_info<info::platform::prop>()
+#define GET_DEVICE_INFO(dev, prop) dev.get_info<info::device::prop>()
+
+#define GET_DEVICE_INFO_BOOL(dev, prop) BOOL_TO_YES_NO(GET_DEVICE_INFO(dev, prop))
+#define GET_DEVICE_INFO_INT(dev, prop) to_string(GET_DEVICE_INFO(dev, prop))
+#define GET_DEVICE_INFO_STRINGS(dev, prop) join_strings(GET_DEVICE_INFO(dev, prop))
+#define GET_DEVICE_INFO_MAPPED(dev, prop, map) map[GET_DEVICE_INFO(dev, prop)]
 
 map<info::device_type, string>
 device_type_to_string = {
@@ -53,12 +51,26 @@ map<aspect, string> aspect_to_string = {
     {aspect::cpu, "cpu"},
     {aspect::fp16, "fp16"},
     {aspect::fp64, "fp64"},
+    {aspect::atomic64, "atomic64"},
     {aspect::accelerator, "accelerator"},
     {aspect::online_compiler, "online_compiler"},
     {aspect::online_linker, "online_linker"},
     {aspect::queue_profiling, "queue_profiling"},
+    {aspect::usm_device_allocations, "usm_device_allocations"},
     {aspect::usm_host_allocations, "usm_host_allocations"},
-    {aspect::usm_shared_allocations, "usm_shared_allocations"}
+    {aspect::usm_shared_allocations, "usm_shared_allocations"},
+    {aspect::usm_system_allocations, "usm_system_allocations"}
+};
+
+map<info::fp_config, string> fp_config_to_string = {
+    {info::fp_config::denorm, "denorm"},
+    {info::fp_config::inf_nan, "inf_nan"},
+    {info::fp_config::round_to_nearest, "round_to_nearest"},
+    {info::fp_config::round_to_zero, "round_to_zero"},
+    {info::fp_config::round_to_inf, "round_to_inf"},
+    {info::fp_config::fma, "fma"},
+    {info::fp_config::correctly_rounded_divide_sqrt, "correctly_rounded_divide_sqrt"},
+    {info::fp_config::soft_float, "soft_float"}
 };
 
 static string
@@ -68,6 +80,24 @@ list_aspects(device dev) {
         if (dev.has(key)) {
             s += val + " ";
         }
+    }
+    return s;
+}
+
+static string
+list_fp_config(vector<info::fp_config> config) {
+    string join;
+    for (auto e : config) {
+        join += fp_config_to_string[e] + " ";
+    }
+    return join;
+}
+
+static string
+join_strings(vector<string> l) {
+    string s;
+    for (auto e : l) {
+        s += e + " ";
     }
     return s;
 }
@@ -90,23 +120,74 @@ main() {
         printf("\n");
         pp->indent++;
         for (auto dev : plat.get_devices()) {
-            auto type = GET_DEVICE_INFO(dev, device_type);
-            auto gmem_cache = GET_DEVICE_INFO(dev, global_mem_cache_type);
-            auto lmem_type = GET_DEVICE_INFO(dev, local_mem_type);
             auto aspects = list_aspects(dev);
             vector<array<string, 2>> dev_props = {
-                GET_DEVICE_KEY_VAL(dev, "Device", name),
-                GET_DEVICE_KEY_VAL_BOOL(dev, "Available", is_available),
-                GET_DEVICE_KEY_VAL(dev, "Driver version", driver_version),
-                GET_DEVICE_KEY_VAL(dev, "Version", version),
-                GET_DEVICE_KEY_VAL(dev, "OpenCL C version", opencl_c_version),
-                {"Type", device_type_to_string[type]},
-                GET_DEVICE_KEY_VAL_INT(dev, "Vendor ID", vendor_id),
-                GET_DEVICE_KEY_VAL_INT(dev, "Max compute units", max_compute_units),
-                GET_DEVICE_KEY_VAL_INT(dev, "Address bits", address_bits),
-                {"Global mem. cache", global_mem_cache_type_to_string[gmem_cache]},
-                {"Local memory type", local_mem_type_to_string[lmem_type]},
+                {
+                    "Device",
+                    GET_DEVICE_INFO(dev, name)
+                },
+                {
+                    "Available",
+                    GET_DEVICE_INFO_BOOL(dev, is_available)
+                },
+                {
+                    "Little endian",
+                    GET_DEVICE_INFO_BOOL(dev, is_endian_little)
+                },
+                {
+                    "Driver version",
+                    GET_DEVICE_INFO(dev, driver_version)
+                },
+                {
+                    "Version",
+                    GET_DEVICE_INFO(dev, version)
+                },
+                {
+                    "OpenCL C version",
+                    GET_DEVICE_INFO(dev, opencl_c_version)
+                },
+                {
+                    "Type",
+                    GET_DEVICE_INFO_MAPPED(
+                        dev,
+                        device_type,
+                        device_type_to_string
+                    )
+                },
+                {
+                    "Vendor ID",
+                    GET_DEVICE_INFO_INT(dev, vendor_id)
+                },
+                {
+                    "Max compute units",
+                    GET_DEVICE_INFO_INT(dev, max_compute_units)
+                },
+                {
+                    "Address bits",
+                    GET_DEVICE_INFO_INT(dev, address_bits)
+                },
+                {
+                    "Global mem. cache",
+                    GET_DEVICE_INFO_MAPPED(
+                        dev,
+                        global_mem_cache_type,
+                        global_mem_cache_type_to_string
+                    )
+                },
+                {
+                    "Local memory type",
+                    GET_DEVICE_INFO_MAPPED(
+                        dev,
+                        local_mem_type,
+                        local_mem_type_to_string
+                    )
+
+                },
                 {"Aspects", aspects},
+                {
+                    "Extensions",
+                    GET_DEVICE_INFO_STRINGS(dev, extensions)
+                }
             };
             for (auto p : dev_props) {
                 pp_print_key_value(pp, p[0].c_str(), "%s", p[1].c_str());
@@ -135,19 +216,25 @@ main() {
             }
 
             const char *types[] = {
-                "char", "float", "double", "half"
+                "char", "short", "int", "long", "float", "double", "half"
             };
             uint64_t native_values[] = {
                 GET_DEVICE_INFO(dev, native_vector_width_char),
+                GET_DEVICE_INFO(dev, native_vector_width_short),
+                GET_DEVICE_INFO(dev, native_vector_width_int),
+                GET_DEVICE_INFO(dev, native_vector_width_long),
                 GET_DEVICE_INFO(dev, native_vector_width_float),
                 GET_DEVICE_INFO(dev, native_vector_width_double),
                 GET_DEVICE_INFO(dev, native_vector_width_half),
             };
             uint64_t preferred_values[] = {
                 GET_DEVICE_INFO(dev, preferred_vector_width_char),
+                GET_DEVICE_INFO(dev, preferred_vector_width_short),
+                GET_DEVICE_INFO(dev, preferred_vector_width_int),
+                GET_DEVICE_INFO(dev, preferred_vector_width_long),
                 GET_DEVICE_INFO(dev, preferred_vector_width_float),
                 GET_DEVICE_INFO(dev, preferred_vector_width_double),
-                GET_DEVICE_INFO(dev, native_vector_width_half)
+                GET_DEVICE_INFO(dev, preferred_vector_width_half)
             };
             pp->n_decimals = 0;
             pp_print_printf(pp, "Native vector widths\n");
@@ -161,6 +248,16 @@ main() {
             for (size_t i = 0; i < ARRAY_SIZE(types); i++) {
                 pp_print_key_value_with_unit(pp, types[i], (double)preferred_values[i], "");
             }
+            pp->indent--;
+            pp_print_printf(pp, "Floating point configurations\n");
+            pp->indent++;
+
+            string half_config = list_fp_config(GET_DEVICE_INFO(dev, half_fp_config));
+            string single_config = list_fp_config(GET_DEVICE_INFO(dev, single_fp_config));
+            string double_config = list_fp_config(GET_DEVICE_INFO(dev, double_fp_config));
+            pp_print_key_value(pp, "half", half_config.c_str());
+            pp_print_key_value(pp, "single", single_config.c_str());
+            pp_print_key_value(pp, "double", double_config.c_str());
             pp->indent--;
         }
         pp->indent--;
