@@ -38,6 +38,9 @@ void
 pp_free(pretty_printer *me);
 
 void
+pp_print_printf(pretty_printer *me, const char *fmt, ...);
+
+void
 pp_print_key_value(pretty_printer *me,
                    const char *key,
                    const char *value_fmt, ...);

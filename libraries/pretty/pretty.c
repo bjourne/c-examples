@@ -43,9 +43,10 @@ pp_print_key_value(
     const char *key,
     const char *value_fmt, ...) {
 
+    pp_print_prefix(me);
+
     char buf[2048];
     sprintf(buf, "%%-%lds: ", me->key_width);
-    pp_print_prefix(me);
     printf(buf, key);
 
     va_list ap;
@@ -54,6 +55,17 @@ pp_print_key_value(
     va_end(ap);
     printf("%s\n", buf);
 }
+
+void
+pp_print_printf(pretty_printer *me, const char *fmt, ...) {
+    pp_print_prefix(me);
+
+    va_list ap;
+    va_start(ap, fmt);
+    vprintf(fmt, ap);
+    va_end(ap);
+}
+
 
 void
 pp_print_key_value_with_unit(
