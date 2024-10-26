@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2023-2024 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef PRETTY_H
 #define PRETTY_H
 
@@ -39,26 +39,27 @@ pp_free(pretty_printer *me);
 
 void
 pp_print_key_value(pretty_printer *me,
-                   char *key,
-                   char *value_fmt, ...);
+                   const char *key,
+                   const char *value_fmt, ...);
 void
 pp_print_key_value_with_unit(
     pretty_printer *me,
-    char *key,
+    const char *key,
     double quantity,
-    char *unit
+    const char *unit
 );
 
 void
-pp_print_array(
-    pretty_printer *me,
-    char type, size_t el_size,
-    size_t n_dims, size_t dims[],
-    void *arr
-);
+pp_print_array(pretty_printer *me,
+               char type, size_t el_size,
+               size_t n_dims, size_t dims[],
+               void *arr);
 
 void
-pp_humanize_quantity(double q, char *unit, size_t n_decimals, char *buf);
+pp_humanize_quantity(double q,
+                     const char *unit,
+                     size_t n_decimals,
+                     char *buf);
 
 
 #endif

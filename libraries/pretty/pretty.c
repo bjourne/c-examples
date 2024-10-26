@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2023-2024 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <math.h>
 #include <stdarg.h>
@@ -40,8 +40,8 @@ pp_print_prefix(pretty_printer *me) {
 void
 pp_print_key_value(
     pretty_printer *me,
-    char *key,
-    char *value_fmt, ...) {
+    const char *key,
+    const char *value_fmt, ...) {
 
     char buf[2048];
     sprintf(buf, "%%-%lds: ", me->key_width);
@@ -58,9 +58,9 @@ pp_print_key_value(
 void
 pp_print_key_value_with_unit(
     pretty_printer *me,
-    char *key,
+    const char *key,
     double quantity,
-    char *unit
+    const char *unit
 ) {
     char buf[256];
     pp_humanize_quantity(quantity, unit, me->n_decimals, buf);
@@ -71,7 +71,12 @@ static char *
 prefixes[] ={"", "k", "M", "G"};
 
 void
-pp_humanize_quantity(double q, char *unit, size_t n_decimals, char *buf) {
+pp_humanize_quantity(
+    double q,
+    const char *unit,
+    size_t n_decimals,
+    char *buf
+) {
     size_t i = 0;
     while (q > 1000.0) {
         i++;
