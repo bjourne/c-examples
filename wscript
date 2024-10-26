@@ -336,7 +336,7 @@ def build(ctx):
         progs.append((['pcre.c'], {'PCRE'}))
 
     if ctx.env['LIB_SYCL']:
-        progs.append((['sycl-list.cpp'], {'SYCL'}))
+        progs.append((['sycl-list.cpp'], {'SYCL', 'PRETTY_OBJS'}))
 
     if ctx.env['LIB_MPI']:
         progs.extend([

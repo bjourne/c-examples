@@ -9,18 +9,15 @@
 
 #include <stdio.h>
 
+extern "C" {
+#include "pretty/pretty.h"
+}
+
 using namespace cl::sycl;
 using namespace std;
 
 #define GET_DEVICE_INFO(dev, prop) dev.get_info<info::device::prop>()
 #define GET_DEVICE_INFO_INT(dev, prop) to_string(dev.get_info<info::device::prop>())
-
-static void
-print_props(vector<array<string, 2>> props, string pf) {
-    for (auto p : props) {
-        printf("%s%-21s: %s\n", pf.c_str(), p[0].c_str(), p[1].c_str());
-    }
-}
 
 map<info::device_type, string>
 device_type_to_string = {
@@ -64,6 +61,8 @@ list_aspects(device dev) {
 
 int
 main() {
+    pretty_printer *pp = pp_init();
+    pp->key_width = 22;
     auto platforms = platform::get_platforms();
     for (auto plat : platforms) {
         vector<array<string, 2>> plat_props = {
@@ -72,16 +71,18 @@ main() {
             {"Version", plat.get_info<info::platform::version>()},
             {"Profile", plat.get_info<info::platform::profile>()},
         };
-        print_props(plat_props, "");
+        for (auto p : plat_props) {
+            pp_print_key_value(pp, p[0].c_str(), "%s", p[1].c_str());
+        }
+        printf("\n");
+        pp->indent++;
         for (auto dev : plat.get_devices()) {
             auto vend = GET_DEVICE_INFO(dev, vendor_id);
             auto type = GET_DEVICE_INFO(dev, device_type);
             auto max_compute = GET_DEVICE_INFO_INT(dev, max_compute_units);
-            auto freq = GET_DEVICE_INFO_INT(dev, max_clock_frequency);
             auto addr_bits = GET_DEVICE_INFO_INT(dev, address_bits);
             auto gmem_cache = GET_DEVICE_INFO(dev, global_mem_cache_type);
             auto lmem_type = GET_DEVICE_INFO(dev, local_mem_type);
-            auto lmem_size = GET_DEVICE_INFO_INT(dev, local_mem_size);
             auto aspects = list_aspects(dev);
             vector<array<string, 2>> dev_props = {
                 {"Device", dev.get_info<info::device::name>()},
@@ -91,16 +92,22 @@ main() {
                 {"Type", device_type_to_string[type]},
                 {"Vendor ID", to_string(vend)},
                 {"Max compute units", max_compute},
-                {"Max clock freq. (MHz)", freq},
                 {"Address bits", addr_bits},
                 {"Global mem. cache", global_mem_cache_type_to_string[gmem_cache]},
                 {"Local memory type", local_mem_type_to_string[lmem_type]},
-                {"Local memory size", lmem_size},
                 {"Aspects", aspects},
             };
-            print_props(dev_props, "  ");
+            for (auto p : dev_props) {
+                pp_print_key_value(pp, p[0].c_str(), "%s", p[1].c_str());
+            }
+            auto lmem_size = GET_DEVICE_INFO(dev, local_mem_size);
+            auto freq = GET_DEVICE_INFO(dev, max_clock_frequency);
+            pp_print_key_value_with_unit(pp, "Local memory size", (double)lmem_size, "B");
+            pp_print_key_value_with_unit(pp, "Max clock freq.", (double)freq * 1000 * 1000, "Hz");
         }
+        pp->indent--;
         printf("\n");
     }
+    pp_free(pp);
     return 0;
 }
