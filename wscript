@@ -77,8 +77,8 @@ def configure(ctx):
         ctx.check(lib = 'gomp', mandatory = True, uselib_store = 'GOMP')
         ctx.check(lib = 'm', mandatory = False)
         ctx.check(lib = 'pthread', mandatory = False, uselib_store = 'PTHREAD')
-        ctx.check(lib = 'OpenCL', mandatory = True)
-        ctx.check(header_name = 'CL/cl.h')
+        ctx.check(header_name = 'CL/cl.h', mandatory = True, lib = 'OpenCL',
+                  uselib_store = 'OPENCL')
         ctx.check(header_name = 'mpi.h', lib = 'mpi', mandatory = False)
 
     # We grab compilation and link flags for CUDA and oneAPI by
