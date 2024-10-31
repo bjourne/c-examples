@@ -76,7 +76,7 @@ def configure(ctx):
                       mandatory = False)
         ctx.check(lib = 'gomp', mandatory = True, uselib_store = 'GOMP')
         ctx.check(lib = 'm', mandatory = False)
-        ctx.check(lib = 'pthread', mandatory = False)
+        ctx.check(lib = 'pthread', mandatory = False, uselib_store = 'PTHREAD')
         ctx.check(lib = 'OpenCL', mandatory = True)
         ctx.check(header_name = 'CL/cl.h')
         ctx.check(lib = 'mpi', mandatory = False)
@@ -240,7 +240,7 @@ def build(ctx):
         'npy' : ('NPY_OBJS', {'PRETTY_OBJS', 'M'}, []),
         'random' : ('RANDOM_OBJS', {}, []),
         'tensors' : ('TENSORS_OBJS', {'PNG', 'PRETTY_OBJS', 'RANDOM_OBJS'}, []),
-        'threads' : ('THREADS_OBJS', {}, [])
+        'threads' : ('THREADS_OBJS', {'PTHREAD'}, [])
     }
 
     # Building all library tests here
