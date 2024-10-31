@@ -79,7 +79,7 @@ def configure(ctx):
         ctx.check(lib = 'pthread', mandatory = False, uselib_store = 'PTHREAD')
         ctx.check(lib = 'OpenCL', mandatory = True)
         ctx.check(header_name = 'CL/cl.h')
-        ctx.check(lib = 'mpi', mandatory = False)
+        ctx.check(header_name = 'mpi.h', lib = 'mpi', mandatory = False)
 
     # We grab compilation and link flags for CUDA and oneAPI by
     # locating respective toolkit's compiler.
@@ -239,7 +239,9 @@ def build(ctx):
         'quickfit' : ('QF_OBJS', {'DT_OBJS'}, []),
         'npy' : ('NPY_OBJS', {'PRETTY_OBJS', 'M'}, []),
         'random' : ('RANDOM_OBJS', {}, []),
-        'tensors' : ('TENSORS_OBJS', {'PNG', 'PRETTY_OBJS', 'RANDOM_OBJS'}, []),
+        'tensors' : ('TENSORS_OBJS', {
+            'PNG', 'PRETTY_OBJS', 'PTHREAD', 'RANDOM_OBJS'
+        }, []),
         'threads' : ('THREADS_OBJS', {'PTHREAD'}, [])
     }
 
