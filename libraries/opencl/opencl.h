@@ -104,14 +104,12 @@ ocl_poll_event_until(cl_event event, cl_int exec_status, cl_uint millis);
 
 // Convenience functions
 cl_int
-ocl_basic_setup(
-    cl_uint plat_idx, cl_uint dev_idx,
-    cl_platform_id *platform,
-    cl_device_id *device,
-    cl_context *ctx,
-    size_t n_queues,
-    cl_command_queue *queues
-);
+ocl_basic_setup(cl_uint plat_idx, cl_uint dev_idx,
+                cl_platform_id *platform,
+                cl_device_id *device,
+                cl_context *ctx,
+                size_t n_queues,
+                cl_command_queue *queues);
 
 // "Object-oriented" interface. Idea is to make an interface to save
 // lots of boilerplate code.

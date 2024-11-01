@@ -208,8 +208,6 @@ ocl_print_device_details(cl_device_id dev, pretty_printer *pp) {
         use_pp->n_decimals = !strcmp(suf, "") ? 0 : 2;
         pp_print_key_value_with_unit(use_pp, key, (double)val, suf);
     }
-
-    //print_prefix(ind);
     size_t n_bytes;
     clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES,
                     0, NULL, &n_bytes);
