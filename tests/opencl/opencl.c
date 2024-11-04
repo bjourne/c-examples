@@ -8,10 +8,23 @@
 #include "tensors/tensors.h"
 #include "tensors/multiply.h"
 
+#define PLAT_IDX    0
+
 static void
 init_arrays(tensor *a, tensor *b) {
     tensor_fill_rand_range(a, 100);
     tensor_fill_rand_range(b, 100);
+}
+
+void
+print_device() {
+    cl_platform_id platform;
+    cl_device_id dev;
+    cl_context ctx;
+    OCL_CHECK_ERR(ocl_basic_setup(PLAT_IDX, 0, &platform, &dev, &ctx, 0, NULL));
+    ocl_print_device_details(dev, 0);
+    printf("\n");
+    OCL_CHECK_ERR(clReleaseContext(ctx));
 }
 
 void
@@ -44,8 +57,6 @@ test_matmul() {
     cl_context ctx;
     cl_command_queue queue;
     OCL_CHECK_ERR(ocl_basic_setup(0, 0, &platform, &dev, &ctx, 1, &queue));
-    ocl_print_device_details(dev, 0);
-    printf("\n");
 
     // Load kernels
     char *kernel_names[] = {
@@ -162,7 +173,7 @@ test_add_reduce() {
     printf("CPU sum took %.2fs\n", nanos_to_secs(nano_count() - start));
 
     // Init OpenCL
-    ocl_ctx *ctx = ocl_ctx_init(1, 0, true);
+    ocl_ctx *ctx = ocl_ctx_init(1, 0, false);
     OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, NULL));
 
     // Create OpenCL buffers
@@ -249,12 +260,12 @@ ocl_ctx_read_tensor(ocl_ctx *me,
 
 void
 test_prefix_sum() {
-    ocl_ctx *ctx = ocl_ctx_init(0, 0, true);
+    ocl_ctx *ctx = ocl_ctx_init(PLAT_IDX, 0, false);
     OCL_CHECK_ERR(ctx->err);
     OCL_CHECK_ERR(
         ocl_ctx_load_kernels(
             ctx,
-            "tests/opencl/prefix_sum.cl", "-Werror",
+            "tests/opencl/prefix_sum.cl", "-cl-std=CL2.0 -Werror",
             1, (char *[]){"prefix_sum"}
         )
     );
@@ -302,7 +313,7 @@ test_count() {
     int32_t *arr = malloc_aligned(64, n_bytes);
     rnd_pcg32_rand_range_fill((uint32_t *)arr, 100, n_els);
 
-    ocl_ctx *ctx = ocl_ctx_init(1, 0, true);
+    ocl_ctx *ctx = ocl_ctx_init(PLAT_IDX, 0, false);
     OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, NULL));
 
     OCL_CHECK_ERR(ocl_ctx_add_buffer(
@@ -363,34 +374,30 @@ test_heap() {
         msgs[i].data = rnd_pcg32_rand_range(1000);
     }
 
-
-    ocl_ctx *ctx = ocl_ctx_init(0, 0, true);
+    ocl_ctx *ctx = ocl_ctx_init(PLAT_IDX, 0, false);
     OCL_CHECK_ERR(ctx->err);
     OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, NULL));
-
     OCL_CHECK_ERR(ocl_ctx_load_kernels(
                       ctx,
-                      "tests/opencl/heap.cl", "-Werror",
+                      "tests/opencl/heap.cl", "-Werror -cl-std=CL2.0",
                       1, (char *[]){"run_heap"}));
 
     OCL_CHECK_ERR(ocl_ctx_add_buffer(
                       ctx, (ocl_ctx_buf){0, n_bytes, CL_MEM_READ_ONLY}));
     OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, 0, msgs));
-
     OCL_CHECK_ERR(ocl_ctx_run_kernel(
                       ctx, 0, 0, 1,
                       (size_t[]){N_WORK_ITEMS}, NULL, 3,
                       sizeof(uint32_t), &T,
                       sizeof(uint32_t), &N,
                       sizeof(cl_mem), &ctx->buffers[0]));
-
     ocl_ctx_free(ctx);
     free(msgs);
 }
 
 void
 test_sobel() {
-    ocl_ctx *ctx = ocl_ctx_init(1, 0, true);
+    ocl_ctx *ctx = ocl_ctx_init(0, 0, false);
     OCL_CHECK_ERR(ctx->err);
 
     OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, NULL));
@@ -398,8 +405,8 @@ test_sobel() {
     size_t n_mem = sizeof(cl_mem);
     size_t n_uint = sizeof(uint32_t);
 
-    size_t ROWS = 1024;
-    size_t COLS = 1024;
+    size_t ROWS = 4096;
+    size_t COLS = 4096;
     uint32_t n_pixels = ROWS * COLS;
     uint32_t n_thresh = 128;
     size_t n_bytes = n_uint * n_pixels;
@@ -440,10 +447,11 @@ test_sobel() {
 
 int
 main(int argc, char *argv[]) {
+    print_device();
     PRINT_RUN(test_add_reduce);
-    /* PRINT_RUN(test_matmul); */
-    /* PRINT_RUN(test_prefix_sum); */
-    /* PRINT_RUN(test_count); */
-    /* PRINT_RUN(test_heap); */
-    /* PRINT_RUN(test_sobel); */
+    PRINT_RUN(test_matmul);
+    PRINT_RUN(test_prefix_sum);
+    PRINT_RUN(test_count);
+    PRINT_RUN(test_heap);
+    PRINT_RUN(test_sobel);
 }
