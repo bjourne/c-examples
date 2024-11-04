@@ -157,6 +157,15 @@ print_device_info_str(cl_device_id dev, pretty_printer *pp,
     free(bytes);
 }
 
+static void *
+get_device_info(cl_device_id dev, cl_device_info attr) {
+    size_t n_bytes;
+    OCL_CHECK_ERR(clGetDeviceInfo(dev, attr, 0, NULL, &n_bytes));
+    void *p = (void *)malloc(n_bytes);
+    OCL_CHECK_ERR(clGetDeviceInfo(dev, attr, n_bytes, p, NULL));
+    return p;
+}
+
 void
 ocl_print_device_details(cl_device_id dev, pretty_printer *pp) {
     pretty_printer *use_pp;
@@ -178,28 +187,42 @@ ocl_print_device_details(cl_device_id dev, pretty_printer *pp) {
         print_device_info_str(dev, use_pp, attr_types[i], attr_names[i]);
     }
 
+    char *type_str = NULL;
+    cl_device_type *dt = get_device_info(dev, CL_DEVICE_TYPE);
+    if (*dt == CL_DEVICE_TYPE_GPU) {
+        type_str = "GPU";
+    } else if (*dt == CL_DEVICE_TYPE_CPU) {
+        type_str = "CPU";
+    } else {
+        assert(false);
+    }
+    pp_print_key_value(pp, "Device type", "%s", type_str);
+    free(dt);
+
     char *keys[] = {
         "Compute units",
         "Global memory",
         "Max allocation",
         "Max wg. size",
-        "Local mem. size"
+        "Local mem. size",
     };
     cl_device_info params[] = {
         CL_DEVICE_MAX_COMPUTE_UNITS,
         CL_DEVICE_GLOBAL_MEM_SIZE,
         CL_DEVICE_MAX_MEM_ALLOC_SIZE,
         CL_DEVICE_MAX_WORK_GROUP_SIZE,
-        CL_DEVICE_LOCAL_MEM_SIZE
+        CL_DEVICE_LOCAL_MEM_SIZE,
     };
     size_t sizes[] = {
         sizeof(cl_uint),
         sizeof(cl_ulong),
         sizeof(cl_ulong),
         sizeof(cl_ulong),
-        sizeof(cl_ulong)
+        sizeof(cl_ulong),
     };
     char *suffixes[] = {"", "B", "B", "", "B"};
+    assert(ARRAY_SIZE(params) == ARRAY_SIZE(sizes) &&
+           ARRAY_SIZE(params) == ARRAY_SIZE(suffixes));
     for (size_t i = 0; i < 5; i++) {
         char *suf = suffixes[i];
         char *key = keys[i];
@@ -208,12 +231,8 @@ ocl_print_device_details(cl_device_id dev, pretty_printer *pp) {
         use_pp->n_decimals = !strcmp(suf, "") ? 0 : 2;
         pp_print_key_value_with_unit(use_pp, key, (double)val, suf);
     }
-    size_t n_bytes;
-    clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES,
-                    0, NULL, &n_bytes);
-    size_t *d = (size_t *)malloc(n_bytes);
-    clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES, n_bytes, d, NULL);
 
+    size_t *d = get_device_info(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES);
     pp_print_key_value(use_pp,
                        "Max work items",
                        "%ld:%ld:%ld", d[0], d[1], d[2]);
