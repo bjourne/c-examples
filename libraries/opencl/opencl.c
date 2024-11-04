@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2024 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -475,7 +475,6 @@ ocl_read_buffer(cl_command_queue queue, void *dst,
 }
 
 
-// If queue is NULL the queue is initialized.
 cl_int
 ocl_basic_setup(cl_uint plat_idx, cl_uint dev_idx,
                 cl_platform_id *platform,
@@ -679,6 +678,7 @@ ocl_ctx_write_buffer(ocl_ctx *me,
                      size_t queue_idx,
                      size_t buf_idx,
                      void *arr) {
+    assert(queue_idx < me->n_queues);
     ocl_ctx_buf buf = me->buffers[buf_idx];
     cl_command_queue q = me->queues[queue_idx];
     assert(buf.ptr);
