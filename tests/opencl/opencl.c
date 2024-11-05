@@ -454,9 +454,56 @@ test_sobel() {
     ocl_ctx_free(ctx);
 }
 
+void
+test_vector_add() {
+    ocl_ctx *ctx = ocl_ctx_init(PLAT_IDX, 0, false);
+
+    size_t n_els = 25 * 1000 * 1000;
+    tensor *a = tensor_init(1, (int[]){n_els});
+    tensor *b = tensor_init(1, (int[]){n_els});
+    tensor *c = tensor_init(1, (int[]){n_els});
+
+    tensor_fill_const(a, 1.5);
+    tensor_fill_const(b, 2.5);
+
+    OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, NULL));
+    OCL_CHECK_ERR(ocl_ctx_add_tensor_buffer(ctx, CL_MEM_READ_ONLY, a));
+    OCL_CHECK_ERR(ocl_ctx_write_tensor(ctx, 0, 0, a));
+    OCL_CHECK_ERR(ocl_ctx_add_tensor_buffer(ctx, CL_MEM_READ_ONLY, b));
+    OCL_CHECK_ERR(ocl_ctx_write_tensor(ctx, 0, 1, b));
+    OCL_CHECK_ERR(ocl_ctx_add_tensor_buffer(ctx, CL_MEM_WRITE_ONLY, c));
+    OCL_CHECK_ERR(ocl_ctx_load_kernels(
+                      ctx,
+                      "tests/opencl/vecadd.cl",
+                      "-Werror -cl-std=CL2.0",
+                      1, (char *[]){"vecadd"}));
+    int32_t n_reps = 100;
+    uint64_t start = nano_count();
+    for (int32_t i = 0; i < n_reps; i++) {
+        OCL_CHECK_ERR(ocl_ctx_run_kernel(
+                          ctx, 0, 0, 1, (size_t[]){n_els}, NULL,
+                          3,
+                          sizeof(cl_mem), (void *)&ctx->buffers[0],
+                          sizeof(cl_mem), (void *)&ctx->buffers[1],
+                          sizeof(cl_mem), (void *)&ctx->buffers[2]
+                      ));
+    }
+    uint64_t nanos = nano_count() - start;
+    double flops = n_els * n_reps / nanos_to_secs(nanos);
+    char buf[256];
+    pp_humanize_quantity(flops, "adds", 1, buf);
+    printf("%s/s\n", buf);
+
+    ocl_ctx_free(ctx);
+    tensor_free(a);
+    tensor_free(b);
+    tensor_free(c);
+}
+
 int
 main(int argc, char *argv[]) {
     print_device();
+    PRINT_RUN(test_vector_add);
     PRINT_RUN(test_add_reduce);
     PRINT_RUN(test_matmul);
     PRINT_RUN(test_prefix_sum);
