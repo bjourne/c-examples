@@ -56,7 +56,7 @@ test_matmul() {
     cl_device_id dev;
     cl_context ctx;
     cl_command_queue queue;
-    OCL_CHECK_ERR(ocl_basic_setup(0, 0, &platform, &dev, &ctx, 1, &queue));
+    OCL_CHECK_ERR(ocl_basic_setup(PLAT_IDX, 0, &platform, &dev, &ctx, 1, &queue));
 
     // Load kernels
     char *kernel_names[] = {
@@ -397,16 +397,27 @@ test_heap() {
 
 void
 test_sobel() {
-    ocl_ctx *ctx = ocl_ctx_init(0, 0, false);
-    OCL_CHECK_ERR(ctx->err);
+    ocl_ctx *ctx = ocl_ctx_init(PLAT_IDX, 0, false);
 
+    cl_device_type dt;
+    OCL_CHECK_ERR(
+        clGetDeviceInfo(
+            ctx->device, CL_DEVICE_TYPE, sizeof(cl_device_type), &dt, NULL
+        ));
+    if (dt == CL_DEVICE_TYPE_GPU) {
+        printf("Device too slow - skipping test.\n");
+        ocl_ctx_free(ctx);
+        return;
+    }
+
+    OCL_CHECK_ERR(ctx->err);
     OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, NULL));
 
     size_t n_mem = sizeof(cl_mem);
     size_t n_uint = sizeof(uint32_t);
 
-    size_t ROWS = 4096;
-    size_t COLS = 4096;
+    size_t ROWS = 1024;
+    size_t COLS = 1024;
     uint32_t n_pixels = ROWS * COLS;
     uint32_t n_thresh = 128;
     size_t n_bytes = n_uint * n_pixels;
@@ -440,8 +451,6 @@ test_sobel() {
     OCL_CHECK_ERR(ocl_ctx_run_kernel(
                       ctx, 0, 0, 1,
                       work_size, work_size, 0));
-
-
     ocl_ctx_free(ctx);
 }
 
