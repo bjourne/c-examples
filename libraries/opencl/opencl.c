@@ -157,13 +157,21 @@ print_device_info_str(cl_device_id dev, pretty_printer *pp,
     free(bytes);
 }
 
-static void *
-get_device_info(cl_device_id dev, cl_device_info attr) {
+cl_int
+ocl_get_device_info(cl_device_id dev, cl_device_info attr, void **buf) {
     size_t n_bytes;
-    OCL_CHECK_ERR(clGetDeviceInfo(dev, attr, 0, NULL, &n_bytes));
-    void *p = (void *)malloc(n_bytes);
-    OCL_CHECK_ERR(clGetDeviceInfo(dev, attr, n_bytes, p, NULL));
-    return p;
+    cl_int err;
+    err = clGetDeviceInfo(dev, attr, 0, NULL, &n_bytes);
+    if (err != CL_SUCCESS) {
+        return err;
+    }
+    *buf = (void *)malloc(n_bytes);
+    err = clGetDeviceInfo(dev, attr, n_bytes, *buf, NULL);
+    if (err != CL_SUCCESS) {
+        free(*buf);
+        return err;
+    }
+    return CL_SUCCESS;
 }
 
 void
@@ -187,18 +195,17 @@ ocl_print_device_details(cl_device_id dev, pretty_printer *pp) {
         print_device_info_str(dev, use_pp, attr_types[i], attr_names[i]);
     }
 
+    cl_device_type dt;
+    OCL_CHECK_ERR(clGetDeviceInfo(dev, CL_DEVICE_TYPE, sizeof(dt), &dt, NULL));
     char *type_str = NULL;
-    cl_device_type *dt = get_device_info(dev, CL_DEVICE_TYPE);
-    if (*dt == CL_DEVICE_TYPE_GPU) {
+    if (dt == CL_DEVICE_TYPE_GPU) {
         type_str = "GPU";
-    } else if (*dt == CL_DEVICE_TYPE_CPU) {
+    } else if (dt == CL_DEVICE_TYPE_CPU) {
         type_str = "CPU";
     } else {
         assert(false);
     }
-    pp_print_key_value(pp, "Device type", "%s", type_str);
-    free(dt);
-
+    pp_print_key_value(use_pp, "Device type", "%s", type_str);
     char *keys[] = {
         "Compute units",
         "Global memory",
@@ -232,11 +239,14 @@ ocl_print_device_details(cl_device_id dev, pretty_printer *pp) {
         pp_print_key_value_with_unit(use_pp, key, (double)val, suf);
     }
 
-    size_t *d = get_device_info(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES);
+    size_t d[3];
+    OCL_CHECK_ERR(
+        clGetDeviceInfo(
+            dev, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(d), d, NULL
+        ));
     pp_print_key_value(use_pp,
                        "Max work items",
                        "%ld:%ld:%ld", d[0], d[1], d[2]);
-    free(d);
 
     cl_device_info flags[] = {
         CL_DEVICE_PIPE_SUPPORT,
