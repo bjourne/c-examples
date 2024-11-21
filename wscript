@@ -28,12 +28,10 @@ def configure(ctx):
             # Do I want -fPIC? I don't know.
             '-std=gnu11',
             '-Wsign-compare',
-            # Since we are now using SIMD intrinsics
             '-march=native', '-mtune=native',
-            '-fopenmp'
         ]
         base_cxx_flags = [
-            '-Wall', '-Werror', '-fPIC', '-fopenmp',
+            '-Wall', '-Werror', '-fPIC',
             '-march=native', '-mtune=native'
         ]
         speed_flags = ['-O3', '-fomit-frame-pointer']
@@ -43,9 +41,10 @@ def configure(ctx):
     ctx.env.append_unique('CXXFLAGS', base_cxx_flags + extra_flags)
     ctx.env.append_value('INCLUDES', ['libraries'])
     dest_os = ctx.env.DEST_OS
-    if dest_os == 'linux':
-        ctx.check(lib = 'X11', mandatory = False)
-        ctx.check(lib = 'GL', mandatory = False)
+
+    # These should have uselib_store
+    ctx.check(lib = 'X11', mandatory = False)
+    ctx.check(lib = 'GL', mandatory = False)
     if dest_os != 'win32':
         # This stuff interferes with oneAPI
         # ctx.find_program('aoc', var='AOC', mandatory = False)
@@ -74,7 +73,9 @@ def configure(ctx):
                       args = ['--libs', '--cflags'],
                       uselib_store = 'PNG',
                       mandatory = False)
-        ctx.check(lib = 'gomp', mandatory = True, uselib_store = 'GOMP')
+        ctx.check(lib = 'gomp', mandatory = True, uselib_store = 'GOMP',
+                  cflags = ['-fopenmp'],
+                  cxxflags = ['-fopenmp'])
         ctx.check(lib = 'm', mandatory = False)
         ctx.check(lib = 'pthread', mandatory = False, uselib_store = 'PTHREAD')
         ctx.check(header_name = 'CL/cl.h', mandatory = True, lib = 'OpenCL',
@@ -175,7 +176,8 @@ def build_aoc(ctx, src, deps):
         "${SRC[0]}",
         "-o",
         "${TGT[0]}",
-        "-report"])
+        "-report"
+    ])
 
     # Need to remove the log directory otherwise aoc gets angry.
     rules = ['rm -rf ${TGT[1]}', aoc_cmd]
@@ -260,7 +262,6 @@ def build(ctx):
         'npy' : ['DT_OBJS', 'NPY_OBJS'],
         'opencl' : {
             'DT_OBJS',
-            'GOMP',
             'M',
             'OPENCL',
             'OPENCL_OBJS',
@@ -279,8 +280,10 @@ def build(ctx):
         libs['cud'] = ('CUD_OBJS', {"CUDA", "PRETTY_OBJS"}, [])
         tests['cud'] = {'CUD_OBJS', 'DT_OBJS', 'CUDA'}
 
+
     for lib, (sym, deps, defs) in libs.items():
         build_library(ctx, lib, sym, deps, defs)
+
     for lib, deps in tests.items():
         build_tests(ctx, lib, deps)
 
@@ -308,7 +311,7 @@ def build(ctx):
         (['opencl/comm.c'], {'OPENCL', 'OPENCL_OBJS', 'RANDOM_OBJS'}),
         (['opencl/dct.c'], [
             'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS',
-            'TENSORS_OBJS', 'PNG', 'M', 'GOMP',
+            'TENSORS_OBJS', 'PNG', 'M',
             'DT_OBJS'
         ]),
         (['opencl/fpga.c'], {
@@ -316,6 +319,7 @@ def build(ctx):
             'TENSORS_OBJS', 'PNG', 'M', 'DT_OBJS'
         }),
         (['opencl/list.c'], {'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS'}),
+        (['opencl/pipes.c'], {'OPENCL', 'OPENCL_OBJS'}),
         (['sigsegv.c'], {})
     ]
 
@@ -340,7 +344,9 @@ def build(ctx):
         progs.append((['pcre.c'], {'PCRE'}))
 
     if ctx.env['LIB_SYCL']:
-        progs.append((['sycl-list.cpp'], {'SYCL', 'PRETTY_OBJS'}))
+        progs.extend([
+            (['sycl-list.cpp'], {'SYCL', 'PRETTY_OBJS'}),
+        ])
 
     if ctx.env['LIB_MPI']:
         progs.extend([
