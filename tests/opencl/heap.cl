@@ -19,7 +19,7 @@ typedef struct {
 } mailbox;
 
 void
-mailbox_post(mailbox *h, mail mail) {
+mailbox_post(__local mailbox *h, mail mail) {
     uint i = h->n_mails++;
     while (i) {
         uint parent = (i - 1) / 2;
@@ -33,7 +33,7 @@ mailbox_post(mailbox *h, mail mail) {
 }
 
 mail
-mailbox_take(mailbox *me) {
+mailbox_take(__local mailbox *me) {
     me->n_mails--;
     mail temp = me->mails[me->n_mails];
     mail min = me->mails[0];
@@ -96,7 +96,8 @@ run_heap(const uint T, const uint N, __global mail *mails) {
         for (uint i = 0; i < N_WORK_ITEMS; i++) {
             for (uint j = 0; j < N_WORK_ITEMS; j++) {
                 __local mailbox *box = &boxes[i][j];
-                uint prio = box->mails[0].prio;
+                int prio = box->mails[0].prio;
+                prio = box->n_mails > 0 ? prio : -1;
                 printf("%2d -> %2d = %5d, prio %d\n",
                        i, j,
                        box->n_mails,

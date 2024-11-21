@@ -8,7 +8,7 @@
 #include "tensors/tensors.h"
 #include "tensors/multiply.h"
 
-#define PLAT_IDX    0
+int PLAT_IDX = -1;
 
 static void
 init_arrays(tensor *a, tensor *b) {
@@ -56,7 +56,9 @@ test_matmul() {
     cl_device_id dev;
     cl_context ctx;
     cl_command_queue queue;
-    OCL_CHECK_ERR(ocl_basic_setup(PLAT_IDX, 0, &platform, &dev, &ctx, 1, &queue));
+    OCL_CHECK_ERR(ocl_basic_setup(
+                      PLAT_IDX, 0, &platform, &dev, &ctx, 1, &queue
+                  ));
 
     // Load kernels
     char *kernel_names[] = {
@@ -360,6 +362,8 @@ typedef struct {
     uint32_t padding;
 } mail;
 
+// Test case crashes on version 2024.18.7.0.11_160000 of Intel's
+// OpenCL 3.0 runtime.
 void
 test_heap() {
     uint32_t N_WORK_ITEMS = 4;
@@ -502,6 +506,11 @@ test_vector_add() {
 
 int
 main(int argc, char *argv[]) {
+    if (argc != 2) {
+        printf("Usage: %s plat-idx\n", argv[0]);
+        exit(1);
+    }
+    PLAT_IDX = atoi(argv[1]);
     print_device();
     PRINT_RUN(test_vector_add);
     PRINT_RUN(test_add_reduce);
