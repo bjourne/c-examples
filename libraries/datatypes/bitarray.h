@@ -1,3 +1,4 @@
+// Copyright (C) 2024 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef DATATYPES_BITARRAY_H
 #define DATATYPES_BITARRAY_H
 
@@ -37,7 +38,7 @@ rightmost_set_bit(ptr x) {
     return (int)bw_log2(x & (~x + 1));
 }
 
-#define BA_WORD_BITS   (8 * sizeof(ptr))
+#define BA_WORD_BITS   (int)(8 * sizeof(ptr))
 
 #define BA_EACH_UNSET_RANGE(ba, body)                                   \
     for (int _iter = ba_next_unset_bit(ba, 0); _iter < ba->n_bits; ) {  \
