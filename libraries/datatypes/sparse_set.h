@@ -1,25 +1,24 @@
-// Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2023-2024 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef SPARSE_SET_H
 #define SPARSE_SET_H
 
 #include <stdbool.h>
-#include <stdint.h>
 
 // See https://research.swtch.com/sparse
 
 typedef struct {
-    uint32_t *dense;
-    uint32_t *sparse;
-    size_t size;
-    size_t used;
+    int *dense;
+    int *sparse;
+    int size;
+    int used;
 } sparse_set;
 
-sparse_set *sparse_set_init(size_t n);
+sparse_set *sparse_set_init(int n);
 void sparse_set_free(sparse_set *me);
 
 inline bool
-sparse_set_add(sparse_set *me, uint32_t k) {
-    uint32_t i = me->sparse[k];
+sparse_set_add(sparse_set *me, int k) {
+    int i = me->sparse[k];
     if (i < me->used && me->dense[i] == k) {
         return false;
     }
@@ -30,10 +29,10 @@ sparse_set_add(sparse_set *me, uint32_t k) {
 }
 
 inline bool
-sparse_set_remove(sparse_set *me, uint32_t k) {
-    uint32_t i = me->sparse[k];
+sparse_set_remove(sparse_set *me, int k) {
+    int i = me->sparse[k];
     if (i < me->used && me->dense[i] == k) {
-        uint32_t y = me->dense[me->used - 1];
+        int y = me->dense[me->used - 1];
         me->dense[i] = y;
         me->sparse[y] = i;
         me->used--;
@@ -43,8 +42,8 @@ sparse_set_remove(sparse_set *me, uint32_t k) {
 }
 
 inline bool
-sparse_set_contains(sparse_set *me, uint32_t k) {
-    uint32_t i = me->sparse[k];
+sparse_set_contains(sparse_set *me, int k) {
+    int i = me->sparse[k];
     return i < me->used && me->dense[i] == k;
 }
 
