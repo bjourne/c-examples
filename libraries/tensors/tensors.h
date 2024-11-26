@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2024 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef TENSOR_H
 #define TENSOR_H
 
@@ -103,6 +103,10 @@ typedef struct {
 
 // Init & free
 tensor *tensor_init(int n_dims, int dims[]);
+tensor *tensor_init_1d(int x);
+tensor *tensor_init_2d(int x, int y);
+
+
 tensor *tensor_init_copy(tensor *orig);
 tensor *tensor_init_from_data(float *data, int n_dims, int dims[]);
 void tensor_free(tensor *t);
@@ -113,11 +117,11 @@ bool tensor_check_dims(tensor *me, int n_dims, int dims[]);
 
 // Printing
 void tensor_print(tensor *me, bool print_header,
-                  size_t n_decimals, size_t n_columns,
+                  int n_decimals, int n_columns,
                   char *sep);
 
 // Utility
-size_t tensor_n_elements(tensor *me);
+int tensor_n_elements(tensor *me);
 void tensor_flatten(tensor *me, int from);
 
 // Unary ops

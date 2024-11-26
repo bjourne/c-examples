@@ -71,8 +71,8 @@ main(int argc, char *argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, (int32_t *)&my_id);
     uint32_t n_workers = n_tasks - 1;
 
-    tensor *U0 = tensor_init(2, (int[]){GRID_Y, GRID_X});
-    tensor *U1 = tensor_init(2, (int[]){GRID_Y, GRID_X});
+    tensor *U0 = tensor_init_2d(GRID_Y, GRID_X);
+    tensor *U1 = tensor_init_2d(GRID_Y, GRID_X);
     tensor_fill_const(U0, 0);
     tensor_fill_const(U1, 0);
 

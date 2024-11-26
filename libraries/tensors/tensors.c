@@ -1,9 +1,9 @@
-// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2024 Björn A. Lindqvist <bjourne@gmail.com>
 //
 // Conventions:
 //
 //   * `n` or `n_els` is the number of elements in the tensor.
-//   * Tensors have `size_t` number of elements.
+//   * Tensors have `int` number of elements.
 #include <assert.h>
 #include <float.h>
 #include <math.h>
@@ -57,8 +57,8 @@ tensor_check_equal(tensor *t1, tensor *t2, float epsilon) {
     int dim_counts[TENSOR_MAX_N_DIMS] = {0};
     int *dims = t1->dims;
     int n_mismatches = 0;
-    size_t n_els = tensor_n_elements(t1);
-    for (size_t i = 0; i < n_els; i++) {
+    int n_els = tensor_n_elements(t1);
+    for (int i = 0; i < n_els; i++) {
         float v1 = t1->data[i];
         float v2 = t2->data[i];
         float diff = fabs(v2 - v1);
@@ -91,7 +91,7 @@ tensor_check_equal(tensor *t1, tensor *t2, float epsilon) {
 void
 tensor_print(tensor *me,
              bool print_header,
-             size_t n_decimals, size_t n_columns, char *sep) {
+             int n_decimals, int n_columns, char *sep) {
     if (print_header) {
         printf("Dims: ");
         print_dims(me->n_dims, me->dims);
@@ -102,16 +102,12 @@ tensor_print(tensor *me,
     pp->n_columns = n_columns;
     pp->sep = sep;
 
-    // Should use size_t everywhere
     size_t n_dims = me->n_dims;
     size_t dims[PP_MAX_N_DIMS];
     for (int i = 0; i < me->n_dims; i++) {
         dims[i] = me->dims[i];
     }
-    pp_print_array(pp,
-                   'f', 4,
-                   n_dims, dims,
-                   me->data);
+    pp_print_array(pp, 'f', 4, n_dims, dims, me->data);
     pp_free(pp);
 }
 
@@ -135,16 +131,16 @@ compute_2d_dims(tensor *src,
     *width = (src->dims[2] + 2 * padding - kernel_w) / stride + 1;
 }
 
-static size_t
+static int
 count_elements_from(int n_dims, int *dims, int from) {
-    size_t tot = dims[from];
+    int tot = dims[from];
     for (int i = from + 1; i < n_dims; i++) {
         tot *= dims[i];
     }
     return tot;
 }
 
-size_t
+int
 tensor_n_elements(tensor *me) {
     return count_elements_from(me->n_dims, me->dims, 0);
 }
@@ -171,6 +167,16 @@ tensor_init(int n_dims, int dims[]) {
         me->error_code = TENSOR_ERR_TOO_BIG;
     }
     return me;
+}
+
+tensor *
+tensor_init_1d(int x) {
+    return tensor_init(1, (int[]){x});
+}
+
+tensor *
+tensor_init_2d(int x, int y) {
+    return tensor_init(2, (int[]){x, y});
 }
 
 tensor *
@@ -202,15 +208,15 @@ tensor_free(tensor *t) {
 void
 tensor_unary(tensor *src, tensor *dst,
              tensor_unary_op op, float scalar) {
-    size_t n = tensor_n_elements(src);
+    int n = tensor_n_elements(src);
     assert(n == tensor_n_elements(dst));
     if (op == TENSOR_UNARY_OP_MAX) {
-        for (size_t i = 0; i < n; i++) {
+        for (int i = 0; i < n; i++) {
             dst->data[i] = MAX(src->data[i], scalar);
         }
     } else if (op == TENSOR_UNARY_OP_SOFTMAX) {
         float tot = 0.0;
-        for (size_t i = 0; i < n; i++) {
+        for (int i = 0; i < n; i++) {
             float v = exp(src->data[i]);
             dst->data[i] = v;
             tot += v;
@@ -218,11 +224,11 @@ tensor_unary(tensor *src, tensor *dst,
         tensor_unary(dst, dst, TENSOR_UNARY_OP_DIV, tot);
 
     } else if (op == TENSOR_UNARY_OP_DIV) {
-        for (size_t i = 0; i < n; i++) {
+        for (int i = 0; i < n; i++) {
             dst->data[i] = src->data[i] / scalar;
         }
     } else if (op == TENSOR_UNARY_OP_ADD) {
-        for (size_t i = 0; i < n; i++) {
+        for (int i = 0; i < n; i++) {
             dst->data[i] = src->data[i] + scalar;
         }
     } else {
@@ -235,11 +241,11 @@ tensor_unary(tensor *src, tensor *dst,
 ////////////////////////////////////////////////////////////////////////
 void tensor_scan(tensor *src, tensor *dst,
                  tensor_binary_op op, bool exclusive, float seed) {
-    size_t n = tensor_n_elements(src);
+    int n = tensor_n_elements(src);
     assert(n == tensor_n_elements(dst));
 
     float at0 = exclusive ? seed : 0.0;
-    for (size_t i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++) {
         float v = src->data[i];
         float at1;
         if (op == TENSOR_BINARY_OP_ADD) {
@@ -259,11 +265,11 @@ void tensor_scan(tensor *src, tensor *dst,
 ////////////////////////////////////////////////////////////////////////
 void
 tensor_fill_const(tensor *me, float v) {
-    size_t n = tensor_n_elements(me);
+    int n = tensor_n_elements(me);
     if (v == 0.0) {
         memset(me->data, 0, sizeof(float) * n);
     } else {
-        for (size_t i = 0; i < n; i++) {
+        for (int i = 0; i < n; i++) {
             me->data[i] = v;
         }
     }
@@ -271,18 +277,18 @@ tensor_fill_const(tensor *me, float v) {
 
 void
 tensor_fill_rand_range(tensor *me, float high) {
-    size_t n = tensor_n_elements(me);
+    int n = tensor_n_elements(me);
     // Doesn't this ruin the precision?
     rnd_pcg32_rand_uniform_fill_float(me->data, n);
-    for (size_t i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++) {
         me->data[i] *= high;
     }
 }
 
 void
 tensor_fill_range(tensor *me, float start) {
-    size_t n = tensor_n_elements(me);
-    for (size_t i = 0; i < n; i++) {
+    int n = tensor_n_elements(me);
+    for (int i = 0; i < n; i++) {
         me->data[i] = start;
         start += 1.0;
     }
@@ -426,7 +432,7 @@ tensor_read_png(char *filename) {
     me->dims[1] = height;
     me->dims[2] = width;
     me->n_dims = 3;
-    size_t n_bytes = sizeof(float) * 3 * height * width;
+    int n_bytes = sizeof(float) * 3 * height * width;
     me->data = (float *)malloc_aligned(TENSOR_ADDRESS_ALIGNMENT, n_bytes);
     png_bytepp row_pointers = png_get_rows(png, info);
 
@@ -630,7 +636,8 @@ tensor_linear(tensor *weights, tensor *bias, tensor *src, tensor *dst) {
 
 tensor *
 tensor_linear_new(tensor *weights, tensor *bias, tensor *src) {
-    tensor *dst = tensor_init(1, (int[]){weights->dims[0]});
+    // This is not right?
+    tensor *dst = tensor_init_1d(weights->dims[0]);
     tensor_linear(weights, bias, src, dst);
     return dst;
 }
@@ -674,8 +681,8 @@ tensor_layer_init_linear(int in, int out) {
     tensor_layer *me = (tensor_layer *)malloc(sizeof(tensor_layer));
     me->type = TENSOR_LAYER_LINEAR;
 
-    tensor *weight = tensor_init(2, (int[]){out, in});
-    tensor *bias = tensor_init(1, (int[]){out});
+    tensor *weight = tensor_init_2d(out, in);
+    tensor *bias = tensor_init_1d(out);
 
     me->linear.weight = weight;
     me->linear.bias = bias;
@@ -804,7 +811,7 @@ tensor_layer_stack_init(int n_layers, tensor_layer **layers,
     // Layers' dims
     me->layers_n_dims = (int *)malloc(sizeof(int) * n_layers);
     me->layers_dims = (int **)malloc(sizeof(int *) * n_layers);
-    size_t buf_size = count_elements_from(input_n_dims, input_dims, 0);
+    int buf_size = count_elements_from(input_n_dims, input_dims, 0);
     for (int i = 0; i < n_layers; i++) {
         tensor *output = tensor_layer_apply_new(me->layers[i], input);
         int n_dims = output->n_dims;

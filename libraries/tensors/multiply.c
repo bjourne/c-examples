@@ -27,7 +27,7 @@ tensor_multiply_ref(tensor *a, tensor *b, tensor *c) {
     int b_cols = b->dims[1];
 
     assert(a_cols == b_rows);
-    assert(tensor_n_elements(c) == (size_t)(a_rows * b_cols));
+    assert(tensor_n_elements(c) == a_rows * b_cols);
 
     float *a_buf = a->data;
     float *b_buf = b->data;
