@@ -121,7 +121,7 @@ void tensor_print(tensor *me, bool print_header,
                   char *sep);
 
 // Utility
-int tensor_n_elements(tensor *me);
+long tensor_n_elements(tensor *me);
 void tensor_flatten(tensor *me, int from);
 
 // Unary ops

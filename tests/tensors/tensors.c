@@ -1236,7 +1236,7 @@ test_transpose() {
 void
 test_too_big() {
     int SIZE = 1 << 17;
-    tensor *mat = tensor_init(2, (int[]){SIZE, SIZE});
+    tensor *mat = tensor_init_2d(SIZE, SIZE);
     assert(mat->error_code == TENSOR_ERR_TOO_BIG);
     tensor_free(mat);
 }
@@ -1245,7 +1245,7 @@ void
 test_random_filling() {
     // 4024mb
     int SIZE = 1 << 14;
-    tensor *mat = tensor_init(2, (int[]){SIZE, SIZE});
+    tensor *mat = tensor_init_2d(SIZE, SIZE);
     assert(mat);
     tensor_fill_rand_range(mat, 10000);
     int geq1 = 0;
@@ -1264,8 +1264,8 @@ void
 test_scans() {
     size_t n = 10;
     int dim[1] = {n};
-    tensor *src = tensor_init(1, dim);
-    tensor *dst = tensor_init(1, dim);
+    tensor *src = tensor_init_1d(n);
+    tensor *dst = tensor_init_1d(n);
     tensor *dst_ref = tensor_init_from_data(
         &arr_10_triangular_numbers[1], 1, dim);
 

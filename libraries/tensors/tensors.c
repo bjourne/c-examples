@@ -131,16 +131,16 @@ compute_2d_dims(tensor *src,
     *width = (src->dims[2] + 2 * padding - kernel_w) / stride + 1;
 }
 
-static int
+static long
 count_elements_from(int n_dims, int *dims, int from) {
-    int tot = dims[from];
+    long tot = dims[from];
     for (int i = from + 1; i < n_dims; i++) {
         tot *= dims[i];
     }
     return tot;
 }
 
-int
+long
 tensor_n_elements(tensor *me) {
     return count_elements_from(me->n_dims, me->dims, 0);
 }
