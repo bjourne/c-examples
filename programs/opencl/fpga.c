@@ -44,15 +44,15 @@
 #define HA_trim (2 *  A_BLOCK_Y)
 #define WB_trim WB
 
-static  void
+static void
 reorder_within_blocks(float * src,
                       float * dst,
                       int height, int width,
-                      int num_sys_arr_columns, int block_width) {
+                      int num_sys_arr_columns, int block_x) {
     int n_els = height * width;
-    int column_interleaving = block_width / num_sys_arr_columns;
+    int column_interleaving = block_x / num_sys_arr_columns;
     int word_id = 0;
-    for (int i = 0; i < n_els; i += block_width) {
+    for (int i = 0; i < n_els; i += block_x) {
         for (int j = 0; j < column_interleaving; j++) {
             for (int k = 0; k < num_sys_arr_columns ; k++) {
                 dst[word_id] = src[i + j + k * column_interleaving];
@@ -64,7 +64,7 @@ reorder_within_blocks(float * src,
 }
 
 typedef enum {
-    BUF_A = 0,
+    BUF_A,
     BUF_B,
     BUF_C
 } buf_type;

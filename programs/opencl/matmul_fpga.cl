@@ -26,20 +26,132 @@
 
 #pragma OPENCL EXTENSION cl_intel_channels : enable
 
-channel struct nvec_float_t_bool loadAChannel __attribute__((depth(64)));
-channel struct nvec_float_t loadBChannel __attribute__((depth(64)));
-channel struct cols_floats storeCChannel __attribute__((depth(64)));
+// must be power of 2 smaller than 256
+#define WIDTH 16
 
-/* Constants */
-#define WIDTH 16  // must be power of 2 smaller than 256
+#define VECTOR_FLOAT4_ZERO          (float4)(0.0f, 0.0f, 0.0f, 0.0f)
+#define VECTOR_FLOAT8_ZERO          (float8)(VECTOR_FLOAT4_ZERO,VECTOR_FLOAT4_ZERO)
+#define VECTOR_FLOAT16_ZERO         (float16)(VECTOR_FLOAT8_ZERO,VECTOR_FLOAT8_ZERO)
+
+#define VEC                         DOT_PROD_VECTOR_SIZE
+#define ROWS                        PE_ROWS
+#define COLS                        PE_COLS
+#define COLS_INTERLEAVED            COLUMNS_INTERLEAVED
+
+// The number of rows rounded up to the next power of 2
+#if ROWS <= 1
+#define BANK_Y 1
+#elif ROWS <= 2
+#define BANK_Y 2
+#elif ROWS <= 4
+#define BANK_Y 4
+#elif ROWS <= 8
+#define BANK_Y 8
+#elif ROWS <= 16
+#define BANK_Y 16
+#elif ROWS <= 32
+#define BANK_Y 32
+#elif ROWS <= 64
+#define BANK_Y 64
+#elif ROWS <= 128
+#define BANK_Y 128
+#elif ROWS <= 256
+#define BANK_Y 256
+#else
+#error "ROWS too large, BANK_Y cannot be defined"
+#endif
+
+// The number of columns rounded up to the next power of 2
+#if COLS <= 1
+#define BANK_X 1
+#elif COLS <= 2
+#define BANK_X 2
+#elif COLS <= 4
+#define BANK_X 4
+#elif COLS <= 8
+#define BANK_X 8
+#elif COLS <= 16
+#define BANK_X 16
+#elif COLS <= 32
+#define BANK_X 32
+#elif COLS <= 64
+#define BANK_X 64
+#elif COLS <= 128
+#define BANK_X 128
+#elif COLS <= 256
+#define BANK_X 256
+#else
+#error "COLS too large, BANK_X cannot be defined"
+#endif
+
+
+// Defines the width of channels in number of vectors.
+#ifndef LVEC
+   #define LVEC 1
+#endif
+
+#define ROW_VECS                    (A_BLOCK_X / VEC)
+#define ROW_VECS_MASK               (ROW_VECS - 1)
+
+#define SWAP_RANGE                  (ROWS_INTERLEAVED * COLS_INTERLEAVED * ROW_VECS)
+#define SWAP_RANGE_MASK             (SWAP_RANGE - 1)
+
+#define RANGE                       (2 * SWAP_RANGE)
+#define RANGE_MASK                  (RANGE - 1)
+
+////////////////////////////////////////////////////////////////////////
+// Types
+////////////////////////////////////////////////////////////////////////
+#if DOT_PROD_VECTOR_SIZE==4
+typedef float4 vfloat;
+#define VECTOR_ZERO         VECTOR_FLOAT4_ZERO
+#elif DOT_PROD_VECTOR_SIZE==8
+typedef float8 vfloat;
+#define VECTOR_ZERO         VECTOR_FLOAT8_ZERO
+#elif DOT_PROD_VECTOR_SIZE==16
+typedef float16 vfloat;
+#define VECTOR_ZERO         VECTOR_FLOAT16_ZERO
+#else
+#error Unsupported DOT_PROD_VECTOR_SIZE
+#endif
+
+////////////////////////////////////////////////////////////////////////
+// Structs
+////////////////////////////////////////////////////////////////////////
+struct cols_floats {
+    float drain_data[PE_COLS];
+};
+
+struct n_vfloat {
+    vfloat data[LVEC];
+};
+
+struct n_vfloat_bool {
+    vfloat data[LVEC];
+    // indicates a new row/column pair
+    bool  c;
+};
+
+struct vfloat_bool {
+    vfloat data;
+    // indicates a new row/column pair
+    bool  c;
+};
+
+////////////////////////////////////////////////////////////////////////
+// Channels
+////////////////////////////////////////////////////////////////////////
+channel struct n_vfloat_bool loadAChannel __attribute__((depth(64)));
+channel struct n_vfloat loadBChannel __attribute__((depth(64)));
+channel struct cols_floats storeCChannel __attribute__((depth(64)));
 
 
 __attribute__((max_global_work_dim(0)))
 kernel void
-loadA(global volatile vec_float_t* restrict A,
+loadA(global volatile vfloat* restrict A,
       uint mat_a_num_vectors_in_row_of_blocks,
-      uchar mat_a_num_blocks_in_col,
-      uchar mat_b_num_blocks_in_row) {
+      uchar a_n_blocks_y,
+      uchar b_n_blocks_x) {
 
 
     uchar block_col_id = 1;
@@ -61,7 +173,7 @@ loadA(global volatile vec_float_t* restrict A,
 
     while(more_vectors_to_load_and_forward) {
 
-        struct nvec_float_t_bool A_local;
+        struct n_vfloat_bool A_local;
 
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
@@ -107,7 +219,7 @@ loadA(global volatile vec_float_t* restrict A,
             }
 
             // done reusing this row of blocks?
-            if (row_of_blocks_reuse_counter == mat_b_num_blocks_in_row-1) {
+            if (row_of_blocks_reuse_counter == b_n_blocks_x-1) {
 
                 row_of_blocks_reuse_counter = 0;
                 // mark the new start of the row of blocks
@@ -115,7 +227,7 @@ loadA(global volatile vec_float_t* restrict A,
 
                 // done loading and forwarding the matrix?
                 // start feeding zeros to flush last C block
-                if (block_col_id == mat_a_num_blocks_in_col) {
+                if (block_col_id == a_n_blocks_y) {
                     feed_zeros_to_flush_last_C_block = true;
                 }
                 // increment the block_id in the column of blocks
@@ -138,10 +250,10 @@ loadA(global volatile vec_float_t* restrict A,
 
 __attribute__((max_global_work_dim(0)))
 kernel void
-loadB(global volatile vec_float_t* restrict B,
+loadB(global volatile vfloat* restrict B,
       uint mat_b_num_vectors_in_col_of_blocks,
       uint mat_b_num_vectors_in_matrix,
-      uchar mat_a_num_blocks_in_col) {
+      uchar a_n_blocks_y) {
 
     uint vector_id_in_col_of_blocks = 0;
     uint vector_id_global = 0;
@@ -152,7 +264,7 @@ loadB(global volatile vec_float_t* restrict B,
 
     while(more_vectors_to_load_and_forward) {
 
-        struct nvec_float_t B_local;
+        struct n_vfloat B_local;
 
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
@@ -178,7 +290,7 @@ loadB(global volatile vec_float_t* restrict B,
         if (vector_id_global == mat_b_num_vectors_in_matrix / LVEC - 1) {
             vector_id_global = 0;
             // done reload and forwarding the matrix data?
-            if (matrix_B_reuse_counter == mat_a_num_blocks_in_col-1) {
+            if (matrix_B_reuse_counter == a_n_blocks_y-1) {
                 feed_zeros_to_flush_last_C_block = true;
             }
             matrix_B_reuse_counter++;
@@ -191,9 +303,9 @@ loadB(global volatile vec_float_t* restrict B,
 
 
 
-struct vec_float_t_bool
-FeederA(struct nvec_float_t_bool newVal,
-        vec_float_t matrix_block_double_buffer[2][ROWS_INTERLEAVED][ROW_VECS][BANKROWS],
+struct vfloat_bool
+FeederA(struct n_vfloat_bool newVal,
+        vfloat matrix_block_double_buffer[2][ROWS_INTERLEAVED][ROW_VECS][BANK_Y],
         uint counter, int row) {
 
     bool write_to_buffer =
@@ -217,8 +329,8 @@ FeederA(struct nvec_float_t_bool newVal,
     uchar buffer_vector_to_feed_to_sysarr =
         (counter & SWAP_RANGE_MASK) / (ROWS_INTERLEAVED * COLUMNS_INTERLEAVED);
 
-    struct vec_float_t_bool val;
-    vec_float_t choices[LVEC];
+    struct vfloat_bool val;
+    vfloat choices[LVEC];
     #pragma unroll
     for (int i = 0; i < LVEC; i++) {
         choices[i] = matrix_block_double_buffer[buffer_id_to_feed_to_sysarr][buffer_row_to_feed_to_sysarr][(buffer_vector_to_feed_to_sysarr / LVEC) * LVEC + i][row];
@@ -232,9 +344,9 @@ FeederA(struct nvec_float_t_bool newVal,
 // counter is the global counter, which should align with FeederA's counter.
 // load_counter is the counter for writing into the feeders,
 // which may start at some point in the overall counter range (once FeederA is finished loading)
-vec_float_t
-FeederB(struct nvec_float_t newVal,
-        vec_float_t matrix_block_double_buffer[2][COLUMNS_INTERLEAVED][ROW_VECS][BANKCOLS],
+vfloat
+FeederB(struct n_vfloat newVal,
+        vfloat matrix_block_double_buffer[2][COLUMNS_INTERLEAVED][ROW_VECS][BANK_X],
         uint load_counter, int col, uint counter) {
 
     bool write_to_buffer =
@@ -246,7 +358,7 @@ FeederB(struct nvec_float_t newVal,
     if (write_to_buffer) {
         uchar buffer_vector_to_write_to = (load_counter * LVEC) & ROW_VECS_MASK;
         uchar buffer_row_to_write_to = ((load_counter * LVEC) & ((COLUMNS_INTERLEAVED * ROW_VECS)-1)) / ROW_VECS;
-        #pragma unroll
+#pragma unroll
         for (int i = 0; i < LVEC; i++) {
             matrix_block_double_buffer[buffer_id_to_write_to][buffer_row_to_write_to][(buffer_vector_to_write_to / LVEC) * LVEC + i][col] = newVal.data[i];
         }
@@ -257,7 +369,7 @@ FeederB(struct nvec_float_t newVal,
     uchar buffer_vector_to_feed_to_sysarr =
         (counter & SWAP_RANGE_MASK) / (ROWS_INTERLEAVED * COLUMNS_INTERLEAVED);
 
-    vec_float_t choices[LVEC];
+    vfloat choices[LVEC];
     #pragma unroll
     for (int i = 0; i < LVEC; i++) {
         choices[i] = matrix_block_double_buffer[buffer_id_to_feed_to_sysarr][buffer_row_to_feed_to_sysarr][(buffer_vector_to_feed_to_sysarr / LVEC) * LVEC + i][col];
@@ -273,9 +385,9 @@ FeederB(struct nvec_float_t newVal,
 }
 
 float
-PE(struct vec_float_t_bool valA, vec_float_t valB, float *accum) {
+PE(struct vfloat_bool valA, vfloat valB, float *accum) {
     float oldAcc = __fpga_reg(accum[0]);
-    float sum = (valA.c ? 0.0f : oldAcc);
+    float sum = valA.c ? 0.0f : oldAcc;
     #pragma unroll
     for (int i = 0; i < DOT_PROD_VECTOR_SIZE; i++) {
         sum += valA.data[i] * valB[i];
@@ -305,19 +417,19 @@ __attribute__((autorun))
 void
 kernel monolithic() {
     // internal feeder A storage, banked, 1 bank per feeder
-    vec_float_t __attribute__((memory,
-                               numbanks(BANKROWS * LVEC),
+    vfloat __attribute__((memory,
+                               numbanks(BANK_Y * LVEC),
                                bankwidth(32),
                                singlepump,
                                max_replicates(1),
-                               simple_dual_port)) memA[2][ROWS_INTERLEAVED][ROW_VECS][BANKROWS];
+                               simple_dual_port)) memA[2][ROWS_INTERLEAVED][ROW_VECS][BANK_Y];
     // internal feeder B storage, banked, 1 bank per feeder
-    vec_float_t __attribute__((memory,
-                               numbanks(BANKCOLS * LVEC),
+    vfloat __attribute__((memory,
+                               numbanks(BANK_X * LVEC),
                                bankwidth(32),
                                singlepump,
                                max_replicates(1),
-                               simple_dual_port)) memB[2][COLUMNS_INTERLEAVED][ROW_VECS][BANKCOLS];
+                               simple_dual_port)) memB[2][COLUMNS_INTERLEAVED][ROW_VECS][BANK_X];
 
 
 #ifdef EMULATE
@@ -354,11 +466,11 @@ kernel monolithic() {
 
     bool new_row_col_pair = false;
     while (1) {
-        struct vec_float_t_bool fedA[PE_ROWS];
-        vec_float_t fedB[PE_COLS];
+        struct vfloat_bool fedA[PE_ROWS];
+        vfloat fedB[PE_COLS];
 
-        struct nvec_float_t_bool valA;
-        struct nvec_float_t valB;
+        struct n_vfloat_bool valA;
+        struct n_vfloat valB;
         if ((counter & SWAP_RANGE_MASK) < num_a_loads) {
             valA = read_channel_intel(loadAChannel);
             // save latests row_col_pair
