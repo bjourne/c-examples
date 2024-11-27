@@ -1210,7 +1210,7 @@ void
 test_transpose() {
     tensor *src = tensor_init_from_data((float *)mat_5x5_1,
                                         2, (int[]){5, 5});
-    tensor *dst = tensor_init(2, (int[]){5, 5});
+    tensor *dst = tensor_init_2d(5, 5);
     tensor *dst_ref = tensor_init_from_data((float *)mat_5x5_2,
                                             2, (int[]){5, 5});
     tensor_transpose(src, dst);
@@ -1222,7 +1222,7 @@ test_transpose() {
 
     tensor *t1 = tensor_init_from_data((float *)mat_2x4,
                                        2, (int[]){2, 4});
-    tensor *t2 = tensor_init(2, (int[]){4, 2});
+    tensor *t2 = tensor_init_2d(4, 2);
     tensor *t2_ref = tensor_init_from_data((float *)mat_2x4_t,
                                            2, (int[]){4, 2});
     tensor_transpose(t1, t2);
@@ -1263,11 +1263,10 @@ test_random_filling() {
 void
 test_scans() {
     size_t n = 10;
-    int dim[1] = {n};
     tensor *src = tensor_init_1d(n);
     tensor *dst = tensor_init_1d(n);
-    tensor *dst_ref = tensor_init_from_data(
-        &arr_10_triangular_numbers[1], 1, dim);
+    tensor *dst_ref = tensor_init_1d(n);
+    tensor_copy_data(dst_ref, &arr_10_triangular_numbers[1]);
 
     tensor_fill_range(src, 1.0);
     tensor_scan(src, dst, TENSOR_BINARY_OP_ADD, false, 0.0);
@@ -1275,7 +1274,7 @@ test_scans() {
 
     // Compare with parallel O(n log n) algo
     tensor *in = tensor_init_copy(src);
-    tensor *out = tensor_init(1, dim);
+    tensor *out = tensor_init_1d(n);
     size_t l2 = (size_t)ceil(log2(n)) ;
     for (uint32_t d = 0; d < l2; d++) {
         for (uint32_t i = 0; i < n; i++) {
@@ -1306,8 +1305,8 @@ test_scans() {
 
 void
 test_print_tensor() {
-    tensor *src = tensor_init_from_data((float *)mat_5x5_1,
-                                        3, (int[]){1, 5, 5});
+    tensor *src = tensor_init_3d(1, 5, 5);
+    tensor_copy_data(src, mat_5x5_1);
     tensor_print(src, true, 3, 80, ", ");
     tensor_free(src);
 }

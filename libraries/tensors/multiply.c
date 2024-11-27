@@ -279,9 +279,9 @@ tensor_multiply_w_params(tensor *a, tensor *b, tensor *c, int n_jobs) {
         for (int i = 0; i < n_jobs; i++) {
             int end_i = ceil(i_tiles_per_thread * (i + 1)) * TILE_I;
             jobs[i] = (mul_job){0,
-                                  a_tiled_data, b_tiled_data, c_buf,
-                                  start_i, end_i,
-                                  M, K
+                                a_tiled_data, b_tiled_data, c_buf,
+                                start_i, end_i,
+                                M, K
             };
             pthread_create(&jobs[i].thread, NULL, mul_thread, &jobs[i]);
             start_i = end_i;

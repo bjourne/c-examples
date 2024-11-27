@@ -49,11 +49,11 @@ transpose(__m256 src[8], __m256 dst[8]) {
 
 static void
 nvidia_block(float * restrict src,
-                    float * restrict ys,
-                    int stride,
-                    __m256 norm,
-                    __m256 ca, __m256 cb, __m256 cc,
-                    __m256 cd, __m256 ce, __m256 cf) {
+             float * restrict ys,
+             int stride,
+             __m256 norm,
+             __m256 ca, __m256 cb, __m256 cc,
+             __m256 cd, __m256 ce, __m256 cf) {
     __m256 xa[8], ya[8];
     float xs[64] __attribute__ ((aligned (32)));
     for (int i = 0; i < 8; i++) {

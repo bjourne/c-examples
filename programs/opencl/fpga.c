@@ -15,21 +15,19 @@
 #define HOST
 #include "matmul_fpga_config.h"
 
-#define SCALING_FACTOR  128
+#define SCALING_FACTOR  4L
 
-#define HA (128 * MAT_A_BLOCK_HEIGHT)           // Matrix A height
-#define WA (SCALING_FACTOR * MAT_A_BLOCK_WIDTH) // Matrix A width
+// Matrix A height and width
+#define HA (8L * MAT_A_BLOCK_HEIGHT)
+#define WA (SCALING_FACTOR * MAT_A_BLOCK_WIDTH)
 
-#define HB WA                                   // Matrix B height
-#define WB (128 * MAT_B_BLOCK_WIDTH)            // Matrix B width
+// Matrix B height and width
+#define HB WA
+#define WB (4L * MAT_B_BLOCK_WIDTH)
 
-#define HC HA                                   // Matrix C height
-#define WC WB                                   // Matrix C width
-
-
-// A+B+C matrices = 1.47 GB (with scaling factor 24)
-// S10 EA board DDR memory = 2 GB
-
+// Matrix C height and width
+#define HC HA
+#define WC WB
 
 #define MAT_A_N_BLOCKS_IN_ROW             (WA / MAT_A_BLOCK_WIDTH)
 #define MAT_A_N_BLOCKS_IN_COL             (HA / MAT_A_BLOCK_HEIGHT)
@@ -39,7 +37,6 @@
 #define MAT_B_N_BLOCKS_IN_COL             (HB / MAT_B_BLOCK_HEIGHT)
 #define MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS  (MAT_B_N_BLOCKS_IN_COL * MAT_B_BLOCK_NUM_VECTORS)
 #define MAT_B_NUM_VECTORS_IN_MATRIX         (MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS * MAT_B_N_BLOCKS_IN_ROW)
-
 
 // Gold stuff
 #define COMPUTE_GOLD_BLOCK_SIZE 64
@@ -86,24 +83,24 @@ main(int argc, char *argv[]) {
     size_t n_mem = sizeof(cl_mem);
     size_t n_float = sizeof(float);
 
-    tensor *a = tensor_init(2, (int[]){HA, WA});
-    tensor *a_blocked = tensor_init(2, (int[]){HA, WA});
-    tensor *b_transpose = tensor_init(2, (int[]){WB, HB});
-    tensor *b_transpose_blocked = tensor_init(2, (int[]){WB, HB});
-    tensor *b = tensor_init(2, (int[]){HB, WB});
+    tensor *a = tensor_init_2d(HA, WA);
+    tensor *a_blocked = tensor_init_2d(HA, WA);
+    tensor *b_transpose = tensor_init_2d(WB, HB);
+    tensor *b_transpose_blocked = tensor_init_2d(WB, HB);
+    tensor *b = tensor_init_2d(HB, WB);
 
-    tensor *c = tensor_init(2, (int[]){HC, WC});
-    tensor *c_golden = tensor_init(2, (int[]){HC, WC});
-    tensor *c_golden_blocked = tensor_init(2, (int[]){HC, WC});
-    tensor *c_golden_blocked_reordered = tensor_init(2, (int[]){HC, WC});
-    tensor *c_ref = tensor_init(2, (int[]){HC, WC});
+    tensor *c = tensor_init_2d(HC, WC);
+    tensor *c_golden = tensor_init_2d(HC, WC);
+    tensor *c_golden_blocked = tensor_init_2d(HC, WC);
+    tensor *c_golden_blocked_reordered = tensor_init_2d(HC, WC);
+    tensor *c_ref = tensor_init_2d(HC, WC);
 
     printf("** Matrix dimensions **\n");
-    printf("%12s %4d %4d\n", "a", HA, WA);
-    printf("%12s %4d %4d\n", "b", HB, WB);
-    printf("%12s %4d %4d\n", "c", HC, WC);
-    printf("%12s %4d %4d\n", "a_blocked", HA, WA);
-    printf("%12s %4d %4d\n", "b_transpose", WB, HB);
+    printf("%12s %6ld %6ld\n", "a", HA, WA);
+    printf("%12s %6ld %6ld\n", "b", HB, WB);
+    printf("%12s %6ld %6ld\n", "c", HC, WC);
+    printf("%12s %6ld %6ld\n", "a_blocked", HA, WA);
+    printf("%12s %6ld %6ld\n", "b_transpose", WB, HB);
     printf("\n");
     printf("** Kernel setup **\n");
     printf("%12s %4d %4d\n", "PE dims", PE_ROWS, PE_COLS);
@@ -120,7 +117,7 @@ main(int argc, char *argv[]) {
     tensor_unary(b, b, TENSOR_UNARY_OP_ADD, -10.0);
     tensor_fill_const(c, 0);
 
-    printf("** Multiplying on CPU**\n");
+    printf("** Multiplying on CPU **\n");
     tensor_multiply(a, b, c_ref);
 
     tensor_linearize_tiles(a, a_blocked, MAT_A_BLOCK_HEIGHT, MAT_A_BLOCK_WIDTH);
@@ -143,7 +140,6 @@ main(int argc, char *argv[]) {
     int plat_idx = atoi(argv[1]);
     ocl_ctx *ctx = ocl_ctx_init(plat_idx, 0, true);
 
-    printf("Loading kernels\n");
     OCL_CHECK_ERR(ocl_ctx_load_kernels(
                       ctx,
                       argv[2], "-cl-std=CL2.0 -Werror",
@@ -156,7 +152,6 @@ main(int argc, char *argv[]) {
         OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, props));
     }
 
-    printf("Creating device buffers\n");
     size_t n_bytes_a = HA * WA * n_float;
     size_t n_bytes_b = HB * WB * n_float;
     size_t n_bytes_c = HC * WC * n_float;
@@ -173,14 +168,12 @@ main(int argc, char *argv[]) {
     OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 1, BUF_B, b_transpose_blocked->data));
 
     // LoadA kernel
-    printf("Initializing LoadA kernel\n");
     unsigned int mat_a_num_vectors_in_row_of_blocks =
         MAT_A_NUM_VECTORS_IN_ROW_OF_BLOCKS;
     unsigned char mat_a_num_blocks_in_col = MAT_A_N_BLOCKS_IN_COL;
     unsigned char mat_b_num_blocks_in_row = MAT_B_N_BLOCKS_IN_ROW;
 
     // LoadB kernel
-    printf("Initializing LoadB kernel\n");
     unsigned int mat_b_num_vectors_in_col_of_blocks =
         MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS;
     unsigned int mat_b_num_vectors_in_matrix =

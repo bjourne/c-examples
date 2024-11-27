@@ -180,17 +180,21 @@ tensor_init_2d(int x, int y) {
 }
 
 tensor *
+tensor_init_3d(int x, int y, int z) {
+    return tensor_init(3, (int[]){x, y, z});
+}
+
+tensor *
 tensor_init_copy(tensor *orig) {
     tensor *me = tensor_init(orig->n_dims, orig->dims);
-    int n_bytes = sizeof(float) * tensor_n_elements(me);
-    memcpy(me->data, orig->data, n_bytes);
+    tensor_copy_data(me, orig->data);
     return me;
 }
 
 tensor *
 tensor_init_from_data(float *data, int n_dims, int dims[])  {
     tensor *me = tensor_init(n_dims, dims);
-    memcpy(me->data, data, sizeof(float) * tensor_n_elements(me));
+    tensor_copy_data(me, data);
     return me;
 }
 
@@ -201,6 +205,14 @@ tensor_free(tensor *t) {
     }
     free(t);
 }
+
+////////////////////////////////////////////////////////////////////////
+// Copy data
+////////////////////////////////////////////////////////////////////////
+void tensor_copy_data(tensor *me, void *data) {
+    memcpy(me->data, data, sizeof(float) * tensor_n_elements(me));
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 // Unary ops

@@ -105,11 +105,14 @@ typedef struct {
 tensor *tensor_init(int n_dims, int dims[]);
 tensor *tensor_init_1d(int x);
 tensor *tensor_init_2d(int x, int y);
-
-
-tensor *tensor_init_copy(tensor *orig);
+tensor *tensor_init_3d(int x, int y, int z);
 tensor *tensor_init_from_data(float *data, int n_dims, int dims[]);
+tensor *tensor_init_copy(tensor *orig);
+
 void tensor_free(tensor *t);
+
+// Copy data
+void tensor_copy_data(tensor *me, void *addr);
 
 // Checking
 bool tensor_check_equal(tensor *t1, tensor *t2, float eps);
