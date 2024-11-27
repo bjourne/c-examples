@@ -185,6 +185,11 @@ tensor_init_3d(int x, int y, int z) {
 }
 
 tensor *
+tensor_init_4d(int x, int y, int z, int w) {
+    return tensor_init(4, (int[]){x, y, z, w});
+}
+
+tensor *
 tensor_init_copy(tensor *orig) {
     tensor *me = tensor_init(orig->n_dims, orig->dims);
     tensor_copy_data(me, orig->data);

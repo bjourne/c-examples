@@ -106,6 +106,7 @@ tensor *tensor_init(int n_dims, int dims[]);
 tensor *tensor_init_1d(int x);
 tensor *tensor_init_2d(int x, int y);
 tensor *tensor_init_3d(int x, int y, int z);
+tensor *tensor_init_4d(int x, int y, int z, int w);
 tensor *tensor_init_from_data(float *data, int n_dims, int dims[]);
 tensor *tensor_init_copy(tensor *orig);
 
