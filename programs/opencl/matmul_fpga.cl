@@ -35,10 +35,11 @@ channel struct cols_floats storeCChannel __attribute__((depth(64)));
 
 
 __attribute__((max_global_work_dim(0)))
-kernel void loadA(global volatile vec_float_t* restrict A,
-                  uint mat_a_num_vectors_in_row_of_blocks,
-                  uchar mat_a_num_blocks_in_col,
-                  uchar mat_b_num_blocks_in_row) {
+kernel void
+loadA(global volatile vec_float_t* restrict A,
+      uint mat_a_num_vectors_in_row_of_blocks,
+      uchar mat_a_num_blocks_in_col,
+      uchar mat_b_num_blocks_in_row) {
 
 
     uchar block_col_id = 1;
@@ -280,7 +281,10 @@ PE(struct vec_float_t_bool valA, vec_float_t valB, float *accum) {
         sum += valA.data[i] * valB[i];
         // Breaks up dot-8 and larger into dot-4s using fpga_reg.
         // Not needed if DOT_PROD_VECTOR_SIZE = 4
-        // Need dot4 structures to fit the DSP columns on the device (which are 36 DSP long). Dot8 would leave 4 unutilized DSPs.
+
+        // Need dot4 structures to fit the DSP columns on the device
+        // (which are 36 DSP long). Dot8 would leave 4 unutilized
+        // DSPs.
         #if (FORCE_DOT_4==1) && (DOT_PROD_VECTOR_SIZE!=4)
             if ((i%4) == 3){
                 sum = __fpga_reg(sum);
@@ -300,8 +304,20 @@ __attribute__((max_global_work_dim(0)))
 __attribute__((autorun))
 void
 kernel monolithic() {
-   vec_float_t __attribute__((memory,numbanks(BANKROWS * LVEC),bankwidth(32),singlepump,max_replicates(1),simple_dual_port)) memA[2][ROWS_INTERLEAVED][ROW_VECS][BANKROWS]; // internal feeder A storage, banked, 1 bank per feeder
-   vec_float_t __attribute__((memory,numbanks(BANKCOLS * LVEC),bankwidth(32),singlepump,max_replicates(1),simple_dual_port)) memB[2][COLUMNS_INTERLEAVED][ROW_VECS][BANKCOLS]; // internal feeder B storage, banked, 1 bank per feeder
+    // internal feeder A storage, banked, 1 bank per feeder
+    vec_float_t __attribute__((memory,
+                               numbanks(BANKROWS * LVEC),
+                               bankwidth(32),
+                               singlepump,
+                               max_replicates(1),
+                               simple_dual_port)) memA[2][ROWS_INTERLEAVED][ROW_VECS][BANKROWS];
+    // internal feeder B storage, banked, 1 bank per feeder
+    vec_float_t __attribute__((memory,
+                               numbanks(BANKCOLS * LVEC),
+                               bankwidth(32),
+                               singlepump,
+                               max_replicates(1),
+                               simple_dual_port)) memB[2][COLUMNS_INTERLEAVED][ROW_VECS][BANKCOLS];
 
 
 #ifdef EMULATE
@@ -321,8 +337,10 @@ kernel monolithic() {
     }
 #endif
 
-    float accum[PE_ROWS][PE_COLS][ACCUM_SHIFT_REG_SIZE]; // internal PE storage for accumulations, ROWS x COLS shift registers
-    float drain[PE_COLS][ACCUM_SHIFT_REG_SIZE * (PE_ROWS - 1) + 1]; // shift register for drain, one per column
+    // internal PE storage for accumulations, ROWS x COLS shift registers
+    float accum[PE_ROWS][PE_COLS][ACCUM_SHIFT_REG_SIZE];
+    // shift register for drain, one per column
+    float drain[PE_COLS][ACCUM_SHIFT_REG_SIZE * (PE_ROWS - 1) + 1];
 
     uint counter = 0;
     uint storecount = ACCUM_SHIFT_REG_SIZE * PE_ROWS;
@@ -349,7 +367,8 @@ kernel monolithic() {
             new_row_col_pair = valA.c;
         }
         // serialize the two reads to reduce burstiness
-        if (((counter & SWAP_RANGE_MASK) < first_b_load + num_b_loads) && ((counter & SWAP_RANGE_MASK) >= first_b_load))
+        if (((counter & SWAP_RANGE_MASK) < first_b_load + num_b_loads) &&
+            ((counter & SWAP_RANGE_MASK) >= first_b_load))
             valB = read_channel_intel(loadBChannel);
 
         // private counters for feeder fpga_reg
@@ -416,7 +435,8 @@ kernel monolithic() {
                     drain[col][row * ACCUM_SHIFT_REG_SIZE + i] = drain[col][row * ACCUM_SHIFT_REG_SIZE + i + 1];
                 }
                 // use fpga_reg at logical PE boundaries - to capture locality
-                drain[col][row * ACCUM_SHIFT_REG_SIZE + ACCUM_SHIFT_REG_SIZE - 1] = __fpga_reg(__fpga_reg(drain[col][row * ACCUM_SHIFT_REG_SIZE + ACCUM_SHIFT_REG_SIZE]));
+                drain[col][row * ACCUM_SHIFT_REG_SIZE + ACCUM_SHIFT_REG_SIZE - 1] =
+                    __fpga_reg(__fpga_reg(drain[col][row * ACCUM_SHIFT_REG_SIZE + ACCUM_SHIFT_REG_SIZE]));
             }
         }
         storecount++;
@@ -427,8 +447,10 @@ kernel monolithic() {
 
 __attribute__((max_global_work_dim(0)))
 kernel void
-store(global volatile float * restrict C,
-      int mat_c_num_coalesced_words) {
+store(
+    global volatile float * restrict C,
+    int mat_c_num_coalesced_words
+) {
     bool more_words_to_write = true;
 
     int word = 0;

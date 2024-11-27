@@ -15,33 +15,33 @@
 #define HOST
 #include "matmul_fpga_config.h"
 
-#define SCALING_FACTOR  4L
+#define SCALING_FACTOR  8L
 
 // Matrix A height and width
-#define HA (8L * MAT_A_BLOCK_HEIGHT)
-#define WA (SCALING_FACTOR * MAT_A_BLOCK_WIDTH)
+#define HA (8L * A_BLOCK_Y)
+#define WA (SCALING_FACTOR * A_BLOCK_X)
 
 // Matrix B height and width
 #define HB WA
-#define WB (4L * MAT_B_BLOCK_WIDTH)
+#define WB (4L * B_BLOCK_X)
 
 // Matrix C height and width
 #define HC HA
 #define WC WB
 
-#define MAT_A_N_BLOCKS_IN_ROW             (WA / MAT_A_BLOCK_WIDTH)
-#define MAT_A_N_BLOCKS_IN_COL             (HA / MAT_A_BLOCK_HEIGHT)
-#define MAT_A_NUM_VECTORS_IN_ROW_OF_BLOCKS  (MAT_A_N_BLOCKS_IN_ROW * MAT_A_BLOCK_NUM_VECTORS)
+#define A_N_BLOCKS_X             (WA / A_BLOCK_X)
+#define A_N_BLOCKS_Y             (HA / A_BLOCK_Y)
+#define MAT_A_NUM_VECTORS_IN_ROW_OF_BLOCKS  (A_N_BLOCKS_X * MAT_A_BLOCK_NUM_VECTORS)
 
-#define MAT_B_N_BLOCKS_IN_ROW             (WB / MAT_B_BLOCK_WIDTH)
-#define MAT_B_N_BLOCKS_IN_COL             (HB / MAT_B_BLOCK_HEIGHT)
+#define B_N_BLOCKS_X                        (WB / B_BLOCK_X)
+#define MAT_B_N_BLOCKS_IN_COL               (HB / B_BLOCK_Y)
 #define MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS  (MAT_B_N_BLOCKS_IN_COL * MAT_B_BLOCK_NUM_VECTORS)
-#define MAT_B_NUM_VECTORS_IN_MATRIX         (MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS * MAT_B_N_BLOCKS_IN_ROW)
+#define MAT_B_NUM_VECTORS_IN_MATRIX         (MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS * B_N_BLOCKS_X)
 
 // Gold stuff
 #define COMPUTE_GOLD_BLOCK_SIZE 64
 
-#define HA_trim (2 *  MAT_A_BLOCK_HEIGHT)
+#define HA_trim (2 *  A_BLOCK_Y)
 #define WB_trim WB
 
 static  void
@@ -104,9 +104,9 @@ main(int argc, char *argv[]) {
     printf("\n");
     printf("** Kernel setup **\n");
     printf("%12s %4d %4d\n", "PE dims", PE_ROWS, PE_COLS);
-    printf("%12s %4d %4d\n", "Block A", MAT_A_BLOCK_HEIGHT, MAT_A_BLOCK_WIDTH);
-    printf("%12s %4d %4d\n", "Block B", MAT_B_BLOCK_HEIGHT, MAT_B_BLOCK_WIDTH);
-    printf("%12s %4d %4d\n", "Block C", MAT_C_BLOCK_HEIGHT, MAT_C_BLOCK_WIDTH);
+    printf("%12s %4d %4d\n", "Block A", A_BLOCK_Y, A_BLOCK_X);
+    printf("%12s %4d %4d\n", "Block B", B_BLOCK_Y, B_BLOCK_X);
+    printf("%12s %4d %4d\n", "Block C", C_BLOCK_Y, C_BLOCK_X);
     printf("%12s %4d %4d\n", "Interleave", ROWS_INTERLEAVED, COLUMNS_INTERLEAVED);
     printf("\n");
 
@@ -115,25 +115,24 @@ main(int argc, char *argv[]) {
     tensor_fill_rand_range(b, 20);
     tensor_unary(a, a, TENSOR_UNARY_OP_ADD, -10.0);
     tensor_unary(b, b, TENSOR_UNARY_OP_ADD, -10.0);
-    tensor_fill_const(c, 0);
 
     printf("** Multiplying on CPU **\n");
     tensor_multiply(a, b, c_ref);
 
-    tensor_linearize_tiles(a, a_blocked, MAT_A_BLOCK_HEIGHT, MAT_A_BLOCK_WIDTH);
+    tensor_linearize_tiles(a, a_blocked, A_BLOCK_Y, A_BLOCK_X);
     tensor_transpose(b, b_transpose);
     tensor_linearize_tiles(b_transpose, b_transpose_blocked,
-                           MAT_B_BLOCK_WIDTH, MAT_B_BLOCK_HEIGHT);
+                           B_BLOCK_X, B_BLOCK_Y);
 
     // Golden compute
     tensor_multiply(a, b, c_golden);
     tensor_linearize_tiles(c_golden, c_golden_blocked,
-                           MAT_C_BLOCK_HEIGHT, MAT_C_BLOCK_WIDTH);
+                           C_BLOCK_Y, C_BLOCK_X);
     reorder_within_blocks(c_golden_blocked->data,
                           c_golden_blocked_reordered->data,
                           HC, WC,
                           PE_COLS,
-                          MAT_C_BLOCK_WIDTH);
+                          C_BLOCK_X);
 
     printf("** Setting up OpenCL **\n");
 
@@ -141,9 +140,10 @@ main(int argc, char *argv[]) {
     ocl_ctx *ctx = ocl_ctx_init(plat_idx, 0, true);
 
     OCL_CHECK_ERR(ocl_ctx_load_kernels(
-                      ctx,
-                      argv[2], "-cl-std=CL2.0 -Werror",
-                      3, (char *[]){"loadA", "loadB", "store"}));
+        ctx,
+        argv[2], "-cl-std=CL2.0 -Werror",
+        3, (char *[]){"loadA", "loadB", "store"}
+    ));
 
     cl_queue_properties props[] = {
         CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0
@@ -170,8 +170,9 @@ main(int argc, char *argv[]) {
     // LoadA kernel
     unsigned int mat_a_num_vectors_in_row_of_blocks =
         MAT_A_NUM_VECTORS_IN_ROW_OF_BLOCKS;
-    unsigned char mat_a_num_blocks_in_col = MAT_A_N_BLOCKS_IN_COL;
-    unsigned char mat_b_num_blocks_in_row = MAT_B_N_BLOCKS_IN_ROW;
+
+    unsigned char a_n_blocks_y = A_N_BLOCKS_Y;
+    unsigned char b_n_blocks_x = B_N_BLOCKS_X;
 
     // LoadB kernel
     unsigned int mat_b_num_vectors_in_col_of_blocks =
@@ -184,24 +185,25 @@ main(int argc, char *argv[]) {
     ocl_ctx_arg kern_a_args[] = {
         {n_mem, &ctx->buffers[BUF_A].ptr},
         {n_uint, &mat_a_num_vectors_in_row_of_blocks},
-        {n_uchar, &mat_a_num_blocks_in_col},
-        {n_uchar, &mat_b_num_blocks_in_row}
+        {n_uchar, &a_n_blocks_y},
+        {n_uchar, &b_n_blocks_x}
     };
     ocl_ctx_arg kern_b_args[] = {
         {n_mem, &ctx->buffers[BUF_B].ptr},
         {n_uint, &mat_b_num_vectors_in_col_of_blocks},
         {n_uint, &mat_b_num_vectors_in_matrix},
-        {n_uchar, &mat_a_num_blocks_in_col}
+        {n_uchar, &a_n_blocks_y}
     };
     ocl_ctx_arg kern_store_args[] = {
         {n_mem, &ctx->buffers[BUF_C].ptr},
         {n_uint, &mat_c_num_coalesced_words}
     };
     OCL_CHECK_ERR(ocl_ctx_set_kernels_arguments(
-                      ctx,
-                      ARRAY_SIZE(kern_a_args), kern_a_args,
-                      ARRAY_SIZE(kern_b_args), kern_b_args,
-                      ARRAY_SIZE(kern_store_args), kern_store_args));
+        ctx,
+        ARRAY_SIZE(kern_a_args), kern_a_args,
+        ARRAY_SIZE(kern_b_args), kern_b_args,
+        ARRAY_SIZE(kern_store_args), kern_store_args
+    ));
 
     // Queue kernels
     size_t local[] = {1};
@@ -209,10 +211,11 @@ main(int argc, char *argv[]) {
     cl_event events[3];
     for (int i = 0; i < 3; i++) {
         OCL_CHECK_ERR(clEnqueueNDRangeKernel(
-                          ctx->queues[i], ctx->kernels[i],
-                          1, NULL, global, local,
-                          0, NULL,
-                          &events[i]));
+            ctx->queues[i], ctx->kernels[i],
+            1, NULL, global, local,
+            0, NULL,
+            &events[i]
+        ));
     }
     for(int i = 0; i < 3; i++) {
         OCL_CHECK_ERR(clFlush(ctx->queues[i]));
