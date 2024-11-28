@@ -15,7 +15,7 @@
 #define HOST
 #include "matmul_fpga_config.h"
 
-#define SCALING_FACTOR  8L
+#define SCALING_FACTOR  3L
 
 // Matrix A height and width
 #define HA (8L * A_BLOCK_Y)
@@ -29,20 +29,10 @@
 #define HC HA
 #define WC WB
 
-#define A_N_BLOCKS_X             (WA / A_BLOCK_X)
-#define A_N_BLOCKS_Y             (HA / A_BLOCK_Y)
-#define A_N_VECTORS_IN_ROW_OF_BLOCKS  (A_N_BLOCKS_X * MAT_A_BLOCK_NUM_VECTORS)
+#define A_N_BLOCKS_X                    (WA / A_BLOCK_X)
+#define A_N_VECTORS_IN_ROW_OF_BLOCKS    (A_N_BLOCKS_X * A_BLOCK_N_VECTORS)
 
-#define B_N_BLOCKS_X                        (WB / B_BLOCK_X)
-#define B_N_BLOCKS_Y                        (HB / B_BLOCK_Y)
-#define MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS  (B_N_BLOCKS_Y * MAT_B_BLOCK_NUM_VECTORS)
-#define MAT_B_NUM_VECTORS_IN_MATRIX         (MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS * B_N_BLOCKS_X)
-
-// Gold stuff
-#define COMPUTE_GOLD_BLOCK_SIZE 64
-
-#define HA_trim (2 *  A_BLOCK_Y)
-#define WB_trim WB
+#define B_N_BLOCKS_X                    (WB / B_BLOCK_X)
 
 static void
 reorder_within_blocks(float * src,
@@ -126,8 +116,7 @@ main(int argc, char *argv[]) {
 
     // Golden compute
     tensor_multiply(a, b, c_golden);
-    tensor_linearize_tiles(c_golden, c_golden_blocked,
-                           C_BLOCK_Y, C_BLOCK_X);
+    tensor_linearize_tiles(c_golden, c_golden_blocked, C_BLOCK_Y, C_BLOCK_X);
     reorder_within_blocks(c_golden_blocked->data,
                           c_golden_blocked_reordered->data,
                           HC, WC,
@@ -168,35 +157,34 @@ main(int argc, char *argv[]) {
     OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 1, BUF_B, b_transpose_blocked->data));
 
     // LoadA kernel
-    unsigned int mat_a_num_vectors_in_row_of_blocks =
-        A_N_VECTORS_IN_ROW_OF_BLOCKS;
+    cl_uint a_n_vectors_in_row_of_blocks = A_N_VECTORS_IN_ROW_OF_BLOCKS;
 
-    unsigned char a_n_blocks_y = A_N_BLOCKS_Y;
-    unsigned char b_n_blocks_x = B_N_BLOCKS_X;
+    cl_uchar a_n_blocks_y = HA / A_BLOCK_Y;
+    cl_uchar b_n_blocks_x = B_N_BLOCKS_X;
 
     // LoadB kernel
-    unsigned int mat_b_num_vectors_in_col_of_blocks =
-        MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS;
-    unsigned int mat_b_num_vectors_in_matrix =
-        MAT_B_NUM_VECTORS_IN_MATRIX;
+    cl_uint b_n_vectors_in_col_of_blocks =
+        HB * B_BLOCK_X / DOT_PROD_VECTOR_SIZE;
+    cl_uint b_n_vectors_tot = b_n_vectors_in_col_of_blocks * b_n_blocks_x;
 
     // Store kernel
-    int mat_c_num_coalesced_words = WC * HC / PE_COLS;
+    cl_int c_n_coalesced_words = WC * HC / PE_COLS;
+
     ocl_ctx_arg kern_a_args[] = {
         {n_mem, &ctx->buffers[BUF_A].ptr},
-        {n_uint, &mat_a_num_vectors_in_row_of_blocks},
+        {n_uint, &a_n_vectors_in_row_of_blocks},
         {n_uchar, &a_n_blocks_y},
         {n_uchar, &b_n_blocks_x}
     };
     ocl_ctx_arg kern_b_args[] = {
         {n_mem, &ctx->buffers[BUF_B].ptr},
-        {n_uint, &mat_b_num_vectors_in_col_of_blocks},
-        {n_uint, &mat_b_num_vectors_in_matrix},
+        {n_uint, &b_n_vectors_in_col_of_blocks},
+        {n_uint, &b_n_vectors_tot},
         {n_uchar, &a_n_blocks_y}
     };
     ocl_ctx_arg kern_store_args[] = {
         {n_mem, &ctx->buffers[BUF_C].ptr},
-        {n_uint, &mat_c_num_coalesced_words}
+        {n_uint, &c_n_coalesced_words}
     };
     OCL_CHECK_ERR(ocl_ctx_set_kernels_arguments(
         ctx,

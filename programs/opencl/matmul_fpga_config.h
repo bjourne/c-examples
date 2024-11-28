@@ -25,16 +25,13 @@
 #define A_BLOCK_SIZE                (A_BLOCK_Y * A_BLOCK_X)
 
 // Number of vectors per block of A
-#define MAT_A_BLOCK_NUM_VECTORS     (A_BLOCK_SIZE / DOT_PROD_VECTOR_SIZE)
+#define A_BLOCK_N_VECTORS           (A_BLOCK_SIZE / DOT_PROD_VECTOR_SIZE)
 
 #define B_BLOCK_Y                   A_BLOCK_X
 #define B_BLOCK_X                   (COLUMNS_INTERLEAVED * PE_COLS)
-#define B_BLOCK_SIZE                (B_BLOCK_Y  * B_BLOCK_X)
-#define MAT_B_BLOCK_NUM_VECTORS     (B_BLOCK_SIZE / DOT_PROD_VECTOR_SIZE)
+#define B_BLOCK_SIZE                (B_BLOCK_Y * B_BLOCK_X)
 
 #define C_BLOCK_Y                   A_BLOCK_Y
 #define C_BLOCK_X                   B_BLOCK_X
-
-
 
 #endif // _PE_SYSTOLIC_ARRAY_H_

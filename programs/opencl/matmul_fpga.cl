@@ -149,7 +149,7 @@ channel cols_floats storeCChannel __attribute__((depth(64)));
 __attribute__((max_global_work_dim(0)))
 kernel void
 loadA(global volatile vfloat* restrict A,
-      uint mat_a_num_vectors_in_row_of_blocks,
+      uint a_n_vectors_in_row_of_blocks,
       uchar a_n_blocks_y,
       uchar b_n_blocks_x) {
 
@@ -168,10 +168,10 @@ loadA(global volatile vfloat* restrict A,
     uchar row_of_blocks_reuse_counter = 0;
 
     bool new_row_col_pair = false;
-    bool more_vectors_to_load_and_forward = true;
+    bool more_vectors = true;
     bool feed_zeros_to_flush_last_C_block = false;
 
-    while(more_vectors_to_load_and_forward) {
+    while(more_vectors) {
 
         n_vfloat_bool A_local;
 
@@ -192,7 +192,7 @@ loadA(global volatile vfloat* restrict A,
         A_local.c = new_row_col_pair; // cast to single-bit bool
         write_channel_intel(loadAChannel, A_local);
 
-        if (vector_id_in_block == (MAT_A_BLOCK_NUM_VECTORS / LVEC - 1)) {
+        if (vector_id_in_block == (A_BLOCK_N_VECTORS / LVEC - 1)) {
             vector_id_in_block = 0;
             // we keep new_row_col_pair=true for only the first block
             // in the row of blocks (feeders in the daisy chain expect
@@ -205,17 +205,17 @@ loadA(global volatile vfloat* restrict A,
 
         vector_id_global++;
 
-        if (vector_id_in_row_of_blocks == MAT_A_BLOCK_NUM_VECTORS / LVEC - 1) {
+        if (vector_id_in_row_of_blocks == A_BLOCK_N_VECTORS / LVEC - 1) {
             // coincides with first block of data being pushed by the feeders
             new_row_col_pair = true;
         }
 
-        if (vector_id_in_row_of_blocks == mat_a_num_vectors_in_row_of_blocks / LVEC - 1) {
+        if (vector_id_in_row_of_blocks == a_n_vectors_in_row_of_blocks / LVEC - 1) {
             vector_id_in_row_of_blocks = 0;
 
             if (feed_zeros_to_flush_last_C_block) {
                 // we feed only one row of blocks full of zeros to flush the last C block
-                more_vectors_to_load_and_forward = false;
+                more_vectors = false;
             }
 
             // done reusing this row of blocks?
@@ -251,21 +251,19 @@ loadA(global volatile vfloat* restrict A,
 __attribute__((max_global_work_dim(0)))
 kernel void
 loadB(global volatile vfloat* restrict B,
-      uint mat_b_num_vectors_in_col_of_blocks,
-      uint mat_b_num_vectors_in_matrix,
+      uint b_n_vectors_in_col_of_blocks,
+      uint b_n_vectors_tot,
       uchar a_n_blocks_y) {
 
     uint vector_id_in_col_of_blocks = 0;
     uint vector_id_global = 0;
     uchar matrix_B_reuse_counter = 0;
 
-    bool more_vectors_to_load_and_forward = true;
+    bool more_vectors = true;
     bool feed_zeros_to_flush_last_C_block = false;
 
-    while(more_vectors_to_load_and_forward) {
-
+    while(more_vectors) {
         n_vfloat B_local;
-
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
             if (feed_zeros_to_flush_last_C_block) {
@@ -277,17 +275,17 @@ loadB(global volatile vfloat* restrict B,
 
         write_channel_intel(loadBChannel, B_local);
 
-        if (vector_id_in_col_of_blocks == mat_b_num_vectors_in_col_of_blocks / LVEC - 1) {
+        if (vector_id_in_col_of_blocks == b_n_vectors_in_col_of_blocks / LVEC - 1) {
             vector_id_in_col_of_blocks = 0;
             if (feed_zeros_to_flush_last_C_block) {
                 // we feed only one row of blocks full of zeros to flush the last C block
-                more_vectors_to_load_and_forward = false;
+                more_vectors = false;
             }
         } else {
             vector_id_in_col_of_blocks++;
         }
 
-        if (vector_id_global == mat_b_num_vectors_in_matrix / LVEC - 1) {
+        if (vector_id_global == b_n_vectors_tot / LVEC - 1) {
             vector_id_global = 0;
             // done reload and forwarding the matrix data?
             if (matrix_B_reuse_counter == a_n_blocks_y-1) {
@@ -297,7 +295,6 @@ loadB(global volatile vfloat* restrict B,
         } else {
             vector_id_global++;
         }
-
     }
 }
 
@@ -418,18 +415,18 @@ void
 kernel monolithic() {
     // internal feeder A storage, banked, 1 bank per feeder
     vfloat __attribute__((memory,
-                               numbanks(BANK_Y * LVEC),
-                               bankwidth(32),
-                               singlepump,
-                               max_replicates(1),
-                               simple_dual_port)) memA[2][ROWS_INTERLEAVED][ROW_VECS][BANK_Y];
+                          numbanks(BANK_Y * LVEC),
+                          bankwidth(32),
+                          singlepump,
+                          max_replicates(1),
+                          simple_dual_port)) memA[2][ROWS_INTERLEAVED][ROW_VECS][BANK_Y];
     // internal feeder B storage, banked, 1 bank per feeder
     vfloat __attribute__((memory,
-                               numbanks(BANK_X * LVEC),
-                               bankwidth(32),
-                               singlepump,
-                               max_replicates(1),
-                               simple_dual_port)) memB[2][COLUMNS_INTERLEAVED][ROW_VECS][BANK_X];
+                          numbanks(BANK_X * LVEC),
+                          bankwidth(32),
+                          singlepump,
+                          max_replicates(1),
+                          simple_dual_port)) memB[2][COLUMNS_INTERLEAVED][ROW_VECS][BANK_X];
 
 
 #ifdef EMULATE
@@ -598,11 +595,11 @@ store(
         }
 
         if (commit && i >= ACCUM_SHIFT_REG_SIZE * PE_ROWS) {
-        #pragma unroll
-        for (int j = 0; j < WIDTH; j++) {
-            C[word * WIDTH + j] = elems[j];
-            elems[j] = elems[WIDTH + j];
-            elems[WIDTH + j] = 0.0f;
+#pragma unroll
+            for (int j = 0; j < WIDTH; j++) {
+                C[word * WIDTH + j] = elems[j];
+                elems[j] = elems[WIDTH + j];
+                elems[WIDTH + j] = 0.0f;
             }
             word++;
         }
