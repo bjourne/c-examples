@@ -87,7 +87,7 @@ main(int argc, char *argv[]) {
     printf("%12s %4d %4d\n", "Block A", A_BLOCK_Y, A_BLOCK_X);
     printf("%12s %4d %4d\n", "Block B", B_BLOCK_Y, B_BLOCK_X);
     printf("%12s %4d %4d\n", "Block C", C_BLOCK_Y, C_BLOCK_X);
-    printf("%12s %4d %4d\n", "Interleave", ROWS_INTERLEAVED, COLS_INTERLEAVED);
+    printf("%12s %4d %4d\n", "Interleave", Y_INTERLEAVED, X_INTERLEAVED);
     printf("\n");
 
     printf("** Initializing input matrices **\n");
