@@ -23,7 +23,9 @@
 #define A_BLOCK_X                   (16 * DOT_PROD_VECTOR_SIZE)
 #define A_BLOCK_Y                   (ROWS_INTERLEAVED * PE_ROWS)
 #define A_BLOCK_SIZE                (A_BLOCK_Y * A_BLOCK_X)
-#define MAT_A_BLOCK_NUM_VECTORS     (A_BLOCK_SIZE   / DOT_PROD_VECTOR_SIZE)
+
+// Number of vectors per block of A
+#define MAT_A_BLOCK_NUM_VECTORS     (A_BLOCK_SIZE / DOT_PROD_VECTOR_SIZE)
 
 #define B_BLOCK_Y                   A_BLOCK_X
 #define B_BLOCK_X                   (COLUMNS_INTERLEAVED * PE_COLS)

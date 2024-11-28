@@ -87,7 +87,7 @@
 
 // Defines the width of channels in number of vectors.
 #ifndef LVEC
-   #define LVEC 1
+#define LVEC 1
 #endif
 
 #define ROW_VECS                    (A_BLOCK_X / VEC)
@@ -118,32 +118,32 @@ typedef float16 vfloat;
 ////////////////////////////////////////////////////////////////////////
 // Structs
 ////////////////////////////////////////////////////////////////////////
-struct cols_floats {
+typedef struct {
     float drain_data[PE_COLS];
-};
+} cols_floats;
 
-struct n_vfloat {
+typedef struct {
     vfloat data[LVEC];
-};
+} n_vfloat;
 
-struct n_vfloat_bool {
+typedef struct {
     vfloat data[LVEC];
     // indicates a new row/column pair
     bool  c;
-};
+} n_vfloat_bool;
 
-struct vfloat_bool {
+typedef struct {
     vfloat data;
     // indicates a new row/column pair
     bool  c;
-};
+} vfloat_bool;
 
 ////////////////////////////////////////////////////////////////////////
 // Channels
 ////////////////////////////////////////////////////////////////////////
-channel struct n_vfloat_bool loadAChannel __attribute__((depth(64)));
-channel struct n_vfloat loadBChannel __attribute__((depth(64)));
-channel struct cols_floats storeCChannel __attribute__((depth(64)));
+channel n_vfloat_bool loadAChannel __attribute__((depth(64)));
+channel n_vfloat loadBChannel __attribute__((depth(64)));
+channel cols_floats storeCChannel __attribute__((depth(64)));
 
 
 __attribute__((max_global_work_dim(0)))
@@ -173,7 +173,7 @@ loadA(global volatile vfloat* restrict A,
 
     while(more_vectors_to_load_and_forward) {
 
-        struct n_vfloat_bool A_local;
+        n_vfloat_bool A_local;
 
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
@@ -264,7 +264,7 @@ loadB(global volatile vfloat* restrict B,
 
     while(more_vectors_to_load_and_forward) {
 
-        struct n_vfloat B_local;
+        n_vfloat B_local;
 
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
@@ -303,8 +303,8 @@ loadB(global volatile vfloat* restrict B,
 
 
 
-struct vfloat_bool
-FeederA(struct n_vfloat_bool newVal,
+vfloat_bool
+FeederA(n_vfloat_bool newVal,
         vfloat matrix_block_double_buffer[2][ROWS_INTERLEAVED][ROW_VECS][BANK_Y],
         uint counter, int row) {
 
@@ -329,7 +329,7 @@ FeederA(struct n_vfloat_bool newVal,
     uchar buffer_vector_to_feed_to_sysarr =
         (counter & SWAP_RANGE_MASK) / (ROWS_INTERLEAVED * COLUMNS_INTERLEAVED);
 
-    struct vfloat_bool val;
+    vfloat_bool val;
     vfloat choices[LVEC];
     #pragma unroll
     for (int i = 0; i < LVEC; i++) {
@@ -345,7 +345,7 @@ FeederA(struct n_vfloat_bool newVal,
 // load_counter is the counter for writing into the feeders,
 // which may start at some point in the overall counter range (once FeederA is finished loading)
 vfloat
-FeederB(struct n_vfloat newVal,
+FeederB(n_vfloat newVal,
         vfloat matrix_block_double_buffer[2][COLUMNS_INTERLEAVED][ROW_VECS][BANK_X],
         uint load_counter, int col, uint counter) {
 
@@ -385,7 +385,7 @@ FeederB(struct n_vfloat newVal,
 }
 
 float
-PE(struct vfloat_bool valA, vfloat valB, float *accum) {
+PE(vfloat_bool valA, vfloat valB, float *accum) {
     float oldAcc = __fpga_reg(accum[0]);
     float sum = valA.c ? 0.0f : oldAcc;
     #pragma unroll
@@ -466,11 +466,11 @@ kernel monolithic() {
 
     bool new_row_col_pair = false;
     while (1) {
-        struct vfloat_bool fedA[PE_ROWS];
+        vfloat_bool fedA[PE_ROWS];
         vfloat fedB[PE_COLS];
 
-        struct n_vfloat_bool valA;
-        struct n_vfloat valB;
+        n_vfloat_bool valA;
+        n_vfloat valB;
         if ((counter & SWAP_RANGE_MASK) < num_a_loads) {
             valA = read_channel_intel(loadAChannel);
             // save latests row_col_pair
@@ -526,7 +526,7 @@ kernel monolithic() {
             }
         }
 
-        struct cols_floats results;
+        cols_floats results;
         #pragma unroll
         for (int col = 0; col < PE_COLS; col++) {
             results.drain_data[col] = drain[col][0];
@@ -579,7 +579,7 @@ store(
             tmpelems[j] = 0.0f;
         }
 
-        struct cols_floats root_data = read_channel_intel(storeCChannel);
+        cols_floats root_data = read_channel_intel(storeCChannel);
         more_words_to_write = i < mat_c_num_coalesced_words + ACCUM_SHIFT_REG_SIZE * PE_ROWS - 1;
 
         uchar crt_pos = pos & (WIDTH - 1);

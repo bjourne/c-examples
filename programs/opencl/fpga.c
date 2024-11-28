@@ -31,11 +31,11 @@
 
 #define A_N_BLOCKS_X             (WA / A_BLOCK_X)
 #define A_N_BLOCKS_Y             (HA / A_BLOCK_Y)
-#define MAT_A_NUM_VECTORS_IN_ROW_OF_BLOCKS  (A_N_BLOCKS_X * MAT_A_BLOCK_NUM_VECTORS)
+#define A_N_VECTORS_IN_ROW_OF_BLOCKS  (A_N_BLOCKS_X * MAT_A_BLOCK_NUM_VECTORS)
 
 #define B_N_BLOCKS_X                        (WB / B_BLOCK_X)
-#define MAT_B_N_BLOCKS_IN_COL               (HB / B_BLOCK_Y)
-#define MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS  (MAT_B_N_BLOCKS_IN_COL * MAT_B_BLOCK_NUM_VECTORS)
+#define B_N_BLOCKS_Y                        (HB / B_BLOCK_Y)
+#define MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS  (B_N_BLOCKS_Y * MAT_B_BLOCK_NUM_VECTORS)
 #define MAT_B_NUM_VECTORS_IN_MATRIX         (MAT_B_NUM_VECTORS_IN_COL_OF_BLOCKS * B_N_BLOCKS_X)
 
 // Gold stuff
@@ -169,7 +169,7 @@ main(int argc, char *argv[]) {
 
     // LoadA kernel
     unsigned int mat_a_num_vectors_in_row_of_blocks =
-        MAT_A_NUM_VECTORS_IN_ROW_OF_BLOCKS;
+        A_N_VECTORS_IN_ROW_OF_BLOCKS;
 
     unsigned char a_n_blocks_y = A_N_BLOCKS_Y;
     unsigned char b_n_blocks_x = B_N_BLOCKS_X;
