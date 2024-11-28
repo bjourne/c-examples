@@ -15,24 +15,19 @@
 #define HOST
 #include "matmul_fpga_config.h"
 
-#define SCALING_FACTOR  3L
+#define SCALING_FACTOR  3
 
 // Matrix A height and width
-#define HA (8L * A_BLOCK_Y)
+#define HA (8 * A_BLOCK_Y)
 #define WA (SCALING_FACTOR * A_BLOCK_X)
 
 // Matrix B height and width
 #define HB WA
-#define WB (4L * B_BLOCK_X)
+#define WB (4 * B_BLOCK_X)
 
 // Matrix C height and width
 #define HC HA
 #define WC WB
-
-#define A_N_BLOCKS_X                    (WA / A_BLOCK_X)
-#define A_N_VECTORS_IN_ROW_OF_BLOCKS    (A_N_BLOCKS_X * A_BLOCK_N_VECTORS)
-
-#define B_N_BLOCKS_X                    (WB / B_BLOCK_X)
 
 static void
 reorder_within_blocks(float * src,
@@ -86,18 +81,18 @@ main(int argc, char *argv[]) {
     tensor *c_ref = tensor_init_2d(HC, WC);
 
     printf("** Matrix dimensions **\n");
-    printf("%12s %6ld %6ld\n", "a", HA, WA);
-    printf("%12s %6ld %6ld\n", "b", HB, WB);
-    printf("%12s %6ld %6ld\n", "c", HC, WC);
-    printf("%12s %6ld %6ld\n", "a_blocked", HA, WA);
-    printf("%12s %6ld %6ld\n", "b_transpose", WB, HB);
+    printf("%12s %6d %6d\n", "a", HA, WA);
+    printf("%12s %6d %6d\n", "b", HB, WB);
+    printf("%12s %6d %6d\n", "c", HC, WC);
+    printf("%12s %6d %6d\n", "a_blocked", HA, WA);
+    printf("%12s %6d %6d\n", "b_transpose", WB, HB);
     printf("\n");
     printf("** Kernel setup **\n");
-    printf("%12s %4d %4d\n", "PE dims", PE_ROWS, PE_COLS);
+    printf("%12s %4d %4d\n", "PE dims", PE_Y, PE_X);
     printf("%12s %4d %4d\n", "Block A", A_BLOCK_Y, A_BLOCK_X);
     printf("%12s %4d %4d\n", "Block B", B_BLOCK_Y, B_BLOCK_X);
     printf("%12s %4d %4d\n", "Block C", C_BLOCK_Y, C_BLOCK_X);
-    printf("%12s %4d %4d\n", "Interleave", ROWS_INTERLEAVED, COLUMNS_INTERLEAVED);
+    printf("%12s %4d %4d\n", "Interleave", ROWS_INTERLEAVED, COLS_INTERLEAVED);
     printf("\n");
 
     printf("** Initializing input matrices **\n");
@@ -120,7 +115,7 @@ main(int argc, char *argv[]) {
     reorder_within_blocks(c_golden_blocked->data,
                           c_golden_blocked_reordered->data,
                           HC, WC,
-                          PE_COLS,
+                          PE_X,
                           C_BLOCK_X);
 
     printf("** Setting up OpenCL **\n");
@@ -157,10 +152,11 @@ main(int argc, char *argv[]) {
     OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 1, BUF_B, b_transpose_blocked->data));
 
     // LoadA kernel
-    cl_uint a_n_vectors_in_row_of_blocks = A_N_VECTORS_IN_ROW_OF_BLOCKS;
+    cl_uint a_n_vectors_in_row_of_blocks =
+        WA * A_BLOCK_Y / DOT_PROD_VECTOR_SIZE;
 
     cl_uchar a_n_blocks_y = HA / A_BLOCK_Y;
-    cl_uchar b_n_blocks_x = B_N_BLOCKS_X;
+    cl_uchar b_n_blocks_x = WB / B_BLOCK_X;
 
     // LoadB kernel
     cl_uint b_n_vectors_in_col_of_blocks =
@@ -168,7 +164,7 @@ main(int argc, char *argv[]) {
     cl_uint b_n_vectors_tot = b_n_vectors_in_col_of_blocks * b_n_blocks_x;
 
     // Store kernel
-    cl_int c_n_coalesced_words = WC * HC / PE_COLS;
+    cl_int c_n_coalesced_words = WC * HC / PE_X;
 
     ocl_ctx_arg kern_a_args[] = {
         {n_mem, &ctx->buffers[BUF_A].ptr},
