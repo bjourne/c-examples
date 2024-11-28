@@ -12,22 +12,7 @@
 #include "tensors/tensors.h"
 #include "tensors/multiply.h"
 
-#define HOST
 #include "matmul_fpga_config.h"
-
-#define SCALING_FACTOR  3
-
-// Matrix A height and width
-#define HA (8 * A_BLOCK_Y)
-#define WA (SCALING_FACTOR * A_BLOCK_X)
-
-// Matrix B height and width
-#define HB WA
-#define WB (4 * B_BLOCK_X)
-
-// Matrix C height and width
-#define HC HA
-#define WC WB
 
 static void
 reorder_within_blocks(float * src,
@@ -56,10 +41,20 @@ typedef enum {
 
 int
 main(int argc, char *argv[]) {
-    if (argc != 3) {
-        printf("Usage: %s platform-index kernel-path\n", argv[0]);
+    if (argc != 6) {
+        printf("Usage: %s platform-index kernel-path N M K\n", argv[0]);
         exit(1);
     }
+    int N = atoi(argv[3]);
+    int M = atoi(argv[4]);
+    int K = atoi(argv[5]);
+
+    int A_Y = N * A_BLOCK_Y;
+    int A_X = M * A_BLOCK_X;
+    int B_Y = A_X;
+    int B_X = K * B_BLOCK_X;
+    int C_Y = A_Y;
+    int C_X = B_X;
 
     // Type sizes
     size_t n_uint = sizeof(cl_uint);
@@ -68,24 +63,24 @@ main(int argc, char *argv[]) {
     size_t n_mem = sizeof(cl_mem);
     size_t n_float = sizeof(float);
 
-    tensor *a = tensor_init_2d(HA, WA);
-    tensor *a_blocked = tensor_init_2d(HA, WA);
-    tensor *b_transpose = tensor_init_2d(WB, HB);
-    tensor *b_transpose_blocked = tensor_init_2d(WB, HB);
-    tensor *b = tensor_init_2d(HB, WB);
+    tensor *a = tensor_init_2d(A_Y, A_X);
+    tensor *a_blocked = tensor_init_2d(A_Y, A_X);
+    tensor *b_transpose = tensor_init_2d(B_X, B_Y);
+    tensor *b_transpose_blocked = tensor_init_2d(B_X, B_Y);
+    tensor *b = tensor_init_2d(B_Y, B_X);
 
-    tensor *c = tensor_init_2d(HC, WC);
-    tensor *c_golden = tensor_init_2d(HC, WC);
-    tensor *c_golden_blocked = tensor_init_2d(HC, WC);
-    tensor *c_golden_blocked_reordered = tensor_init_2d(HC, WC);
-    tensor *c_ref = tensor_init_2d(HC, WC);
+    tensor *c = tensor_init_2d(C_Y, C_X);
+    tensor *c_golden = tensor_init_2d(C_Y, C_X);
+    tensor *c_golden_blocked = tensor_init_2d(C_Y, C_X);
+    tensor *c_golden_blocked_reordered = tensor_init_2d(C_Y, C_X);
+    tensor *c_ref = tensor_init_2d(C_Y, C_X);
 
     printf("** Matrix dimensions **\n");
-    printf("%12s %6d %6d\n", "a", HA, WA);
-    printf("%12s %6d %6d\n", "b", HB, WB);
-    printf("%12s %6d %6d\n", "c", HC, WC);
-    printf("%12s %6d %6d\n", "a_blocked", HA, WA);
-    printf("%12s %6d %6d\n", "b_transpose", WB, HB);
+    printf("%12s %6d %6d\n", "a", A_Y, A_X);
+    printf("%12s %6d %6d\n", "b", B_Y, B_X);
+    printf("%12s %6d %6d\n", "c", C_Y, C_X);
+    printf("%12s %6d %6d\n", "a_blocked", A_Y, A_X);
+    printf("%12s %6d %6d\n", "b_transpose", B_X, B_Y);
     printf("\n");
     printf("** Kernel setup **\n");
     printf("%12s %4d %4d\n", "PE dims", PE_Y, PE_X);
@@ -114,7 +109,7 @@ main(int argc, char *argv[]) {
     tensor_linearize_tiles(c_golden, c_golden_blocked, C_BLOCK_Y, C_BLOCK_X);
     reorder_within_blocks(c_golden_blocked->data,
                           c_golden_blocked_reordered->data,
-                          HC, WC,
+                          C_Y, C_X,
                           PE_X,
                           C_BLOCK_X);
 
@@ -136,9 +131,9 @@ main(int argc, char *argv[]) {
         OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, props));
     }
 
-    size_t n_bytes_a = HA * WA * n_float;
-    size_t n_bytes_b = HB * WB * n_float;
-    size_t n_bytes_c = HC * WC * n_float;
+    size_t n_bytes_a = A_Y * A_X * n_float;
+    size_t n_bytes_b = B_Y * B_X * n_float;
+    size_t n_bytes_c = C_Y * C_X * n_float;
 
     ocl_ctx_buf bufs[3] = {
         {0, n_bytes_a, CL_MEM_READ_ONLY},
@@ -153,18 +148,18 @@ main(int argc, char *argv[]) {
 
     // LoadA kernel
     cl_uint a_n_vectors_in_row_of_blocks =
-        WA * A_BLOCK_Y / DOT_PROD_VECTOR_SIZE;
+        A_X * A_BLOCK_Y / DOT_PROD_VECTOR_SIZE;
 
-    cl_uchar a_n_blocks_y = HA / A_BLOCK_Y;
-    cl_uchar b_n_blocks_x = WB / B_BLOCK_X;
+    cl_uchar a_n_blocks_y = A_Y / A_BLOCK_Y;
+    cl_uchar b_n_blocks_x = B_X / B_BLOCK_X;
 
     // LoadB kernel
     cl_uint b_n_vectors_in_col_of_blocks =
-        HB * B_BLOCK_X / DOT_PROD_VECTOR_SIZE;
+        B_Y * B_BLOCK_X / DOT_PROD_VECTOR_SIZE;
     cl_uint b_n_vectors_tot = b_n_vectors_in_col_of_blocks * b_n_blocks_x;
 
     // Store kernel
-    cl_int c_n_coalesced_words = WC * HC / PE_X;
+    cl_int c_n_coalesced_words = C_X * C_Y / PE_X;
 
     ocl_ctx_arg kern_a_args[] = {
         {n_mem, &ctx->buffers[BUF_A].ptr},
