@@ -249,52 +249,32 @@ loadA(global volatile vfloat* restrict A,
     }
 }
 
-
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
 loadB(global volatile vfloat* restrict B,
-      uint b_n_vectors_in_col_of_blocks,
+      uint b_n_vectors_per_col,
       uint b_n_vectors_tot,
       uchar a_n_blocks_y) {
 
-    uint vector_id_in_col_of_blocks = 0;
-    uint vector_id_global = 0;
-    uchar reuse_counter = 0;
-    bool feed_zeros = false;
-
     n_vfloat send_buf;
-    while (true) {
-        n_vfloat send_buf;
-        #pragma unroll
-        for (int i = 0; i < LVEC; i++) {
-            if (feed_zeros) {
-                send_buf.data[i] = VECTOR_ZERO;
-            } else {
-                send_buf.data[i] = B[vector_id_global * LVEC + i];
+    uint n_pkts_per_col = b_n_vectors_per_col / LVEC;
+    for (uint times = 0; times < a_n_blocks_y; times++) {
+        for (uint v_id = 0; v_id < b_n_vectors_tot / LVEC; v_id++) {
+#pragma unroll
+            for (int i = 0; i < LVEC; i++) {
+                send_buf.data[i] = B[v_id * LVEC + i];
             }
+            write_channel_intel(ch_load_b, send_buf);
+        }
+    }
+    // done reload and forwarding the matrix data?
+    for (uint i = 0; i < n_pkts_per_col; i++) {
+#pragma unroll
+        for (int j = 0; j < LVEC; j++) {
+            send_buf.data[j] = VECTOR_ZERO;
         }
         write_channel_intel(ch_load_b, send_buf);
-
-        if (vector_id_in_col_of_blocks == b_n_vectors_in_col_of_blocks / LVEC - 1) {
-            vector_id_in_col_of_blocks = 0;
-            if (feed_zeros) {
-                // we feed only one row of blocks full of zeros to flush the last C block
-                break;
-            }
-        } else {
-            vector_id_in_col_of_blocks++;
-        }
-        if (vector_id_global == b_n_vectors_tot / LVEC - 1) {
-            vector_id_global = 0;
-            // done reload and forwarding the matrix data?
-            if (reuse_counter == a_n_blocks_y-1) {
-                feed_zeros = true;
-            }
-            reuse_counter++;
-        } else {
-            vector_id_global++;
-        }
     }
 }
 

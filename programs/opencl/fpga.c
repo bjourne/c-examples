@@ -154,9 +154,8 @@ main(int argc, char *argv[]) {
     cl_uchar b_n_blocks_x = B_X / B_BLOCK_X;
 
     // LoadB kernel
-    cl_uint b_n_vectors_in_col_of_blocks =
-        B_Y * B_BLOCK_X / VECTOR_SIZE;
-    cl_uint b_n_vectors_tot = b_n_vectors_in_col_of_blocks * b_n_blocks_x;
+    cl_uint b_n_vectors_per_col = B_Y * B_BLOCK_X / VECTOR_SIZE;
+    cl_uint b_n_vectors_tot = b_n_vectors_per_col * b_n_blocks_x;
 
     // Store kernel
     cl_int c_n_coalesced_words = C_X * C_Y / PE_X;
@@ -169,7 +168,7 @@ main(int argc, char *argv[]) {
     };
     ocl_ctx_arg kern_b_args[] = {
         {n_mem, &ctx->buffers[BUF_B].ptr},
-        {n_uint, &b_n_vectors_in_col_of_blocks},
+        {n_uint, &b_n_vectors_per_col},
         {n_uint, &b_n_vectors_tot},
         {n_uchar, &a_n_blocks_y}
     };
