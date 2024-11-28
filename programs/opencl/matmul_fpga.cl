@@ -258,7 +258,7 @@ loadB(global volatile vfloat* restrict B,
       uchar a_n_blocks_y) {
 
     n_vfloat send_buf;
-    uint n_pkts_per_col = b_n_vectors_per_col / LVEC;
+
     for (uint times = 0; times < a_n_blocks_y; times++) {
         for (uint v_id = 0; v_id < b_n_vectors_tot / LVEC; v_id++) {
 #pragma unroll
@@ -269,6 +269,7 @@ loadB(global volatile vfloat* restrict B,
         }
     }
     // done reload and forwarding the matrix data?
+    uint n_pkts_per_col = b_n_vectors_per_col / LVEC;
     for (uint i = 0; i < n_pkts_per_col; i++) {
 #pragma unroll
         for (int j = 0; j < LVEC; j++) {
