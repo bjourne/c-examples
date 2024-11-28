@@ -34,7 +34,7 @@
 #define VECTOR_FLOAT16_ZERO         (float16)(VECTOR_FLOAT8_ZERO,VECTOR_FLOAT8_ZERO)
 
 // Number of vectors per block of A
-#define A_BLOCK_N_VECTORS           (A_BLOCK_Y * A_BLOCK_X / DOT_PROD_VECTOR_SIZE)
+#define A_BLOCK_N_VECTORS           (A_BLOCK_Y * A_BLOCK_X / VECTOR_SIZE)
 
 // The number of rows rounded up to the next power of 2
 #if PE_Y <= 1
@@ -91,7 +91,7 @@
 #endif
 
 // Vectors in an A block row.
-#define X_VECS                    (A_BLOCK_X / DOT_PROD_VECTOR_SIZE)
+#define X_VECS                    (A_BLOCK_X / VECTOR_SIZE)
 
 #define SWAP_RANGE                  (Y_INTERLEAVED * X_INTERLEAVED * X_VECS)
 #define RANGE                       (2 * SWAP_RANGE)
@@ -105,17 +105,17 @@
 ////////////////////////////////////////////////////////////////////////
 // Types
 ////////////////////////////////////////////////////////////////////////
-#if DOT_PROD_VECTOR_SIZE==4
+#if VECTOR_SIZE==4
 typedef float4 vfloat;
 #define VECTOR_ZERO         VECTOR_FLOAT4_ZERO
-#elif DOT_PROD_VECTOR_SIZE==8
+#elif VECTOR_SIZE==8
 typedef float8 vfloat;
 #define VECTOR_ZERO         VECTOR_FLOAT8_ZERO
-#elif DOT_PROD_VECTOR_SIZE==16
+#elif VECTOR_SIZE==16
 typedef float16 vfloat;
 #define VECTOR_ZERO         VECTOR_FLOAT16_ZERO
 #else
-#error Unsupported DOT_PROD_VECTOR_SIZE
+#error Unsupported VECTOR_SIZE
 #endif
 
 ////////////////////////////////////////////////////////////////////////
@@ -176,25 +176,25 @@ loadA(global volatile vfloat* restrict A,
     bool feed_zeros_to_flush_last_C_block = false;
 
     while (more) {
-
-        n_vfloat_bool A_local;
+        n_vfloat_bool send_buf;
 
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
             if (feed_zeros_to_flush_last_C_block) {
-                A_local.data[i] = VECTOR_ZERO;
+                send_buf.data[i] = VECTOR_ZERO;
                 // Under host control, disable loading data from
                 // memory to avoid being bandwidth limited. Generate
                 // instead numbers in a range above 1.0f, where the
                 // actual value is an FP converted uint between
                 // 0x3F800000 and 0x3F81000F
             } else {
-                A_local.data[i] = A[vector_id_global * LVEC + i];
+                send_buf.data[i] = A[vector_id_global * LVEC + i];
             }
         }
 
-        A_local.c = new_row_col_pair; // cast to single-bit bool
-        write_channel_intel(ch_load_a, A_local);
+        // cast to single-bit bool
+        send_buf.c = new_row_col_pair;
+        write_channel_intel(ch_load_a, send_buf);
 
         if (vector_id_in_block == (A_BLOCK_N_VECTORS / LVEC - 1)) {
             vector_id_in_block = 0;
@@ -223,7 +223,7 @@ loadA(global volatile vfloat* restrict A,
             }
 
             // done reusing this row of blocks?
-            if (row_of_blocks_reuse_counter == b_n_blocks_x-1) {
+            if (row_of_blocks_reuse_counter == b_n_blocks_x - 1) {
 
                 row_of_blocks_reuse_counter = 0;
                 // mark the new start of the row of blocks
@@ -260,48 +260,43 @@ loadB(global volatile vfloat* restrict B,
 
     uint vector_id_in_col_of_blocks = 0;
     uint vector_id_global = 0;
-    uchar matrix_B_reuse_counter = 0;
+    uchar reuse_counter = 0;
+    bool feed_zeros = false;
 
-    bool more = true;
-    bool feed_zeros_to_flush_last_C_block = false;
-
-    while(more) {
-        n_vfloat B_local;
+    n_vfloat send_buf;
+    while (true) {
+        n_vfloat send_buf;
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
-            if (feed_zeros_to_flush_last_C_block) {
-                B_local.data[i] = VECTOR_ZERO;
+            if (feed_zeros) {
+                send_buf.data[i] = VECTOR_ZERO;
             } else {
-                B_local.data[i] = B[vector_id_global * LVEC + i];
+                send_buf.data[i] = B[vector_id_global * LVEC + i];
             }
         }
-
-        write_channel_intel(ch_load_b, B_local);
+        write_channel_intel(ch_load_b, send_buf);
 
         if (vector_id_in_col_of_blocks == b_n_vectors_in_col_of_blocks / LVEC - 1) {
             vector_id_in_col_of_blocks = 0;
-            if (feed_zeros_to_flush_last_C_block) {
+            if (feed_zeros) {
                 // we feed only one row of blocks full of zeros to flush the last C block
-                more = false;
+                break;
             }
         } else {
             vector_id_in_col_of_blocks++;
         }
-
         if (vector_id_global == b_n_vectors_tot / LVEC - 1) {
             vector_id_global = 0;
             // done reload and forwarding the matrix data?
-            if (matrix_B_reuse_counter == a_n_blocks_y-1) {
-                feed_zeros_to_flush_last_C_block = true;
+            if (reuse_counter == a_n_blocks_y-1) {
+                feed_zeros = true;
             }
-            matrix_B_reuse_counter++;
+            reuse_counter++;
         } else {
             vector_id_global++;
         }
     }
 }
-
-
 
 vfloat_bool
 FeederA(n_vfloat_bool newVal,
@@ -389,15 +384,15 @@ PE(vfloat_bool valA, vfloat valB, float *accum) {
     float oldAcc = __fpga_reg(accum[0]);
     float sum = valA.c ? 0.0f : oldAcc;
     #pragma unroll
-    for (int i = 0; i < DOT_PROD_VECTOR_SIZE; i++) {
+    for (int i = 0; i < VECTOR_SIZE; i++) {
         sum += valA.data[i] * valB[i];
         // Breaks up dot-8 and larger into dot-4s using fpga_reg.
-        // Not needed if DOT_PROD_VECTOR_SIZE = 4
+        // Not needed if VECTOR_SIZE = 4
 
         // Need dot4 structures to fit the DSP columns on the device
         // (which are 36 DSP long). Dot8 would leave 4 unutilized
         // DSPs.
-        #if (FORCE_DOT_4==1) && (DOT_PROD_VECTOR_SIZE!=4)
+        #if (FORCE_DOT_4==1) && (VECTOR_SIZE!=4)
             if ((i%4) == 3){
                 sum = __fpga_reg(sum);
             }
@@ -422,28 +417,28 @@ kernel monolithic() {
                           bankwidth(32),
                           singlepump,
                           max_replicates(1),
-                          simple_dual_port)) memA[2][Y_INTERLEAVED][X_VECS][BANK_Y];
+                          simple_dual_port)) mem_a[2][Y_INTERLEAVED][X_VECS][BANK_Y];
     // internal feeder B storage, banked, 1 bank per feeder
     vfloat __attribute__((memory,
                           numbanks(BANK_X * LVEC),
                           bankwidth(32),
                           singlepump,
                           max_replicates(1),
-                          simple_dual_port)) memB[2][X_INTERLEAVED][X_VECS][BANK_X];
+                          simple_dual_port)) mem_b[2][X_INTERLEAVED][X_VECS][BANK_X];
 
 
 #ifdef EMULATE
     for (int i = 0; i < PE_Y; i++) {
         for (int j = 0; j < Y_INTERLEAVED; j++) {
             for (int k = 0; k < X_VECS; k++) {
-                memA[0][j][k][i] = memA[1][j][k][i] = NAN;
+                mem_a[0][j][k][i] = mem_a[1][j][k][i] = NAN;
             }
         }
     }
     for (int i = 0; i < PE_X; i++) {
         for (int j = 0; j < X_INTERLEAVED; j++) {
             for (int k = 0; k < X_VECS; k++) {
-                memB[0][j][k][i] = memB[1][j][k][i] = -NAN;
+                mem_b[0][j][k][i] = mem_b[1][j][k][i] = -NAN;
             }
         }
     }
@@ -491,7 +486,7 @@ kernel monolithic() {
         valA.c = new_row_col_pair;
         #pragma unroll
         for (int row = 0; row < PE_Y; row++) {
-            fedA[row] = FeederA(valA, memA, counterA, row);
+            fedA[row] = FeederA(valA, mem_a, counterA, row);
             #pragma unroll
             for (int i = 0; i < LVEC; i++) {
                 valA.data[i] = __fpga_reg(__fpga_reg(valA.data[i]));
@@ -504,7 +499,7 @@ kernel monolithic() {
         #pragma unroll
         for (int col = 0; col < PE_X; col++) {
             // the indexing matches the serialization of the ch_load_b reads
-            fedB[col] = FeederB(valB, memB, counterB - first_b_load, col, counterB);
+            fedB[col] = FeederB(valB, mem_b, counterB - first_b_load, col, counterB);
             #pragma unroll
             for (int i = 0; i < LVEC; i++) {
                 valB.data[i] = __fpga_reg(__fpga_reg(valB.data[i]));
@@ -563,21 +558,15 @@ kernel monolithic() {
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
-store(
-    global volatile float * restrict C,
-    int c_n_coalesced_words
-) {
-    bool more_words_to_write = true;
-
-    printf("swap range = %d\n", SWAP_RANGE);
+store(global volatile float * restrict C, int c_n_coalesced_words) {
+    bool more = true;
 
     int word = 0;
     uchar pos = 0;
     int i = 0;
 
     float elems[2 * WIDTH] = {0.0f};
-
-    while (more_words_to_write) {
+    while (more) {
         float tmpelems[2 * WIDTH] __attribute__((register));
         // Clear space where we build the aligned word
         #pragma unroll
@@ -586,11 +575,10 @@ store(
         }
 
         cols_floats root_data = read_channel_intel(ch_store_c);
-        more_words_to_write = i < c_n_coalesced_words + SHIFT_REG_SIZE * PE_Y - 1;
+        more = i < c_n_coalesced_words + SHIFT_REG_SIZE * PE_Y - 1;
 
-        uchar crt_pos = pos & (WIDTH - 1);
-        bool commit = (crt_pos >= WIDTH - PE_X) || !more_words_to_write;
-        pos += i < SHIFT_REG_SIZE * PE_Y ? 0 : PE_X;
+        uchar crt_pos = POW2_REM(pos, WIDTH);
+        bool commit = (crt_pos >= WIDTH - PE_X) || !more;
 
         // Align new data
         #pragma unroll
@@ -612,6 +600,7 @@ store(
             }
             word++;
         }
+        pos += i >= SHIFT_REG_SIZE * PE_Y ? PE_X : 0;
         i++;
     }
 }

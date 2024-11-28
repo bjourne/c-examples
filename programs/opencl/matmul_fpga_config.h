@@ -6,19 +6,19 @@
 // PE_ROWS + PE_COLS <= ROWS_INTERLEAVED
 
 // design space exploration of three vector sizes: float4, float8 and float16
-#define DOT_PROD_VECTOR_SIZE     8
+#define VECTOR_SIZE     16
 
 #define FORCE_DOT_4              0
 
 // Must be powers of two
-#define PE_Y                     8
-#define PE_X                     8
+#define PE_Y                     16
+#define PE_X                     16
 
 // Must be powers of two
 #define Y_INTERLEAVED            16
 #define X_INTERLEAVED            16
 
-#define A_BLOCK_X                   (16 * DOT_PROD_VECTOR_SIZE)
+#define A_BLOCK_X                   (16 * VECTOR_SIZE)
 #define A_BLOCK_Y                   (Y_INTERLEAVED * PE_Y)
 
 #define B_BLOCK_Y                   A_BLOCK_X

@@ -148,14 +148,14 @@ main(int argc, char *argv[]) {
 
     // LoadA kernel
     cl_uint a_n_vectors_in_row_of_blocks =
-        A_X * A_BLOCK_Y / DOT_PROD_VECTOR_SIZE;
+        A_X * A_BLOCK_Y / VECTOR_SIZE;
 
     cl_uchar a_n_blocks_y = A_Y / A_BLOCK_Y;
     cl_uchar b_n_blocks_x = B_X / B_BLOCK_X;
 
     // LoadB kernel
     cl_uint b_n_vectors_in_col_of_blocks =
-        B_Y * B_BLOCK_X / DOT_PROD_VECTOR_SIZE;
+        B_Y * B_BLOCK_X / VECTOR_SIZE;
     cl_uint b_n_vectors_tot = b_n_vectors_in_col_of_blocks * b_n_blocks_x;
 
     // Store kernel
