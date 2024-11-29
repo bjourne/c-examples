@@ -148,7 +148,7 @@ main(int argc, char *argv[]) {
 
     // LoadA kernel
     cl_uint a_n_vectors_in_row_of_blocks =
-        A_X * A_BLOCK_Y / VECTOR_SIZE;
+        M * A_BLOCK_X * A_BLOCK_Y / VECTOR_SIZE;
 
     cl_uchar a_n_blocks_y = A_Y / A_BLOCK_Y;
     cl_uchar b_n_blocks_x = B_X / B_BLOCK_X;

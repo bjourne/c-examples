@@ -27,7 +27,7 @@
 #pragma OPENCL EXTENSION cl_intel_channels : enable
 
 // How many floats in each storage chunk. Must be n**2 < 256.
-#define STORE_WIDTH 128
+#define STORE_WIDTH 16
 
 #define VECTOR_FLOAT4_ZERO          (float4)(0.0f, 0.0f, 0.0f, 0.0f)
 #define VECTOR_FLOAT8_ZERO          (float8)(VECTOR_FLOAT4_ZERO,VECTOR_FLOAT4_ZERO)
@@ -173,7 +173,7 @@ loadA(global volatile vfloat* restrict A,
     // initial value, which would break the transform.
     uint v_id_in_row_of_blocks = 0;
     uint v_id = 0;
-    uint v_id_global_row_of_blocks_start = 0;
+    uint saved_v_id = 0;
     uchar reuse = 0;
     bool new_row_col_pair = false;
 
@@ -188,16 +188,14 @@ loadA(global volatile vfloat* restrict A,
             }
             write_channel_intel(ch_load_a, send_buf);
         }
-        new_row_col_pair = false;
+
         v_id += A_BLOCK_N_VECTORS / LVEC;
-        v_id_in_row_of_blocks += A_BLOCK_N_VECTORS / LVEC;
+        v_id_in_row_of_blocks += A_BLOCK_N_VECTORS;
 
-        if (v_id_in_row_of_blocks == A_BLOCK_N_VECTORS / LVEC) {
-            // coincides with first block of data being pushed by the feeders
-            new_row_col_pair = true;
-        }
+        // So it's true just once for the second block.
+        new_row_col_pair = v_id_in_row_of_blocks == A_BLOCK_N_VECTORS;
 
-        if (v_id_in_row_of_blocks == a_n_vectors_per_row / LVEC) {
+        if (v_id_in_row_of_blocks == a_n_vectors_per_row) {
             v_id_in_row_of_blocks = 0;
 
             reuse++;
@@ -206,14 +204,14 @@ loadA(global volatile vfloat* restrict A,
 
                 reuse = 0;
                 // mark the new start of the row of blocks
-                v_id_global_row_of_blocks_start = v_id;
+                saved_v_id = v_id;
 
                 // increment the block_id in the column of blocks
                 block_col_id++;
             } else {
                 // not done reusing,
                 // reset the v_id_global to the start of row of blocks
-                v_id = v_id_global_row_of_blocks_start;
+                v_id = saved_v_id;
             }
         }
     }
