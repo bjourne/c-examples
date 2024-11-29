@@ -87,7 +87,7 @@
 
 // Defines the width of channels in number of vectors.
 #ifndef LVEC
-#define LVEC 4
+#define LVEC 1
 #endif
 
 // Vectors in an A block row.
@@ -165,69 +165,40 @@ loadA(global volatile vfloat* restrict A,
       uchar a_n_blocks_y,
       uchar b_n_blocks_x) {
 
-
-    uchar block_col_id = 1;
+    uchar block_col_id = 0;
     // Note: It's important for all counters that wrap around to be
     // zero-based, so that the modN loop recombine algorithm will work
     // If they reset to 1, loop recombine transform needs to
     // conservatively assume that the reset condition is less than the
     // initial value, which would break the transform.
-    uint vector_id_in_block = 0;
-    uint vector_id_in_row_of_blocks = 0;
-    uint vector_id_global = 0;
-    uint vector_id_global_row_of_blocks_start = 0;
-
+    uint v_id_in_row_of_blocks = 0;
+    uint v_id = 0;
+    uint v_id_global_row_of_blocks_start = 0;
     uchar reuse = 0;
-
     bool new_row_col_pair = false;
-    bool feed_zeros = false;
 
-    uint n_zeros = 0;
-
-    while (true) {
+    while (block_col_id < a_n_blocks_y) {
+        // Load and send one vector block
         n_vfloat_bool send_buf;
-        #pragma unroll
-        for (int i = 0; i < LVEC; i++) {
-            if (feed_zeros) {
-                send_buf.data[i] = VECTOR_ZERO;
-                // Under host control, disable loading data from
-                // memory to avoid being bandwidth limited. Generate
-                // instead numbers in a range above 1.0f, where the
-                // actual value is an FP converted uint between
-                // 0x3F800000 and 0x3F81000F
-            } else {
-                send_buf.data[i] = A[vector_id_global * LVEC + i];
-            }
-        }
-
-        // cast to single-bit bool
         send_buf.c = new_row_col_pair;
-        write_channel_intel(ch_load_a, send_buf);
-
-        vector_id_in_block++;
-        if (vector_id_in_block == A_BLOCK_N_VECTORS / LVEC) {
-            vector_id_in_block = 0;
-            // we keep new_row_col_pair=true for only the first block
-            // in the row of blocks (feeders in the daisy chain expect
-            // this functionality)
-            new_row_col_pair = false;
+        for (uint i = 0; i < A_BLOCK_N_VECTORS / LVEC; i++) {
+#pragma unroll
+            for (int j = 0; j < LVEC; j++) {
+                send_buf.data[j] = A[LVEC * (v_id + i) + j];
+            }
+            write_channel_intel(ch_load_a, send_buf);
         }
+        new_row_col_pair = false;
+        v_id += A_BLOCK_N_VECTORS / LVEC;
+        v_id_in_row_of_blocks += A_BLOCK_N_VECTORS / LVEC;
 
-        vector_id_global++;
-        vector_id_in_row_of_blocks++;
-
-        if (vector_id_in_row_of_blocks == A_BLOCK_N_VECTORS / LVEC) {
+        if (v_id_in_row_of_blocks == A_BLOCK_N_VECTORS / LVEC) {
             // coincides with first block of data being pushed by the feeders
             new_row_col_pair = true;
         }
 
-        if (vector_id_in_row_of_blocks == a_n_vectors_per_row / LVEC) {
-            vector_id_in_row_of_blocks = 0;
-
-            if (feed_zeros) {
-                // we feed only one row of blocks full of zeros to flush the last C block
-                break;
-            }
+        if (v_id_in_row_of_blocks == a_n_vectors_per_row / LVEC) {
+            v_id_in_row_of_blocks = 0;
 
             reuse++;
             // done reusing this row of blocks?
@@ -235,21 +206,29 @@ loadA(global volatile vfloat* restrict A,
 
                 reuse = 0;
                 // mark the new start of the row of blocks
-                vector_id_global_row_of_blocks_start = vector_id_global;
+                v_id_global_row_of_blocks_start = v_id;
 
-                // done loading and forwarding the matrix?
-                // start feeding zeros to flush last C block
-                if (block_col_id == a_n_blocks_y) {
-                    feed_zeros = true;
-                    /* printf("feed zeros from %d\n", vector_id_in_row_of_blocks); */
-                }
                 // increment the block_id in the column of blocks
                 block_col_id++;
             } else {
                 // not done reusing,
-                // reset the vector_id_global to the start of row of blocks
-                vector_id_global = vector_id_global_row_of_blocks_start;
+                // reset the v_id_global to the start of row of blocks
+                v_id = v_id_global_row_of_blocks_start;
             }
+        }
+    }
+
+    // This code is weird
+    n_vfloat_bool send_buf;
+    #pragma unroll
+    for (int i = 0; i < LVEC; i++) {
+        send_buf.data[i] = VECTOR_ZERO;
+    }
+    uint n_zero_blocks = a_n_vectors_per_row / A_BLOCK_N_VECTORS;
+    for (uint i = 0; i < n_zero_blocks; i++) {
+        send_buf.c = i == 1;
+        for (uint j = 0; j < A_BLOCK_N_VECTORS / LVEC; j++) {
+            write_channel_intel(ch_load_a, send_buf);
         }
     }
 }
@@ -548,7 +527,7 @@ store(global volatile float * restrict C, int c_n_msgs) {
     int word = 0;
     uchar pos = 0;
     uint shift_lag = SHIFT_REG_SIZE * PE_Y;
-    float elems[2 * STORE_WIDTH] = {0.0f};
+    float elems[2 * STORE_WIDTH];
     for (uint i = 0; i < c_n_msgs + shift_lag; i++) {
 
         uchar crt_pos = POW2_REM(pos, STORE_WIDTH);
