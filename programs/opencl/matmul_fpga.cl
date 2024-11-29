@@ -26,8 +26,8 @@
 
 #pragma OPENCL EXTENSION cl_intel_channels : enable
 
-// must be power of 2 smaller than 256
-#define WIDTH 16
+// How many floats in each storage chunk. Must be n**2 < 256.
+#define STORE_WIDTH 128
 
 #define VECTOR_FLOAT4_ZERO          (float4)(0.0f, 0.0f, 0.0f, 0.0f)
 #define VECTOR_FLOAT8_ZERO          (float8)(VECTOR_FLOAT4_ZERO,VECTOR_FLOAT4_ZERO)
@@ -95,6 +95,14 @@
 
 #define SWAP_RANGE                  (Y_INTERLEAVED * X_INTERLEAVED * X_VECS)
 #define RANGE                       (2 * SWAP_RANGE)
+
+////////////////////////////////////////////////////////////////////////
+// Sanity checking
+////////////////////////////////////////////////////////////////////////
+#if STORE_WIDTH < PE_X
+#error "STORE_WIDTH must be >= PE_X!"
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////
 // Macro utility
@@ -536,49 +544,33 @@ kernel monolithic() {
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
-store(global volatile float * restrict C, int c_n_coalesced_words) {
-    bool more = true;
-
+store(global volatile float * restrict C, int c_n_msgs) {
     int word = 0;
     uchar pos = 0;
-    int i = 0;
+    uint shift_lag = SHIFT_REG_SIZE * PE_Y;
+    float elems[2 * STORE_WIDTH] = {0.0f};
+    for (uint i = 0; i < c_n_msgs + shift_lag; i++) {
 
-    float elems[2 * WIDTH] = {0.0f};
-    while (more) {
-        float tmpelems[2 * WIDTH] __attribute__((register));
-        // Clear space where we build the aligned word
-        #pragma unroll
-        for (int j = 0; j < 2 * WIDTH; j++) {
-            tmpelems[j] = 0.0f;
-        }
-
-        cols_floats root_data = read_channel_intel(ch_store_c);
-        more = i < c_n_coalesced_words + SHIFT_REG_SIZE * PE_Y - 1;
-
-        uchar crt_pos = POW2_REM(pos, WIDTH);
-        bool commit = (crt_pos >= WIDTH - PE_X) || !more;
+        uchar crt_pos = POW2_REM(pos, STORE_WIDTH);
 
         // Align new data
+        bool past_shift_lag = i >= shift_lag;
+        cols_floats data = read_channel_intel(ch_store_c);
         #pragma unroll
         for (int j = 0; j < PE_X; j++) {
-            tmpelems[j + crt_pos] = i >= SHIFT_REG_SIZE * PE_Y ? root_data.data[j] : 0.0f;
-        }
-        // Merge with old data
-        #pragma unroll
-        for (int j = 0; j < 2 * WIDTH; j++) {
-            elems[j] = as_float(as_uint(elems[j]) | as_uint(tmpelems[j]));
+            elems[j + crt_pos] = past_shift_lag ? data.data[j] : 0.0f;
         }
 
-        if (commit && i >= SHIFT_REG_SIZE * PE_Y) {
+        bool commit = (crt_pos >= STORE_WIDTH - PE_X) && i >= shift_lag;
+        if (commit) {
 #pragma unroll
-            for (int j = 0; j < WIDTH; j++) {
-                C[word * WIDTH + j] = elems[j];
-                elems[j] = elems[WIDTH + j];
-                elems[WIDTH + j] = 0.0f;
+            for (int j = 0; j < STORE_WIDTH; j++) {
+                C[word * STORE_WIDTH + j] = elems[j];
+                elems[j] = elems[STORE_WIDTH + j];
+                elems[STORE_WIDTH + j] = 0.0f;
             }
             word++;
         }
-        pos += i >= SHIFT_REG_SIZE * PE_Y ? PE_X : 0;
-        i++;
+        pos += past_shift_lag ? PE_X : 0;
     }
 }

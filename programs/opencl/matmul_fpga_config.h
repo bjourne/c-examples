@@ -19,7 +19,6 @@
 
 #define FORCE_DOT_4              0
 
-// Must be powers of two
 #define PE_Y                     16
 #define PE_X                     16
 

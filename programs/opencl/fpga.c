@@ -157,8 +157,8 @@ main(int argc, char *argv[]) {
     cl_uint b_n_vectors_per_col = B_Y * B_BLOCK_X / VECTOR_SIZE;
     cl_uint b_n_vectors_tot = b_n_vectors_per_col * b_n_blocks_x;
 
-    // Store kernel
-    cl_int c_n_coalesced_words = C_X * C_Y / PE_X;
+    // Number of messages the store kernel handles.
+    cl_int c_n_msgs = C_X * C_Y / PE_X;
 
     ocl_ctx_arg kern_a_args[] = {
         {n_mem, &ctx->buffers[BUF_A].ptr},
@@ -174,7 +174,7 @@ main(int argc, char *argv[]) {
     };
     ocl_ctx_arg kern_store_args[] = {
         {n_mem, &ctx->buffers[BUF_C].ptr},
-        {n_uint, &c_n_coalesced_words}
+        {n_uint, &c_n_msgs}
     };
     OCL_CHECK_ERR(ocl_ctx_set_kernels_arguments(
         ctx,
