@@ -2,11 +2,20 @@
 #ifndef _PE_SYSTOLIC_ARRAY_H_
 #define _PE_SYSTOLIC_ARRAY_H_
 
+// Here are performance figures for the FPGA I'm working with. For
+// square 8192x8192 matrices:
+//
+//
+// | FMAX | VSIZE | PE    | INTER | TIME |   |   |   |
+// |------|-------|-------|-------|------|---|---|---|
+// |      | 8     | 8x8   | 16x16 | 4.93 |   |   |   |
+// | 445  | 8     | 16x16 | 16x16 | 2.07 |   |   |   |
+
 // This is important but it is not enforced:
-// PE_ROWS + PE_COLS <= ROWS_INTERLEAVED
+// PE_X + PE_Y <= Y_INTERLEAVED
 
 // design space exploration of three vector sizes: float4, float8 and float16
-#define VECTOR_SIZE     16
+#define VECTOR_SIZE             8
 
 #define FORCE_DOT_4              0
 

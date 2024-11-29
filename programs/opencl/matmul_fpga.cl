@@ -87,7 +87,7 @@
 
 // Defines the width of channels in number of vectors.
 #ifndef LVEC
-#define LVEC 1
+#define LVEC 4
 #endif
 
 // Vectors in an A block row.
@@ -153,7 +153,7 @@ __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
 loadA(global volatile vfloat* restrict A,
-      uint a_n_vectors_in_row_of_blocks,
+      uint a_n_vectors_per_row,
       uchar a_n_blocks_y,
       uchar b_n_blocks_x) {
 
@@ -169,18 +169,18 @@ loadA(global volatile vfloat* restrict A,
     uint vector_id_global = 0;
     uint vector_id_global_row_of_blocks_start = 0;
 
-    uchar row_of_blocks_reuse_counter = 0;
+    uchar reuse = 0;
 
     bool new_row_col_pair = false;
-    bool more = true;
-    bool feed_zeros_to_flush_last_C_block = false;
+    bool feed_zeros = false;
 
-    while (more) {
+    uint n_zeros = 0;
+
+    while (true) {
         n_vfloat_bool send_buf;
-
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
-            if (feed_zeros_to_flush_last_C_block) {
+            if (feed_zeros) {
                 send_buf.data[i] = VECTOR_ZERO;
                 // Under host control, disable loading data from
                 // memory to avoid being bandwidth limited. Generate
@@ -196,55 +196,52 @@ loadA(global volatile vfloat* restrict A,
         send_buf.c = new_row_col_pair;
         write_channel_intel(ch_load_a, send_buf);
 
-        if (vector_id_in_block == (A_BLOCK_N_VECTORS / LVEC - 1)) {
+        vector_id_in_block++;
+        if (vector_id_in_block == A_BLOCK_N_VECTORS / LVEC) {
             vector_id_in_block = 0;
             // we keep new_row_col_pair=true for only the first block
             // in the row of blocks (feeders in the daisy chain expect
             // this functionality)
             new_row_col_pair = false;
-
-        } else {
-            vector_id_in_block++;
         }
 
         vector_id_global++;
+        vector_id_in_row_of_blocks++;
 
-        if (vector_id_in_row_of_blocks == A_BLOCK_N_VECTORS / LVEC - 1) {
+        if (vector_id_in_row_of_blocks == A_BLOCK_N_VECTORS / LVEC) {
             // coincides with first block of data being pushed by the feeders
             new_row_col_pair = true;
         }
 
-        if (vector_id_in_row_of_blocks == a_n_vectors_in_row_of_blocks / LVEC - 1) {
+        if (vector_id_in_row_of_blocks == a_n_vectors_per_row / LVEC) {
             vector_id_in_row_of_blocks = 0;
 
-            if (feed_zeros_to_flush_last_C_block) {
+            if (feed_zeros) {
                 // we feed only one row of blocks full of zeros to flush the last C block
-                more = false;
+                break;
             }
 
+            reuse++;
             // done reusing this row of blocks?
-            if (row_of_blocks_reuse_counter == b_n_blocks_x - 1) {
+            if (reuse == b_n_blocks_x) {
 
-                row_of_blocks_reuse_counter = 0;
+                reuse = 0;
                 // mark the new start of the row of blocks
                 vector_id_global_row_of_blocks_start = vector_id_global;
 
                 // done loading and forwarding the matrix?
                 // start feeding zeros to flush last C block
                 if (block_col_id == a_n_blocks_y) {
-                    feed_zeros_to_flush_last_C_block = true;
+                    feed_zeros = true;
+                    /* printf("feed zeros from %d\n", vector_id_in_row_of_blocks); */
                 }
                 // increment the block_id in the column of blocks
                 block_col_id++;
-
             } else {
                 // not done reusing,
                 // reset the vector_id_global to the start of row of blocks
                 vector_id_global = vector_id_global_row_of_blocks_start;
-                row_of_blocks_reuse_counter++;
             }
-        } else {
-            vector_id_in_row_of_blocks++;
         }
     }
 }
@@ -269,12 +266,12 @@ loadB(global volatile vfloat* restrict B,
         }
     }
     // done reload and forwarding the matrix data?
+#pragma unroll
+    for (int j = 0; j < LVEC; j++) {
+        send_buf.data[j] = VECTOR_ZERO;
+    }
     uint n_pkts_per_col = b_n_vectors_per_col / LVEC;
     for (uint i = 0; i < n_pkts_per_col; i++) {
-#pragma unroll
-        for (int j = 0; j < LVEC; j++) {
-            send_buf.data[j] = VECTOR_ZERO;
-        }
         write_channel_intel(ch_load_b, send_buf);
     }
 }
@@ -478,9 +475,9 @@ kernel monolithic() {
 
         uint counterB = counter;
         #pragma unroll
-        for (int col = 0; col < PE_X; col++) {
+        for (int x = 0; x < PE_X; x++) {
             // the indexing matches the serialization of the ch_load_b reads
-            fedB[col] = FeederB(valB, mem_b, counterB - first_b_load, col, counterB);
+            fedB[x] = FeederB(valB, mem_b, counterB - first_b_load, x, counterB);
             #pragma unroll
             for (int i = 0; i < LVEC; i++) {
                 valB.data[i] = __fpga_reg(__fpga_reg(valB.data[i]));

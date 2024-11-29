@@ -1,14 +1,6 @@
 // Copyright (C) 2022-2024 Björn A. Lindqvist <bjourne@gmail.com>
 //
 // Demonstrates how to run an AOT-compiled kernel on an FPGA.
-//
-// Here are performance figures:
-//
-// | A         | B         | C         | VSIZE | PE    | INTER | TIME |
-// |-----------|-----------|-----------|-------|-------|-------|------|
-// | 8192x8192 | 8192x8192 | 8192x8192 | 8     | 8x8   | 16x16 | 4.93 |
-// | 8192x8192 | 8192x8192 | 8192x8192 | 8     | 16x16 | 16x16 | 2.47 |
-//
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
