@@ -161,7 +161,7 @@ __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
 loadA(global volatile vfloat* restrict A,
-      uint a_n_vectors_per_row,
+      uint M,
       uchar a_n_blocks_y,
       uchar b_n_blocks_x) {
 
@@ -171,16 +171,17 @@ loadA(global volatile vfloat* restrict A,
     // If they reset to 1, loop recombine transform needs to
     // conservatively assume that the reset condition is less than the
     // initial value, which would break the transform.
-    uint v_id_in_row_of_blocks = 0;
+    uint col_id = 0;
     uint v_id = 0;
     uint saved_v_id = 0;
     uchar reuse = 0;
-    bool new_row_col_pair = false;
 
     while (block_col_id < a_n_blocks_y) {
         // Load and send one vector block
         n_vfloat_bool send_buf;
-        send_buf.c = new_row_col_pair;
+
+        // Only true for the first block
+        send_buf.c = col_id == 1;
         for (uint i = 0; i < A_BLOCK_N_VECTORS / LVEC; i++) {
 #pragma unroll
             for (int j = 0; j < LVEC; j++) {
@@ -190,13 +191,10 @@ loadA(global volatile vfloat* restrict A,
         }
 
         v_id += A_BLOCK_N_VECTORS / LVEC;
-        v_id_in_row_of_blocks += A_BLOCK_N_VECTORS;
+        col_id++;
 
-        // So it's true just once for the second block.
-        new_row_col_pair = v_id_in_row_of_blocks == A_BLOCK_N_VECTORS;
-
-        if (v_id_in_row_of_blocks == a_n_vectors_per_row) {
-            v_id_in_row_of_blocks = 0;
+        if (col_id == M) {
+            col_id = 0;
 
             reuse++;
             // done reusing this row of blocks?
@@ -222,8 +220,7 @@ loadA(global volatile vfloat* restrict A,
     for (int i = 0; i < LVEC; i++) {
         send_buf.data[i] = VECTOR_ZERO;
     }
-    uint n_zero_blocks = a_n_vectors_per_row / A_BLOCK_N_VECTORS;
-    for (uint i = 0; i < n_zero_blocks; i++) {
+    for (uint i = 0; i < M; i++) {
         send_buf.c = i == 1;
         for (uint j = 0; j < A_BLOCK_N_VECTORS / LVEC; j++) {
             write_channel_intel(ch_load_a, send_buf);
@@ -528,7 +525,7 @@ store(global volatile float * restrict C, int c_n_msgs) {
     }
 
 
-    int word = 0;
+    uint word = 0;
     uchar pos = 0;
     float elems[2 * STORE_WIDTH];
     for (uint i = 0; i < c_n_msgs; i++) {
@@ -538,14 +535,14 @@ store(global volatile float * restrict C, int c_n_msgs) {
         // Align new data
         cols_floats data = read_channel_intel(ch_store_c);
         #pragma unroll
-        for (int j = 0; j < PE_X; j++) {
+        for (uint j = 0; j < PE_X; j++) {
             elems[j + crt_pos] = data.data[j];
         }
 
         bool commit = (crt_pos >= STORE_WIDTH - PE_X);
         if (commit) {
 #pragma unroll
-            for (int j = 0; j < STORE_WIDTH; j++) {
+            for (uint j = 0; j < STORE_WIDTH; j++) {
                 C[word * STORE_WIDTH + j] = elems[j];
                 elems[j] = elems[STORE_WIDTH + j];
                 elems[STORE_WIDTH + j] = 0.0f;

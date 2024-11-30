@@ -45,9 +45,9 @@ main(int argc, char *argv[]) {
         printf("Usage: %s platform-index kernel-path N M K\n", argv[0]);
         exit(1);
     }
-    int N = atoi(argv[3]);
-    int M = atoi(argv[4]);
-    int K = atoi(argv[5]);
+    cl_uint N = atoi(argv[3]);
+    cl_uint M = atoi(argv[4]);
+    cl_uint K = atoi(argv[5]);
 
     int A_Y = N * A_BLOCK_Y;
     int A_X = M * A_BLOCK_X;
@@ -147,9 +147,6 @@ main(int argc, char *argv[]) {
     OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 1, BUF_B, b_transpose_blocked->data));
 
     // LoadA kernel
-    cl_uint a_n_vectors_in_row_of_blocks =
-        M * A_BLOCK_X * A_BLOCK_Y / VECTOR_SIZE;
-
     cl_uchar a_n_blocks_y = A_Y / A_BLOCK_Y;
     cl_uchar b_n_blocks_x = B_X / B_BLOCK_X;
 
@@ -162,7 +159,7 @@ main(int argc, char *argv[]) {
 
     ocl_ctx_arg kern_a_args[] = {
         {n_mem, &ctx->buffers[BUF_A].ptr},
-        {n_uint, &a_n_vectors_in_row_of_blocks},
+        {n_uint, &M},
         {n_uchar, &a_n_blocks_y},
         {n_uchar, &b_n_blocks_x}
     };
