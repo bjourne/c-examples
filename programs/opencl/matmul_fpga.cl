@@ -33,8 +33,6 @@
 #define VECTOR_FLOAT8_ZERO          (float8)(VECTOR_FLOAT4_ZERO,VECTOR_FLOAT4_ZERO)
 #define VECTOR_FLOAT16_ZERO         (float16)(VECTOR_FLOAT8_ZERO,VECTOR_FLOAT8_ZERO)
 
-// Number of vectors per block of A
-#define A_BLOCK_N_VECTORS           (A_BLOCK_Y * A_BLOCK_X / VECTOR_SIZE)
 
 // The number of rows rounded up to the next power of 2
 #if PE_Y <= 1
@@ -89,6 +87,14 @@
 #ifndef LVEC
 #define LVEC 1
 #endif
+
+
+// Number of vectors per block of A
+#define A_BLOCK_N_VECTORS           (A_BLOCK_Y * A_BLOCK_X / VECTOR_SIZE)
+
+// Number of msgs pre block of A
+#define A_BLOCK_N_MSGS              A_BLOCK_N_VECTORS / LVEC
+
 
 // Vectors in an A block row.
 #define X_VECS                    (A_BLOCK_X / VECTOR_SIZE)
@@ -160,53 +166,23 @@ channel cols_floats ch_store_c __attribute__((depth(64)));
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
-loadA(global volatile vfloat* restrict A,
-      uint M,
-      uchar a_n_blocks_y,
-      uchar b_n_blocks_x) {
-
-    uchar block_col_id = 0;
-    // Note: It's important for all counters that wrap around to be
-    // zero-based, so that the modN loop recombine algorithm will work
-    // If they reset to 1, loop recombine transform needs to
-    // conservatively assume that the reset condition is less than the
-    // initial value, which would break the transform.
-    uint v_id = 0;
-    uint saved_v_id = 0;
-    uchar reuse = 0;
-
-    while (block_col_id < a_n_blocks_y) {
-        // Load and send one vector block
-        n_vfloat_bool send_buf;
-
-        for (uint col = 0; col < M; col++) {
-            // Only true for the first block
-            send_buf.c = col == 1;
-            for (uint i = 0; i < A_BLOCK_N_VECTORS / LVEC; i++) {
+loadA(global volatile vfloat* restrict A, uint M, uchar N, uchar K) {
+    for (uint n = 0; n < N; n++) {
+        for (uint k = 0; k < K; k++) {
+            for (uint m = 0; m < M; m++) {
+                // Only true for the first block
+                n_vfloat_bool send_buf;
+                send_buf.c = m == 1;
+                for (uint i = 0; i < A_BLOCK_N_MSGS; i++) {
 #pragma unroll
-                for (int j = 0; j < LVEC; j++) {
-                    send_buf.data[j] = A[LVEC * (v_id + i) + j];
+                    for (int j = 0; j < LVEC; j++) {
+                        send_buf.data[j] =
+                            A[LVEC * ((M*n + m) * A_BLOCK_N_MSGS + i) + j];
+                    }
+                    write_channel_intel(ch_load_a, send_buf);
                 }
-                write_channel_intel(ch_load_a, send_buf);
-
             }
-            v_id += A_BLOCK_N_VECTORS / LVEC;
-        }
-        reuse++;
-        // done reusing this row of blocks?
-        if (reuse == b_n_blocks_x) {
-
-            reuse = 0;
-            // mark the new start of the row of blocks
-            saved_v_id = v_id;
-
-            // increment the block_id in the column of blocks
-            block_col_id++;
-        } else {
-            // not done reusing,
-            // reset the v_id_global to the start of row of blocks
-            v_id = saved_v_id;
-        }
+        };
     }
 
     // This code is weird
@@ -217,7 +193,7 @@ loadA(global volatile vfloat* restrict A,
     }
     for (uint i = 0; i < M; i++) {
         send_buf.c = i == 1;
-        for (uint j = 0; j < A_BLOCK_N_VECTORS / LVEC; j++) {
+        for (uint j = 0; j < A_BLOCK_N_MSGS; j++) {
             write_channel_intel(ch_load_a, send_buf);
         }
     }

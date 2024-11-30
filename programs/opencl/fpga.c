@@ -147,7 +147,7 @@ main(int argc, char *argv[]) {
     OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 1, BUF_B, b_transpose_blocked->data));
 
     // LoadA kernel
-    cl_uchar a_n_blocks_y = A_Y / A_BLOCK_Y;
+    cl_uchar a_n_blocks_y = N;
     cl_uchar b_n_blocks_x = B_X / B_BLOCK_X;
 
     // LoadB kernel
@@ -160,8 +160,8 @@ main(int argc, char *argv[]) {
     ocl_ctx_arg kern_a_args[] = {
         {n_mem, &ctx->buffers[BUF_A].ptr},
         {n_uint, &M},
-        {n_uchar, &a_n_blocks_y},
-        {n_uchar, &b_n_blocks_x}
+        {n_uchar, &N},
+        {n_uchar, &K}
     };
     ocl_ctx_arg kern_b_args[] = {
         {n_mem, &ctx->buffers[BUF_B].ptr},
