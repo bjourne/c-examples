@@ -171,7 +171,6 @@ loadA(global volatile vfloat* restrict A,
     // If they reset to 1, loop recombine transform needs to
     // conservatively assume that the reset condition is less than the
     // initial value, which would break the transform.
-    uint col_id = 0;
     uint v_id = 0;
     uint saved_v_id = 0;
     uchar reuse = 0;
@@ -180,37 +179,33 @@ loadA(global volatile vfloat* restrict A,
         // Load and send one vector block
         n_vfloat_bool send_buf;
 
-        // Only true for the first block
-        send_buf.c = col_id == 1;
-        for (uint i = 0; i < A_BLOCK_N_VECTORS / LVEC; i++) {
+        for (uint col = 0; col < M; col++) {
+            // Only true for the first block
+            send_buf.c = col == 1;
+            for (uint i = 0; i < A_BLOCK_N_VECTORS / LVEC; i++) {
 #pragma unroll
-            for (int j = 0; j < LVEC; j++) {
-                send_buf.data[j] = A[LVEC * (v_id + i) + j];
+                for (int j = 0; j < LVEC; j++) {
+                    send_buf.data[j] = A[LVEC * (v_id + i) + j];
+                }
+                write_channel_intel(ch_load_a, send_buf);
+
             }
-            write_channel_intel(ch_load_a, send_buf);
+            v_id += A_BLOCK_N_VECTORS / LVEC;
         }
+        reuse++;
+        // done reusing this row of blocks?
+        if (reuse == b_n_blocks_x) {
 
-        v_id += A_BLOCK_N_VECTORS / LVEC;
-        col_id++;
+            reuse = 0;
+            // mark the new start of the row of blocks
+            saved_v_id = v_id;
 
-        if (col_id == M) {
-            col_id = 0;
-
-            reuse++;
-            // done reusing this row of blocks?
-            if (reuse == b_n_blocks_x) {
-
-                reuse = 0;
-                // mark the new start of the row of blocks
-                saved_v_id = v_id;
-
-                // increment the block_id in the column of blocks
-                block_col_id++;
-            } else {
-                // not done reusing,
-                // reset the v_id_global to the start of row of blocks
-                v_id = saved_v_id;
-            }
+            // increment the block_id in the column of blocks
+            block_col_id++;
+        } else {
+            // not done reusing,
+            // reset the v_id_global to the start of row of blocks
+            v_id = saved_v_id;
         }
     }
 
@@ -288,7 +283,7 @@ FeederA(n_vfloat_bool newVal,
 
     vfloat_bool val;
     vfloat choices[LVEC];
-    #pragma unroll
+#pragma unroll
     for (int i = 0; i < LVEC; i++) {
         choices[i] = double_buffer[buffer_id_to_feed_to_sysarr][buffer_row_to_feed_to_sysarr][(buffer_vector_to_feed_to_sysarr / LVEC) * LVEC + i][row];
     }
