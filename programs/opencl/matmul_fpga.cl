@@ -522,23 +522,27 @@ __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
 store(global volatile float * restrict C, int c_n_msgs) {
+    // We read and discard this many messages
+    for (uint i = 0; i < SHIFT_REG_SIZE * PE_Y; i++) {
+        read_channel_intel(ch_store_c);
+    }
+
+
     int word = 0;
     uchar pos = 0;
-    uint shift_lag = SHIFT_REG_SIZE * PE_Y;
     float elems[2 * STORE_WIDTH];
-    for (uint i = 0; i < c_n_msgs + shift_lag; i++) {
+    for (uint i = 0; i < c_n_msgs; i++) {
 
         uchar crt_pos = POW2_REM(pos, STORE_WIDTH);
 
         // Align new data
-        bool past_shift_lag = i >= shift_lag;
         cols_floats data = read_channel_intel(ch_store_c);
         #pragma unroll
         for (int j = 0; j < PE_X; j++) {
-            elems[j + crt_pos] = past_shift_lag ? data.data[j] : 0.0f;
+            elems[j + crt_pos] = data.data[j];
         }
 
-        bool commit = (crt_pos >= STORE_WIDTH - PE_X) && i >= shift_lag;
+        bool commit = (crt_pos >= STORE_WIDTH - PE_X);
         if (commit) {
 #pragma unroll
             for (int j = 0; j < STORE_WIDTH; j++) {
@@ -548,6 +552,6 @@ store(global volatile float * restrict C, int c_n_msgs) {
             }
             word++;
         }
-        pos += past_shift_lag ? PE_X : 0;
+        pos += PE_X;
     }
 }
