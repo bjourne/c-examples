@@ -11,12 +11,6 @@
 #include "multiply.h"
 #include "tiling.h"
 
-// Should put this somewhere.
-static unsigned int
-ceil_div(unsigned int a, unsigned int b) {
-    return a / b + (a % b != 0);
-}
-
 void
 tensor_multiply_ref(tensor *a, tensor *b, tensor *c) {
     assert(a->n_dims == b->n_dims);
@@ -247,10 +241,10 @@ tensor_multiply_w_params(tensor *a, tensor *b, tensor *c, int n_jobs) {
     assert(TILE_I % SIMD_HEIGHT == 0);
     assert(TILE_J % SIMD_WIDTH == 0);
 
-    int n_i_tiles = ceil_div(a_rows, TILE_I);
+    int n_i_tiles = CEIL_DIV(a_rows, TILE_I);
     int N = n_i_tiles * TILE_I;
-    int K = ceil_div(a_cols, TILE_K) * TILE_K;
-    int M = ceil_div(b_cols, TILE_J) * TILE_J;
+    int K = CEIL_DIV(a_cols, TILE_K) * TILE_K;
+    int M = CEIL_DIV(b_cols, TILE_J) * TILE_J;
 
     tensor *a_tiled = tensor_linearize_tiles_new2(a, SIMD_HEIGHT, 1,
                                                   N, K);

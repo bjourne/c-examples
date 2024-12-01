@@ -282,11 +282,6 @@ count_avx2_2(const char *s) {
 
 #define N_THREADS 4
 
-static unsigned int
-ceil_div(unsigned int a, unsigned int b) {
-    return a / b + (a % b != 0);
-}
-
 typedef struct {
     thr_handle handle;
     const char *s;
@@ -300,8 +295,8 @@ thr_counting(const char *s, void *(*count_fun)(void *arg)) {
     assert((uintptr_t)s % 32 == 0);
 
     size_t n_bytes = strlen(s);
-    size_t n_chunks = ceil_div(n_bytes, 32);
-    size_t n_chunks_per_thread = ceil_div(n_chunks, N_THREADS);
+    size_t n_chunks = CEIL_DIV(n_bytes, 32);
+    size_t n_chunks_per_thread = CEIL_DIV(n_chunks, N_THREADS);
     size_t n_bytes_per_thread = 32 * n_chunks_per_thread;
     count_job jobs[N_THREADS];
     for (int i = 0; i < N_THREADS; i++) {

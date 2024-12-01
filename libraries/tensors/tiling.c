@@ -4,13 +4,8 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "datatypes/common.h"
 #include "tiling.h"
-
-// Should put this somewhere.
-static unsigned int
-ceil_div(unsigned int a, unsigned int b) {
-    return a / b + (a % b != 0);
-}
 
 // Not all of these 2d tiling functions are necessary.
 void
@@ -91,8 +86,8 @@ tensor_linearize_tiles_new2(
     unsigned int src_height = src->dims[0];
     unsigned int src_width = src->dims[1];
 
-    unsigned int tiles_x = ceil_div(fill_width, tile_width);
-    unsigned int tiles_y = ceil_div(fill_height, tile_height);
+    unsigned int tiles_x = CEIL_DIV(fill_width, tile_width);
+    unsigned int tiles_y = CEIL_DIV(fill_height, tile_height);
 
     unsigned int dst_height = tiles_x * tiles_y;
     unsigned int dst_width = tile_height * tile_width;
@@ -104,7 +99,7 @@ tensor_linearize_tiles_new2(
     long n_jobs = 3 * sysconf(_SC_NPROCESSORS_ONLN);
     tile_job_t *jobs = malloc(sizeof(tile_job_t) * n_jobs);
 
-    unsigned int n_y_tiles = ceil_div(fill_height, tile_height);
+    unsigned int n_y_tiles = CEIL_DIV(fill_height, tile_height);
     float y_tiles_per_thread = (float)n_y_tiles / (float)n_jobs;
 
     unsigned int start_i = 0;
@@ -133,8 +128,8 @@ tensor_linearize_tiles_new(tensor *src,
     int src_height = src->dims[0];
     int src_width = src->dims[1];
 
-    int tiles_x = ceil_div(src_width, tile_width);
-    int tiles_y = ceil_div(src_height, tile_height);
+    int tiles_x = CEIL_DIV(src_width, tile_width);
+    int tiles_y = CEIL_DIV(src_height, tile_height);
 
     int dst_height = tiles_x * tiles_y;
     int dst_width = tile_height * tile_width;

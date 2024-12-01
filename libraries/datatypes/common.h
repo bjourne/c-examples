@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020, 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019-2020, 2022-2024 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef DATATYPES_COMMON_H
 #define DATATYPES_COMMON_H
 
@@ -31,8 +31,14 @@ void error(char *fmt, ...);
 // Utility
 #define ARRAY_SIZE(a)       (sizeof((a))/sizeof((a)[0]))
 
+// Math
+
+// (int)ceil(a / b)
+#define CEIL_DIV(a, b)  ((a) / (b) + ((a) % (b) != 0))
+
 // Allocating aligned memory
 void *malloc_aligned(size_t alignment, size_t size);
+
 
 // Timing
 void timed_run(void (*func)());
@@ -53,7 +59,7 @@ void sleep_cp(unsigned int millis);
 // Random
 // I happen to like rand(), but one should also consider
 // http://cpp.indi.frih.net/blog/2014/12/the-bell-has-tolled-for-rand/
-// :)
+// :) Actually, my pcg-based random library is better.
 int rand_n(int n);
 void rand_init(unsigned int seed);
 void rand_shuffle(void *array, size_t n, size_t size);

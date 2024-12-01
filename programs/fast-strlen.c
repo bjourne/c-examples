@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2023-2024 Björn A. Lindqvist <bjourne@gmail.com>
 //
 // Compile and run with:
 //
@@ -51,6 +51,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include "datatypes/common.h"
 
 // Size of buffer to test with and number of times the benchmarked
 // function is called.
@@ -147,11 +148,6 @@ sigsegv_record(int signal, siginfo_t* siginfo, void* uap) {
     pthread_exit(NULL);
 }
 
-static size_t
-ceil_div(size_t a, size_t b) {
-    return a / b + (a % b != 0);
-}
-
 __attribute__((noinline)) size_t
 threaded_strlen(const char *s) {
     struct sigaction act, oldact;
@@ -171,7 +167,7 @@ threaded_strlen(const char *s) {
     // Launch a thread pool scanning for '\0' in disjoint regions of
     // memory in parallel.
     int n_threads = sysconf(_SC_NPROCESSORS_ONLN);
-    size_t n_bytes_per_thread = ceil_div(n_bytes, n_threads);
+    size_t n_bytes_per_thread = CEIL_DIV(n_bytes, n_threads);
 
     strlen_job *jobs = malloc(sizeof(strlen_job) * n_threads);
     pthread_t *handles = malloc(sizeof(pthread_t) * n_threads);
@@ -203,13 +199,6 @@ threaded_strlen(const char *s) {
         }
     }
     assert(false);
-}
-
-static uint64_t
-nano_count() {
-    struct timespec t;
-    assert(!clock_gettime(CLOCK_MONOTONIC, &t));
-    return (uint64_t)t.tv_sec * 1000000000 + t.tv_nsec;
 }
 
 void

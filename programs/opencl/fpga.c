@@ -11,6 +11,7 @@
 #include "opencl/opencl.h"
 #include "tensors/tensors.h"
 #include "tensors/multiply.h"
+#include "tensors/tiling.h"
 
 #include "matmul_fpga_config.h"
 
