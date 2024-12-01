@@ -153,8 +153,10 @@ test_layer_stack_apply_conv2d() {
         }
     };
     tensor_layer *layers[] = {
-        tensor_layer_init_conv2d_from_data(2, 2, 2, 2, 0,
-                                           (float *)conv1_weight, (float *)conv1_bias),
+        tensor_layer_init_conv2d_from_data(
+            2, 2, 2, 2, 0,
+            (float *)conv1_weight, (float *)conv1_bias
+        ),
     };
     tensor_layer_stack *stack = tensor_layer_stack_init(
         ARRAY_SIZE(layers), layers,
@@ -162,9 +164,10 @@ test_layer_stack_apply_conv2d() {
     );
     assert(tensor_n_elements(stack->src_buf) == 128);
 
-    tensor *x0 = tensor_init_from_data((float *)x0_data, 3, (int[]){2, 8, 8});
-    tensor *expected = tensor_init_from_data((float *)expected_data,
-                                             3, (int[]){2, 4, 4});
+    tensor *x0 = tensor_init_3d(2, 8, 8);
+    tensor_copy_data(x0, x0_data);
+    tensor *expected = tensor_init_3d(2, 4, 4);
+    tensor_copy_data(expected, expected_data);
     tensor *x1 = tensor_layer_stack_apply_new(stack, x0);
     assert(x1);
 

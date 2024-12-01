@@ -746,8 +746,9 @@ tensor_layer_init_conv2d_from_data(int in_chans, int out_chans,
                                                stride, padding);
     tensor *weight = l->conv2d.weight;
     tensor *bias = l->conv2d.bias;
-    memcpy(weight->data, weight_data, tensor_n_elements(weight) * sizeof(float));
-    memcpy(bias->data, bias_data, tensor_n_elements(bias) * sizeof(float));
+
+    tensor_copy_data(weight, weight_data);
+    tensor_copy_data(bias, bias_data);
     return l;
 }
 
