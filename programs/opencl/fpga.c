@@ -146,9 +146,6 @@ main(int argc, char *argv[]) {
     OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, BUF_A, a_blocked->data));
     OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 1, BUF_B, b_transpose_blocked->data));
 
-    // LoadA kernel
-    cl_uchar b_n_blocks_x = K;
-
     // LoadB kernel
     cl_uint b_n_vectors_per_col = B_Y * B_BLOCK_X / VECTOR_SIZE;
     cl_uint b_n_vectors_tot = b_n_vectors_per_col * K;
