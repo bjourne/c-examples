@@ -147,12 +147,11 @@ main(int argc, char *argv[]) {
     OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 1, BUF_B, b_transpose_blocked->data));
 
     // LoadA kernel
-    cl_uchar a_n_blocks_y = N;
-    cl_uchar b_n_blocks_x = B_X / B_BLOCK_X;
+    cl_uchar b_n_blocks_x = K;
 
     // LoadB kernel
     cl_uint b_n_vectors_per_col = B_Y * B_BLOCK_X / VECTOR_SIZE;
-    cl_uint b_n_vectors_tot = b_n_vectors_per_col * b_n_blocks_x;
+    cl_uint b_n_vectors_tot = b_n_vectors_per_col * K;
 
     // Number of messages the store kernel handles.
     cl_int c_n_msgs = C_X * C_Y / PE_X;
@@ -167,7 +166,7 @@ main(int argc, char *argv[]) {
         {n_mem, &ctx->buffers[BUF_B].ptr},
         {n_uint, &b_n_vectors_per_col},
         {n_uint, &b_n_vectors_tot},
-        {n_uchar, &a_n_blocks_y}
+        {n_uchar, &N}
     };
     ocl_ctx_arg kern_store_args[] = {
         {n_mem, &ctx->buffers[BUF_C].ptr},

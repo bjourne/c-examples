@@ -205,11 +205,11 @@ kernel void
 loadB(global volatile vfloat* restrict B,
       uint b_n_vectors_per_col,
       uint b_n_vectors_tot,
-      uchar a_n_blocks_y) {
+      uchar N) {
 
     n_vfloat send_buf;
 
-    for (uint times = 0; times < a_n_blocks_y; times++) {
+    for (uint times = 0; times < N; times++) {
         for (uint v_id = 0; v_id < b_n_vectors_tot / LVEC; v_id++) {
 #pragma unroll
             for (int i = 0; i < LVEC; i++) {

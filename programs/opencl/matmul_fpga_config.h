@@ -5,6 +5,7 @@
 // Here are performance figures for the FPGA I'm working with. For
 // square 8192x8192 matrices:
 //
+
 // | FMAX | VSIZE | PE    | INTER | LVEC | SEED | TIME |
 // |------|-------|-------|-------|------|------|------|
 // |      | 8     | 8x8   | 16x16 | 1    |      | 4.93 |
@@ -13,7 +14,8 @@
 // | 460  | 8     | 16x16 | 16x16 | 1    | 9998 | 1.32 |
 // | 438  | 8     | 16x16 | 16x16 | 1    | 9997 | 1.37 |
 // | 425  | 8     | 16x16 | 16x16 | 1    | 9996 | 1.42 |
-// |      | 8     | 16x16 | 16x16 | 1    | 9995 |      |
+// | 431  | 8     | 16x16 | 16x16 | 1    | 9995 | 1.39 |
+// | 406  | 8     | 16x16 | 16x16 | 2    | 9994 | 0.90 |
 
 // This is important but it is not enforced:
 // PE_X + PE_Y <= Y_INTERLEAVED
