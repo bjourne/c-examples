@@ -2,20 +2,20 @@
 #ifndef _PE_SYSTOLIC_ARRAY_H_
 #define _PE_SYSTOLIC_ARRAY_H_
 
-// Here are performance figures for the FPGA I'm working with. For
-// square 8192x8192 matrices:
+// Here are performance figures for the Agilex 7 FPGA I'm working
+// with. For N=M=K=8192 matrices:
 //
-
-// | FMAX | VSIZE | PE    | INTER | LVEC | SEED | TIME |
-// |------|-------|-------|-------|------|------|------|
-// |      | 8     | 8x8   | 16x16 | 1    |      | 4.93 |
-// | 445  | 8     | 16x16 | 16x16 | 1    |      | 2.07 |
-// | 442  | 8     | 16x16 | 16x16 | 1    | 9999 | 2.08 |
-// | 460  | 8     | 16x16 | 16x16 | 1    | 9998 | 1.32 |
-// | 438  | 8     | 16x16 | 16x16 | 1    | 9997 | 1.37 |
-// | 425  | 8     | 16x16 | 16x16 | 1    | 9996 | 1.42 |
-// | 431  | 8     | 16x16 | 16x16 | 1    | 9995 | 1.39 |
-// | 406  | 8     | 16x16 | 16x16 | 2    | 9994 | 0.90 |
+// | FMAX | VSIZE | PE    | INTER | LVEC | SEED | TIME  |
+// |------|-------|-------|-------|------|------|-------|
+// |      | 8     | 8x8   | 16x16 | 1    |      | 4.93  |
+// | 445  | 8     | 16x16 | 16x16 | 1    |      | 2.07  |
+// | 442  | 8     | 16x16 | 16x16 | 1    | 9999 | 2.08  |
+// | 460  | 8     | 16x16 | 16x16 | 1    | 9998 | 1.32  |
+// | 438  | 8     | 16x16 | 16x16 | 1    | 9997 | 1.37  |
+// | 425  | 8     | 16x16 | 16x16 | 1    | 9996 | 1.42  |
+// | 431  | 8     | 16x16 | 16x16 | 1    | 9995 | 1.39  |
+// | 406  | 8     | 16x16 | 16x16 | 2    | 9994 | 0.90  |
+// | 461  | 8     | 16x16 | 16x16 | 4    | 9993 | 32.63 |
 
 // This is important but it is not enforced:
 // PE_X + PE_Y <= Y_INTERLEAVED

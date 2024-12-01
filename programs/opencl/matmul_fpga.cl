@@ -83,9 +83,12 @@
 // Shift register size
 #define SHIFT_REG_SIZE        (Y_INTERLEAVED * X_INTERLEAVED)
 
+// One store per row in the systolic array
+#define SHIFT_REGS_PER_Y        (SHIFT_REG_SIZE * PE_Y)
+
 // Defines the width of channels in number of vectors.
 #ifndef LVEC
-#define LVEC 4
+#define LVEC 2
 #endif
 
 
@@ -235,40 +238,37 @@ loadB(global volatile vfloat* restrict B,
 }
 
 vfloat_bool
-FeederA(n_vfloat_bool newVal,
-        vfloat mem_a[2][Y_INTERLEAVED][X_VECS][BANK_Y],
-        uint counter, int row) {
+FeederA(
+    n_vfloat_bool new,
+    vfloat mem_a[2][Y_INTERLEAVED][X_VECS][BANK_Y],
+    uint counter,
+    int row,
+    bool side
+) {
 
     uint masked_counter = POW2_REM(counter, SWAP_RANGE);
     bool write_to_buffer =
         (masked_counter * LVEC / (Y_INTERLEAVED * X_VECS)) == row;
     bool new_row_col_pair =
         masked_counter < (Y_INTERLEAVED * X_INTERLEAVED);
-    bool buffer_id_to_write_to = (counter / SWAP_RANGE) & 1;
-    bool buffer_id_to_feed_to_sysarr = !buffer_id_to_write_to;
 
     if (write_to_buffer) {
-        uchar buffer_vector_to_write_to = POW2_REM(counter * LVEC, X_VECS);
-        uchar buffer_row_to_write_to = POW2_REM(counter * LVEC, Y_INTERLEAVED * X_VECS) / X_VECS;
+        uchar buffer_vector = POW2_REM(counter * LVEC, X_VECS);
+        uchar buffer_row = POW2_REM(counter * LVEC, Y_INTERLEAVED * X_VECS) / X_VECS;
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
-            mem_a[buffer_id_to_write_to][buffer_row_to_write_to][(buffer_vector_to_write_to / LVEC) * LVEC + i][row] = newVal.data[i];
+            mem_a[side][buffer_row][(buffer_vector / LVEC) * LVEC + i][row] = new.data[i];
         }
     }
 
-    uchar buffer_row_to_feed_to_sysarr =
+    uchar buffer_row =
         POW2_REM(counter, Y_INTERLEAVED * X_INTERLEAVED) / X_INTERLEAVED;
-    uchar buffer_vector_to_feed_to_sysarr =
+    uchar buffer_vector =
         masked_counter / (Y_INTERLEAVED * X_INTERLEAVED);
 
     vfloat_bool val;
-    vfloat choices[LVEC];
-#pragma unroll
-    for (int i = 0; i < LVEC; i++) {
-        choices[i] = mem_a[buffer_id_to_feed_to_sysarr][buffer_row_to_feed_to_sysarr][(buffer_vector_to_feed_to_sysarr / LVEC) * LVEC + i][row];
-    }
-    val.data = choices[buffer_vector_to_feed_to_sysarr % LVEC];
-    val.c = new_row_col_pair & newVal.c;
+    val.data = mem_a[!side][buffer_row][buffer_vector][row];
+    val.c = new_row_col_pair & new.c;
     return val;
 }
 
@@ -278,33 +278,31 @@ FeederA(n_vfloat_bool newVal,
 // which may start at some point in the overall counter range (once FeederA is finished loading)
 vfloat
 FeederB(
-    n_vfloat newVal,
+    n_vfloat new,
     vfloat mem_b[2][X_INTERLEAVED][X_VECS][BANK_X],
     uint col,
-    uint counter
+    uint counter,
+    bool side
 ) {
     // Quantity can be negative but it is then wrapped around..
     uint load_counter = counter - SWAP_RANGE + N_B_LOADS;
     bool write_to_buffer = ((POW2_REM(load_counter, SWAP_RANGE) * LVEC) / (X_INTERLEAVED * X_VECS)) == col;
     // Note: counter is used here because load_counter is not valid if only reading.
-    bool side = (counter / SWAP_RANGE) & 1;
-
     if (write_to_buffer) {
         uchar buffer_vector = POW2_REM(load_counter * LVEC, X_VECS);
         uchar buffer_row = POW2_REM(load_counter * LVEC, X_INTERLEAVED * X_VECS) / X_VECS;
 
 #pragma unroll
         for (int i = 0; i < LVEC; i++) {
-            mem_b[side][buffer_row][(buffer_vector / LVEC) * LVEC + i][col] = newVal.data[i];
+            mem_b[side][buffer_row][(buffer_vector / LVEC) * LVEC + i][col] = new.data[i];
         }
     }
 
-    uchar buffer_row_to_feed_to_sysarr = POW2_REM(counter, X_INTERLEAVED);
-    uchar buffer_vector_to_feed_to_sysarr =
+    uchar buffer_row = POW2_REM(counter, X_INTERLEAVED);
+    uchar buffer_vector =
         POW2_REM(counter, SWAP_RANGE) / (Y_INTERLEAVED * X_INTERLEAVED);
 
-    vfloat choice = mem_b[!side][buffer_row_to_feed_to_sysarr]
-        [buffer_vector_to_feed_to_sysarr][col];
+    vfloat choice = mem_b[!side][buffer_row][buffer_vector][col];
 
     // Accomodate the floorplanning script
 #if LVEC > 1
@@ -386,7 +384,7 @@ kernel monolithic() {
     float drain[PE_X][SHIFT_REG_SIZE * (PE_Y - 1) + 1];
 
     uint counter = 0;
-    uint storecount = SHIFT_REG_SIZE * PE_Y;
+    uint storecount = SHIFT_REGS_PER_Y;
     uint base = 0;
 
     // Try to load B as late as possible, so that if there is enough time and not enough DDR bandwidth, we
@@ -400,7 +398,11 @@ kernel monolithic() {
         n_vfloat_bool valA;
         n_vfloat valB;
         uint masked_counter = POW2_REM(counter, SWAP_RANGE);
-        if (masked_counter < N_A_LOADS) {
+
+        bool read_a = masked_counter < N_A_LOADS;
+        bool read_b = (masked_counter < SWAP_RANGE) &&
+                      (masked_counter >= SWAP_RANGE - N_B_LOADS);
+        if (read_a) {
             valA = read_channel_intel(ch_load_a);
 
             if (!new_row_col_pair && valA.c) {
@@ -409,19 +411,21 @@ kernel monolithic() {
             new_row_col_pair = valA.c;
         }
         // serialize the two reads to reduce burstiness
-        if ((masked_counter < SWAP_RANGE) &&
-            (masked_counter >= SWAP_RANGE - N_B_LOADS)) {
+        if (read_b) {
             valB = read_channel_intel(ch_load_b);
         }
 
-        // private counters for feeder fpga_reg
+        // Which side of the double buffers we write to.
+        bool side = (counter / SWAP_RANGE) & 1;
+
+        // private counters for feeder fpga_reg. Is it necessary?
         uint counterA = counter;
 
         // recover last known row_col_pair
         valA.c = new_row_col_pair;
         #pragma unroll
         for (int row = 0; row < PE_Y; row++) {
-            fedA[row] = FeederA(valA, mem_a, counterA, row);
+            fedA[row] = FeederA(valA, mem_a, counterA, row, side);
             #pragma unroll
             for (int i = 0; i < LVEC; i++) {
                 valA.data[i] = __fpga_reg(__fpga_reg(valA.data[i]));
@@ -438,7 +442,8 @@ kernel monolithic() {
                 valB,
                 mem_b,
                 x,
-                counterB
+                counterB,
+                side
             );
             #pragma unroll
             for (int i = 0; i < LVEC; i++) {
@@ -448,9 +453,9 @@ kernel monolithic() {
         }
 
         #pragma unroll
-        for (int y = 0; y < PE_Y; y++) {
+        for (uint y = 0; y < PE_Y; y++) {
             #pragma unroll
-            for (int x = 0; x < PE_X; x++) {
+            for (uint x = 0; x < PE_X; x++) {
                 // compute and store outputs in shift register
                 float result = PE(fedA[y], fedB[x], accum[y][x]);
                 if (fedA[y].c) {
@@ -464,7 +469,7 @@ kernel monolithic() {
 
         cols_floats results;
         #pragma unroll
-        for (int i = 0; i < PE_X; i++) {
+        for (uint i = 0; i < PE_X; i++) {
             results.data[i] = drain[i][0];
 
             // Is this code really useful?
@@ -491,7 +496,7 @@ kernel monolithic() {
             }
         }
         storecount++;
-        counter = POW2_REM(POW2_REM(counter, RANGE) + 1, RANGE);
+        counter = POW2_REM(counter + 1, RANGE);
     }
 }
 
@@ -501,10 +506,9 @@ __attribute__((uses_global_work_offset(0)))
 kernel void
 store(global volatile float * restrict C, int c_n_msgs) {
     // We read and discard this many messages
-    for (uint i = 0; i < SHIFT_REG_SIZE * PE_Y; i++) {
+    for (uint i = 0; i < SHIFT_REGS_PER_Y; i++) {
         read_channel_intel(ch_store_c);
     }
-
 
     uint word = 0;
     uchar pos = 0;
@@ -520,8 +524,7 @@ store(global volatile float * restrict C, int c_n_msgs) {
             elems[j + crt_pos] = data.data[j];
         }
 
-        bool commit = (crt_pos >= STORE_WIDTH - PE_X);
-        if (commit) {
+        if (crt_pos >= STORE_WIDTH - PE_X) {
 #pragma unroll
             for (uint j = 0; j < STORE_WIDTH; j++) {
                 C[word * STORE_WIDTH + j] = elems[j];
