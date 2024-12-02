@@ -123,34 +123,37 @@ tensor_linearize_tiles_new2(
 }
 
 tensor *
-tensor_linearize_tiles_new(tensor *src,
-                           int tile_height, int tile_width) {
-    int src_height = src->dims[0];
-    int src_width = src->dims[1];
+tensor_tile_2d_new(tensor *src, int tile_y, int tile_x) {
+    assert(src->n_dims == 2);
 
-    int tiles_x = CEIL_DIV(src_width, tile_width);
-    int tiles_y = CEIL_DIV(src_height, tile_height);
+    int src_y = src->dims[0];
+    int src_x = src->dims[1];
 
-    int dst_height = tiles_x * tiles_y;
-    int dst_width = tile_height * tile_width;
-    tensor *dst = tensor_init_2d(dst_height, dst_width);
+    int n_tiles_y = CEIL_DIV(src_y, tile_y);
+    int n_tiles_x = CEIL_DIV(src_x, tile_x);
 
-    float *src_ptr = src->data;
-    float *dst_ptr = dst->data;
-    for (int k = 0; k < src_height; k += tile_height) {
-        for  (int j = 0; j < src_width; j += tile_width) {
-            for (int x = 0; x < tile_height; x++ ) {
-                for (int z = 0; z < tile_width; z++) {
-                    int src_x = j + z;
-                    int src_y = k + x;
-                    if (src_x < src_width && src_y < src_height) {
-                        *dst_ptr++ = src_ptr[src_width * src_y + src_x];
-                    } else {
-                        *dst_ptr++ = 0.0;
+    tensor *dst = tensor_init_4d(
+        n_tiles_y, n_tiles_x, tile_y, tile_x
+    );
+
+    float *s_ptr = src->data;
+    float *d_ptr = dst->data;
+
+    for (int k = 0; k < src_y; k += tile_y) {
+        for  (int j = 0; j < src_x; j += tile_x) {
+            for (int x = 0; x < tile_y; x++ ) {
+                for (int z = 0; z < tile_x; z++) {
+                    int at_x = j + z;
+                    int at_y = k + x;
+                    float v = 0.0;
+                    if (at_x < src_x && at_y < src_y) {
+                        v = s_ptr[src_x * at_y + at_x];
                     }
+                    *d_ptr++ = v;
                 }
             }
         }
     }
+
     return dst;
 }

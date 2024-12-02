@@ -921,11 +921,16 @@ test_cifar10() {
     assert(x4->dims[2] == 5);
 
     tensor_flatten(x4, 0);
-    tensor_check_dims(x4, 1, (int[]){400});
-
+    tensor_check_equal_dims(
+        x4->n_dims, x4->dims,
+        1, (int[]){400}
+    );
     tensor *x5 = tensor_linear_new(fc1, fc1_bias, x4);
     tensor_unary(x5, x5, TENSOR_UNARY_OP_MAX, 0);
-    assert(tensor_check_dims(x5, 1, (int[]){120}));
+    tensor_check_equal_dims(
+        x5->n_dims, x5->dims,
+        1, (int[]){120}
+    );
 
     tensor *x6 = tensor_linear_new(fc2, fc2_bias, x5);
     tensor_unary(x6, x6, TENSOR_UNARY_OP_MAX, 0);

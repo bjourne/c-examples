@@ -20,13 +20,15 @@
 // Checking
 ////////////////////////////////////////////////////////////////////////
 
-bool
-tensor_check_dims(tensor *me, int n_dims, int dims[]) {
-    assert(me->n_dims == n_dims);
-    for (int i = 0; i < n_dims; i++) {
-        assert(me->dims[i] == dims[i]);
+void
+tensor_check_equal_dims(
+    int n_dims1, int dims1[],
+    int n_dims2, int dims2[]
+) {
+    assert(n_dims1 == n_dims2);
+    for (int i = 0; i < n_dims1; i++) {
+        assert(dims1[i] == dims2[i]);
     }
-    return true;
 }
 
 static void
@@ -52,7 +54,8 @@ print_dims(int n_dims, int dims[]) {
 
 bool
 tensor_check_equal(tensor *t1, tensor *t2, float epsilon) {
-    assert(t1->n_dims == t2->n_dims);
+    tensor_check_equal_dims(t1->n_dims, t1->dims,
+                            t2->n_dims, t2->dims);
     int n = t1->n_dims;
     int dim_counts[TENSOR_MAX_N_DIMS] = {0};
     int *dims = t1->dims;
@@ -862,7 +865,10 @@ tensor_layer_stack_free(tensor_layer_stack *me) {
 // The point is to avoid redundant mallocs and copies.
 tensor *
 tensor_layer_stack_apply_new(tensor_layer_stack *me, tensor *input) {
-    tensor_check_dims(input, me->input_n_dims, me->input_dims);
+    tensor_check_equal_dims(
+        input->n_dims, input->dims,
+        me->input_n_dims, me->input_dims
+    );
     tensor *src = me->src_buf;
     tensor *dst = me->dst_buf;
     copy_dims(input->n_dims, input->dims, &src->n_dims, src->dims);
