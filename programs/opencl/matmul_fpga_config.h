@@ -17,9 +17,10 @@
 // | 406  | 8     | 16x16 | 16x16 | 2    | 9994 |     | 0.90  |
 // | 461  | 8     | 16x16 | 16x16 | 4    | 9993 |     | 32.63 |
 // | 456  | 8     | 16x16 | 16x16 | 2    | 9992 | (1) | 1.24  |
+// | 605  | 8     | 16x16 | 16x16 | 2    | 9991 | (2) | 0.56  |
 //
 // 1. This refactoring increased the length of the critical chain.
-
+// 2. Reverted last changes.
 
 // This is important but it is not enforced:
 // PE_X + PE_Y <= Y_INTERLEAVED

@@ -105,10 +105,10 @@
 #define SWAP_RANGE                  (Y_INTERLEAVED * X_INTERLEAVED * X_VECS)
 #define RANGE                       (2 * SWAP_RANGE)
 
-
 // Uh
 #define N_A_LOADS (PE_Y * Y_INTERLEAVED * X_VECS / LVEC)
 #define N_B_LOADS (PE_X * X_INTERLEAVED * X_VECS / LVEC)
+
 
 ////////////////////////////////////////////////////////////////////////
 // Sanity checking
@@ -238,36 +238,40 @@ loadB(global volatile vfloat* restrict B,
 }
 
 vfloat_bool
-FeederA(
-    n_vfloat_bool new,
-    vfloat mem_a[2][Y_INTERLEAVED][X_VECS][BANK_Y],
-    uint counter,
-    int row,
-    bool side
-) {
+FeederA(n_vfloat_bool new,
+        vfloat mem_a[2][Y_INTERLEAVED][X_VECS][BANK_Y],
+        uint counter, int row) {
 
     uint masked_counter = POW2_REM(counter, SWAP_RANGE);
+
     bool write_to_buffer =
         (masked_counter * LVEC / (Y_INTERLEAVED * X_VECS)) == row;
     bool new_row_col_pair =
         masked_counter < (Y_INTERLEAVED * X_INTERLEAVED);
+    bool buffer_id_to_write_to = (counter / SWAP_RANGE) & 1;
+    bool buffer_id_to_feed_to_sysarr = !buffer_id_to_write_to;
 
     if (write_to_buffer) {
-        uchar buffer_vector = POW2_REM(counter * LVEC, X_VECS);
-        uchar buffer_row = POW2_REM(counter * LVEC, Y_INTERLEAVED * X_VECS) / X_VECS;
+        uchar buffer_vector_to_write_to = POW2_REM(counter * LVEC, X_VECS);
+        uchar buffer_row_to_write_to = POW2_REM(counter * LVEC, Y_INTERLEAVED * X_VECS) / X_VECS;
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
-            mem_a[side][buffer_row][(buffer_vector / LVEC) * LVEC + i][row] = new.data[i];
+            mem_a[buffer_id_to_write_to][buffer_row_to_write_to][(buffer_vector_to_write_to / LVEC) * LVEC + i][row] = new.data[i];
         }
     }
 
-    uchar buffer_row =
+    uchar buffer_row_to_feed_to_sysarr =
         POW2_REM(counter, Y_INTERLEAVED * X_INTERLEAVED) / X_INTERLEAVED;
-    uchar buffer_vector =
+    uchar buffer_vector_to_feed_to_sysarr =
         masked_counter / (Y_INTERLEAVED * X_INTERLEAVED);
 
     vfloat_bool val;
-    val.data = mem_a[!side][buffer_row][buffer_vector][row];
+    vfloat choices[LVEC];
+#pragma unroll
+    for (int i = 0; i < LVEC; i++) {
+        choices[i] = mem_a[buffer_id_to_feed_to_sysarr][buffer_row_to_feed_to_sysarr][(buffer_vector_to_feed_to_sysarr / LVEC) * LVEC + i][row];
+    }
+    val.data = choices[buffer_vector_to_feed_to_sysarr % LVEC];
     val.c = new_row_col_pair & new.c;
     return val;
 }
@@ -277,45 +281,45 @@ FeederA(
 // load_counter is the counter for writing into the feeders,
 // which may start at some point in the overall counter range (once FeederA is finished loading)
 vfloat
-FeederB(
-    n_vfloat new,
-    vfloat mem_b[2][X_INTERLEAVED][X_VECS][BANK_X],
-    uint col,
-    uint counter,
-    bool side
-) {
-    // Quantity can be negative but it is then wrapped around..
-    uint load_counter = counter - SWAP_RANGE + N_B_LOADS;
+FeederB(n_vfloat new,
+        vfloat mem_b[2][X_INTERLEAVED][X_VECS][BANK_X],
+        uint load_counter, int col, uint counter) {
+
     bool write_to_buffer = ((POW2_REM(load_counter, SWAP_RANGE) * LVEC) / (X_INTERLEAVED * X_VECS)) == col;
     // Note: counter is used here because load_counter is not valid if only reading.
-    if (write_to_buffer) {
-        uchar buffer_vector = POW2_REM(load_counter * LVEC, X_VECS);
-        uchar buffer_row = POW2_REM(load_counter * LVEC, X_INTERLEAVED * X_VECS) / X_VECS;
+    bool buffer_id_to_write_to = (counter / SWAP_RANGE) & 1;
+    bool buffer_id_to_feed_to_sysarr = !buffer_id_to_write_to;
 
+    if (write_to_buffer) {
+        uchar buffer_vector_to_write_to = POW2_REM(load_counter * LVEC, X_VECS);
+        uchar buffer_row_to_write_to = POW2_REM(load_counter * LVEC, X_INTERLEAVED * X_VECS) / X_VECS;
 #pragma unroll
         for (int i = 0; i < LVEC; i++) {
-            mem_b[side][buffer_row][(buffer_vector / LVEC) * LVEC + i][col] = new.data[i];
+            mem_b[buffer_id_to_write_to][buffer_row_to_write_to][(buffer_vector_to_write_to / LVEC) * LVEC + i][col] = new.data[i];
         }
     }
 
-    uchar buffer_row = POW2_REM(counter, X_INTERLEAVED);
-    uchar buffer_vector =
+    uchar buffer_row_to_feed_to_sysarr = POW2_REM(counter, X_INTERLEAVED);
+    uchar buffer_vector_to_feed_to_sysarr =
         POW2_REM(counter, SWAP_RANGE) / (Y_INTERLEAVED * X_INTERLEAVED);
 
-    vfloat choice = mem_b[!side][buffer_row][buffer_vector][col];
+    vfloat choices[LVEC];
+    #pragma unroll
+    for (int i = 0; i < LVEC; i++) {
+        choices[i] = mem_b[buffer_id_to_feed_to_sysarr][buffer_row_to_feed_to_sysarr][(buffer_vector_to_feed_to_sysarr / LVEC) * LVEC + i][col];
+    }
 
-    // Accomodate the floorplanning script
+// Accomodate the floorplanning script
 #if LVEC > 1
-    return __fpga_reg(choice);
+    return __fpga_reg(choices[buffer_vector_to_feed_to_sysarr % LVEC]);
 #else
-    return choice;
+    return choices[buffer_vector_to_feed_to_sysarr % LVEC];
 #endif
 
 }
 
 float
 PE(vfloat_bool valA, vfloat valB, float *accum) {
-
     float oldAcc = __fpga_reg(accum[0]);
     float sum = valA.c ? 0.0f : oldAcc;
     #pragma unroll
@@ -333,6 +337,7 @@ PE(vfloat_bool valA, vfloat valB, float *accum) {
             }
         #endif
     }
+
     #pragma unroll
     for (int i = 0; i < SHIFT_REG_SIZE - 1; i++) {
         accum[i] = accum[i + 1];
@@ -389,6 +394,7 @@ kernel monolithic() {
 
     // Try to load B as late as possible, so that if there is enough time and not enough DDR bandwidth, we
     // can load all of A and then load all of B
+    const uint first_b_load = SWAP_RANGE - N_B_LOADS;
 
     bool new_row_col_pair = false;
     while (1) {
@@ -398,34 +404,26 @@ kernel monolithic() {
         n_vfloat_bool valA;
         n_vfloat valB;
         uint masked_counter = POW2_REM(counter, SWAP_RANGE);
-
-        bool read_a = masked_counter < N_A_LOADS;
-        bool read_b = (masked_counter < SWAP_RANGE) &&
-                      (masked_counter >= SWAP_RANGE - N_B_LOADS);
-        if (read_a) {
+        if (masked_counter < N_A_LOADS) {
             valA = read_channel_intel(ch_load_a);
-
-            if (!new_row_col_pair && valA.c) {
+            // save latests row_col_pair
+            if ((!new_row_col_pair && valA.c) & 0x01)
                 base = storecount;
-            }
             new_row_col_pair = valA.c;
         }
         // serialize the two reads to reduce burstiness
-        if (read_b) {
+        if ((masked_counter < first_b_load + N_B_LOADS) &&
+            (masked_counter >= first_b_load))
             valB = read_channel_intel(ch_load_b);
-        }
 
-        // Which side of the double buffers we write to.
-        bool side = (counter / SWAP_RANGE) & 1;
-
-        // private counters for feeder fpga_reg. Is it necessary?
+        // private counters for feeder fpga_reg
         uint counterA = counter;
 
         // recover last known row_col_pair
         valA.c = new_row_col_pair;
         #pragma unroll
         for (int row = 0; row < PE_Y; row++) {
-            fedA[row] = FeederA(valA, mem_a, counterA, row, side);
+            fedA[row] = FeederA(valA, mem_a, counterA, row);
             #pragma unroll
             for (int i = 0; i < LVEC; i++) {
                 valA.data[i] = __fpga_reg(__fpga_reg(valA.data[i]));
@@ -436,15 +434,9 @@ kernel monolithic() {
 
         uint counterB = counter;
         #pragma unroll
-        for (uint x = 0; x < PE_X; x++) {
+        for (int x = 0; x < PE_X; x++) {
             // the indexing matches the serialization of the ch_load_b reads
-            fedB[x] = FeederB(
-                valB,
-                mem_b,
-                x,
-                counterB,
-                side
-            );
+            fedB[x] = FeederB(valB, mem_b, counterB - first_b_load, x, counterB);
             #pragma unroll
             for (int i = 0; i < LVEC; i++) {
                 valB.data[i] = __fpga_reg(__fpga_reg(valB.data[i]));
@@ -453,9 +445,9 @@ kernel monolithic() {
         }
 
         #pragma unroll
-        for (uint y = 0; y < PE_Y; y++) {
+        for (int y = 0; y < PE_Y; y++) {
             #pragma unroll
-            for (uint x = 0; x < PE_X; x++) {
+            for (int x = 0; x < PE_X; x++) {
                 // compute and store outputs in shift register
                 float result = PE(fedA[y], fedB[x], accum[y][x]);
                 if (fedA[y].c) {
@@ -469,7 +461,7 @@ kernel monolithic() {
 
         cols_floats results;
         #pragma unroll
-        for (uint i = 0; i < PE_X; i++) {
+        for (int i = 0; i < PE_X; i++) {
             results.data[i] = drain[i][0];
 
             // Is this code really useful?
@@ -478,7 +470,7 @@ kernel monolithic() {
                 results.data[j] = __fpga_reg(__fpga_reg(results.data[j]));
             }
         }
-        if (storecount - base < SHIFT_REG_SIZE * PE_Y)
+        if (storecount - base < SHIFT_REGS_PER_Y)
             write_channel_intel(ch_store_c, results);
 
         #pragma unroll
@@ -490,13 +482,12 @@ kernel monolithic() {
                     drain[x][y * SHIFT_REG_SIZE + i] = drain[x][y * SHIFT_REG_SIZE + i + 1];
                 }
                 // use fpga_reg at logical PE boundaries - to capture locality
-                float old = drain[x][y * SHIFT_REG_SIZE + SHIFT_REG_SIZE];
                 drain[x][y * SHIFT_REG_SIZE + SHIFT_REG_SIZE - 1] =
-                    __fpga_reg(__fpga_reg(old));
+                    __fpga_reg(__fpga_reg(drain[x][y * SHIFT_REG_SIZE + SHIFT_REG_SIZE]));
             }
         }
         storecount++;
-        counter = POW2_REM(counter + 1, RANGE);
+        counter = POW2_REM(POW2_REM(counter, RANGE) + 1, RANGE);
     }
 }
 
@@ -509,6 +500,7 @@ store(global volatile float * restrict C, int c_n_msgs) {
     for (uint i = 0; i < SHIFT_REGS_PER_Y; i++) {
         read_channel_intel(ch_store_c);
     }
+
 
     uint word = 0;
     uchar pos = 0;
@@ -523,7 +515,6 @@ store(global volatile float * restrict C, int c_n_msgs) {
         for (uint j = 0; j < PE_X; j++) {
             elems[j + crt_pos] = data.data[j];
         }
-
         if (crt_pos >= STORE_WIDTH - PE_X) {
 #pragma unroll
             for (uint j = 0; j < STORE_WIDTH; j++) {
