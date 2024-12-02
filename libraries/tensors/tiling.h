@@ -11,8 +11,8 @@
 // the least amount of tiles needed to cover the matrix are used.
 tensor *
 tensor_tile_2d_mt_new(tensor *src,
-                      unsigned int tile_y, unsigned int tile_x,
-                      unsigned int fill_y, unsigned int fill_x);
+                      int tile_y, int tile_x,
+                      int fill_y, int fill_x);
 
 tensor *
 tensor_tile_2d_new(tensor *src,

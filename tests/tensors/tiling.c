@@ -7,21 +7,46 @@
 #include "tensors/tiling.h"
 
 void
+test_tile_2d_mt_small() {
+    int sy = 7;
+    int sx = 7;
+    int ty = 2;
+    int tx = 2;
+
+    tensor *src = tensor_init_2d(sy, sx);
+    tensor_fill_range(src, 1.0);
+    tensor *tiled0 = tensor_tile_2d_new(src, ty, tx, 0, 0);
+    tensor *tiled1 = tensor_tile_2d_mt_new(src, ty, tx, 0, 0);
+
+    tensor_check_equal(tiled0, tiled1, LINALG_EPSILON);
+    tensor_free(src);
+    tensor_free(tiled0);
+    tensor_free(tiled1);
+}
+
+void
 test_tile_2d_mt() {
     int sy = 200 + rand_n(100);
     int sx = 200 + rand_n(100);
     int ty = 4 + rand_n(4);
     int tx = 4 + rand_n(4);
 
+    /* int sy = 5; */
+    /* int sx = 5; */
+    /* int ty = 4; */
+    /* int tx = 4; */
+
     tensor *src = tensor_init_2d(sy, sx);
+    tensor_fill_range(src, 1.0);
     tensor *tiled0 = tensor_tile_2d_new(src, ty, tx, 0, 0);
     tensor *tiled1 = tensor_tile_2d_mt_new(src, ty, tx, 0, 0);
     tensor_check_equal(tiled0, tiled1, LINALG_EPSILON);
-
     tensor_free(src);
     tensor_free(tiled0);
     tensor_free(tiled1);
 }
+
+
 
 void
 test_linearize_tiles() {
@@ -158,7 +183,6 @@ test_filling() {
     tensor_free(dst);
 }
 
-// 1.946 on gcc
 void
 perf_tile_2d() {
     int SIZE = 8192*2;
@@ -173,10 +197,10 @@ perf_tile_2d() {
     tensor_free(src);
 }
 
-// 1.143 on gcc
+// 4.776 on gcc
 void
 perf_tile_2d_mt() {
-    int SIZE = 8192*2;
+    int SIZE = 8192*4;
     tensor *src = tensor_init(2, (int[]){SIZE, SIZE});
     uint64_t bef = nano_count();
     for (int i = 0; i < 10; i++) {
@@ -191,6 +215,7 @@ perf_tile_2d_mt() {
 int
 main(int argc, char *argv[]) {
     rand_init(0);
+    PRINT_RUN(test_tile_2d_mt_small);
     PRINT_RUN(test_tile_2d_mt);
     PRINT_RUN(test_tile_2d);
     PRINT_RUN(test_linearize_tiles);
