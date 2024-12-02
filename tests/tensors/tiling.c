@@ -28,7 +28,7 @@ test_linearize_tiles() {
     tensor *src = tensor_init_2d(4, 4);
     tensor *dst = tensor_init_4d(2, 2, 2, 2);
     tensor *dst_ref = tensor_init_4d(2, 2, 2, 2);
-    tensor_copy_data(dst_ref, (float *)(float[]){
+    tensor_copy_data(dst_ref, (float[]){
         1, 2, 5, 6,
         3, 4, 7, 8,
         9, 10, 13, 14,
@@ -135,23 +135,6 @@ test_transpose_b() {
 }
 
 void
-perf_test_linearize_tiles2() {
-    int SIZE = 8192*2;
-    tensor *src = tensor_init(2, (int[]){SIZE, SIZE});
-    struct timespec begin, end;
-    clock_gettime(CLOCK_MONOTONIC_RAW, &begin);
-    for (int i = 0; i < 10; i++) {
-        tensor *dst = tensor_tile_2d_mt_new(src, 2, 1, SIZE, SIZE);
-        tensor_free(dst);
-    }
-    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-    double delta = (end.tv_nsec - begin.tv_nsec) / 1000000000.0 +
-        (end.tv_sec  - begin.tv_sec);
-    printf("%.6lfs\n", delta);
-    tensor_free(src);
-}
-
-void
 test_tile_2d() {
     tensor *src = tensor_init_2d(4, 4);
     tensor_fill_range(src, 1.0);
@@ -175,6 +158,35 @@ test_filling() {
     tensor_free(dst);
 }
 
+// 1.946 on gcc
+void
+perf_tile_2d() {
+    int SIZE = 8192*2;
+    tensor *src = tensor_init(2, (int[]){SIZE, SIZE});
+    uint64_t bef = nano_count();
+    for (int i = 0; i < 10; i++) {
+        tensor *dst = tensor_tile_2d_new(src, 256, 64, SIZE, SIZE);
+        tensor_free(dst);
+    }
+    double delta = (nano_count() - bef) / 1000000000.0;
+    printf("%.6lfs\n", delta);
+    tensor_free(src);
+}
+
+// 1.143 on gcc
+void
+perf_tile_2d_mt() {
+    int SIZE = 8192*2;
+    tensor *src = tensor_init(2, (int[]){SIZE, SIZE});
+    uint64_t bef = nano_count();
+    for (int i = 0; i < 10; i++) {
+        tensor *dst = tensor_tile_2d_mt_new(src, 256, 64, SIZE, SIZE);
+        tensor_free(dst);
+    }
+    double delta = (nano_count() - bef) / 1000000000.0;
+    printf("%.6lfs\n", delta);
+    tensor_free(src);
+}
 
 int
 main(int argc, char *argv[]) {
@@ -185,5 +197,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_transpose_a);
     PRINT_RUN(test_transpose_b);
     PRINT_RUN(test_filling);
-    perf_test_linearize_tiles2();
+    perf_tile_2d();
+    perf_tile_2d_mt();
 }

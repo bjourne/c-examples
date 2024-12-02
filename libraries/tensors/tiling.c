@@ -107,6 +107,8 @@ tensor_tile_2d(tensor *src, tensor *dst) {
 
     float *s_ptr = src->data;
     float *d_ptr = dst->data;
+
+    bool even_tiles = !(src_y % tile_y) && !(src_x % tile_x);
     for (int k = 0; k < n_tiles_y; k++) {
         for  (int j = 0; j < n_tiles_x; j++) {
             for (int x = 0; x < tile_y; x++ ) {
@@ -114,7 +116,7 @@ tensor_tile_2d(tensor *src, tensor *dst) {
                     int at_x = tile_x*j + z;
                     int at_y = tile_y*k + x;
                     float v = 0.0;
-                    if (at_x < src_x && at_y < src_y) {
+                    if (even_tiles || (at_x < src_x && at_y < src_y)) {
                         v = s_ptr[src_x * at_y + at_x];
                     }
                     *d_ptr++ = v;
