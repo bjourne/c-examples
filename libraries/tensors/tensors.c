@@ -130,6 +130,8 @@ copy_dims(int src_n_dims, int *src_dims,
     memcpy(dst_dims, src_dims, sizeof(int) * TENSOR_MAX_N_DIMS);
 }
 
+
+// What name is this?
 static void
 compute_2d_dims(tensor *src,
                 int kernel_h, int kernel_w,

@@ -22,6 +22,9 @@ tensor_tile_2d_new(tensor *src,
 void
 tensor_tile_2d(tensor *src, tensor *dst);
 
+void
+tensor_transpose_tiled(tensor *src, tensor *dst);
+
 
 
 #endif

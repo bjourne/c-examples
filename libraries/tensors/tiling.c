@@ -3,6 +3,7 @@
 #include <math.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include "datatypes/common.h"
 #include "tiling.h"
@@ -13,26 +14,6 @@ typedef struct {
     tensor *src;
     tensor *dst;
 } tile_job_t;
-
-/* static void */
-/* tile_y_range_even(float *src, float *dst, */
-/*                   int src_y, int src_x, */
-/*                   int y_tile_lo, int y_tile_hi, */
-/*                   int n_tiles_y, int n_tiles_x, */
-/*                   int tile_y, int tile_x) { */
-/*     float *d_ptr = &dst[y_tile_lo * n_tiles_x * tile_x * tile_y]; */
-/*     for (int k = y_tile_lo; k < y_tile_hi; k++) { */
-/*         for  (int j = 0; j < n_tiles_x; j++) { */
-/*             for (int x = 0; x < tile_y; x++ ) { */
-/*                 for (int z = 0; z < tile_x; z++) { */
-/*                     int at_x = tile_x*j + z; */
-/*                     int at_y = tile_y*k + x; */
-/*                     *d_ptr++ = src[src_x * at_y + at_x]; */
-/*                 } */
-/*             } */
-/*         } */
-/*     } */
-/* } */
 
 static inline void
 tile_y_range(float *src, float *dst,
@@ -81,7 +62,6 @@ tile_thread(void *arg) {
                  lo_y, hi_y,
                  n_tiles_y, n_tiles_x,
                  tile_y, tile_x);
-
     return NULL;
 }
 
@@ -159,4 +139,29 @@ tensor_tile_2d_new(
     );
     tensor_tile_2d(src, dst);
     return dst;
+}
+
+// Transposes a tiled 3d tensor: (n, y, x) -> (n, x, y)
+void
+tensor_transpose_tiled(tensor *src, tensor *dst) {
+    assert(src->n_dims == 3 && src->n_dims == dst->n_dims);
+    assert(src->dims[0] == dst->dims[0]);
+    assert(src->dims[1] == dst->dims[2]);
+    assert(src->dims[2] == dst->dims[1]);
+
+    int n_tiles = src->dims[0];
+    int tile_y = src->dims[1];
+    int tile_x = src->dims[2];
+
+    float *d_ptr = dst->data;
+    float *s_ptr = src->data;
+
+    for (int i = 0; i < n_tiles; i++) {
+        for (int j = 0; j < tile_x; j++) {
+            for (int k = 0; k < tile_y ; k++) {
+                int from = (tile_x * tile_y) * i + tile_x * k + j;
+                *d_ptr++ = s_ptr[from];
+            }
+        }
+    }
 }

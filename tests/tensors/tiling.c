@@ -7,6 +7,25 @@
 #include "tensors/tiling.h"
 
 void
+test_reorder() {
+    int n_tiles = 5;
+    int tile_x = 3;
+    int tile_y = 4;
+
+    tensor *src = tensor_init_3d(n_tiles, tile_y, tile_x);
+    tensor *dst = tensor_init_3d(n_tiles, tile_x, tile_y);
+    tensor_fill_range(src, 0.0);
+
+    tensor_transpose_tiled(src, dst);
+
+    tensor_print(src, true, 0, 200, " ");
+    tensor_print(dst, true, 0, 200, " ");
+
+    tensor_free(src);
+    tensor_free(dst);
+}
+
+void
 test_tile_2d_mt_small() {
     int sy = 7;
     int sx = 7;
@@ -31,11 +50,6 @@ test_tile_2d_mt() {
     int ty = 4 + rand_n(4);
     int tx = 4 + rand_n(4);
 
-    /* int sy = 5; */
-    /* int sx = 5; */
-    /* int ty = 4; */
-    /* int tx = 4; */
-
     tensor *src = tensor_init_2d(sy, sx);
     tensor_fill_range(src, 1.0);
     tensor *tiled0 = tensor_tile_2d_new(src, ty, tx, 0, 0);
@@ -45,8 +59,6 @@ test_tile_2d_mt() {
     tensor_free(tiled0);
     tensor_free(tiled1);
 }
-
-
 
 void
 test_linearize_tiles() {
@@ -198,6 +210,7 @@ perf_tile_2d() {
 }
 
 // 4.776 on gcc
+// 4.800 on clang
 void
 perf_tile_2d_mt() {
     int SIZE = 8192*4;
@@ -215,6 +228,7 @@ perf_tile_2d_mt() {
 int
 main(int argc, char *argv[]) {
     rand_init(0);
+    PRINT_RUN(test_reorder);
     PRINT_RUN(test_tile_2d_mt_small);
     PRINT_RUN(test_tile_2d_mt);
     PRINT_RUN(test_tile_2d);
