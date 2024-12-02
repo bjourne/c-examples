@@ -33,7 +33,7 @@ test_transpose_a() {
 
     tensor_print(src, true, 0, 80, " ");
 
-    tensor *dst1 = tensor_tile_2d_new(src, 2, 1);
+    tensor *dst1 = tensor_tile_2d_new(src, 2, 1, 0, 0);
     assert(dst1->dims[0] == 3);
     assert(dst1->dims[1] == 4);
     assert(dst1->dims[2] == 2);
@@ -41,23 +41,23 @@ test_transpose_a() {
     tensor_print(dst1, true, 0, 80, " ");
     tensor_free(dst1);
 
-    tensor *dst2 = tensor_tile_2d_new(src, 3, 1);
+    tensor *dst2 = tensor_tile_2d_new(src, 3, 1, 0, 0);
     assert(tensor_n_elements(dst2) == 2 * 4 * 3 * 1);
     tensor_print(dst2, true, 0, 80, " ");
     tensor_free(dst2);
 
-    tensor *dst3 = tensor_tile_2d_new(src, 4, 1);
+    tensor *dst3 = tensor_tile_2d_new(src, 4, 1, 0, 0);
     assert(dst3->n_dims == 4);
     assert(tensor_n_elements(dst3) == 2 * 4 * 4 * 1);
     tensor_print(dst3, true, 1, 80, " ");
     tensor_free(dst3);
 
-    tensor *dst4 = tensor_tile_2d_new(src, 5, 1);
+    tensor *dst4 = tensor_tile_2d_new(src, 5, 1, 0, 0);
     assert(tensor_n_elements(dst4) == 1 * 4 * 5 * 1);
     tensor_print(dst4, true, 1, 80, " ");
     tensor_free(dst4);
 
-    tensor *dst5 = tensor_tile_2d_new(src, 6, 1);
+    tensor *dst5 = tensor_tile_2d_new(src, 6, 1, 0, 0);
     assert(tensor_n_elements(dst5) == 1 * 4 * 6 * 1);
     tensor_print(dst5, true, 1, 80, " ");
     tensor_free(dst5);
@@ -92,23 +92,17 @@ test_transpose_b() {
     tensor *src = tensor_init_2d(5, 4);
     tensor_fill_range(src, 1.0);
 
-    tensor *dst1 = tensor_tile_2d_new(src, 2, 2);
+    tensor *dst1 = tensor_tile_2d_new(src, 2, 2, 0, 0);
     tensor *dst1_exp = tensor_init_4d(3, 2, 2, 2);
     tensor_copy_data(dst1_exp, (float *)matrix_6x4);
-
-    assert(dst1->dims[0] == 3);
-    assert(dst1->dims[1] == 2);
-    assert(dst1->dims[2] == 2);
-    assert(dst1->dims[3] == 2);
     tensor_check_equal(dst1, dst1_exp, LINALG_EPSILON);
 
-    tensor *dst2 = tensor_tile_2d_new(src, 2, 3);
+    tensor *dst2 = tensor_tile_2d_new(src, 2, 3, 0, 0);
     tensor *dst2_exp = tensor_init_4d(3, 2, 2, 3);
     tensor_copy_data(dst2_exp, (float *)matrix_6x6);
     tensor_check_equal(dst2, dst2_exp, LINALG_EPSILON);
 
-    tensor *dst3 = tensor_tile_2d_new(src, 3, 3);
-    //tensor *dst3 = tensor_linearize_tiles_new(src, 3, 3);
+    tensor *dst3 = tensor_tile_2d_new(src, 3, 3, 0, 0);
     tensor *dst3_exp = tensor_init_4d(2, 2, 3, 3);
     tensor_copy_data(dst3_exp, (float *)matrix_4x9);
     tensor_check_equal(dst3, dst3_exp, LINALG_EPSILON);
@@ -143,7 +137,7 @@ void
 test_tile_2d() {
     tensor *src = tensor_init_2d(4, 4);
     tensor_fill_range(src, 1.0);
-    tensor *dst = tensor_tile_2d_new(src, 3, 3);
+    tensor *dst = tensor_tile_2d_new(src, 3, 3, 0, 0);
 
     assert(tensor_n_elements(dst) == 3 * 3 * 4);
 
@@ -151,6 +145,16 @@ test_tile_2d() {
     tensor_print(dst, false, 0, 80, " ");
     tensor_free(dst);
     tensor_free(src);
+}
+
+void
+test_filling() {
+    tensor *src = tensor_init_2d(4, 4);
+    tensor_fill_range(src, 1.0);
+    tensor *dst = tensor_tile_2d_new(src, 2, 2, 8, 8);
+    assert(tensor_n_elements(dst) == 4 * 4 * 2 * 2);
+    tensor_free(src);
+    tensor_free(dst);
 }
 
 
@@ -161,5 +165,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_linearize_tiles);
     PRINT_RUN(test_transpose_a);
     PRINT_RUN(test_transpose_b);
+    PRINT_RUN(test_filling);
     perf_test_linearize_tiles2();
 }

@@ -99,8 +99,8 @@ tensor_linearize_tiles_new2(
     long n_jobs = 3 * sysconf(_SC_NPROCESSORS_ONLN);
     tile_job_t *jobs = malloc(sizeof(tile_job_t) * n_jobs);
 
-    unsigned int n_y_tiles = CEIL_DIV(fill_height, tile_height);
-    float y_tiles_per_thread = (float)n_y_tiles / (float)n_jobs;
+
+    float y_tiles_per_thread = (float)tiles_y / (float)n_jobs;
 
     unsigned int start_i = 0;
     for (int i = 0; i < n_jobs; i++) {
@@ -123,14 +123,21 @@ tensor_linearize_tiles_new2(
 }
 
 tensor *
-tensor_tile_2d_new(tensor *src, int tile_y, int tile_x) {
+tensor_tile_2d_new(
+    tensor *src,
+    int tile_y, int tile_x,
+    int fill_y, int fill_x
+) {
     assert(src->n_dims == 2);
 
     int src_y = src->dims[0];
     int src_x = src->dims[1];
 
-    int n_tiles_y = CEIL_DIV(src_y, tile_y);
-    int n_tiles_x = CEIL_DIV(src_x, tile_x);
+    fill_y = fill_y ? fill_y : src_y;
+    fill_x = fill_x ? fill_x : src_x;
+
+    int n_tiles_y = CEIL_DIV(fill_y, tile_y);
+    int n_tiles_x = CEIL_DIV(fill_x, tile_x);
 
     tensor *dst = tensor_init_4d(
         n_tiles_y, n_tiles_x, tile_y, tile_x
@@ -139,12 +146,12 @@ tensor_tile_2d_new(tensor *src, int tile_y, int tile_x) {
     float *s_ptr = src->data;
     float *d_ptr = dst->data;
 
-    for (int k = 0; k < src_y; k += tile_y) {
-        for  (int j = 0; j < src_x; j += tile_x) {
+    for (int k = 0; k < n_tiles_y; k++) {
+        for  (int j = 0; j < n_tiles_x; j++) {
             for (int x = 0; x < tile_y; x++ ) {
                 for (int z = 0; z < tile_x; z++) {
-                    int at_x = j + z;
-                    int at_y = k + x;
+                    int at_x = tile_x*j + z;
+                    int at_y = tile_y*k + x;
                     float v = 0.0;
                     if (at_x < src_x && at_y < src_y) {
                         v = s_ptr[src_x * at_y + at_x];
@@ -154,6 +161,5 @@ tensor_tile_2d_new(tensor *src, int tile_y, int tile_x) {
             }
         }
     }
-
     return dst;
 }
