@@ -75,10 +75,10 @@ test_arbitrary_sizes() {
     int M = b0 + rand_n(r);
 
     printf("N = %d, K = %d, M = %d\n", N, K, M);
-    tensor *a = tensor_init(2, (int[]){N, K});
-    tensor *b = tensor_init(2, (int[]){K, M});
-    tensor *c = tensor_init(2, (int[]){N, M});
-    tensor *c_ref = tensor_init(2, (int[]){N, M});
+    tensor *a = tensor_init_2d(N, K);
+    tensor *b = tensor_init_2d(K, M);
+    tensor *c = tensor_init_2d(N, M);
+    tensor *c_ref = tensor_init_2d(N, M);
 
     tensor_fill_rand_range(a, 10);
     tensor_fill_rand_range(b, 10);

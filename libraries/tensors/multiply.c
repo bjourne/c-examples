@@ -246,10 +246,8 @@ tensor_multiply_w_params(tensor *a, tensor *b, tensor *c, int n_jobs) {
     int K = CEIL_DIV(a_cols, TILE_K) * TILE_K;
     int M = CEIL_DIV(b_cols, TILE_J) * TILE_J;
 
-    tensor *a_tiled = tensor_linearize_tiles_new2(a, SIMD_HEIGHT, 1,
-                                                  N, K);
-    tensor *b_tiled = tensor_linearize_tiles_new2(b, TILE_K, SIMD_WIDTH,
-                                                  K, M);
+    tensor *a_tiled = tensor_tile_2d_mt_new(a, SIMD_HEIGHT, 1, N, K);
+    tensor *b_tiled = tensor_tile_2d_mt_new(b, TILE_K, SIMD_WIDTH, K, M);
 
     float *a_tiled_data = a_tiled->data;
     float *b_tiled_data = b_tiled->data;

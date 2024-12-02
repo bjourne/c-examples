@@ -27,7 +27,12 @@ tensor_check_equal_dims(
 ) {
     assert(n_dims1 == n_dims2);
     for (int i = 0; i < n_dims1; i++) {
-        assert(dims1[i] == dims2[i]);
+        int d1 = dims1[i];
+        int d2 = dims2[i];
+        if (d1 != d2) {
+            printf("Mismatch at dim %d: %d != %d\n", i, d1, d2);
+            assert(false);
+        }
     }
 }
 

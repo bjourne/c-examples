@@ -7,6 +7,23 @@
 #include "tensors/tiling.h"
 
 void
+test_tile_2d_mt() {
+    int sy = 200 + rand_n(100);
+    int sx = 200 + rand_n(100);
+    int ty = 4 + rand_n(4);
+    int tx = 4 + rand_n(4);
+
+    tensor *src = tensor_init_2d(sy, sx);
+    tensor *tiled0 = tensor_tile_2d_new(src, ty, tx, 0, 0);
+    tensor *tiled1 = tensor_tile_2d_mt_new(src, ty, tx, 0, 0);
+    tensor_check_equal(tiled0, tiled1, LINALG_EPSILON);
+
+    tensor_free(src);
+    tensor_free(tiled0);
+    tensor_free(tiled1);
+}
+
+void
 test_linearize_tiles() {
     tensor *src = tensor_init_2d(4, 4);
     tensor *dst = tensor_init_4d(2, 2, 2, 2);
@@ -32,35 +49,35 @@ test_transpose_a() {
     tensor *src = tensor_init_2d(5, 4);
     tensor_fill_range(src, 1.0);
 
-    tensor_print(src, true, 0, 80, " ");
+    //tensor_print(src, true, 0, 80, " ");
 
     tensor *dst1 = tensor_tile_2d_new(src, 2, 1, 0, 0);
     assert(dst1->dims[0] == 3);
     assert(dst1->dims[1] == 4);
     assert(dst1->dims[2] == 2);
     assert(dst1->dims[3] == 1);
-    tensor_print(dst1, true, 0, 80, " ");
+    //tensor_print(dst1, true, 0, 80, " ");
     tensor_free(dst1);
 
     tensor *dst2 = tensor_tile_2d_new(src, 3, 1, 0, 0);
     assert(tensor_n_elements(dst2) == 2 * 4 * 3 * 1);
-    tensor_print(dst2, true, 0, 80, " ");
+    //tensor_print(dst2, true, 0, 80, " ");
     tensor_free(dst2);
 
     tensor *dst3 = tensor_tile_2d_new(src, 4, 1, 0, 0);
     assert(dst3->n_dims == 4);
     assert(tensor_n_elements(dst3) == 2 * 4 * 4 * 1);
-    tensor_print(dst3, true, 1, 80, " ");
+    //tensor_print(dst3, true, 1, 80, " ");
     tensor_free(dst3);
 
     tensor *dst4 = tensor_tile_2d_new(src, 5, 1, 0, 0);
     assert(tensor_n_elements(dst4) == 1 * 4 * 5 * 1);
-    tensor_print(dst4, true, 1, 80, " ");
+    //tensor_print(dst4, true, 1, 80, " ");
     tensor_free(dst4);
 
     tensor *dst5 = tensor_tile_2d_new(src, 6, 1, 0, 0);
     assert(tensor_n_elements(dst5) == 1 * 4 * 6 * 1);
-    tensor_print(dst5, true, 1, 80, " ");
+    //tensor_print(dst5, true, 1, 80, " ");
     tensor_free(dst5);
 
     tensor_free(src);
@@ -124,7 +141,7 @@ perf_test_linearize_tiles2() {
     struct timespec begin, end;
     clock_gettime(CLOCK_MONOTONIC_RAW, &begin);
     for (int i = 0; i < 10; i++) {
-        tensor *dst = tensor_linearize_tiles_new2(src, 2, 1, SIZE, SIZE);
+        tensor *dst = tensor_tile_2d_mt_new(src, 2, 1, SIZE, SIZE);
         tensor_free(dst);
     }
     clock_gettime(CLOCK_MONOTONIC_RAW, &end);
@@ -162,6 +179,7 @@ test_filling() {
 int
 main(int argc, char *argv[]) {
     rand_init(0);
+    PRINT_RUN(test_tile_2d_mt);
     PRINT_RUN(test_tile_2d);
     PRINT_RUN(test_linearize_tiles);
     PRINT_RUN(test_transpose_a);
