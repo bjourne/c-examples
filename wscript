@@ -28,6 +28,8 @@ def configure(ctx):
             # Do I want -fPIC? I don't know.
             '-std=gnu11',
             '-Wsign-compare',
+            # IDK what this warning means
+            '-Wno-compound-token-split-by-macro',
             '-march=native', '-mtune=native',
         ]
         base_cxx_flags = [
@@ -78,8 +80,12 @@ def configure(ctx):
                   cxxflags = ['-fopenmp'])
         ctx.check(lib = 'm', mandatory = False)
         ctx.check(lib = 'pthread', mandatory = False, uselib_store = 'PTHREAD')
-        ctx.check(header_name = 'CL/cl.h', mandatory = True, lib = 'OpenCL',
-                  uselib_store = 'OPENCL')
+        ctx.check(
+            header_name = 'CL/cl.h',
+            mandatory = True,
+            lib = 'OpenCL',
+            uselib_store = 'OPENCL'
+        )
         ctx.check(header_name = 'mpi.h', lib = 'mpi', mandatory = False)
 
     # We grab compilation and link flags for CUDA and oneAPI by
