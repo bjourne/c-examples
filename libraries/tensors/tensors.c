@@ -691,6 +691,14 @@ tensor_transpose(tensor *src, tensor *dst) {
     }
 }
 
+tensor *
+tensor_transpose_new(tensor *src) {
+    tensor *dst = tensor_init_2d(src->dims[1], src->dims[0]);
+    tensor_transpose(src, dst);
+    return dst;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 // Layer abstraction
 ////////////////////////////////////////////////////////////////////////

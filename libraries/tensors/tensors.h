@@ -169,6 +169,7 @@ tensor *tensor_linear_new(tensor *weights, tensor *bias, tensor *src);
 
 // Transpose
 void tensor_transpose(tensor *src, tensor *dst);
+tensor *tensor_transpose_new(tensor *src);
 
 #ifdef HAVE_PNG
 // Png support

@@ -46,14 +46,9 @@ main(int argc, char *argv[]) {
     size_t n_float = sizeof(float);
 
     tensor *a = tensor_init_2d(A_Y, A_X);
-
-    tensor *b_transpose = tensor_init_2d(B_X, B_Y);
-
     tensor *b = tensor_init_2d(B_Y, B_X);
-
     tensor *c = tensor_init_2d(C_Y, C_X);
     tensor *c_ref = tensor_init_2d(C_Y, C_X);
-
 
     printf("** Matrix dimensions **\n");
     printf("%12s %6d %6d\n", "a", A_Y, A_X);
@@ -99,7 +94,7 @@ main(int argc, char *argv[]) {
         a, A_BLOCK_Y, A_BLOCK_X, 0, 0
     );
 
-    tensor_transpose(b, b_transpose);
+    tensor *b_transpose = tensor_transpose_new(b);
     tensor *b_transpose_tiled = tensor_tile_2d_new(
         b_transpose, B_BLOCK_X, B_BLOCK_Y, 0, 0
     );
