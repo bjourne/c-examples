@@ -9,8 +9,8 @@
 void
 test_linearize_tiles() {
     tensor *src = tensor_init_2d(4, 4);
-    tensor *dst = tensor_init_2d(4, 4);
-    tensor *dst_ref = tensor_init_2d(4, 4);
+    tensor *dst = tensor_init_4d(2, 2, 2, 2);
+    tensor *dst_ref = tensor_init_4d(2, 2, 2, 2);
     tensor_copy_data(dst_ref, (float *)(float[]){
         1, 2, 5, 6,
         3, 4, 7, 8,
@@ -18,7 +18,8 @@ test_linearize_tiles() {
         11, 12, 15, 16});
 
     tensor_fill_range(src, 1.0);
-    tensor_linearize_tiles(src, dst, 2, 2);
+
+    tensor_tile_2d(src, dst);
     tensor_check_equal(dst, dst_ref, LINALG_EPSILON);
 
     tensor_free(src);

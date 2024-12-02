@@ -122,30 +122,19 @@ tensor_linearize_tiles_new2(
     return dst;
 }
 
-tensor *
-tensor_tile_2d_new(
-    tensor *src,
-    int tile_y, int tile_x,
-    int fill_y, int fill_x
-) {
-    assert(src->n_dims == 2);
+void
+tensor_tile_2d(tensor *src, tensor *dst) {
+    assert(src->n_dims == 2 && dst->n_dims == 4);
+    int n_tiles_y = dst->dims[0];
+    int n_tiles_x = dst->dims[1];
+    int tile_y = dst->dims[2];
+    int tile_x = dst->dims[3];
 
     int src_y = src->dims[0];
     int src_x = src->dims[1];
 
-    fill_y = fill_y ? fill_y : src_y;
-    fill_x = fill_x ? fill_x : src_x;
-
-    int n_tiles_y = CEIL_DIV(fill_y, tile_y);
-    int n_tiles_x = CEIL_DIV(fill_x, tile_x);
-
-    tensor *dst = tensor_init_4d(
-        n_tiles_y, n_tiles_x, tile_y, tile_x
-    );
-
     float *s_ptr = src->data;
     float *d_ptr = dst->data;
-
     for (int k = 0; k < n_tiles_y; k++) {
         for  (int j = 0; j < n_tiles_x; j++) {
             for (int x = 0; x < tile_y; x++ ) {
@@ -161,5 +150,25 @@ tensor_tile_2d_new(
             }
         }
     }
+}
+
+tensor *
+tensor_tile_2d_new(
+    tensor *src,
+    int tile_y, int tile_x,
+    int fill_y, int fill_x
+) {
+    assert(src->n_dims == 2);
+
+    fill_y = fill_y ? fill_y : src->dims[0];
+    fill_x = fill_x ? fill_x : src->dims[1];
+
+    int n_tiles_y = CEIL_DIV(fill_y, tile_y);
+    int n_tiles_x = CEIL_DIV(fill_x, tile_x);
+
+    tensor *dst = tensor_init_4d(
+        n_tiles_y, n_tiles_x, tile_y, tile_x
+    );
+    tensor_tile_2d(src, dst);
     return dst;
 }

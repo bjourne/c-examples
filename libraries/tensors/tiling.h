@@ -26,6 +26,9 @@ tensor_tile_2d_new(tensor *src,
                    int tile_y, int tile_x,
                    int fill_y, int fill_x);
 
+void
+tensor_tile_2d(tensor *src, tensor *dst);
+
 
 
 #endif
