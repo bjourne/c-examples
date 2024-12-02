@@ -119,6 +119,7 @@ void tensor_copy_data(tensor *me, void *addr);
 
 // Checking
 bool tensor_check_equal(tensor *t1, tensor *t2, float eps);
+void tensor_check_equal_contents(tensor *t1, tensor *t2, float eps);
 void tensor_check_equal_dims(int n_dims1, int dims1[],
                              int n_dims2, int dims2[]);
 

@@ -15,25 +15,6 @@
 
 #include "matmul_fpga_config.h"
 
-static void
-reorder_within_blocks(float * src,
-                      float * dst,
-                      int height, int width,
-                      int num_sys_arr_columns, int block_x) {
-    int n_els = height * width;
-    int column_interleaving = block_x / num_sys_arr_columns;
-    int word_id = 0;
-    for (int i = 0; i < n_els; i += block_x) {
-        for (int j = 0; j < column_interleaving; j++) {
-            for (int k = 0; k < num_sys_arr_columns ; k++) {
-                dst[word_id] = src[i + j + k * column_interleaving];
-                word_id++;
-            }
-        }
-    }
-    assert(word_id == n_els);
-}
-
 typedef enum {
     BUF_A,
     BUF_B,
@@ -71,10 +52,8 @@ main(int argc, char *argv[]) {
     tensor *b = tensor_init_2d(B_Y, B_X);
 
     tensor *c = tensor_init_2d(C_Y, C_X);
-    tensor *c_golden = tensor_init_2d(C_Y, C_X);
-
-    tensor *c_golden_blocked_reordered = tensor_init_2d(C_Y, C_X);
     tensor *c_ref = tensor_init_2d(C_Y, C_X);
+
 
     printf("** Matrix dimensions **\n");
     printf("%12s %6d %6d\n", "a", A_Y, A_X);
@@ -100,20 +79,30 @@ main(int argc, char *argv[]) {
     printf("** Multiplying on CPU **\n");
     tensor_multiply(a, b, c_ref);
 
-    tensor *a_blocked = tensor_tile_2d_new(a, A_BLOCK_Y, A_BLOCK_X, 0, 0);
+    // Can we do this in one step?
+    tensor *c_ref_tiled = tensor_tile_2d_new(
+        c_ref, A_BLOCK_Y, B_BLOCK_X, 0, 0
+    );
+
+    int n_tiles = N * K * A_BLOCK_Y;
+
+    tensor *c_ref_tiled_transposed = tensor_init_3d(n_tiles, PE_X, X_INTERLEAVED);
+
+    c_ref_tiled->n_dims = 3;
+    c_ref_tiled->dims[0] = n_tiles;
+    c_ref_tiled->dims[1] = X_INTERLEAVED;
+    c_ref_tiled->dims[2] = PE_X;
+
+    tensor_transpose_tiled(c_ref_tiled, c_ref_tiled_transposed);
+
+    tensor *a_tiled = tensor_tile_2d_new(
+        a, A_BLOCK_Y, A_BLOCK_X, 0, 0
+    );
+
     tensor_transpose(b, b_transpose);
-
-    tensor *b_transpose_blocked = tensor_tile_2d_new(b_transpose, B_BLOCK_X, B_BLOCK_Y, 0, 0);
-
-    // Golden compute
-    tensor_multiply(a, b, c_golden);
-    tensor *c_golden_blocked = tensor_tile_2d_new(c_golden, C_BLOCK_Y, C_BLOCK_X, 0, 0);
-
-    reorder_within_blocks(c_golden_blocked->data,
-                          c_golden_blocked_reordered->data,
-                          C_Y, C_X,
-                          PE_X,
-                          C_BLOCK_X);
+    tensor *b_transpose_tiled = tensor_tile_2d_new(
+        b_transpose, B_BLOCK_X, B_BLOCK_Y, 0, 0
+    );
 
     printf("** Setting up OpenCL **\n");
 
@@ -145,8 +134,8 @@ main(int argc, char *argv[]) {
     for (int i = 0; i < 3; i++) {
         OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, bufs[i]));
     }
-    OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, BUF_A, a_blocked->data));
-    OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 1, BUF_B, b_transpose_blocked->data));
+    OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, BUF_A, a_tiled->data));
+    OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 1, BUF_B, b_transpose_tiled->data));
 
     // LoadB kernel
     cl_uint b_n_vectors_per_col = B_Y * B_BLOCK_X / VECTOR_SIZE;
@@ -208,19 +197,18 @@ main(int argc, char *argv[]) {
 
     // We use the fourth queue to read data back.
     OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, 3, BUF_C, c->data));
-    tensor_check_equal(c, c_golden_blocked_reordered, 1.0);
+    tensor_check_equal_contents(c, c_ref_tiled_transposed, 1.0);
 
     ocl_ctx_free(ctx);
 
     // Free tensors
     tensor_free(a);
-    tensor_free(a_blocked);
+    tensor_free(a_tiled);
     tensor_free(b);
     tensor_free(b_transpose);
-    tensor_free(b_transpose_blocked);
+    tensor_free(b_transpose_tiled);
     tensor_free(c);
     tensor_free(c_ref);
-    tensor_free(c_golden);
-    tensor_free(c_golden_blocked);
-    tensor_free(c_golden_blocked_reordered);
+    tensor_free(c_ref_tiled);
+    tensor_free(c_ref_tiled_transposed);
 }

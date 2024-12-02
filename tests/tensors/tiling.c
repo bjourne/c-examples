@@ -18,6 +18,9 @@ test_reorder() {
 
     tensor_transpose_tiled(src, dst);
 
+    assert(src->dims[1] == dst->dims[2]);
+    assert(src->dims[2] == dst->dims[1]);
+
     tensor_print(src, true, 0, 200, " ");
     tensor_print(dst, true, 0, 200, " ");
 

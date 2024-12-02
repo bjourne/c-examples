@@ -16,26 +16,6 @@
 #include "random/random.h"
 #include "tensors.h"
 
-////////////////////////////////////////////////////////////////////////
-// Checking
-////////////////////////////////////////////////////////////////////////
-
-void
-tensor_check_equal_dims(
-    int n_dims1, int dims1[],
-    int n_dims2, int dims2[]
-) {
-    assert(n_dims1 == n_dims2);
-    for (int i = 0; i < n_dims1; i++) {
-        int d1 = dims1[i];
-        int d2 = dims2[i];
-        if (d1 != d2) {
-            printf("Mismatch at dim %d: %d != %d\n", i, d1, d2);
-            assert(false);
-        }
-    }
-}
-
 static void
 str_dims(char *buf, int n_dims, int dims[])  {
     strcat(buf, "[");
@@ -57,30 +37,49 @@ print_dims(int n_dims, int dims[]) {
     printf("%s", buf);
 }
 
-bool
-tensor_check_equal(tensor *t1, tensor *t2, float epsilon) {
-    tensor_check_equal_dims(t1->n_dims, t1->dims,
-                            t2->n_dims, t2->dims);
-    int n = t1->n_dims;
+////////////////////////////////////////////////////////////////////////
+// Checking
+////////////////////////////////////////////////////////////////////////
+
+void
+tensor_check_equal_dims(
+    int n_dims1, int dims1[],
+    int n_dims2, int dims2[]
+) {
+    assert(n_dims1 == n_dims2);
+    for (int i = 0; i < n_dims1; i++) {
+        int d1 = dims1[i];
+        int d2 = dims2[i];
+        if (d1 != d2) {
+            printf("Mismatch at dim %d: %d != %d\n", i, d1, d2);
+            assert(false);
+        }
+    }
+}
+
+void
+tensor_check_equal_contents(tensor *t1, tensor *t2, float eps) {
+    int n_els1 = tensor_n_elements(t1);
+    int n_els2 = tensor_n_elements(t2);
+    assert(n_els1 == n_els2);
+    int n_dims = t1->n_dims;
     int dim_counts[TENSOR_MAX_N_DIMS] = {0};
-    int *dims = t1->dims;
     int n_mismatches = 0;
-    int n_els = tensor_n_elements(t1);
-    for (int i = 0; i < n_els; i++) {
+    for (int i = 0; i < n_els1; i++) {
         float v1 = t1->data[i];
         float v2 = t2->data[i];
         float diff = fabs(v2 - v1);
-        if (diff >= epsilon) {
+        if (diff >= eps) {
             n_mismatches++;
             if (n_mismatches < 100) {
                 printf("Mismatch at ");
-                print_dims(n, dim_counts);
+                print_dims(n_dims, dim_counts);
                 printf(", %10.6f != %10.6f\n", v1,  v2);
             }
         }
-        for (int j = n - 1; j >= 0; j--) {
+        for (int j = n_dims - 1; j >= 0; j--) {
             dim_counts[j]++;
-            if (dim_counts[j] == dims[j]) {
+            if (dim_counts[j] == t1->dims[j]) {
                 dim_counts[j] = 0;
             } else {
                 break;
@@ -90,6 +89,13 @@ tensor_check_equal(tensor *t1, tensor *t2, float epsilon) {
     if (n_mismatches > 0) {
         printf("%d mismatches in total.\n", n_mismatches);
     }
+}
+
+bool
+tensor_check_equal(tensor *t1, tensor *t2, float epsilon) {
+    tensor_check_equal_dims(t1->n_dims, t1->dims,
+                            t2->n_dims, t2->dims);
+    tensor_check_equal_contents(t1, t2, epsilon);
     return true;
 }
 
