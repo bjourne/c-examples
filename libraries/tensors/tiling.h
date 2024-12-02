@@ -4,11 +4,6 @@
 
 #include "tensors.h"
 
-// TODO: delete this
-void tensor_linearize_tiles(tensor *src, tensor *dst,
-                            int tile_height, int tile_width);
-
-
 tensor *
 tensor_linearize_tiles_new2(
     tensor *src,

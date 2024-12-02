@@ -65,14 +65,14 @@ main(int argc, char *argv[]) {
     size_t n_float = sizeof(float);
 
     tensor *a = tensor_init_2d(A_Y, A_X);
-    tensor *a_blocked = tensor_init_2d(A_Y, A_X);
+
     tensor *b_transpose = tensor_init_2d(B_X, B_Y);
-    tensor *b_transpose_blocked = tensor_init_2d(B_X, B_Y);
+
     tensor *b = tensor_init_2d(B_Y, B_X);
 
     tensor *c = tensor_init_2d(C_Y, C_X);
     tensor *c_golden = tensor_init_2d(C_Y, C_X);
-    tensor *c_golden_blocked = tensor_init_2d(C_Y, C_X);
+
     tensor *c_golden_blocked_reordered = tensor_init_2d(C_Y, C_X);
     tensor *c_ref = tensor_init_2d(C_Y, C_X);
 
@@ -100,14 +100,15 @@ main(int argc, char *argv[]) {
     printf("** Multiplying on CPU **\n");
     tensor_multiply(a, b, c_ref);
 
-    tensor_linearize_tiles(a, a_blocked, A_BLOCK_Y, A_BLOCK_X);
+    tensor *a_blocked = tensor_tile_2d_new(a, A_BLOCK_Y, A_BLOCK_X, 0, 0);
     tensor_transpose(b, b_transpose);
-    tensor_linearize_tiles(b_transpose, b_transpose_blocked,
-                           B_BLOCK_X, B_BLOCK_Y);
+
+    tensor *b_transpose_blocked = tensor_tile_2d_new(b_transpose, B_BLOCK_X, B_BLOCK_Y, 0, 0);
 
     // Golden compute
     tensor_multiply(a, b, c_golden);
-    tensor_linearize_tiles(c_golden, c_golden_blocked, C_BLOCK_Y, C_BLOCK_X);
+    tensor *c_golden_blocked = tensor_tile_2d_new(c_golden, C_BLOCK_Y, C_BLOCK_X, 0, 0);
+
     reorder_within_blocks(c_golden_blocked->data,
                           c_golden_blocked_reordered->data,
                           C_Y, C_X,

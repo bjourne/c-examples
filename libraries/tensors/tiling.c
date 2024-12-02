@@ -7,31 +7,6 @@
 #include "datatypes/common.h"
 #include "tiling.h"
 
-// Not all of these 2d tiling functions are necessary.
-void
-tensor_linearize_tiles(tensor *src, tensor *dst,
-                       int tile_height, int tile_width) {
-    assert(src->n_dims == 2 && src->n_dims == dst->n_dims);
-    assert(tensor_n_elements(src) == tensor_n_elements(dst));
-    int src_height = src->dims[0];
-    int src_width = src->dims[1];
-    assert(src_height % tile_height == 0);
-    assert(src_width % tile_width == 0);
-
-    float *src_buf = src->data;
-    float *dst_buf = dst->data;
-
-    for (int i = 0; i < src_height; i += tile_height) {
-        for (int j = 0; j < src_width; j += tile_width) {
-            for (int k = 0; k < tile_height; k++) {
-                for (int l = 0; l < tile_width; l++) {
-                    *dst_buf++ = src_buf[(i + k) * src_width + (j + l)];
-                }
-            }
-        }
-    }
-}
-
 typedef struct {
     pthread_t thread;
     unsigned int start_i, end_i;
