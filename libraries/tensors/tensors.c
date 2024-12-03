@@ -533,6 +533,7 @@ tensor_conv2d(tensor *weight, tensor *bias,
               int stride, int padding,
               tensor *src, tensor *dst) {
 
+    int dc_dim = weight->dims[0];
     int fy_dim = weight->dims[2];
     int fx_dim = weight->dims[3];
 
@@ -540,17 +541,8 @@ tensor_conv2d(tensor *weight, tensor *bias,
     int sy_dim = src->dims[1];
     int sx_dim = src->dims[2];
 
-    int dc_dim = weight->dims[0];
-
-    int h_start = -padding;
-    int h_end = sy_dim + padding - fy_dim + 1;
-    int w_start = -padding;
-    int w_end = sx_dim + padding - fx_dim + 1;
-
     int dy_dim, dx_dim;
     compute_2d_dims(src, fy_dim, fx_dim, stride, padding, &dy_dim, &dx_dim);
-
-    int dst_size = dy_dim * dx_dim;
 
     tensor_check_dims(weight, 4, dc_dim, sc_dim, fy_dim, fx_dim);
     tensor_check_dims(bias, 1, dc_dim);
@@ -559,24 +551,20 @@ tensor_conv2d(tensor *weight, tensor *bias,
     assert(src->n_dims == 3);
 
     float *F = weight->data;
+    float *B = bias->data;
     float *S = src->data;
     float *D = dst->data;
 
     for (int dc = 0; dc < dc_dim; dc++) {
-        for (int sc = 0; sc < sc_dim; sc++) {
-            float *dst_ptr = &D[dc * dst_size];
-            for (int h = h_start; h < h_end; h += stride) {
-                for (int w = w_start; w < w_end; w += stride) {
-                    float acc;
-                    if (sc > 0) {
-                        acc = *dst_ptr;
-                    } else {
-                        acc = bias->data[dc];
-                    }
+        for (int dy = 0; dy < dy_dim; dy++) {
+            for (int dx = 0; dx < dx_dim; dx++) {
+                int d_addr = ADDR3D(dc_dim, dy_dim, dx_dim, dc, dy, dx);
+                float acc = B[dc];
+                for (int sc = 0; sc < sc_dim; sc++) {
                     for  (int fy = 0; fy < fy_dim; fy++) {
                         for (int fx = 0; fx < fx_dim; fx++)  {
-                            int ay = h + fy;
-                            int ax = w + fx;
+                            int ay = stride*dy + fy - padding;
+                            int ax = stride*dx + fx - padding;
                             float s = 0;
                             int s_addr = ADDR3D(sc_dim, sy_dim, sx_dim, sc, ay, ax);
                             int f_addr = ADDR4D(dc_dim, sc_dim, fy_dim, fx_dim,
@@ -589,9 +577,8 @@ tensor_conv2d(tensor *weight, tensor *bias,
                             acc += s * weight;
                         }
                     }
-                    *dst_ptr = acc;
-                    dst_ptr++;
                 }
+                D[d_addr] = acc;
             }
         }
     }
