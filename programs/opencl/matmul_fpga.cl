@@ -88,10 +88,10 @@
 #endif
 
 // Shift register size
-#define SHIFT_REG_SIZE        (Y_INTERLEAVED * X_INTERLEAVED)
+#define SHIFT_REG_SIZE      (Y_INTERLEAVED * X_INTERLEAVED)
 
 // One store per row in the systolic array
-#define SHIFT_REGS_PER_Y        (SHIFT_REG_SIZE * PE_Y)
+#define SHIFT_REGS_PER_Y    (SHIFT_REG_SIZE * PE_Y)
 
 // Defines the width of channels in number of vectors.
 #ifndef LVEC
@@ -106,7 +106,7 @@
 #define A_BLOCK_N_MSGS      (A_BLOCK_N_VECTORS / LVEC)
 
 
-// Vectors in an A block row.
+// Vectors per A tile row
 #define X_VECS              (A_BLOCK_X / VECTOR_SIZE)
 
 #define SWAP_RANGE          (Y_INTERLEAVED * X_INTERLEAVED * X_VECS)
@@ -174,7 +174,7 @@ channel cols_floats ch_store_c __attribute__((depth(64)));
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
-loadA(global volatile vfloat* restrict A, uint M, uchar N, uchar K) {
+loadA(global vfloat* restrict A, uint M, uchar N, uchar K) {
     for (uint n = 0; n < N; n++) {
         for (uint k = 0; k < K; k++) {
             for (uint m = 0; m < M; m++) {
@@ -210,7 +210,7 @@ loadA(global volatile vfloat* restrict A, uint M, uchar N, uchar K) {
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
-loadB(global volatile vfloat* restrict B,
+loadB(global vfloat* restrict B,
       uint b_n_vectors_per_col,
       uint b_n_vectors_tot,
       uchar N) {
