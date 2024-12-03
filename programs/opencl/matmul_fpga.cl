@@ -26,6 +26,15 @@
 
 #pragma OPENCL EXTENSION cl_intel_channels : enable
 
+////////////////////////////////////////////////////////////////////////
+// Macro utility
+////////////////////////////////////////////////////////////////////////
+#define POW2_REM(i, v)              ((i) & ((v) - 1))
+
+
+#define FPGA_REG1(x)                __fpga_reg((x))
+#define FPGA_REG2(x)                __fpga_reg(__fpga_reg((x)))
+
 #define VECTOR_FLOAT2_ZERO          (float2)(0.0f, 0.0f)
 #define VECTOR_FLOAT4_ZERO          (float4)(0.0f, 0.0f, 0.0f, 0.0f)
 #define VECTOR_FLOAT8_ZERO          (float8)(VECTOR_FLOAT4_ZERO,VECTOR_FLOAT4_ZERO)
@@ -111,12 +120,6 @@
 // and not enough DDR bandwidth, we can load all of A and then load
 // all of B
 #define FIRST_B_LOAD        (SWAP_RANGE - N_B_LOADS)
-
-////////////////////////////////////////////////////////////////////////
-// Macro utility
-////////////////////////////////////////////////////////////////////////
-#define POW2_REM(i, v)              ((i) & ((v) - 1))
-
 
 ////////////////////////////////////////////////////////////////////////
 // Types
@@ -308,7 +311,7 @@ FeederB(n_vfloat new,
 
 // Accomodate the floorplanning script
 #if LVEC > 1
-    return __fpga_reg(choices[buffer_vector_to_feed_to_sysarr % LVEC]);
+    return FPGA_REG(choices[buffer_vector_to_feed_to_sysarr % LVEC]);
 #else
     return choices[buffer_vector_to_feed_to_sysarr % LVEC];
 #endif
@@ -317,7 +320,7 @@ FeederB(n_vfloat new,
 
 float
 PE(vfloat_bool valA, vfloat valB, float *accum) {
-    float oldAcc = __fpga_reg(accum[0]);
+    float oldAcc = FPGA_REG1(accum[0]);
     float sum = valA.c ? 0.0f : oldAcc;
     #pragma unroll
     for (int i = 0; i < VECTOR_SIZE; i++) {
@@ -330,7 +333,7 @@ PE(vfloat_bool valA, vfloat valB, float *accum) {
         // DSPs.
         #if (FORCE_DOT_4==1) && (VECTOR_SIZE!=4)
             if ((i%4) == 3){
-                sum = __fpga_reg(sum);
+                sum = FPGA_REG1(sum);
             }
         #endif
     }
@@ -420,10 +423,10 @@ kernel monolithic() {
             fedA[row] = FeederA(valA, mem_a, counterA, row);
             #pragma unroll
             for (int i = 0; i < LVEC; i++) {
-                valA.data[i] = __fpga_reg(__fpga_reg(valA.data[i]));
+                valA.data[i] = FPGA_REG2(valA.data[i]);
             }
-            valA.c = __fpga_reg(__fpga_reg(valA.c));
-            counterA = __fpga_reg(__fpga_reg(counterA));
+            valA.c = FPGA_REG2(valA.c);
+            counterA = FPGA_REG2(counterA);
         }
 
         uint counterB = counter;
@@ -433,9 +436,9 @@ kernel monolithic() {
             fedB[x] = FeederB(valB, mem_b, counterB - FIRST_B_LOAD, x, counterB);
             #pragma unroll
             for (int i = 0; i < LVEC; i++) {
-                valB.data[i] = __fpga_reg(__fpga_reg(valB.data[i]));
+                valB.data[i] = FPGA_REG2(valB.data[i]);
             }
-            counterB = __fpga_reg(__fpga_reg(counterB));
+            counterB = FPGA_REG2(counterB);
         }
 
         #pragma unroll
@@ -447,9 +450,9 @@ kernel monolithic() {
                 if (fedA[y].c) {
                     drain[x][y * SHIFT_REG_SIZE] = result;
                 }
-                fedA[y].data = __fpga_reg(__fpga_reg(fedA[y].data));
-                fedA[y].c = __fpga_reg(__fpga_reg(fedA[y].c));
-                fedB[x] = __fpga_reg(__fpga_reg(fedB[x]));
+                fedA[y].data = FPGA_REG2(fedA[y].data);
+                fedA[y].c = FPGA_REG2(fedA[y].c);
+                fedB[x] = FPGA_REG2(fedB[x]);
             }
         }
 
@@ -461,7 +464,7 @@ kernel monolithic() {
             // Is this code really useful?
             #pragma unroll
             for (int j = 0; j < PE_X; j++) {
-                results.data[j] = __fpga_reg(__fpga_reg(results.data[j]));
+                results.data[j] = FPGA_REG2(results.data[j]);
             }
         }
         if (storecount - base < SHIFT_REGS_PER_Y) {
@@ -478,7 +481,7 @@ kernel monolithic() {
                 }
                 // use fpga_reg at logical PE boundaries - to capture locality
                 drain[x][y * SHIFT_REG_SIZE + SHIFT_REG_SIZE - 1] =
-                    __fpga_reg(__fpga_reg(drain[x][y * SHIFT_REG_SIZE + SHIFT_REG_SIZE]));
+                    FPGA_REG2(drain[x][y * SHIFT_REG_SIZE + SHIFT_REG_SIZE]);
             }
         }
         storecount++;
