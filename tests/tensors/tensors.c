@@ -404,14 +404,14 @@ test_conv2d_strided() {
         }
     };
 
-    tensor *weight = tensor_init_from_data((float *)weight_data,
-                                           4, (int[]){1, 1, 3, 3});
+    tensor *weight = tensor_init_4d(1, 1, 3, 3);
+    tensor_copy_data(weight, weight_data);
     tensor *bias = tensor_init_1d(1);
     tensor_fill_const(bias, 0);
-    tensor *expected = tensor_init_from_data((float *)expected_data,
-                                             3, (int[]){1, 3, 3});
-    tensor *src = tensor_init_from_data((float *)src_data,
-                                        3, (int[]){1, 5, 5});
+    tensor *expected = tensor_init_3d(1, 3, 3);
+    tensor_copy_data(expected, expected_data);
+    tensor *src = tensor_init_3d(1, 5, 5);
+    tensor_copy_data(src, src_data);
     tensor *dst = tensor_conv2d_new(weight, bias, 2, 1, src);
 
     tensor_check_equal(expected, dst, LINALG_EPSILON);
@@ -663,6 +663,41 @@ test_conv2d_with_bias() {
 }
 
 void
+test_conv2d_with_stride3() {
+    float src_data[1][5][5] = {
+        {
+            {7, 5, 6, 1, 3},
+            {9, 3, 3, 2, 8},
+            {1, 1, 6, 1, 8},
+            {1, 8, 2, 3, 3},
+            {1, 0, 7, 2, 4}
+        },
+    };
+    float exp_data[1][2][2] = {
+        {
+            {7, 1},
+            {1, 3}
+        }
+    };
+
+    tensor *src = tensor_init_3d(1, 5, 5);
+    tensor_copy_data(src, src_data);
+    tensor *exp = tensor_init_3d(1, 2, 2);
+    tensor_copy_data(exp, exp_data);
+    tensor *weight = tensor_init_4d(1, 1, 1, 1);
+    tensor_fill_const(weight, 1.0);
+    tensor *bias = tensor_init_1d(1);
+    tensor_fill_const(bias, 0.0);
+    tensor *dst = tensor_conv2d_new(weight, bias, 3, 0, src);
+    tensor_check_equal(exp, dst, LINALG_EPSILON);
+    tensor_free(src);
+    tensor_free(exp);
+    tensor_free(weight);
+    tensor_free(bias);
+    tensor_free(dst);
+}
+
+void
 test_max_pool_1() {
     float src_data[2][5][5] = {
         {
@@ -702,12 +737,12 @@ test_max_pool_1() {
             {9., 8., 7., 8., 8.}
         }
     };
-    tensor *src = tensor_init_from_data((float *)src_data,
-                                        3, (int[]){2, 5, 5});
-    tensor *expected1 = tensor_init_from_data((float *)expected1_data,
-                                              3, (int[]){2, 4, 4});
-    tensor *expected2 = tensor_init_from_data((float *)expected2_data,
-                                              3, (int[]){2, 1, 5});
+    tensor *src = tensor_init_3d(2, 5, 5);
+    tensor_copy_data(src, src_data);
+    tensor *expected1 = tensor_init_3d(2, 4, 4);
+    tensor_copy_data(expected1, expected1_data);
+    tensor *expected2 = tensor_init_3d(2, 1, 5);
+    tensor_copy_data(expected2, expected2_data);
     tensor *dst1 = tensor_init_3d(2, 4, 4);
     tensor *dst2 = tensor_init_3d(2, 1, 5);
 
@@ -1088,6 +1123,7 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_conv2d_uneven);
     PRINT_RUN(test_conv2d_uneven_strided);
     PRINT_RUN(test_conv2d_with_bias);
+    PRINT_RUN(test_conv2d_with_stride3);
     PRINT_RUN(test_max_pool_1);
     PRINT_RUN(test_max_pool_strided);
     PRINT_RUN(test_max_pool_image);
