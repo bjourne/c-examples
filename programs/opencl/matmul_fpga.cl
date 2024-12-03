@@ -31,15 +31,23 @@
 ////////////////////////////////////////////////////////////////////////
 #define POW2_REM(i, v)              ((i) & ((v) - 1))
 
+#define DEBUG 0
+#if DEBUG==1
+#define ASSERT(cond)                if (!(cond)) { printf("Cond: %s failed!\n", #cond); }
+#else
+#define ASSERT(cond)
+#endif
 
-#define FPGA_REG1(x)                __fpga_reg((x))
-#define FPGA_REG2(x)                __fpga_reg(__fpga_reg((x)))
+/* #define FPGA_REG1(x)                __fpga_reg((x)) */
+/* #define FPGA_REG2(x)                __fpga_reg(__fpga_reg((x))) */
+
+#define FPGA_REG1(x)                x
+#define FPGA_REG2(x)                x
 
 #define VECTOR_FLOAT2_ZERO          (float2)(0.0f, 0.0f)
 #define VECTOR_FLOAT4_ZERO          (float4)(0.0f, 0.0f, 0.0f, 0.0f)
 #define VECTOR_FLOAT8_ZERO          (float8)(VECTOR_FLOAT4_ZERO,VECTOR_FLOAT4_ZERO)
 #define VECTOR_FLOAT16_ZERO         (float16)(VECTOR_FLOAT8_ZERO,VECTOR_FLOAT8_ZERO)
-
 
 // The number of rows rounded up to the next power of 2
 #if PE_Y <= 1
@@ -102,7 +110,7 @@
 // Number of vectors per block of A
 #define A_BLOCK_N_VECTORS   (A_BLOCK_Y * A_BLOCK_X / VECTOR_SIZE)
 
-// Number of msgs pre block of A
+// Number of msgs per block of A
 #define A_BLOCK_N_MSGS      (A_BLOCK_N_VECTORS / LVEC)
 
 
@@ -160,7 +168,7 @@ typedef struct {
 typedef struct {
     vfloat data;
     // indicates a new row/column pair
-    bool  c;
+    bool c;
 } vfloat_bool;
 
 ////////////////////////////////////////////////////////////////////////
@@ -216,7 +224,6 @@ loadB(global vfloat* restrict B,
       uchar N) {
 
     n_vfloat send_buf;
-
     for (uint times = 0; times < N; times++) {
         for (uint v_id = 0; v_id < b_n_vectors_tot / LVEC; v_id++) {
 #pragma unroll
@@ -258,9 +265,8 @@ FeederA(n_vfloat_bool new,
         }
     }
 
-    uchar col =
-        POW2_REM(counter, Y_INTERLEAVED * X_INTERLEAVED) / X_INTERLEAVED;
-    uchar vector = masked_counter / (Y_INTERLEAVED * X_INTERLEAVED);
+    uchar col = POW2_REM(counter, SHIFT_REG_SIZE) / X_INTERLEAVED;
+    uchar vector = masked_counter / SHIFT_REG_SIZE;
 
     vfloat_bool val;
     vfloat choices[LVEC];
@@ -405,7 +411,8 @@ kernel monolithic() {
             new_row_col_pair = valA.c;
         }
         // serialize the two reads to reduce burstiness
-        if ((masked_counter >= FIRST_B_LOAD) && (masked_counter < SWAP_RANGE)) {
+        ASSERT(masked_counter < SWAP_RANGE);
+        if (masked_counter >= FIRST_B_LOAD) {
             valB = read_channel_intel(ch_load_b);
         }
 

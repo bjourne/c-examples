@@ -25,13 +25,15 @@
 // | 8     | 16x16 | 16x16 | 2    | 9987 | 16  | (3) | 550  | 0.73  |
 // | 8     | 16x16 | 16x16 | 2    | 9987 | 16  | (4) | 492  | 0.74  |
 // | 8     | 16x16 | 16x16 | 2    | 9986 | 16  | (4) | 565  | 0.74  |
-// | 8     | 16x16 | 16x16 | 2    | 9985 | 16  | (5) |      |       |
+// | 8     | 16x16 | 16x16 | 2    | 9985 | 16  | (5) | 565  | 0.58  |
+// | 8     | 16x16 | 16x16 | 2    | 9985 | 16  | (6) |      |       |
 //
 // 1. This refactoring increased the length of the critical chain.
 // 2. Reverted last changes.
 // 3. No volatile store
 // 4. Simpler store kernel
 // 5. No volatile
+// 6. No FPGA_REGx
 
 // This is important but it is not enforced:
 // PE_X + PE_Y <= Y_INTERLEAVED

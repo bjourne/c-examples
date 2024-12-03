@@ -54,8 +54,6 @@ main(int argc, char *argv[]) {
     printf("%12s %6d %6d\n", "a", A_Y, A_X);
     printf("%12s %6d %6d\n", "b", B_Y, B_X);
     printf("%12s %6d %6d\n", "c", C_Y, C_X);
-    printf("%12s %6d %6d\n", "a_blocked", A_Y, A_X);
-    printf("%12s %6d %6d\n", "b_transpose", B_X, B_Y);
     printf("\n");
     printf("** Kernel setup **\n");
     printf("%12s %4d %4d\n", "PE dims", PE_Y, PE_X);
