@@ -244,32 +244,29 @@ FeederA(n_vfloat_bool new,
 
     uint masked_counter = POW2_REM(counter, SWAP_RANGE);
 
-    bool write_to_buffer =
-        (masked_counter * LVEC / (Y_INTERLEAVED * X_VECS)) == row;
+    bool do_write = (masked_counter * LVEC / (Y_INTERLEAVED * X_VECS)) == row;
     bool new_row_col_pair =
         masked_counter < (Y_INTERLEAVED * X_INTERLEAVED);
-    bool buffer_id_to_write_to = (counter / SWAP_RANGE) & 1;
-    bool buffer_id_to_feed_to_sysarr = !buffer_id_to_write_to;
+    bool side = (counter / SWAP_RANGE) & 1;
 
     if (write_to_buffer) {
-        uchar buffer_vector_to_write_to = POW2_REM(counter * LVEC, X_VECS);
-        uchar buffer_row_to_write_to = POW2_REM(counter * LVEC, Y_INTERLEAVED * X_VECS) / X_VECS;
+        uchar vector = POW2_REM(counter * LVEC, X_VECS);
+        uchar row = POW2_REM(counter * LVEC, Y_INTERLEAVED * X_VECS) / X_VECS;
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
-            mem_a[buffer_id_to_write_to][buffer_row_to_write_to][(buffer_vector_to_write_to / LVEC) * LVEC + i][row] = new.data[i];
+            mem_a[side][row][(vector / LVEC) * LVEC + i][row] = new.data[i];
         }
     }
 
-    uchar buffer_row_to_feed_to_sysarr =
+    uchar row =
         POW2_REM(counter, Y_INTERLEAVED * X_INTERLEAVED) / X_INTERLEAVED;
-    uchar buffer_vector_to_feed_to_sysarr =
-        masked_counter / (Y_INTERLEAVED * X_INTERLEAVED);
+    uchar vector = masked_counter / (Y_INTERLEAVED * X_INTERLEAVED);
 
     vfloat_bool val;
     vfloat choices[LVEC];
 #pragma unroll
     for (int i = 0; i < LVEC; i++) {
-        choices[i] = mem_a[buffer_id_to_feed_to_sysarr][buffer_row_to_feed_to_sysarr][(buffer_vector_to_feed_to_sysarr / LVEC) * LVEC + i][row];
+        choices[i] = mem_a[!side][row][(vector / LVEC) * LVEC + i][row];
     }
     val.data = choices[buffer_vector_to_feed_to_sysarr % LVEC];
     val.c = new_row_col_pair & new.c;
@@ -285,35 +282,34 @@ FeederB(n_vfloat new,
         vfloat mem_b[2][X_INTERLEAVED][X_VECS][BANK_X],
         uint load_counter, int col, uint counter) {
 
-    bool write_to_buffer = ((POW2_REM(load_counter, SWAP_RANGE) * LVEC) / (X_INTERLEAVED * X_VECS)) == col;
+    bool do_write = ((POW2_REM(load_counter, SWAP_RANGE) * LVEC) / (X_INTERLEAVED * X_VECS)) == col;
     // Note: counter is used here because load_counter is not valid if only reading.
-    bool buffer_id_to_write_to = (counter / SWAP_RANGE) & 1;
-    bool buffer_id_to_feed_to_sysarr = !buffer_id_to_write_to;
+    bool side = (counter / SWAP_RANGE) & 1;
 
-    if (write_to_buffer) {
-        uchar buffer_vector_to_write_to = POW2_REM(load_counter * LVEC, X_VECS);
-        uchar buffer_row_to_write_to = POW2_REM(load_counter * LVEC, X_INTERLEAVED * X_VECS) / X_VECS;
+    if (do_write) {
+        uchar row = POW2_REM(load_counter * LVEC, X_INTERLEAVED * X_VECS) / X_VECS;
+        uchar vector = POW2_REM(load_counter * LVEC, X_VECS) / LVEC;
+
 #pragma unroll
         for (int i = 0; i < LVEC; i++) {
-            mem_b[buffer_id_to_write_to][buffer_row_to_write_to][(buffer_vector_to_write_to / LVEC) * LVEC + i][col] = new.data[i];
+            mem_b[side][row][vector * LVEC + i][col] = new.data[i];
         }
     }
 
-    uchar buffer_row_to_feed_to_sysarr = POW2_REM(counter, X_INTERLEAVED);
-    uchar buffer_vector_to_feed_to_sysarr =
-        POW2_REM(counter, SWAP_RANGE) / (Y_INTERLEAVED * X_INTERLEAVED);
+    uchar row = POW2_REM(counter, X_INTERLEAVED);
+    uchar vector = POW2_REM(counter, SWAP_RANGE) / (Y_INTERLEAVED * X_INTERLEAVED);
 
     vfloat choices[LVEC];
     #pragma unroll
     for (int i = 0; i < LVEC; i++) {
-        choices[i] = mem_b[buffer_id_to_feed_to_sysarr][buffer_row_to_feed_to_sysarr][(buffer_vector_to_feed_to_sysarr / LVEC) * LVEC + i][col];
+        choices[i] = mem_b[!side][row][(vector / LVEC) * LVEC + i][col];
     }
 
 // Accomodate the floorplanning script
 #if LVEC > 1
-    return FPGA_REG(choices[buffer_vector_to_feed_to_sysarr % LVEC]);
+    return FPGA_REG1(choices[vector % LVEC]);
 #else
-    return choices[buffer_vector_to_feed_to_sysarr % LVEC];
+    return choices[vector % LVEC];
 #endif
 
 }
