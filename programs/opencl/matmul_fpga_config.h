@@ -1,6 +1,6 @@
 // Copyright (C) 2024 Björn A. Lindqvist <bjourne@gmail.com>
-#ifndef _PE_SYSTOLIC_ARRAY_H_
-#define _PE_SYSTOLIC_ARRAY_H_
+#ifndef PE_SYSTOLIC_ARRAY_H
+#define PE_SYSTOLIC_ARRAY_H
 
 // Here are performance figures for the Agilex 7 FPGA I'm working
 // with. For N=M=K=8192 matrices:
@@ -50,4 +50,4 @@
 #define C_BLOCK_Y                   A_BLOCK_Y
 #define C_BLOCK_X                   B_BLOCK_X
 
-#endif // _PE_SYSTOLIC_ARRAY_H_
+#endif

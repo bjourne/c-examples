@@ -26,9 +26,6 @@
 
 #pragma OPENCL EXTENSION cl_intel_channels : enable
 
-// How many floats in each storage chunk. Must be n**2 < 256.
-#define STORE_WIDTH 16
-
 #define VECTOR_FLOAT4_ZERO          (float4)(0.0f, 0.0f, 0.0f, 0.0f)
 #define VECTOR_FLOAT8_ZERO          (float8)(VECTOR_FLOAT4_ZERO,VECTOR_FLOAT4_ZERO)
 #define VECTOR_FLOAT16_ZERO         (float16)(VECTOR_FLOAT8_ZERO,VECTOR_FLOAT8_ZERO)
@@ -108,15 +105,6 @@
 // Uh
 #define N_A_LOADS (PE_Y * Y_INTERLEAVED * X_VECS / LVEC)
 #define N_B_LOADS (PE_X * X_INTERLEAVED * X_VECS / LVEC)
-
-
-////////////////////////////////////////////////////////////////////////
-// Sanity checking
-////////////////////////////////////////////////////////////////////////
-#if STORE_WIDTH < PE_X
-#error "STORE_WIDTH must be >= PE_X!"
-#endif
-
 
 ////////////////////////////////////////////////////////////////////////
 // Macro utility
@@ -491,39 +479,20 @@ kernel monolithic() {
     }
 }
 
-
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
-store(global volatile float * restrict C, int c_n_msgs) {
+store(global float * restrict C, int c_n_msgs) {
     // We read and discard this many messages
     for (uint i = 0; i < SHIFT_REGS_PER_Y; i++) {
         read_channel_intel(ch_store_c);
     }
 
-
-    uint word = 0;
-    uchar pos = 0;
-    float elems[2 * STORE_WIDTH];
     for (uint i = 0; i < c_n_msgs; i++) {
-
-        uchar crt_pos = POW2_REM(pos, STORE_WIDTH);
-
-        // Align new data
         cols_floats data = read_channel_intel(ch_store_c);
-        #pragma unroll
-        for (uint j = 0; j < PE_X; j++) {
-            elems[j + crt_pos] = data.data[j];
-        }
-        if (crt_pos >= STORE_WIDTH - PE_X) {
 #pragma unroll
-            for (uint j = 0; j < STORE_WIDTH; j++) {
-                C[word * STORE_WIDTH + j] = elems[j];
-                elems[j] = elems[STORE_WIDTH + j];
-                elems[STORE_WIDTH + j] = 0.0f;
-            }
-            word++;
+        for (uint j = 0; j < PE_X; j++) {
+            C[PE_X * i + j] = data.data[j];
         }
-        pos += PE_X;
     }
 }
