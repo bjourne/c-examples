@@ -122,6 +122,7 @@ bool tensor_check_equal(tensor *t1, tensor *t2, float eps);
 void tensor_check_equal_contents(tensor *t1, tensor *t2, float eps);
 void tensor_check_equal_dims(int n_dims1, int dims1[],
                              int n_dims2, int dims2[]);
+void tensor_check_dims(tensor *t, int n_dims, ...);
 
 // Printing
 void tensor_print(tensor *me, bool print_header,

@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <float.h>
 #include <math.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,6 +41,18 @@ print_dims(int n_dims, int dims[]) {
 ////////////////////////////////////////////////////////////////////////
 // Checking
 ////////////////////////////////////////////////////////////////////////
+
+void
+tensor_check_dims(tensor *t, int n_dims, ...) {
+    va_list ap;
+    va_start(ap, n_dims);
+    assert(t->n_dims == n_dims);
+    for (int i = 0; i < n_dims; i++) {
+        int d = va_arg(ap, int);
+        assert(t->dims[i] == d);
+    }
+    va_end(ap);
+}
 
 void
 tensor_check_equal_dims(
@@ -750,9 +763,9 @@ tensor_layer_init_conv2d(int in_chans, int out_chans,
     tensor_layer *me = (tensor_layer *)malloc(sizeof(tensor_layer));
     me->type = TENSOR_LAYER_CONV2D;
 
-    tensor *weight = tensor_init(4, (int[]){out_chans, in_chans,
-                                            kernel_size, kernel_size});
-    tensor *bias = tensor_init(1, (int[]){out_chans});
+    tensor *weight = tensor_init_4d(out_chans, in_chans,
+                                    kernel_size, kernel_size);
+    tensor *bias = tensor_init_1d(out_chans);
     me->conv2d.weight = weight;
     me->conv2d.bias = bias;
     me->conv2d.stride = stride;
@@ -865,8 +878,8 @@ tensor_layer_stack_init(int n_layers, tensor_layer **layers,
         input = output;
     }
     tensor_free(input);
-    me->src_buf = tensor_init(1, (int[]){buf_size});
-    me->dst_buf = tensor_init(1, (int[]){buf_size});
+    me->src_buf = tensor_init_1d(buf_size);
+    me->dst_buf = tensor_init_1d(buf_size);
     return me;
 }
 
