@@ -517,71 +517,76 @@ tensor_conv2d_new(tensor *weight, tensor *bias,
     return dst;
 }
 
+#define ADDR3D(d0, d1, d2, i0, i1, i2) (i0*d1*d2 + i1*d2 + i2)
+#define ADDR4D(d0, d1, d2, d3, i0, i1, i2, i3) \
+    (i0*d1*d2*d3 + i1*d2*d3 + i2*d3 + i3)
+
+// Names:
+//
+// [ds][xyz] - Indexes the width, height, and channels of src/dst image.
+// [d]s[xyz]_dim - Width, height, and channel dimensions of src/dst image.
+//
+// f[yx]_dim - Height and width of filter
+// D, F, S - Destination, filter, and source arrays.
 void
 tensor_conv2d(tensor *weight, tensor *bias,
               int stride, int padding,
               tensor *src, tensor *dst) {
 
-    int weight_c_out = weight->dims[0];
-    int weight_c_in = weight->dims[1];
-    int weight_h = weight->dims[2];
-    int weight_w = weight->dims[3];
+    int fy_dim = weight->dims[2];
+    int fx_dim = weight->dims[3];
 
-    int src_h = src->dims[1];
-    int src_w = src->dims[2];
+    int sc_dim = src->dims[0];
+    int sy_dim = src->dims[1];
+    int sx_dim = src->dims[2];
+
+    int dc_dim = weight->dims[0];
 
     int h_start = -padding;
-    int h_end = src_h + padding - weight_h + 1;
+    int h_end = sy_dim + padding - fy_dim + 1;
     int w_start = -padding;
-    int w_end = src_w + padding - weight_w + 1;
+    int w_end = sx_dim + padding - fx_dim + 1;
 
-    int dst_h, dst_w;
-    compute_2d_dims(src, weight_h, weight_w, stride, padding,
-                    &dst_h, &dst_w);
+    int dy_dim, dx_dim;
+    compute_2d_dims(src, fy_dim, fx_dim, stride, padding, &dy_dim, &dx_dim);
 
-    int dst_size = dst_h * dst_w;
+    int dst_size = dy_dim * dx_dim;
 
-    assert(weight->n_dims == 4);
-    assert(bias->n_dims == 1);
-    assert(bias->dims[0] == weight_c_out);
-
-    assert(dst->n_dims == 3);
-    assert(dst->dims[0] == weight_c_out);
-    assert(dst->dims[1] == dst_h);
-    assert(dst->dims[2] == dst_w);
+    tensor_check_dims(weight, 4, dc_dim, sc_dim, fy_dim, fx_dim);
+    tensor_check_dims(bias, 1, dc_dim);
+    tensor_check_dims(dst, 3, dc_dim, dy_dim, dx_dim);
 
     assert(src->n_dims == 3);
-    assert(src->dims[0] == weight_c_in);
 
-    int src_size = src_h * src_w;
-    int weight_size = weight_w * weight_h;
-    for (int c_out = 0; c_out < weight_c_out; c_out++) {
-        float *weight_ptr = &weight->data[c_out * weight_c_in * weight_size];
-        for (int c_in = 0; c_in < weight_c_in; c_in++) {
-            float *dst_ptr = &dst->data[c_out * dst_size];
-            float *src_ptr = &src->data[c_in * src_size];
+    float *F = weight->data;
+    float *S = src->data;
+    float *D = dst->data;
+
+    for (int dc = 0; dc < dc_dim; dc++) {
+        for (int sc = 0; sc < sc_dim; sc++) {
+            float *dst_ptr = &D[dc * dst_size];
             for (int h = h_start; h < h_end; h += stride) {
                 for (int w = w_start; w < w_end; w += stride) {
                     float acc;
-                    if (c_in > 0) {
+                    if (sc > 0) {
                         acc = *dst_ptr;
                     } else {
-                        acc = bias->data[c_out];
+                        acc = bias->data[dc];
                     }
-                    float *weight_ptr2 = &weight_ptr[c_in * weight_size];
-                    for  (int i3 = 0; i3 < weight_h; i3++) {
-                        for (int i4 = 0; i4 < weight_w; i4++)  {
-                            int at1 = h + i3;
-                            int at2 = w + i4;
-
+                    for  (int fy = 0; fy < fy_dim; fy++) {
+                        for (int fx = 0; fx < fx_dim; fx++)  {
+                            int ay = h + fy;
+                            int ax = w + fx;
                             float s = 0;
-                            if (at1 >= 0 && at1 < src_h &&
-                                at2 >= 0 && at2 < src_w) {
-                                s = src_ptr[at1 * src_w + at2];
+                            int s_addr = ADDR3D(sc_dim, sy_dim, sx_dim, sc, ay, ax);
+                            int f_addr = ADDR4D(dc_dim, sc_dim, fy_dim, fx_dim,
+                                                dc, sc, fy, fx);
+                            if (ay >= 0 && ay < sy_dim &&
+                                ax >= 0 && ax < sx_dim) {
+                                s = S[s_addr];
                             }
-                            float weight = *weight_ptr2;
+                            float weight = F[f_addr];
                             acc += s * weight;
-                            weight_ptr2++;
                         }
                     }
                     *dst_ptr = acc;
