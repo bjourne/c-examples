@@ -26,6 +26,7 @@
 
 #pragma OPENCL EXTENSION cl_intel_channels : enable
 
+#define VECTOR_FLOAT2_ZERO          (float2)(0.0f, 0.0f)
 #define VECTOR_FLOAT4_ZERO          (float4)(0.0f, 0.0f, 0.0f, 0.0f)
 #define VECTOR_FLOAT8_ZERO          (float8)(VECTOR_FLOAT4_ZERO,VECTOR_FLOAT4_ZERO)
 #define VECTOR_FLOAT16_ZERO         (float16)(VECTOR_FLOAT8_ZERO,VECTOR_FLOAT8_ZERO)
@@ -90,21 +91,26 @@
 
 
 // Number of vectors per block of A
-#define A_BLOCK_N_VECTORS           (A_BLOCK_Y * A_BLOCK_X / VECTOR_SIZE)
+#define A_BLOCK_N_VECTORS   (A_BLOCK_Y * A_BLOCK_X / VECTOR_SIZE)
 
 // Number of msgs pre block of A
-#define A_BLOCK_N_MSGS              A_BLOCK_N_VECTORS / LVEC
+#define A_BLOCK_N_MSGS      (A_BLOCK_N_VECTORS / LVEC)
 
 
 // Vectors in an A block row.
-#define X_VECS                    (A_BLOCK_X / VECTOR_SIZE)
+#define X_VECS              (A_BLOCK_X / VECTOR_SIZE)
 
-#define SWAP_RANGE                  (Y_INTERLEAVED * X_INTERLEAVED * X_VECS)
-#define RANGE                       (2 * SWAP_RANGE)
+#define SWAP_RANGE          (Y_INTERLEAVED * X_INTERLEAVED * X_VECS)
+#define RANGE               (2 * SWAP_RANGE)
 
 // Uh
-#define N_A_LOADS (PE_Y * Y_INTERLEAVED * X_VECS / LVEC)
-#define N_B_LOADS (PE_X * X_INTERLEAVED * X_VECS / LVEC)
+#define N_A_LOADS           (PE_Y * Y_INTERLEAVED * X_VECS / LVEC)
+#define N_B_LOADS           (PE_X * X_INTERLEAVED * X_VECS / LVEC)
+
+// Try to load B as late as possible, so that if there is enough time
+// and not enough DDR bandwidth, we can load all of A and then load
+// all of B
+#define FIRST_B_LOAD        (SWAP_RANGE - N_B_LOADS)
 
 ////////////////////////////////////////////////////////////////////////
 // Macro utility
@@ -115,7 +121,10 @@
 ////////////////////////////////////////////////////////////////////////
 // Types
 ////////////////////////////////////////////////////////////////////////
-#if VECTOR_SIZE==4
+#if VECTOR_SIZE==2
+typedef float2 vfloat;
+#define VECTOR_ZERO         VECTOR_FLOAT2_ZERO
+#elif VECTOR_SIZE==4
 typedef float4 vfloat;
 #define VECTOR_ZERO         VECTOR_FLOAT4_ZERO
 #elif VECTOR_SIZE==8
@@ -166,14 +175,14 @@ loadA(global volatile vfloat* restrict A, uint M, uchar N, uchar K) {
     for (uint n = 0; n < N; n++) {
         for (uint k = 0; k < K; k++) {
             for (uint m = 0; m < M; m++) {
-                // Only true for the first block
+                // Only true for the second block
                 n_vfloat_bool send_buf;
                 send_buf.c = m == 1;
                 for (uint i = 0; i < A_BLOCK_N_MSGS; i++) {
 #pragma unroll
                     for (int j = 0; j < LVEC; j++) {
-                        send_buf.data[j] =
-                            A[LVEC * ((M*n + m) * A_BLOCK_N_MSGS + i) + j];
+                        vfloat v = A[LVEC * ((M*n + m) * A_BLOCK_N_MSGS + i) + j];
+                        send_buf.data[j] = v;
                     }
                     write_channel_intel(ch_load_a, send_buf);
                 }
@@ -371,7 +380,7 @@ kernel monolithic() {
     }
 #endif
 
-    // internal PE storage for accumulations, ROWS x COLS shift registers
+    // internal PE storage for accumulations, PE_Y x PE_X shift registers
     float accum[PE_Y][PE_X][SHIFT_REG_SIZE];
     // shift register for drain, one per column
     float drain[PE_X][SHIFT_REG_SIZE * (PE_Y - 1) + 1];
@@ -379,10 +388,6 @@ kernel monolithic() {
     uint counter = 0;
     uint storecount = SHIFT_REGS_PER_Y;
     uint base = 0;
-
-    // Try to load B as late as possible, so that if there is enough time and not enough DDR bandwidth, we
-    // can load all of A and then load all of B
-    const uint first_b_load = SWAP_RANGE - N_B_LOADS;
 
     bool new_row_col_pair = false;
     while (1) {
@@ -395,14 +400,15 @@ kernel monolithic() {
         if (masked_counter < N_A_LOADS) {
             valA = read_channel_intel(ch_load_a);
             // save latests row_col_pair
-            if ((!new_row_col_pair && valA.c) & 0x01)
+            if ((!new_row_col_pair && valA.c) & 0x01) {
                 base = storecount;
+            }
             new_row_col_pair = valA.c;
         }
         // serialize the two reads to reduce burstiness
-        if ((masked_counter < first_b_load + N_B_LOADS) &&
-            (masked_counter >= first_b_load))
+        if ((masked_counter >= FIRST_B_LOAD) && (masked_counter < SWAP_RANGE)) {
             valB = read_channel_intel(ch_load_b);
+        }
 
         // private counters for feeder fpga_reg
         uint counterA = counter;
@@ -424,7 +430,7 @@ kernel monolithic() {
         #pragma unroll
         for (int x = 0; x < PE_X; x++) {
             // the indexing matches the serialization of the ch_load_b reads
-            fedB[x] = FeederB(valB, mem_b, counterB - first_b_load, x, counterB);
+            fedB[x] = FeederB(valB, mem_b, counterB - FIRST_B_LOAD, x, counterB);
             #pragma unroll
             for (int i = 0; i < LVEC; i++) {
                 valB.data[i] = __fpga_reg(__fpga_reg(valB.data[i]));
@@ -458,8 +464,9 @@ kernel monolithic() {
                 results.data[j] = __fpga_reg(__fpga_reg(results.data[j]));
             }
         }
-        if (storecount - base < SHIFT_REGS_PER_Y)
+        if (storecount - base < SHIFT_REGS_PER_Y) {
             write_channel_intel(ch_store_c, results);
+        }
 
         #pragma unroll
         for (int x = 0; x < PE_X; x++) {
@@ -487,7 +494,6 @@ store(global float * restrict C, int c_n_msgs) {
     for (uint i = 0; i < SHIFT_REGS_PER_Y; i++) {
         read_channel_intel(ch_store_c);
     }
-
     for (uint i = 0; i < c_n_msgs; i++) {
         cols_floats data = read_channel_intel(ch_store_c);
 #pragma unroll
