@@ -240,7 +240,7 @@ loadB(global volatile vfloat* restrict B,
 vfloat_bool
 FeederA(n_vfloat_bool new,
         vfloat mem_a[2][Y_INTERLEAVED][X_VECS][BANK_Y],
-        uint counter, int row) {
+        uint counter, uint row) {
 
     uint masked_counter = POW2_REM(counter, SWAP_RANGE);
 
@@ -249,16 +249,16 @@ FeederA(n_vfloat_bool new,
         masked_counter < (Y_INTERLEAVED * X_INTERLEAVED);
     bool side = (counter / SWAP_RANGE) & 1;
 
-    if (write_to_buffer) {
+    if (do_write) {
         uchar vector = POW2_REM(counter * LVEC, X_VECS);
-        uchar row = POW2_REM(counter * LVEC, Y_INTERLEAVED * X_VECS) / X_VECS;
+        uchar col = POW2_REM(counter * LVEC, Y_INTERLEAVED * X_VECS) / X_VECS;
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
-            mem_a[side][row][(vector / LVEC) * LVEC + i][row] = new.data[i];
+            mem_a[side][col][(vector / LVEC) * LVEC + i][row] = new.data[i];
         }
     }
 
-    uchar row =
+    uchar col =
         POW2_REM(counter, Y_INTERLEAVED * X_INTERLEAVED) / X_INTERLEAVED;
     uchar vector = masked_counter / (Y_INTERLEAVED * X_INTERLEAVED);
 
@@ -266,9 +266,9 @@ FeederA(n_vfloat_bool new,
     vfloat choices[LVEC];
 #pragma unroll
     for (int i = 0; i < LVEC; i++) {
-        choices[i] = mem_a[!side][row][(vector / LVEC) * LVEC + i][row];
+        choices[i] = mem_a[!side][col][(vector / LVEC) * LVEC + i][row];
     }
-    val.data = choices[buffer_vector_to_feed_to_sysarr % LVEC];
+    val.data = choices[vector % LVEC];
     val.c = new_row_col_pair & new.c;
     return val;
 }
