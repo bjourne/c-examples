@@ -112,6 +112,7 @@ tensor *tensor_init_4d(int x, int y, int z, int w);
 long tensor_n_elements(tensor *me);
 void tensor_flatten(tensor *me, int from);
 void tensor_set_dims(tensor *me, int n_dims, int dims[]);
+int tensor_padded_strided_dim(int s_dim, int f_dim, int pad, int stride);
 
 // Shouldn't use this one
 tensor *tensor_init_from_data(float *data, int n_dims, int dims[]);
@@ -156,6 +157,10 @@ void tensor_conv2d(tensor *weight, tensor *bias,
 tensor *tensor_conv2d_new(tensor *weight, tensor *bias,
                           int stride, int padding,
                           tensor *src);
+void
+tensor_im2col(tensor *src, tensor *dst,
+              int stride_y, int stride_x,
+              int pad_y, int pad_x);
 
 tensor *
 tensor_im2col_new(tensor *src,

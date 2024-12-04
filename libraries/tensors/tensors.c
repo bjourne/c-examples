@@ -154,8 +154,8 @@ copy_dims(int src_n_dims, int *src_dims,
 }
 
 
-static int
-compute_padded_strided(int s_dim, int f_dim, int pad, int stride) {
+int
+tensor_padded_strided_dim(int s_dim, int f_dim, int pad, int stride) {
     return (s_dim + 2 * pad - f_dim) / stride + 1;
 }
 
@@ -602,10 +602,10 @@ tensor_conv2d(tensor *weight, tensor *bias,
     }
 }
 
-tensor *
-tensor_im2col_new(
-    tensor *src,
-    int fy_dim, int fx_dim,
+// As usual, dimensions have to be correct
+void
+tensor_im2col(
+    tensor *src, tensor *dst,
     int stride_y, int stride_x,
     int pad_y, int pad_x
 ) {
@@ -614,11 +614,12 @@ tensor_im2col_new(
     int sx_dim = src->dims[1];
     int sc_dim = src->dims[2];
 
-    int dy_dim = compute_padded_strided(sy_dim, fy_dim, pad_y, stride_y);
-    int dx_dim = compute_padded_strided(sx_dim, fx_dim, pad_x, stride_x);
-
-    int d_dims[] = {dy_dim, dx_dim, fy_dim, fx_dim, sc_dim};
-    tensor *dst = tensor_init(5, d_dims);
+    assert(dst->n_dims == 5);
+    int dy_dim = dst->dims[0];
+    int dx_dim = dst->dims[1];
+    int fy_dim = dst->dims[2];
+    int fx_dim = dst->dims[3];
+    assert(dst->dims[4] == sc_dim);
 
     float *D = dst->data;
     float *S = src->data;
@@ -640,6 +641,27 @@ tensor_im2col_new(
             }
         }
     }
+}
+
+tensor *
+tensor_im2col_new(
+    tensor *src,
+    int fy_dim, int fx_dim,
+    int stride_y, int stride_x,
+    int pad_y, int pad_x
+) {
+    assert(src->n_dims == 3);
+    int sy_dim = src->dims[0];
+    int sx_dim = src->dims[1];
+    int sc_dim = src->dims[2];
+
+    int dy_dim = tensor_padded_strided_dim(sy_dim, fy_dim, pad_y, stride_y);
+    int dx_dim = tensor_padded_strided_dim(sx_dim, fx_dim, pad_x, stride_x);
+
+    int d_dims[] = {dy_dim, dx_dim, fy_dim, fx_dim, sc_dim};
+    tensor *dst = tensor_init(5, d_dims);
+
+    tensor_im2col(src, dst, stride_y, stride_x, pad_y, pad_x);
     return dst;
 }
 

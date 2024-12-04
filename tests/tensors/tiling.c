@@ -193,7 +193,7 @@ test_filling() {
 void
 perf_tile_2d() {
     int SIZE = 8192*2;
-    tensor *src = tensor_init(2, (int[]){SIZE, SIZE});
+    tensor *src = tensor_init_2d(SIZE, SIZE);
     uint64_t bef = nano_count();
     for (int i = 0; i < 10; i++) {
         tensor *dst = tensor_tile_2d_new(src, 256, 64, SIZE, SIZE);
@@ -209,7 +209,7 @@ perf_tile_2d() {
 void
 perf_tile_2d_mt() {
     int SIZE = 8192*4;
-    tensor *src = tensor_init(2, (int[]){SIZE, SIZE});
+    tensor *src = tensor_init_2d(SIZE, SIZE);
     uint64_t bef = nano_count();
     for (int i = 0; i < 10; i++) {
         tensor *dst = tensor_tile_2d_mt_new(src, 256, 64, SIZE, SIZE);

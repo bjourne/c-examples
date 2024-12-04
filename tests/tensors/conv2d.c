@@ -684,6 +684,44 @@ test_im2col_padded() {
     assert(simple_checksum(dst) == 12);
     tensor_free(dst);
     tensor_free(src);
+
+    src = tensor_init_3d(5, 5, 3);
+    tensor_fill_range(src, 0);
+
+    // 3x3 kernel, 1x1 padding
+    dst = tensor_im2col_new(src, 3, 3, 1, 1, 1, 1);
+    tensor_check_dims(dst, 5, 5, 5, 3, 3, 3);
+
+    tensor_free(dst);
+    tensor_free(src);
+}
+
+void
+perf_im2col() {
+    int stride_y = 1;
+    int stride_x = 1;
+    int pad_y = 1;
+    int pad_x = 1;
+    int sy_dim = 64;
+    int sx_dim = 64;
+    int sc_dim = 128;
+    int fy_dim = 3;
+    int fx_dim = 3;
+
+    tensor *src = tensor_init_3d(sy_dim, sx_dim, 128);
+    int dy_dim = tensor_padded_strided_dim(sy_dim, fy_dim, pad_y, stride_y);
+    int dx_dim = tensor_padded_strided_dim(sx_dim, fx_dim, pad_x, stride_x);
+
+    tensor *dst = tensor_init(5, (int[]){
+        dy_dim, dx_dim, fy_dim, fx_dim, sc_dim
+    });
+
+    uint64_t bef = nano_count();
+    tensor_im2col(src, dst, stride_y, stride_x, pad_y, pad_x);
+    printf("%.2lfs\n", nanos_to_secs(nano_count() - bef));
+
+    tensor_free(src);
+    tensor_free(dst);
 }
 
 
@@ -716,4 +754,6 @@ main(int argc, char *argv[]) {
 
     // Padding
     PRINT_RUN(test_padding);
+
+    perf_im2col();
 }
