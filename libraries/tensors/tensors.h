@@ -108,6 +108,11 @@ tensor *tensor_init_2d(int x, int y);
 tensor *tensor_init_3d(int x, int y, int z);
 tensor *tensor_init_4d(int x, int y, int z, int w);
 
+// Utility
+long tensor_n_elements(tensor *me);
+void tensor_flatten(tensor *me, int from);
+void tensor_set_dims(tensor *me, int n_dims, int dims[]);
+
 // Shouldn't use this one
 tensor *tensor_init_from_data(float *data, int n_dims, int dims[]);
 tensor *tensor_init_copy(tensor *orig);
@@ -129,9 +134,6 @@ void tensor_print(tensor *me, bool print_header,
                   int n_decimals, int n_columns,
                   char *sep);
 
-// Utility
-long tensor_n_elements(tensor *me);
-void tensor_flatten(tensor *me, int from);
 
 // Unary ops
 void tensor_unary(tensor *src, tensor *dst,
@@ -154,6 +156,12 @@ void tensor_conv2d(tensor *weight, tensor *bias,
 tensor *tensor_conv2d_new(tensor *weight, tensor *bias,
                           int stride, int padding,
                           tensor *src);
+
+tensor *
+tensor_im2col_new(tensor *src,
+                  int fy_dim, int fx_dim,
+                  int stride_y, int stride_x,
+                  int pad_y, int pad_x);
 
 // MaxPool2d
 void tensor_max_pool2d(int kernel_height, int kernel_width,

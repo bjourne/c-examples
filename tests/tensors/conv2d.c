@@ -609,7 +609,7 @@ test_stride3_padding0() {
     tensor *weight = tensor_init_4d(1, 1, 1, 1);
     tensor_fill_const(weight, 1.0);
     tensor *bias = tensor_init_1d(1);
-    tensor_fill_const(bias, 0.0);
+    tensor_fill_const(bias, 0);
     tensor *dst = tensor_conv2d_new(weight, bias, 3, 0, src);
     tensor_check_equal(exp, dst, LINALG_EPSILON);
     tensor_free(src);
@@ -617,6 +617,73 @@ test_stride3_padding0() {
     tensor_free(weight);
     tensor_free(bias);
     tensor_free(dst);
+}
+
+// Dunno if this works as I think...
+int
+simple_checksum(tensor *me) {
+    int chk = 0;
+    float *D = me->data;
+    for (int i = 0; i < tensor_n_elements(me); i++) {
+        chk = chk + (i % 2 == 0 ? 1 : -1) * D[i];
+    }
+    return chk;
+}
+
+void
+test_im2col() {
+    tensor *src = tensor_init_3d(5, 5, 1);
+    tensor_fill_range(src, 0);
+
+    tensor *dst = tensor_im2col_new(src, 1, 1, 1, 1, 0, 0);
+    assert(dst);
+    tensor_check_dims(dst, 5, 5, 5, 1, 1, 1);
+    tensor_check_equal_contents(src, dst, LINALG_EPSILON);
+    tensor_free(dst);
+
+    // 2x2 kernel
+    dst = tensor_im2col_new(src, 2, 2, 1, 1, 0, 0);
+    tensor_check_dims(dst, 5, 4, 4, 2, 2, 1);
+    assert(simple_checksum(dst) == -32);
+    tensor_free(dst);
+
+    // 3x3 kernel
+    dst = tensor_im2col_new(src, 3, 3, 1, 1, 0, 0);
+    assert(simple_checksum(dst) == 12);
+    tensor_free(dst);
+
+    // 4x4 kernel
+    dst = tensor_im2col_new(src, 4, 4, 1, 1, 0, 0);
+    assert(simple_checksum(dst) == -32);
+    tensor_free(dst);
+    tensor_free(src);
+}
+
+void
+test_im2col_strided() {
+    tensor *src = tensor_init_3d(5, 5, 1);
+    tensor_fill_range(src, 0);
+
+    // 1x1 kernel, 2x2 stride
+    tensor *dst = tensor_im2col_new(src, 1, 1, 2, 2, 0, 0);
+    tensor_check_dims(dst, 5, 3, 3, 1, 1, 1);
+    assert(simple_checksum(dst) == 12);
+    tensor_free(dst);
+
+    tensor_free(src);
+}
+
+void
+test_im2col_padded() {
+    tensor *src = tensor_init_3d(5, 5, 1);
+    tensor_fill_range(src, 0);
+
+    // 1x1 kernel, 1x1 padding
+    tensor *dst = tensor_im2col_new(src, 1, 1, 1, 1, 1, 1);
+    tensor_check_dims(dst, 5, 7, 7, 1, 1, 1);
+    assert(simple_checksum(dst) == 12);
+    tensor_free(dst);
+    tensor_free(src);
 }
 
 
@@ -632,13 +699,21 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_no_padding);
     PRINT_RUN(test_no_padding2);
     PRINT_RUN(test_2x2channels);
-    PRINT_RUN(test_strides);
+
     PRINT_RUN(test_conv2d_3);
     PRINT_RUN(test_uneven);
     PRINT_RUN(test_uneven_strided);
     PRINT_RUN(test_bias);
+
+    // Im2Col
+    PRINT_RUN(test_im2col);
+    PRINT_RUN(test_im2col_strided);
+    PRINT_RUN(test_im2col_padded);
+
+    // Strides
+    PRINT_RUN(test_strides);
     PRINT_RUN(test_stride3_padding0);
 
-    // With padding
+    // Padding
     PRINT_RUN(test_padding);
 }

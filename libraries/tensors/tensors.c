@@ -48,8 +48,12 @@ tensor_check_dims(tensor *t, int n_dims, ...) {
     va_start(ap, n_dims);
     assert(t->n_dims == n_dims);
     for (int i = 0; i < n_dims; i++) {
-        int d = va_arg(ap, int);
-        assert(t->dims[i] == d);
+        int d1 = va_arg(ap, int);
+        int d2 = t->dims[i];
+        if (d1 != d2) {
+            printf("Mismatch at %d: %d != %d\n", i, d1, d2);
+            assert(false);
+        }
     }
     va_end(ap);
 }
@@ -150,12 +154,18 @@ copy_dims(int src_n_dims, int *src_dims,
 }
 
 
+static int
+compute_padded_strided(int s_dim, int f_dim, int pad, int stride) {
+    return (s_dim + 2 * pad - f_dim) / stride + 1;
+}
+
 // What name is this?
 static void
 compute_2d_dims(tensor *src,
                 int kernel_h, int kernel_w,
                 int stride, int padding,
                 int *height, int *width) {
+
     *height = (src->dims[1] + 2 * padding - kernel_h) / stride + 1;
     *width = (src->dims[2] + 2 * padding - kernel_w) / stride + 1;
 }
@@ -181,14 +191,19 @@ tensor_flatten(tensor *me, int from) {
     me->dims[from] = n_els;
 }
 
+void
+tensor_set_dims(tensor *me, int n_dims, int dims[]) {
+    me->n_dims = n_dims;
+    memcpy(me->dims, dims, n_dims * sizeof(int));
+}
+
 ////////////////////////////////////////////////////////////////////////
 // Init and Free
 ////////////////////////////////////////////////////////////////////////
 tensor *
 tensor_init(int n_dims, int dims[]) {
     tensor *me = (tensor *)malloc(sizeof(tensor));
-    me->n_dims = n_dims;
-    memcpy(me->dims, dims, n_dims * sizeof(int));
+    tensor_set_dims(me, n_dims, dims);
 
     size_t n_bytes = sizeof(float) * tensor_n_elements(me);
     me->data = malloc_aligned(TENSOR_ADDRESS_ALIGNMENT, n_bytes);
@@ -521,6 +536,9 @@ tensor_conv2d_new(tensor *weight, tensor *bias,
 #define ADDR4D(d0, d1, d2, d3, i0, i1, i2, i3) \
     (i0*d1*d2*d3 + i1*d2*d3 + i2*d3 + i3)
 
+#define ADDR5D(d0, d1, d2, d3, d4, i0, i1, i2, i3, i4) \
+    (i0*d1*d2*d3*d4 + i1*d2*d3*d4 + i2*d3*d4 + i3*d4 + i4)
+
 // Names:
 //
 // [ds][xyz] - Indexes the width, height, and channels of src/dst image.
@@ -561,7 +579,7 @@ tensor_conv2d(tensor *weight, tensor *bias,
                 int d_addr = ADDR3D(dc_dim, dy_dim, dx_dim, dc, dy, dx);
                 float acc = B[dc];
                 for (int sc = 0; sc < sc_dim; sc++) {
-                    for  (int fy = 0; fy < fy_dim; fy++) {
+                    for (int fy = 0; fy < fy_dim; fy++) {
                         for (int fx = 0; fx < fx_dim; fx++)  {
                             int ay = stride*dy + fy - padding;
                             int ax = stride*dx + fx - padding;
@@ -582,6 +600,47 @@ tensor_conv2d(tensor *weight, tensor *bias,
             }
         }
     }
+}
+
+tensor *
+tensor_im2col_new(
+    tensor *src,
+    int fy_dim, int fx_dim,
+    int stride_y, int stride_x,
+    int pad_y, int pad_x
+) {
+    assert(src->n_dims == 3);
+    int sy_dim = src->dims[0];
+    int sx_dim = src->dims[1];
+    int sc_dim = src->dims[2];
+
+    int dy_dim = compute_padded_strided(sy_dim, fy_dim, pad_y, stride_y);
+    int dx_dim = compute_padded_strided(sx_dim, fx_dim, pad_x, stride_x);
+
+    int d_dims[] = {dy_dim, dx_dim, fy_dim, fx_dim, sc_dim};
+    tensor *dst = tensor_init(5, d_dims);
+
+    float *D = dst->data;
+    float *S = src->data;
+    for (int dy = 0; dy < dy_dim; dy++) {
+        for (int dx = 0; dx < dx_dim; dx++) {
+            for (int fy = 0; fy < fy_dim; fy++) {
+                for (int fx = 0; fx < fx_dim; fx++) {
+                    for (int sc = 0; sc < sc_dim; sc++) {
+                        int sy = stride_y*dy + fy - pad_y;
+                        int sx = stride_x*dx + fx - pad_x;
+                        float v = 0;
+                        if (sy >= 0 && sy < sy_dim && sx >= 0 && sx < sx_dim) {
+                            int s_addr = ADDR3D(sy_dim, sx_dim, sc_dim, sy, sx, sc);
+                            v = S[s_addr];
+                        }
+                        *D++ = v;
+                    }
+                }
+            }
+        }
+    }
+    return dst;
 }
 
 ////////////////////////////////////////////////////////////////////////
