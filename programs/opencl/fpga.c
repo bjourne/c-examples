@@ -61,7 +61,7 @@ main(int argc, char *argv[]) {
     printf("  %-10s %4d %4d\n", "Block A", A_BLOCK_Y, A_BLOCK_X);
     printf("  %-10s %4d %4d\n", "Block B", B_BLOCK_Y, B_BLOCK_X);
     printf("  %-10s %4d %4d\n", "Block C", C_BLOCK_Y, C_BLOCK_X);
-    printf("  %-10s %4d %4d\n", "Interleave", Y_INTERLEAVED, X_INTERLEAVED);
+    printf("  %-10s %4d %4d\n", "Interleave", Y_ILEAVE, X_ILEAVE);
     printf("\n");
 
     printf("** Initializing input matrices **\n");
@@ -80,11 +80,11 @@ main(int argc, char *argv[]) {
 
     int n_tiles = N * K * A_BLOCK_Y;
 
-    tensor *c_ref_tiled_transposed = tensor_init_3d(n_tiles, PE_X, X_INTERLEAVED);
+    tensor *c_ref_tiled_transposed = tensor_init_3d(n_tiles, PE_X, X_ILEAVE);
 
     c_ref_tiled->n_dims = 3;
     c_ref_tiled->dims[0] = n_tiles;
-    c_ref_tiled->dims[1] = X_INTERLEAVED;
+    c_ref_tiled->dims[1] = X_ILEAVE;
     c_ref_tiled->dims[2] = PE_X;
 
     tensor_transpose_tiled(c_ref_tiled, c_ref_tiled_transposed);

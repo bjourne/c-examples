@@ -93,7 +93,7 @@
 #endif
 
 // Shift register size
-#define SHIFT_REG_SIZE      (Y_INTERLEAVED * X_INTERLEAVED)
+#define SHIFT_REG_SIZE      (Y_ILEAVE * X_ILEAVE)
 
 // One store per row in the systolic array
 #define SHIFT_REGS_PER_Y    (SHIFT_REG_SIZE * PE_Y)
@@ -102,13 +102,13 @@
 #define LVEC 2
 
 // Number of messages per block of A
-#define A_BLOCK_N_MSGS      (Y_INTERLEAVED * PE_Y * X_SCALE / LVEC)
-#define N_B_LOADS           (X_INTERLEAVED * PE_X * X_SCALE / LVEC)
+#define A_BLOCK_N_MSGS      (Y_ILEAVE * PE_Y * X_SCALE / LVEC)
+#define N_B_LOADS           (X_ILEAVE * PE_X * X_SCALE / LVEC)
 
 // Vectors per A tile row
 #define X_VECS              X_SCALE
 
-#define SWAP_RANGE          (Y_INTERLEAVED * X_INTERLEAVED * X_SCALE)
+#define SWAP_RANGE          (Y_ILEAVE * X_ILEAVE * X_SCALE)
 #define RANGE               (2 * SWAP_RANGE)
 
 // Try to load B as late as possible, so that if there is enough time
@@ -233,26 +233,24 @@ loadB(global vfloat* restrict B,
 
 vfloat_bool
 FeederA(n_vfloat_bool new,
-        vfloat mem_a[2][Y_INTERLEAVED][X_SCALE][BANK_Y],
+        vfloat mem_a[2][Y_ILEAVE][X_SCALE][BANK_Y],
         uint counter, uint row) {
 
     uint masked_counter = POW2_REM(counter, SWAP_RANGE);
 
-    bool do_write = (masked_counter * LVEC / (Y_INTERLEAVED * X_VECS)) == row;
-    bool new_row_col_pair =
-        masked_counter < (Y_INTERLEAVED * X_INTERLEAVED);
+    bool new_row_col_pair = masked_counter < (Y_ILEAVE * X_ILEAVE);
     bool side = (counter / SWAP_RANGE) & 1;
 
-    if (do_write) {
-        uchar vector = POW2_REM(counter * LVEC, X_VECS);
-        uchar col = POW2_REM(counter * LVEC, Y_INTERLEAVED * X_VECS) / X_VECS;
+    if (masked_counter * LVEC / (Y_ILEAVE * X_SCALE) == row) {
+        uchar vector = POW2_REM(counter * LVEC, X_SCALE);
+        uchar col = POW2_REM(counter * LVEC, Y_ILEAVE * X_SCALE) / X_SCALE;
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
             mem_a[side][col][(vector / LVEC) * LVEC + i][row] = new.data[i];
         }
     }
 
-    uchar col = POW2_REM(counter, SHIFT_REG_SIZE) / X_INTERLEAVED;
+    uchar col = POW2_REM(counter, Y_ILEAVE * X_ILEAVE) / X_ILEAVE;
     uchar vector = masked_counter / SHIFT_REG_SIZE;
 
     vfloat_bool val;
@@ -272,16 +270,16 @@ FeederA(n_vfloat_bool new,
 // which may start at some point in the overall counter range (once FeederA is finished loading)
 vfloat
 FeederB(n_vfloat new,
-        vfloat mem_b[2][X_INTERLEAVED][X_VECS][BANK_X],
+        vfloat mem_b[2][X_ILEAVE][X_VECS][BANK_X],
         uint load_counter, int col, uint counter) {
 
-    bool do_write = ((POW2_REM(load_counter, SWAP_RANGE) * LVEC) / (X_INTERLEAVED * X_VECS)) == col;
+    bool do_write = ((POW2_REM(load_counter, SWAP_RANGE) * LVEC) / (X_ILEAVE * X_SCALE)) == col;
     // Note: counter is used here because load_counter is not valid if only reading.
     bool side = (counter / SWAP_RANGE) & 1;
 
     if (do_write) {
-        uchar row = POW2_REM(load_counter * LVEC, X_INTERLEAVED * X_VECS) / X_VECS;
-        uchar vector = POW2_REM(load_counter * LVEC, X_VECS) / LVEC;
+        uchar row = POW2_REM(load_counter * LVEC, X_ILEAVE * X_SCALE) / X_SCALE;
+        uchar vector = POW2_REM(load_counter * LVEC, X_SCALE) / LVEC;
 
 #pragma unroll
         for (int i = 0; i < LVEC; i++) {
@@ -289,8 +287,8 @@ FeederB(n_vfloat new,
         }
     }
 
-    uchar row = POW2_REM(counter, X_INTERLEAVED);
-    uchar vector = POW2_REM(counter, SWAP_RANGE) / (Y_INTERLEAVED * X_INTERLEAVED);
+    uchar row = POW2_REM(counter, X_ILEAVE);
+    uchar vector = POW2_REM(counter, SWAP_RANGE) / (Y_ILEAVE * X_ILEAVE);
 
     vfloat choices[LVEC];
     #pragma unroll
@@ -345,26 +343,26 @@ kernel monolithic() {
                           bankwidth(32),
                           singlepump,
                           max_replicates(1),
-                          simple_dual_port)) mem_a[2][Y_INTERLEAVED][X_VECS][BANK_Y];
+                          simple_dual_port)) mem_a[2][Y_ILEAVE][X_VECS][BANK_Y];
     // internal feeder B storage, banked, 1 bank per feeder
     vfloat __attribute__((memory,
                           numbanks(BANK_X * LVEC),
                           bankwidth(32),
                           singlepump,
                           max_replicates(1),
-                          simple_dual_port)) mem_b[2][X_INTERLEAVED][X_VECS][BANK_X];
+                          simple_dual_port)) mem_b[2][X_ILEAVE][X_VECS][BANK_X];
 
 
 #ifdef EMULATE
     for (int i = 0; i < PE_Y; i++) {
-        for (int j = 0; j < Y_INTERLEAVED; j++) {
+        for (int j = 0; j < Y_ILEAVE; j++) {
             for (int k = 0; k < X_VECS; k++) {
                 mem_a[0][j][k][i] = mem_a[1][j][k][i] = NAN;
             }
         }
     }
     for (int i = 0; i < PE_X; i++) {
-        for (int j = 0; j < X_INTERLEAVED; j++) {
+        for (int j = 0; j < X_ILEAVE; j++) {
             for (int k = 0; k < X_VECS; k++) {
                 mem_b[0][j][k][i] = mem_b[1][j][k][i] = -NAN;
             }
@@ -405,11 +403,11 @@ kernel monolithic() {
         // Privatize counters for feeder fpga_reg.
         uint counterA = counter;
 
-        // recover last known row_col_pair
+        // Recover last known row_col_pair
         valA.c = new_row_col_pair;
         #pragma unroll
-        for (int row = 0; row < PE_Y; row++) {
-            fedA[row] = FeederA(valA, mem_a, counterA, row);
+        for (uint y = 0; y < PE_Y; y++) {
+            fedA[y] = FeederA(valA, mem_a, counterA, y);
             #pragma unroll
             for (int i = 0; i < LVEC; i++) {
                 valA.data[i] = FPGA_REG2(valA.data[i]);

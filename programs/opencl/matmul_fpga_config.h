@@ -46,17 +46,17 @@
 #define PE_Y                    16
 #define PE_X                    16
 
-// Must be powers of two
-#define Y_INTERLEAVED           16
-#define X_INTERLEAVED           16
+// Interleaving. Must be powers of two
+#define Y_ILEAVE                16
+#define X_ILEAVE                16
 
 #define X_SCALE                 16
 
 #define A_BLOCK_X               (X_SCALE * VECTOR_SIZE)
-#define A_BLOCK_Y               (Y_INTERLEAVED * PE_Y)
+#define A_BLOCK_Y               (Y_ILEAVE * PE_Y)
 
 #define B_BLOCK_Y               A_BLOCK_X
-#define B_BLOCK_X               (X_INTERLEAVED * PE_X)
+#define B_BLOCK_X               (X_ILEAVE * PE_X)
 
 #define C_BLOCK_Y               A_BLOCK_Y
 #define C_BLOCK_X               B_BLOCK_X
