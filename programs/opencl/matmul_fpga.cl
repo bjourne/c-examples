@@ -437,9 +437,9 @@ kernel monolithic() {
                 if (fedA[y].c) {
                     drain[x][y * SHIFT_REG_SIZE] = result;
                 }
-                fedA[y].data = FPGA_REG2(fedA[y].data);
-                fedA[y].c = FPGA_REG2(fedA[y].c);
-                fedB[x] = FPGA_REG2(fedB[x]);
+                /* fedA[y].data = FPGA_REG2(fedA[y].data); */
+                /* fedA[y].c = FPGA_REG2(fedA[y].c); */
+                /* fedB[x] = FPGA_REG2(fedB[x]); */
             }
         }
 

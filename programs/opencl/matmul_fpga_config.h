@@ -5,7 +5,7 @@
 // Here are performance figures for the Agilex 7 FPGA I'm working
 // with. For N=M=K=8192 matrices:
 //
-// | VSIZE | PE    | INTER | LVEC | SEED | SW  | FN  | FMAX | TIME  |
+// | VSIZE | PE    | ILEAV | LVEC | SEED | SW  | FN  | FMAX | TIME  |
 // |-------|-------|-------|------|------|-----|-----|------|-------|
 // | 8     | 8x8   | 16x16 | 1    |      | 16  |     |      | 4.93  |
 // | 8     | 16x16 | 16x16 | 1    |      | 16  |     | 445  | 2.07  |
@@ -27,6 +27,8 @@
 // | 8     | 16x16 | 16x16 | 2    | 9986 | 16  | (4) | 565  | 0.74  |
 // | 8     | 16x16 | 16x16 | 2    | 9985 | 16  | (5) | 565  | 0.58  |
 // | 8     | 16x16 | 16x16 | 2    | 9985 | 16  | (6) | -    | -     |
+// | 8     | 16x16 | 16x16 | 2    | 9984 | 16  |     | 595  | 0.58  |
+// | 8     | 16x16 | 16x16 | 2    | 9984 | 16  | (7) |      |       |
 //
 // 1. This refactoring increased the length of the critical chain.
 // 2. Reverted last changes.
@@ -34,6 +36,7 @@
 // 4. Simpler store kernel
 // 5. No volatile
 // 6. No FPGA_REGx (it broke Quartus)
+// 7. Removed some FPGA_REG2
 
 // This is important but it is not enforced:
 // PE_X + PE_Y <= Y_INTERLEAVED
