@@ -38,11 +38,8 @@
 #define ASSERT(cond)
 #endif
 
-/* #define FPGA_REG1(x)                __fpga_reg((x)) */
-/* #define FPGA_REG2(x)                __fpga_reg(__fpga_reg((x))) */
-
-#define FPGA_REG1(x)                x
-#define FPGA_REG2(x)                x
+#define FPGA_REG1(x)                __fpga_reg((x))
+#define FPGA_REG2(x)                __fpga_reg(__fpga_reg((x)))
 
 #define VECTOR_FLOAT2_ZERO          (float2)(0.0f, 0.0f)
 #define VECTOR_FLOAT4_ZERO          (float4)(0.0f, 0.0f, 0.0f, 0.0f)
@@ -102,27 +99,17 @@
 #define SHIFT_REGS_PER_Y    (SHIFT_REG_SIZE * PE_Y)
 
 // Defines the width of channels in number of vectors.
-#ifndef LVEC
 #define LVEC 2
-#endif
 
-
-// Number of vectors per block of A
-#define A_BLOCK_N_VECTORS   (A_BLOCK_Y * A_BLOCK_X / VECTOR_SIZE)
-
-// Number of msgs per block of A
-#define A_BLOCK_N_MSGS      (A_BLOCK_N_VECTORS / LVEC)
-
+// Number of messages per block of A
+#define A_BLOCK_N_MSGS      (Y_INTERLEAVED * PE_Y * X_SCALE / LVEC)
+#define N_B_LOADS           (X_INTERLEAVED * PE_X * X_SCALE / LVEC)
 
 // Vectors per A tile row
-#define X_VECS              (A_BLOCK_X / VECTOR_SIZE)
+#define X_VECS              X_SCALE
 
-#define SWAP_RANGE          (Y_INTERLEAVED * X_INTERLEAVED * X_VECS)
+#define SWAP_RANGE          (Y_INTERLEAVED * X_INTERLEAVED * X_SCALE)
 #define RANGE               (2 * SWAP_RANGE)
-
-// Uh
-#define N_A_LOADS           (PE_Y * Y_INTERLEAVED * X_VECS / LVEC)
-#define N_B_LOADS           (PE_X * X_INTERLEAVED * X_VECS / LVEC)
 
 // Try to load B as late as possible, so that if there is enough time
 // and not enough DDR bandwidth, we can load all of A and then load
@@ -225,17 +212,17 @@ loadB(global vfloat* restrict B,
 
     n_vfloat send_buf;
     for (uint times = 0; times < N; times++) {
-        for (uint v_id = 0; v_id < b_n_vectors_tot / LVEC; v_id++) {
+        for (uint i = 0; i < b_n_vectors_tot / LVEC; i++) {
 #pragma unroll
-            for (int i = 0; i < LVEC; i++) {
-                send_buf.data[i] = B[v_id * LVEC + i];
+            for (uint j = 0; j < LVEC; j++) {
+                send_buf.data[j] = B[LVEC * i + j];
             }
             write_channel_intel(ch_load_b, send_buf);
         }
     }
     // done reload and forwarding the matrix data?
 #pragma unroll
-    for (int j = 0; j < LVEC; j++) {
+    for (uint j = 0; j < LVEC; j++) {
         send_buf.data[j] = VECTOR_ZERO;
     }
     uint n_pkts_per_col = b_n_vectors_per_col / LVEC;
@@ -246,7 +233,7 @@ loadB(global vfloat* restrict B,
 
 vfloat_bool
 FeederA(n_vfloat_bool new,
-        vfloat mem_a[2][Y_INTERLEAVED][X_VECS][BANK_Y],
+        vfloat mem_a[2][Y_INTERLEAVED][X_SCALE][BANK_Y],
         uint counter, uint row) {
 
     uint masked_counter = POW2_REM(counter, SWAP_RANGE);
@@ -334,7 +321,7 @@ PE(vfloat_bool valA, vfloat valB, float *accum) {
         // (which are 36 DSP long). Dot8 would leave 4 unutilized
         // DSPs.
         #if (FORCE_DOT_4==1) && (VECTOR_SIZE!=4)
-            if ((i%4) == 3){
+            if ((i%4) == 3) {
                 sum = FPGA_REG1(sum);
             }
         #endif
@@ -402,7 +389,7 @@ kernel monolithic() {
         n_vfloat_bool valA;
         n_vfloat valB;
         uint masked_counter = POW2_REM(counter, SWAP_RANGE);
-        if (masked_counter < N_A_LOADS) {
+        if (masked_counter < A_BLOCK_N_MSGS) {
             valA = read_channel_intel(ch_load_a);
             // save latests row_col_pair
             if ((!new_row_col_pair && valA.c) & 0x01) {
@@ -410,13 +397,12 @@ kernel monolithic() {
             }
             new_row_col_pair = valA.c;
         }
-        // serialize the two reads to reduce burstiness
-        ASSERT(masked_counter < SWAP_RANGE);
+        // Serialize the two reads to reduce burstiness.
         if (masked_counter >= FIRST_B_LOAD) {
             valB = read_channel_intel(ch_load_b);
         }
 
-        // private counters for feeder fpga_reg
+        // Privatize counters for feeder fpga_reg.
         uint counterA = counter;
 
         // recover last known row_col_pair
@@ -495,7 +481,7 @@ kernel monolithic() {
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
-store(global float * restrict C, int c_n_msgs) {
+store(global float * restrict C, uint c_n_msgs) {
     // We read and discard this many messages
     for (uint i = 0; i < SHIFT_REGS_PER_Y; i++) {
         read_channel_intel(ch_store_c);

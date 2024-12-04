@@ -51,16 +51,17 @@ main(int argc, char *argv[]) {
     tensor *c_ref = tensor_init_2d(C_Y, C_X);
 
     printf("** Matrix dimensions **\n");
-    printf("%12s %6d %6d\n", "a", A_Y, A_X);
-    printf("%12s %6d %6d\n", "b", B_Y, B_X);
-    printf("%12s %6d %6d\n", "c", C_Y, C_X);
+    printf("  %-10s %6d %6d\n", "a", A_Y, A_X);
+    printf("  %-10s %6d %6d\n", "b", B_Y, B_X);
+    printf("  %-10s %6d %6d\n", "c", C_Y, C_X);
     printf("\n");
     printf("** Kernel setup **\n");
-    printf("%12s %4d %4d\n", "PE dims", PE_Y, PE_X);
-    printf("%12s %4d %4d\n", "Block A", A_BLOCK_Y, A_BLOCK_X);
-    printf("%12s %4d %4d\n", "Block B", B_BLOCK_Y, B_BLOCK_X);
-    printf("%12s %4d %4d\n", "Block C", C_BLOCK_Y, C_BLOCK_X);
-    printf("%12s %4d %4d\n", "Interleave", Y_INTERLEAVED, X_INTERLEAVED);
+    printf("  %-10s %4d\n", "X scale", X_SCALE);
+    printf("  %-10s %4d %4d\n", "PE dims", PE_Y, PE_X);
+    printf("  %-10s %4d %4d\n", "Block A", A_BLOCK_Y, A_BLOCK_X);
+    printf("  %-10s %4d %4d\n", "Block B", B_BLOCK_Y, B_BLOCK_X);
+    printf("  %-10s %4d %4d\n", "Block C", C_BLOCK_Y, C_BLOCK_X);
+    printf("  %-10s %4d %4d\n", "Interleave", Y_INTERLEAVED, X_INTERLEAVED);
     printf("\n");
 
     printf("** Initializing input matrices **\n");
