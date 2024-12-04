@@ -89,37 +89,29 @@ test_transpose_a() {
     tensor *src = tensor_init_2d(5, 4);
     tensor_fill_range(src, 1.0);
 
-    //tensor_print(src, true, 0, 80, " ");
-
     tensor *dst1 = tensor_tile_2d_new(src, 2, 1, 0, 0);
     assert(dst1->dims[0] == 3);
     assert(dst1->dims[1] == 4);
     assert(dst1->dims[2] == 2);
     assert(dst1->dims[3] == 1);
-    //tensor_print(dst1, true, 0, 80, " ");
     tensor_free(dst1);
 
     tensor *dst2 = tensor_tile_2d_new(src, 3, 1, 0, 0);
     assert(tensor_n_elements(dst2) == 2 * 4 * 3 * 1);
-    //tensor_print(dst2, true, 0, 80, " ");
     tensor_free(dst2);
 
     tensor *dst3 = tensor_tile_2d_new(src, 4, 1, 0, 0);
     assert(dst3->n_dims == 4);
     assert(tensor_n_elements(dst3) == 2 * 4 * 4 * 1);
-    //tensor_print(dst3, true, 1, 80, " ");
     tensor_free(dst3);
 
     tensor *dst4 = tensor_tile_2d_new(src, 5, 1, 0, 0);
     assert(tensor_n_elements(dst4) == 1 * 4 * 5 * 1);
-    //tensor_print(dst4, true, 1, 80, " ");
     tensor_free(dst4);
 
     tensor *dst5 = tensor_tile_2d_new(src, 6, 1, 0, 0);
     assert(tensor_n_elements(dst5) == 1 * 4 * 6 * 1);
-    //tensor_print(dst5, true, 1, 80, " ");
     tensor_free(dst5);
-
     tensor_free(src);
 }
 
