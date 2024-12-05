@@ -539,6 +539,24 @@ test_permute_2d() {
     tensor_free(src);
 }
 
+void
+test_permute_3d_2() {
+    int d0 = 3;
+    int d1 = 2;
+    int d2 = 4;
+
+    tensor *t0 = tensor_init_3d(d0, d1, d2);
+    tensor_fill_range(t0, 0);
+    tensor *t1 = tensor_permute_dims_new(t0, (int[]){1, 2, 0});
+
+    assert(t1->data[6] == t0->data[2]);
+
+    tensor_print(t0, true, 0, 160, " ");
+    tensor_print(t1, true, 0, 160, " ");
+    tensor_free(t1);
+    tensor_free(t0);
+}
+
 int
 main(int argc, char *argv[]) {
     rand_init(0);
@@ -564,4 +582,5 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_print_tensor);
     PRINT_RUN(test_permute_3d);
     PRINT_RUN(test_permute_2d);
+    PRINT_RUN(test_permute_3d_2);
 }
