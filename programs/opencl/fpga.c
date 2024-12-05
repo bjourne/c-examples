@@ -48,7 +48,6 @@ main(int argc, char *argv[]) {
     tensor *a = tensor_init_2d(A_Y, A_X);
     tensor *b = tensor_init_2d(B_Y, B_X);
     tensor *c = tensor_init_2d(C_Y, C_X);
-    tensor *c_ref = tensor_init_2d(C_Y, C_X);
 
     printf("** Matrix dimensions **\n");
     printf("  %-10s %6d %6d\n", "a", A_Y, A_X);
@@ -71,7 +70,7 @@ main(int argc, char *argv[]) {
     tensor_unary(b, b, TENSOR_UNARY_OP_ADD, -10.0);
 
     printf("** Multiplying on CPU **\n");
-    tensor_multiply(a, b, c_ref);
+    tensor *c_ref = tensor_multiply_new(a, b);
 
     // Can we do this in one step?
     tensor *c_ref_tiled = tensor_tile_2d_new(
@@ -82,10 +81,7 @@ main(int argc, char *argv[]) {
 
     tensor *c_ref_tiled_transposed = tensor_init_3d(n_tiles, PE_X, X_ILEAVE);
 
-    c_ref_tiled->n_dims = 3;
-    c_ref_tiled->dims[0] = n_tiles;
-    c_ref_tiled->dims[1] = X_ILEAVE;
-    c_ref_tiled->dims[2] = PE_X;
+    tensor_set_dims(c_ref_tiled, 3, (int[]){n_tiles, X_ILEAVE, PE_X});
 
     tensor_transpose_tiled(c_ref_tiled, c_ref_tiled_transposed);
 

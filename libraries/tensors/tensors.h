@@ -108,26 +108,22 @@ tensor *tensor_init_2d(int x, int y);
 tensor *tensor_init_3d(int x, int y, int z);
 tensor *tensor_init_4d(int x, int y, int z, int w);
 
+
 // Utility
 long tensor_n_elements(tensor *me);
 void tensor_flatten(tensor *me, int from);
 void tensor_set_dims(tensor *me, int n_dims, int dims[]);
 int tensor_padded_strided_dim(int s_dim, int f_dim, int pad, int stride);
 
-// Shouldn't use this one
-tensor *tensor_init_from_data(float *data, int n_dims, int dims[]);
-tensor *tensor_init_copy(tensor *orig);
-
 void tensor_free(tensor *t);
 
 // Copy data
 void tensor_copy_data(tensor *me, void *addr);
+tensor *tensor_init_copy(tensor *orig);
 
 // Checking
 bool tensor_check_equal(tensor *t1, tensor *t2, float eps);
 void tensor_check_equal_contents(tensor *t1, tensor *t2, float eps);
-void tensor_check_equal_dims(int n_dims1, int dims1[],
-                             int n_dims2, int dims2[]);
 void tensor_check_dims(tensor *t, int n_dims, ...);
 
 // Printing
@@ -191,6 +187,13 @@ tensor *tensor_read_png(char *filename);
 bool tensor_write_png(tensor *me, char *filename);
 #endif
 
+// Shouldn't use this one
+tensor *tensor_init_from_data(float *data, int n_dims, int dims[]);
+
+
+
+
+
 // Layer abstraction
 tensor_layer *tensor_layer_init_linear(int in, int out);
 tensor_layer *tensor_layer_init_relu();
@@ -222,5 +225,7 @@ tensor *tensor_layer_stack_apply_new(tensor_layer_stack *me, tensor *input);
 void tensor_layer_stack_free(tensor_layer_stack *me);
 
 void tensor_layer_stack_print(tensor_layer_stack *me);
+
+
 
 #endif

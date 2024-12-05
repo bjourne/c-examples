@@ -4,12 +4,6 @@
 #include "linalg/linalg.h"
 #include "tensors/tensors.h"
 
-static void
-check_dims(tensor *me, int n_dims, int dims[]) {
-    tensor_check_equal_dims(me->n_dims, me->dims,
-                            n_dims, dims);
-}
-
 void
 test_layer_stack_apply_lenet() {
     tensor_layer *layers[] = {
@@ -200,34 +194,34 @@ test_lenet_layers() {
 
 
     // Run input through layers
-    tensor *x0 = tensor_init(3, (int[]){3, 32, 32});
+    tensor *x0 = tensor_init_3d(3, 32, 32);
 
     tensor *x1 = tensor_layer_apply_new(conv1, x0);
-    check_dims(x1, 3, (int[]){6, 28, 28});
+    tensor_check_dims(x1, 3, 6, 28, 28);
 
     tensor *x2 = tensor_layer_apply_new(relu, x1);
-    check_dims(x2, 3, (int[]){6, 28, 28});
+    tensor_check_dims(x2, 3, 6, 28, 28);
 
     tensor *x3 = tensor_layer_apply_new(max_pool2d, x2);
-    check_dims(x3, 3, (int[]){6, 14, 14});
+    tensor_check_dims(x3, 3, 6, 14, 14);
 
     tensor *x4 = tensor_layer_apply_new(conv2, x3);
-    check_dims(x4, 3, (int[]){16, 10, 10});
+    tensor_check_dims(x4, 3, 16, 10, 10);
 
     tensor *x5 = tensor_layer_apply_new(max_pool2d, x4);
-    check_dims(x5, 3, (int[]){16, 5, 5});
+    tensor_check_dims(x5, 3, 16, 5, 5);
 
     tensor *x6 = tensor_layer_apply_new(flatten, x5);
-    check_dims(x6, 1, (int[]){400});
+    tensor_check_dims(x6, 1, 400);
 
     tensor *x7 = tensor_layer_apply_new(fc1, x6);
-    check_dims(x7, 1, (int[]){120});
+    tensor_check_dims(x7, 1, 120);
 
     tensor *x8 = tensor_layer_apply_new(fc2, x7);
-    check_dims(x8, 1, (int[]){84});
+    tensor_check_dims(x8, 1, 84);
 
     tensor *x9 = tensor_layer_apply_new(fc3, x8);
-    check_dims(x9, 1, (int[]){10});
+    tensor_check_dims(x9, 1, 10);
 
     tensor_layer_free(fc1);
     tensor_layer_free(fc2);

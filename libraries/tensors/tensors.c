@@ -4,6 +4,14 @@
 //
 //   * `n` or `n_els` is the number of elements in the tensor.
 //   * Tensors have `int` number of elements.
+//
+// For convolutions and similar code:
+//
+//   * x, y, and c are the image width, height, and number of channels.
+//   * s, d, and f are the source and destination image and f the filter bank (4d).
+//   * The suffix _dim is the exclusive maximum.
+//
+// So dc in [0, dc_dim) represents the current destination channel.
 #include <assert.h>
 #include <float.h>
 #include <math.h>
@@ -58,8 +66,8 @@ tensor_check_dims(tensor *t, int n_dims, ...) {
     va_end(ap);
 }
 
-void
-tensor_check_equal_dims(
+static void
+check_equal_dims(
     int n_dims1, int dims1[],
     int n_dims2, int dims2[]
 ) {
@@ -110,8 +118,8 @@ tensor_check_equal_contents(tensor *t1, tensor *t2, float eps) {
 
 bool
 tensor_check_equal(tensor *t1, tensor *t2, float epsilon) {
-    tensor_check_equal_dims(t1->n_dims, t1->dims,
-                            t2->n_dims, t2->dims);
+    check_equal_dims(t1->n_dims, t1->dims,
+                     t2->n_dims, t2->dims);
     tensor_check_equal_contents(t1, t2, epsilon);
     return true;
 }
@@ -157,17 +165,6 @@ copy_dims(int src_n_dims, int *src_dims,
 int
 tensor_padded_strided_dim(int s_dim, int f_dim, int pad, int stride) {
     return (s_dim + 2 * pad - f_dim) / stride + 1;
-}
-
-// What name is this?
-static void
-compute_2d_dims(tensor *src,
-                int kernel_h, int kernel_w,
-                int stride, int padding,
-                int *height, int *width) {
-
-    *height = (src->dims[1] + 2 * padding - kernel_h) / stride + 1;
-    *width = (src->dims[2] + 2 * padding - kernel_w) / stride + 1;
 }
 
 static long
@@ -524,10 +521,17 @@ tensor_read_png(char *filename) {
 tensor *
 tensor_conv2d_new(tensor *weight, tensor *bias,
                   int stride, int padding, tensor *src) {
-    int height, width;
-    compute_2d_dims(src, weight->dims[2], weight->dims[3], stride, padding,
-                    &height, &width);
-    tensor *dst = tensor_init(3, (int[]){weight->dims[0], height, width});
+
+    int sy_dim = src->dims[1];
+    int sx_dim = src->dims[2];
+    int fy_dim = weight->dims[2];
+    int fx_dim = weight->dims[3];
+
+    int dc_dim = weight->dims[0];
+    int dy_dim = tensor_padded_strided_dim(sy_dim, fy_dim, padding, stride);
+    int dx_dim = tensor_padded_strided_dim(sx_dim, fx_dim, padding, stride);
+
+    tensor *dst = tensor_init(3, (int[]){dc_dim, dy_dim, dx_dim});
     tensor_conv2d(weight, bias, stride, padding, src, dst);
     return dst;
 }
@@ -539,19 +543,11 @@ tensor_conv2d_new(tensor *weight, tensor *bias,
 #define ADDR5D(d0, d1, d2, d3, d4, i0, i1, i2, i3, i4) \
     (i0*d1*d2*d3*d4 + i1*d2*d3*d4 + i2*d3*d4 + i3*d4 + i4)
 
-// Names:
-//
-// [ds][xyz] - Indexes the width, height, and channels of src/dst image.
-// [d]s[xyz]_dim - Width, height, and channel dimensions of src/dst image.
-//
-// f[yx]_dim - Height and width of filter
-// D, F, S - Destination, filter, and source arrays.
 void
 tensor_conv2d(tensor *weight, tensor *bias,
               int stride, int padding,
               tensor *src, tensor *dst) {
 
-    int dc_dim = weight->dims[0];
     int fy_dim = weight->dims[2];
     int fx_dim = weight->dims[3];
 
@@ -559,8 +555,9 @@ tensor_conv2d(tensor *weight, tensor *bias,
     int sy_dim = src->dims[1];
     int sx_dim = src->dims[2];
 
-    int dy_dim, dx_dim;
-    compute_2d_dims(src, fy_dim, fx_dim, stride, padding, &dy_dim, &dx_dim);
+    int dc_dim = dst->dims[0];
+    int dy_dim = dst->dims[1];
+    int dx_dim = dst->dims[2];
 
     tensor_check_dims(weight, 4, dc_dim, sc_dim, fy_dim, fx_dim);
     tensor_check_dims(bias, 1, dc_dim);
@@ -621,15 +618,26 @@ tensor_im2col(
     int fx_dim = dst->dims[3];
     assert(dst->dims[4] == sc_dim);
 
+
     float *D = dst->data;
     float *S = src->data;
     for (int dy = 0; dy < dy_dim; dy++) {
         for (int dx = 0; dx < dx_dim; dx++) {
             for (int fy = 0; fy < fy_dim; fy++) {
                 for (int fx = 0; fx < fx_dim; fx++) {
+                    int sy = stride_y*dy + fy - pad_y;
+                    int sx = stride_x*dx + fx - pad_x;
+                    /* if (sy >= 0 && sy < sy_dim && sx >= 0 && sx < sx_dim) { */
+                    /*     float *at = &S[ADDR3D(sy_dim, sx_dim, sc_dim, sy, sx, 0)]; */
+                    /*     for (int sc = 0; sc < sc_dim; sc++) { */
+                    /*         *D++ = *at++; */
+                    /*     } */
+                    /* } else { */
+                    /*     for (int sc = 0; sc < sc_dim; sc++) { */
+                    /*         *D++ = 0; */
+                    /*     } */
+                    /* } */
                     for (int sc = 0; sc < sc_dim; sc++) {
-                        int sy = stride_y*dy + fy - pad_y;
-                        int sx = stride_x*dx + fx - pad_x;
                         float v = 0;
                         if (sy >= 0 && sy < sy_dim && sx >= 0 && sx < sx_dim) {
                             int s_addr = ADDR3D(sy_dim, sx_dim, sc_dim, sy, sx, sc);
@@ -669,15 +677,16 @@ tensor_im2col_new(
 // 2D Max Pooling
 ////////////////////////////////////////////////////////////////////////
 tensor *
-tensor_max_pool2d_new(int kernel_h, int kernel_w,
+tensor_max_pool2d_new(int fy_dim, int fx_dim,
                       int stride, int padding,
                       tensor *src) {
-
-    int height, width;
-    compute_2d_dims(src, kernel_h, kernel_w, stride, padding,
-                    &height, &width);
-    tensor *dst = tensor_init(3, (int[]){src->dims[0], height, width});
-    tensor_max_pool2d(kernel_h, kernel_w, stride, padding, src, dst);
+    int sc_dim = src->dims[0];
+    int sy_dim = src->dims[1];
+    int sx_dim = src->dims[2];
+    int dy_dim = tensor_padded_strided_dim(sy_dim, fy_dim, padding, stride);
+    int dx_dim = tensor_padded_strided_dim(sx_dim, fx_dim, padding, stride);
+    tensor *dst = tensor_init(3, (int[]){sc_dim, dy_dim, dx_dim});
+    tensor_max_pool2d(fy_dim, fx_dim, stride, padding, src, dst);
     return dst;
 }
 
@@ -692,9 +701,8 @@ tensor_max_pool2d(int kernel_h, int kernel_w,
     int src_n_channels = src->dims[0];
     int src_size = src_h * src_w;
 
-    int dst_h, dst_w;
-    compute_2d_dims(src, kernel_h, kernel_w, stride, padding,
-                    &dst_h, &dst_w);
+    int dst_h = dst->dims[1];
+    int dst_w = dst->dims[2];
 
     assert(src->n_dims == 3);
     assert(dst->n_dims == 3);
@@ -777,8 +785,7 @@ tensor_transpose(tensor *src, tensor *dst) {
     }
 }
 
-tensor *
-tensor_transpose_new(tensor *src) {
+tensor *tensor_transpose_new(tensor *src) {
     tensor *dst = tensor_init_2d(src->dims[1], src->dims[0]);
     tensor_transpose(src, dst);
     return dst;
@@ -972,7 +979,7 @@ tensor_layer_stack_free(tensor_layer_stack *me) {
 // The point is to avoid redundant mallocs and copies.
 tensor *
 tensor_layer_stack_apply_new(tensor_layer_stack *me, tensor *input) {
-    tensor_check_equal_dims(
+    check_equal_dims(
         input->n_dims, input->dims,
         me->input_n_dims, me->input_dims
     );

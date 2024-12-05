@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2024 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <math.h>
 #include <pthread.h>
@@ -299,4 +299,11 @@ void
 tensor_multiply(tensor *a, tensor *b, tensor *c) {
     int n_jobs = JOB_FACTOR * (int)sysconf(_SC_NPROCESSORS_ONLN);
     tensor_multiply_w_params(a, b, c, n_jobs);
+}
+
+tensor *
+tensor_multiply_new(tensor *a, tensor *b) {
+    tensor *c = tensor_init_2d(a->dims[0], b->dims[1]);
+    tensor_multiply(a, b, c);
+    return c;
 }
