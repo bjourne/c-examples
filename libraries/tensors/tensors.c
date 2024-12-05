@@ -194,6 +194,39 @@ tensor_set_dims(tensor *me, int n_dims, int dims[]) {
     memcpy(me->dims, dims, n_dims * sizeof(int));
 }
 
+static float *
+permute(float *src, float *dst,
+        int left, int *dims,
+        int *strides) {
+    left--;
+    for (int i = 0; i < *dims; i++) {
+        if (!left) {
+            *dst++ = *src;
+        } else {
+            dst = permute(src, dst, left, dims + 1, strides + 1);
+        }
+        src += *strides;
+    }
+    return dst;
+}
+
+tensor *
+tensor_permute_dims_new(tensor *src, int perm[]) {
+    int *src_dims = src->dims;
+    int n_dims = src->n_dims;
+    int strides[TENSOR_MAX_N_DIMS];
+    int dst_dims[TENSOR_MAX_N_DIMS];
+    int cnt = 1;
+    for (int i = n_dims - 1; i >= 0; i--) {
+        dst_dims[i] = src_dims[perm[i]];
+        strides[perm[i]] = cnt;
+        cnt *= src_dims[i];
+    }
+    tensor *dst = tensor_init(n_dims, dst_dims);
+    permute(src->data, dst->data, n_dims, dst_dims, strides);
+    return dst;
+}
+
 ////////////////////////////////////////////////////////////////////////
 // Init and Free
 ////////////////////////////////////////////////////////////////////////

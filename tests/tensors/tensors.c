@@ -52,12 +52,6 @@ arr_5_after_relu[5] = {
 static int
 dim_5[1] = {5};
 
-static float
-arr_10_triangular_numbers[11] = {
-    0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55
-};
-
-
 void
 test_from_png() {
 #ifdef HAVE_PNG
@@ -457,6 +451,10 @@ test_random_filling() {
 
 void
 test_scans() {
+    float
+    arr_10_triangular_numbers[11] = {
+        0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55
+    };
     size_t n = 10;
     tensor *src = tensor_init_1d(n);
     tensor *dst = tensor_init_1d(n);
@@ -506,9 +504,44 @@ test_print_tensor() {
     tensor_free(src);
 }
 
+void
+test_permute_3d() {
+    int dims[] = {rand_n(4) + 2, rand_n(4) + 2, rand_n(4) + 2};
+
+    tensor *t0 = tensor_init(3, dims);
+    tensor_fill_range(t0, 0.0);
+    tensor *t1 = tensor_permute_dims_new(t0, (int[]){0, 2, 1});
+    tensor_check_dims(t1, 3, dims[0], dims[2], dims[1]);
+
+    int sum0 = 0;
+    int sum1 = 0;
+    for (int i = 0; i < tensor_n_elements(t0); i++) {
+        sum0 += t0->data[i];
+        sum1 += t1->data[i];
+    }
+    assert(sum0 == sum1);
+    tensor_free(t0);
+    tensor_free(t1);
+}
+
+void
+test_permute_2d() {
+    tensor *src = tensor_init_2d(5, 5);
+    tensor_copy_data(src, mat_5x5_1);
+
+    tensor *dst0 = tensor_permute_dims_new(src, (int[]){1, 0});
+    tensor *dst1 = tensor_transpose_new(src);
+
+    tensor_check_equal(dst0, dst1, LINALG_EPSILON);
+
+    tensor_free(dst0);
+    tensor_free(dst1);
+    tensor_free(src);
+}
+
 int
 main(int argc, char *argv[]) {
-    rand_init(1234);
+    rand_init(0);
     if (argc == 1) {
         printf("Specify a PNG image.\n");
         return 1;
@@ -529,4 +562,6 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_random_filling);
     PRINT_RUN(test_scans);
     PRINT_RUN(test_print_tensor);
+    PRINT_RUN(test_permute_3d);
+    PRINT_RUN(test_permute_2d);
 }
