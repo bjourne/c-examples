@@ -5,6 +5,7 @@
 #include "datatypes/common.h"
 #include "linalg/linalg.h"
 #include "tensors/tensors.h"
+#include "tensors/multiply.h"
 
 char *fname = NULL;
 
@@ -384,8 +385,8 @@ test_conv2d_3() {
         }
     };
 
-    tensor *src = tensor_init_from_data((float *)src_data,
-                                        3, (int[]){1, 10, 3});
+    tensor *src = tensor_init_3d(1, 10, 3);
+    tensor_copy_data(src, src_data);
     tensor *weight = tensor_init_from_data((float *)weight_data,
                                            4, (int[]){1, 1, 3, 3});
     tensor *bias = tensor_init_1d(1);
@@ -435,12 +436,12 @@ test_uneven() {
             {15, 15, 16}
         }
     };
-    tensor *src = tensor_init_from_data((float *)src_data,
-                                        3, (int[]){1, 2, 4});
-    tensor *weight = tensor_init_from_data((float *)weight_data,
-                                           4, (int[]){2, 1, 2, 2});
-    tensor *expected = tensor_init_from_data((float *)expected_data,
-                                             3, (int[]){2, 1, 3});
+    tensor *src = tensor_init_3d(1, 2, 4);
+    tensor_copy_data(src, src_data);
+    tensor *weight = tensor_init_4d(2, 1, 2, 2);
+    tensor_copy_data(weight, weight_data);
+    tensor *expected = tensor_init_3d(2, 1, 3);
+    tensor_copy_data(expected, expected_data);
     tensor *bias = tensor_init_1d(2);
     tensor_fill_const(bias, 0);
     tensor *dst = tensor_conv2d_new(weight, bias, 1, 0, src);
@@ -484,16 +485,16 @@ test_uneven_strided() {
             {15, 16}
         }
     };
-    tensor *src = tensor_init_from_data((float *)src_data,
-                                        3, (int[]){1, 2, 4});
+    tensor *src = tensor_init_3d(1, 2, 4);
+    tensor_copy_data(src, src_data);
     tensor *dst = tensor_init_3d(2, 1, 2);
-    tensor *weight = tensor_init_from_data((float *)weight_data,
-                                           4, (int[]){2, 1, 2, 2});
+    tensor *weight = tensor_init_4d(2, 1, 2, 2);
+    tensor_copy_data(weight, weight_data);
     tensor *bias = tensor_init_1d(2);
     tensor_fill_const(bias, 0);
 
-    tensor *expected = tensor_init_from_data((float *)expected_data,
-                                             3, (int[]){2, 1, 2});
+    tensor *expected = tensor_init_3d(2, 1, 2);
+    tensor_copy_data(expected, expected_data);
 
     tensor_conv2d(weight, bias, 2, 0, src, dst);
 
@@ -568,10 +569,10 @@ test_bias() {
 
     tensor *weight = tensor_init_4d(2, 2, 3, 3);
     tensor_copy_data(weight, weight_data);
-    tensor *expected = tensor_init_from_data((float *)expected_data,
-                                             3, (int[]){2, 3, 3});
-    tensor *bias = tensor_init_from_data((float *)bias_data,
-                                         1, (int[]){2});
+    tensor *expected = tensor_init_3d(2, 3, 3);
+    tensor_copy_data(expected, expected_data);
+    tensor *bias = tensor_init_1d(2);
+    tensor_copy_data(bias, bias_data);
     tensor *dst = tensor_conv2d_new(weight, bias, 1, 0, src);
 
     tensor_check_equal(expected, dst, LINALG_EPSILON);
@@ -697,6 +698,72 @@ test_im2col_padded() {
 }
 
 void
+test_im2col_conv2d() {
+    int fy_dim = 3;
+    int fx_dim = 3;
+    int iy_dim = 8;
+    int ix_dim = 6;
+    int ic_dim = 9;
+    int dc_dim = 3;
+
+    int pad_y = 1;
+    int pad_x = 1;
+    int stride_y = 1;
+    int stride_x = 1;
+
+    int dy_dim = tensor_padded_strided_dim(iy_dim, fy_dim, pad_y, stride_y);
+    int dx_dim = tensor_padded_strided_dim(ix_dim, fx_dim, pad_x, stride_x);
+
+    tensor *src0 = tensor_init_3d(ic_dim, iy_dim, ix_dim);
+    tensor_fill_range(src0, 0);
+
+    tensor *weight0 = tensor_init_4d(dc_dim, ic_dim, fy_dim, fx_dim);
+    tensor_fill_range(weight0, -20);
+    tensor *bias = tensor_init_1d(dc_dim);
+    tensor_fill_const(bias, 0);
+
+    tensor *dst0 = tensor_conv2d_new(weight0, bias, stride_x, pad_x, src0);
+    tensor_check_dims(dst0, 3, dc_dim, dy_dim, dx_dim);
+
+    // Move channels to back
+    tensor *src1 = tensor_permute_dims_new(src0, (int[]){1, 2, 0});
+    tensor *weight1 = tensor_permute_dims_new(weight0, (int[]){2, 3, 1, 0});
+
+    // Perform im2col
+    tensor *src1_cols = tensor_im2col_new(
+        src1,
+        fy_dim, fx_dim,
+        stride_y, stride_x,
+        pad_y, pad_x
+    );
+
+    // Merge dims
+    int col_dims[] = {dy_dim * dx_dim, fy_dim * fx_dim * ic_dim};
+    int weight_dims[] = {fy_dim * fx_dim * ic_dim, dc_dim};
+    tensor_set_dims(src1_cols, 2, col_dims);
+    tensor_set_dims(weight1, 2, weight_dims);
+    tensor *dst1_cols = tensor_multiply_new(src1_cols, weight1);
+
+    // Move channels to front
+    tensor *dst1 = tensor_permute_dims_new(dst1_cols, (int[]){1, 0});
+    tensor_set_dims(dst1, 3, (int[]){dc_dim, dy_dim, dx_dim});
+    tensor_print(dst0, true, 0, 160, " ");
+    tensor_print(dst1, true, 0, 160, " ");
+    tensor_check_equal(dst0, dst1, LINALG_EPSILON);
+
+    tensor_free(src0);
+    tensor_free(src1);
+    tensor_free(src1_cols);
+    tensor_free(dst0);
+    tensor_free(dst1);
+    tensor_free(dst1_cols);
+    tensor_free(weight0);
+    tensor_free(weight1);
+
+    tensor_free(bias);
+}
+
+void
 perf_im2col() {
     int stride_y = 1;
     int stride_x = 1;
@@ -717,8 +784,10 @@ perf_im2col() {
     });
 
     uint64_t bef = nano_count();
-    tensor_im2col(src, dst, stride_y, stride_x, pad_y, pad_x);
-    printf("%.2lfs\n", nanos_to_secs(nano_count() - bef));
+    for (int i = 0; i < 5000; i++) {
+        tensor_im2col(src, dst, stride_y, stride_x, pad_y, pad_x);
+    }
+    printf("%.3lfs\n", nanos_to_secs(nano_count() - bef));
 
     tensor_free(src);
     tensor_free(dst);
@@ -743,10 +812,12 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_uneven_strided);
     PRINT_RUN(test_bias);
 
-    // Im2Col
+    //Im2Col
     PRINT_RUN(test_im2col);
     PRINT_RUN(test_im2col_strided);
     PRINT_RUN(test_im2col_padded);
+    PRINT_RUN(test_im2col_conv2d);
+
 
     // Strides
     PRINT_RUN(test_strides);

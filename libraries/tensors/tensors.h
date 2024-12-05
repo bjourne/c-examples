@@ -110,12 +110,6 @@ tensor *tensor_init_4d(int x, int y, int z, int w);
 
 void tensor_free(tensor *t);
 
-// Rearranging dimensions
-void tensor_flatten(tensor *me, int from);
-void tensor_set_dims(tensor *me, int n_dims, int dims[]);
-
-tensor *tensor_permute_dims_new(tensor *src, int perm[]);
-
 // Utility
 long tensor_n_elements(tensor *me);
 int tensor_padded_strided_dim(int s_dim, int f_dim, int pad, int stride);
@@ -179,9 +173,14 @@ void tensor_linear(tensor *weights, tensor *bias,
                    tensor *src, tensor *dst);
 tensor *tensor_linear_new(tensor *weights, tensor *bias, tensor *src);
 
-// Transpose
+// Transpose and rearrange of dimensions
 void tensor_transpose(tensor *src, tensor *dst);
 tensor *tensor_transpose_new(tensor *src);
+
+void tensor_flatten(tensor *me, int from);
+void tensor_set_dims(tensor *me, int n_dims, int dims[]);
+tensor *tensor_permute_dims_new(tensor *src, int perm[]);
+
 
 #ifdef HAVE_PNG
 // Png support

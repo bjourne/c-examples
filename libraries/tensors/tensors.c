@@ -800,7 +800,7 @@ tensor_linear(tensor *weights, tensor *bias, tensor *src, tensor *dst) {
 
 tensor *
 tensor_linear_new(tensor *weights, tensor *bias, tensor *src) {
-    // This is not right?
+    // Arguably, this is wrong if weight is multi-dimensional
     tensor *dst = tensor_init_1d(weights->dims[0]);
     tensor_linear(weights, bias, src, dst);
     return dst;
