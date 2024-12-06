@@ -28,7 +28,9 @@
 // | 8     | 16x16 | 16x16 | 2    | 9985 | 16  | (5) | 565  | 0.58  |
 // | 8     | 16x16 | 16x16 | 2    | 9985 | 16  | (6) | -    | -     |
 // | 8     | 16x16 | 16x16 | 2    | 9984 | 16  |     | 595  | 0.58  |
-// | 8     | 16x16 | 16x16 | 2    | 9984 | 16  | (7) |      |       |
+// | 8     | 16x16 | 16x16 | 2    | 9984 | 16  | (7) | 606  | -     |
+// | 8     | 16x16 | 16x16 | 2    | 9983 | 16  | (8) | 600  | 0.57  |
+// | 8     | 16x16 | 16x16 | 4    | 9983 | 16  |     | 508  | 28.54 |
 //
 // 1. This refactoring increased the length of the critical chain.
 // 2. Reverted last changes.
@@ -36,7 +38,8 @@
 // 4. Simpler store kernel
 // 5. No volatile
 // 6. No FPGA_REGx (it broke Quartus)
-// 7. Removed some FPGA_REG2
+// 7. Removed some FPGA_REG2 (causes incorrect results)
+// 8. -cl-fast-relaxed-math -cl-mad-enable
 
 // This is important but it is not enforced:
 // PE_X + PE_Y <= Y_INTERLEAVED

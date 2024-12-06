@@ -31,6 +31,8 @@
 ////////////////////////////////////////////////////////////////////////
 #define POW2_REM(i, v)              ((i) & ((v) - 1))
 
+#define TRUNC(i, v)                 (((i) / (v)) * (v))
+
 #define DEBUG 0
 #if DEBUG==1
 #define ASSERT(cond)                if (!(cond)) { printf("Cond: %s failed!\n", #cond); }
@@ -234,19 +236,19 @@ loadB(global vfloat* restrict B,
 vfloat_bool
 FeederA(n_vfloat_bool new,
         vfloat mem_a[2][Y_ILEAVE][X_SCALE][BANK_Y],
-        uint counter, uint row) {
+        uint counter, uint y) {
 
     uint masked_counter = POW2_REM(counter, SWAP_RANGE);
 
-    bool new_row_col_pair = masked_counter < (Y_ILEAVE * X_ILEAVE);
+    bool new_pair = masked_counter < SHIFT_REG_SIZE;
     bool side = (counter / SWAP_RANGE) & 1;
 
-    if (masked_counter * LVEC / (Y_ILEAVE * X_SCALE) == row) {
+    if (masked_counter * LVEC / (Y_ILEAVE * X_SCALE) == y) {
         uchar vector = POW2_REM(counter * LVEC, X_SCALE);
         uchar col = POW2_REM(counter * LVEC, Y_ILEAVE * X_SCALE) / X_SCALE;
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
-            mem_a[side][col][(vector / LVEC) * LVEC + i][row] = new.data[i];
+            mem_a[side][col][TRUNC(vector, LVEC) + i][y] = new.data[i];
         }
     }
 
@@ -257,10 +259,10 @@ FeederA(n_vfloat_bool new,
     vfloat choices[LVEC];
 #pragma unroll
     for (int i = 0; i < LVEC; i++) {
-        choices[i] = mem_a[!side][col][(vector / LVEC) * LVEC + i][row];
+        choices[i] = mem_a[!side][col][TRUNC(vector, LVEC) + i][y];
     }
     val.data = choices[vector % LVEC];
-    val.c = new_row_col_pair & new.c;
+    val.c = new_pair & new.c;
     return val;
 }
 
@@ -302,7 +304,6 @@ FeederB(n_vfloat new,
 #else
     return choices[vector % LVEC];
 #endif
-
 }
 
 float
@@ -437,9 +438,9 @@ kernel monolithic() {
                 if (fedA[y].c) {
                     drain[x][y * SHIFT_REG_SIZE] = result;
                 }
-                /* fedA[y].data = FPGA_REG2(fedA[y].data); */
-                /* fedA[y].c = FPGA_REG2(fedA[y].c); */
-                /* fedB[x] = FPGA_REG2(fedB[x]); */
+                fedA[y].data = FPGA_REG2(fedA[y].data);
+                fedA[y].c = FPGA_REG2(fedA[y].c);
+                fedB[x] = FPGA_REG2(fedB[x]);
             }
         }
 
