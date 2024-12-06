@@ -163,10 +163,12 @@ typedef struct {
 ////////////////////////////////////////////////////////////////////////
 // Channels
 ////////////////////////////////////////////////////////////////////////
-channel n_vfloat_bool ch_load_a __attribute__((depth(64)));
-channel n_vfloat ch_load_b __attribute__((depth(64)));
-channel cols_floats ch_store_c __attribute__((depth(64)));
 
+#define CHAN_DEPTH      64
+
+channel n_vfloat_bool ch_load_a __attribute__((depth(CHAN_DEPTH)));
+channel n_vfloat ch_load_b __attribute__((depth(CHAN_DEPTH)));
+channel cols_floats ch_store_c __attribute__((depth(CHAN_DEPTH)));
 
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
@@ -455,6 +457,7 @@ kernel monolithic() {
                 results.data[j] = FPGA_REG2(results.data[j]);
             }
         }
+        ASSERT(storecount >= base);
         if (storecount - base < SHIFT_REGS_PER_Y) {
             write_channel_intel(ch_store_c, results);
         }
