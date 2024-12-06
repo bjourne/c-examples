@@ -481,6 +481,14 @@ test_permute_3d_2() {
     tensor_free(t0);
 }
 
+void
+test_flatten() {
+    tensor *t = tensor_init_4d(2, 3, 4, 5);
+    tensor_flatten(t, 1);
+    tensor_check_dims(t, 2, 2, 3*4*5);
+    tensor_free(t);
+}
+
 int
 main(int argc, char *argv[]) {
     rand_init(0);
@@ -506,4 +514,5 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_permute_3d);
     PRINT_RUN(test_permute_2d);
     PRINT_RUN(test_permute_3d_2);
+    PRINT_RUN(test_flatten);
 }

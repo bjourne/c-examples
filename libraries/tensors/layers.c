@@ -7,64 +7,6 @@
 #include "layers.h"
 
 ////////////////////////////////////////////////////////////////////////
-// Utility
-////////////////////////////////////////////////////////////////////////
-static void
-copy_dims(int src_n_dims, int *src_dims,
-          int *dst_n_dims, int *dst_dims) {
-    *dst_n_dims = src_n_dims;
-    memcpy(dst_dims, src_dims, sizeof(int) * TENSOR_MAX_N_DIMS);
-}
-
-
-// Temporary
-static long
-count_elements_from(int n_dims, int *dims, int from) {
-    long tot = dims[from];
-    for (int i = from + 1; i < n_dims; i++) {
-        tot *= dims[i];
-    }
-    return tot;
-}
-
-static void
-check_equal_dims(
-    int n_dims1, int dims1[],
-    int n_dims2, int dims2[]
-) {
-    assert(n_dims1 == n_dims2);
-    for (int i = 0; i < n_dims1; i++) {
-        int d1 = dims1[i];
-        int d2 = dims2[i];
-        if (d1 != d2) {
-            printf("Mismatch at dim %d: %d != %d\n", i, d1, d2);
-            assert(false);
-        }
-    }
-}
-
-static void
-str_dims(char *buf, int n_dims, int dims[])  {
-    strcat(buf, "[");
-    char buf2[256];
-    for (int i = 0; i < n_dims - 1; i++) {
-
-        sprintf(buf2, "%d, ", dims[i]);
-        strcat(buf, buf2);
-    }
-    sprintf(buf2, "%d", dims[n_dims - 1]);
-    strcat(buf, buf2);
-    strcat(buf, "]");
-}
-
-static void
-print_dims(int n_dims, int dims[]) {
-    char buf[256] = {0};
-    str_dims(buf, n_dims, dims);
-    printf("%s", buf);
-}
-
-////////////////////////////////////////////////////////////////////////
 // Layer abstraction
 ////////////////////////////////////////////////////////////////////////
 tensor_layer *
@@ -204,34 +146,35 @@ tensor_layer_stack *
 tensor_layer_stack_init(int n_layers, tensor_layer **layers,
                         int input_n_dims, int *input_dims) {
 
+    // Easiest way to compute dimensions of intermediate layers is to
+    // run a dummy tensor through the stack.
     tensor *input = tensor_init(input_n_dims, input_dims);
 
-    tensor_layer_stack *me = (tensor_layer_stack *)
-        malloc(sizeof(tensor_layer_stack));
+    tensor_layer_stack *me = malloc(sizeof(tensor_layer_stack));
     me->n_layers = n_layers;
     me->layers = layers;
-
-    int n_bytes_dims = sizeof(int) * TENSOR_MAX_N_DIMS;
-
-    copy_dims(input->n_dims, input->dims, &me->input_n_dims, me->input_dims);
+    tensor_dims_clone(input_n_dims, input_dims, &me->input_n_dims, &me->input_dims);
 
     // Layers' dims
     me->layers_n_dims = (int *)malloc(sizeof(int) * n_layers);
     me->layers_dims = (int **)malloc(sizeof(int *) * n_layers);
-    int buf_size = count_elements_from(input_n_dims, input_dims, 0);
+
+    long max = tensor_dims_count(input_n_dims, input_dims);
     for (int i = 0; i < n_layers; i++) {
         tensor *output = tensor_layer_apply_new(me->layers[i], input);
         int n_dims = output->n_dims;
         int *dims = output->dims;
-        buf_size = MAX(buf_size, count_elements_from(n_dims, dims, 0));
-        me->layers_dims[i] = (int *)malloc(n_bytes_dims);
-        copy_dims(n_dims, dims, &me->layers_n_dims[i], me->layers_dims[i]);
+
+        long this = tensor_dims_count(n_dims, dims);
+        max = MAX(this, max);
+
+        tensor_dims_clone(n_dims, dims, &me->layers_n_dims[i], &me->layers_dims[i]);
         tensor_free(input);
         input = output;
     }
     tensor_free(input);
-    me->src_buf = tensor_init_1d(buf_size);
-    me->dst_buf = tensor_init_1d(buf_size);
+    me->src_buf = tensor_init_1d(max);
+    me->dst_buf = tensor_init_1d(max);
     return me;
 }
 
@@ -243,6 +186,7 @@ tensor_layer_stack_free(tensor_layer_stack *me) {
     }
     tensor_free(me->src_buf);
     tensor_free(me->dst_buf);
+    free(me->input_dims);
     free(me->layers_dims);
     free(me->layers_n_dims);
     free(me);
@@ -250,22 +194,23 @@ tensor_layer_stack_free(tensor_layer_stack *me) {
 
 // The point is to avoid redundant mallocs and copies.
 tensor *
-tensor_layer_stack_apply_new(tensor_layer_stack *me, tensor *input) {
-    check_equal_dims(
-        input->n_dims, input->dims,
+tensor_layer_stack_apply_new(tensor_layer_stack *me, tensor *inp) {
+    tensor_dims_check_equal(
+        inp->n_dims, inp->dims,
         me->input_n_dims, me->input_dims
     );
     tensor *src = me->src_buf;
     tensor *dst = me->dst_buf;
-    copy_dims(input->n_dims, input->dims, &src->n_dims, src->dims);
-    memcpy(src->data, input->data, tensor_n_elements(src) * sizeof(float));
+
+    tensor_dims_copy(inp->n_dims, inp->dims, &src->n_dims, src->dims);
+    tensor_copy_data(src, inp->data);
 
     for (int i = 0; i < me->n_layers; i++) {
         tensor_layer *l = me->layers[i];
         tensor_layer_type t = l->type;
 
-        copy_dims(me->layers_n_dims[i], me->layers_dims[i],
-                  &dst->n_dims, dst->dims);
+        tensor_dims_copy(me->layers_n_dims[i], me->layers_dims[i],
+                         &dst->n_dims, dst->dims);
 
         // Content is in dst after
         bool swap = false;
@@ -328,9 +273,9 @@ layer_details(char *buf, tensor_layer *l) {
             w = l->linear.weight;
             b = l->linear.bias;
         }
-        str_dims(buf, w->n_dims, w->dims);
+        tensor_dims_to_string(w->n_dims, w->dims, buf);
         strcat(buf, ", ");
-        str_dims(buf, b->n_dims, b->dims);
+        tensor_dims_to_string(b->n_dims, b->dims, buf);
     }
 }
 
@@ -342,7 +287,7 @@ tensor_layer_stack_print(tensor_layer_stack *me) {
         n_params += tensor_layer_n_params(me->layers[i]);
     }
     printf("Input: ");
-    print_dims(me->input_n_dims, me->input_dims);
+    tensor_dims_print(me->input_n_dims, me->input_dims);
     printf(", Layers: %d, Params: %d\n", n_layers, n_params);
     for (int i = 0; i < n_layers; i++) {
         char buf[256] =  {0};
@@ -350,7 +295,7 @@ tensor_layer_stack_print(tensor_layer_stack *me) {
         tensor_layer_type t = l->type;
         layer_details(buf, l);
         printf("  %-10s %-20s: ", layer_name(t), buf);
-        print_dims(me->layers_n_dims[i], me->layers_dims[i]);
+        tensor_dims_print(me->layers_n_dims[i], me->layers_dims[i]);
         printf("\n");
     }
 }

@@ -4,6 +4,58 @@
 
 #include "tensors.h"
 
+typedef struct {
+    int from;
+} tensor_layer_flatten;
+
+typedef struct {
+    tensor *weight;
+    tensor *bias;
+} tensor_layer_linear;
+
+typedef struct {
+    int kernel_width;
+    int kernel_height;
+    int stride;
+    int padding;
+} tensor_layer_max_pool2d;
+
+typedef struct {
+    tensor *weight;
+    tensor *bias;
+    int stride;
+    int padding;
+} tensor_layer_conv2d;
+
+typedef struct {
+    tensor_layer_type type;
+    union {
+        tensor_layer_linear linear;
+        tensor_layer_conv2d conv2d;
+        tensor_layer_max_pool2d max_pool2d;
+        tensor_layer_flatten flatten;
+    };
+} tensor_layer;
+
+typedef struct {
+    int n_layers;
+    tensor_layer **layers;
+
+    // Need to record input and output dimensions somewhere.
+    int input_n_dims;
+    int *input_dims;
+    //int input_dims[TENSOR_MAX_N_DIMS];
+
+    int *layers_n_dims;
+    int **layers_dims;
+
+    // Two buffers are needed to propagate the tensors through the
+    // stack since some layers can't process in place.
+    tensor *src_buf;
+    tensor *dst_buf;
+
+} tensor_layer_stack;
+
 // Layer abstraction
 tensor_layer *tensor_layer_init_linear(int in, int out);
 tensor_layer *tensor_layer_init_relu();

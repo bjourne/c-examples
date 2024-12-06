@@ -4,6 +4,7 @@
 //
 //   * `n` or `n_els` is the number of elements in the tensor.
 //   * Tensors have `int` number of elements.
+//   * `eps` means epsilon.
 //
 // For convolutions and similar code:
 //
@@ -25,27 +26,6 @@
 #include "random/random.h"
 #include "tensors.h"
 
-static void
-str_dims(char *buf, int n_dims, int dims[])  {
-    strcat(buf, "[");
-    char buf2[256];
-    for (int i = 0; i < n_dims - 1; i++) {
-
-        sprintf(buf2, "%d, ", dims[i]);
-        strcat(buf, buf2);
-    }
-    sprintf(buf2, "%d", dims[n_dims - 1]);
-    strcat(buf, buf2);
-    strcat(buf, "]");
-}
-
-static void
-print_dims(int n_dims, int dims[]) {
-    char buf[256] = {0};
-    str_dims(buf, n_dims, dims);
-    printf("%s", buf);
-}
-
 ////////////////////////////////////////////////////////////////////////
 // Checking
 ////////////////////////////////////////////////////////////////////////
@@ -65,22 +45,6 @@ tensor_check_dims(tensor *t, int n_dims, ...) {
     va_end(ap);
 }
 
-static void
-check_equal_dims(
-    int n_dims1, int dims1[],
-    int n_dims2, int dims2[]
-) {
-    assert(n_dims1 == n_dims2);
-    for (int i = 0; i < n_dims1; i++) {
-        int d1 = dims1[i];
-        int d2 = dims2[i];
-        if (d1 != d2) {
-            printf("Mismatch at dim %d: %d != %d\n", i, d1, d2);
-            assert(false);
-        }
-    }
-}
-
 void
 tensor_check_equal_contents(tensor *t1, tensor *t2, float eps) {
     int n_els1 = tensor_n_elements(t1);
@@ -97,7 +61,7 @@ tensor_check_equal_contents(tensor *t1, tensor *t2, float eps) {
             n_mismatches++;
             if (n_mismatches < 100) {
                 printf("Mismatch at ");
-                print_dims(n_dims, dim_counts);
+                tensor_dims_print(n_dims, dim_counts);
                 printf(", %10.6f != %10.6f\n", v1,  v2);
             }
         }
@@ -116,10 +80,9 @@ tensor_check_equal_contents(tensor *t1, tensor *t2, float eps) {
 }
 
 bool
-tensor_check_equal(tensor *t1, tensor *t2, float epsilon) {
-    check_equal_dims(t1->n_dims, t1->dims,
-                     t2->n_dims, t2->dims);
-    tensor_check_equal_contents(t1, t2, epsilon);
+tensor_check_equal(tensor *t1, tensor *t2, float eps) {
+    tensor_dims_check_equal(t1->n_dims, t1->dims, t2->n_dims, t2->dims);
+    tensor_check_equal_contents(t1, t2, eps);
     return true;
 }
 
@@ -132,7 +95,7 @@ tensor_print(tensor *me,
              int n_decimals, int n_columns, char *sep) {
     if (print_header) {
         printf("Dims: ");
-        print_dims(me->n_dims, me->dims);
+        tensor_dims_print(me->n_dims, me->dims);
         printf("\n");
     }
     pretty_printer *pp = pp_init();
@@ -149,6 +112,66 @@ tensor_print(tensor *me,
     pp_free(pp);
 }
 
+////////////////////////////////////////////////////////////////////////
+// Dimensions
+////////////////////////////////////////////////////////////////////////
+void tensor_dims_to_string(int n, int *dims, char *buf) {
+    strcat(buf, "[");
+    char buf2[256];
+    for (int i = 0; i < n - 1; i++) {
+
+        sprintf(buf2, "%d, ", dims[i]);
+        strcat(buf, buf2);
+    }
+    sprintf(buf2, "%d", dims[n - 1]);
+    strcat(buf, buf2);
+    strcat(buf, "]");
+}
+
+void tensor_dims_print(int n, int *dims) {
+    char buf[256] = {0};
+    tensor_dims_to_string(n, dims, buf);
+    printf("%s", buf);
+}
+
+void
+tensor_dims_check_equal(int n_dims1, int *dims1, int n_dims2, int *dims2) {
+    assert(n_dims1 == n_dims2);
+    for (int i = 0; i < n_dims1; i++) {
+        int d1 = dims1[i];
+        int d2 = dims2[i];
+        if (d1 != d2) {
+            printf("Mismatch at dim %d: %d != %d\n", i, d1, d2);
+            assert(false);
+        }
+    }
+}
+
+
+long
+tensor_dims_count(int n, int *ptr) {
+    long prod = 1;
+    while (n) {
+        prod *= *ptr;
+        ptr++;
+        n--;
+    }
+    return prod;
+}
+
+void
+tensor_dims_copy(int src_n, int *src_dims, int *dst_n, int *dst_dims) {
+    *dst_n = src_n;
+    memcpy(dst_dims, src_dims, sizeof(int) * src_n);
+}
+
+void
+tensor_dims_clone(int src_n, int *src_dims, int *dst_n, int **dst_dims) {
+    *dst_n = src_n;
+    *dst_dims = malloc(sizeof(int) * src_n);
+    tensor_dims_copy(src_n, src_dims, dst_n, *dst_dims);
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 // Utility
@@ -158,23 +181,14 @@ tensor_padded_strided_dim(int s_dim, int f_dim, int pad, int stride) {
     return (s_dim + 2 * pad - f_dim) / stride + 1;
 }
 
-static long
-count_elements_from(int n_dims, int *dims, int from) {
-    long tot = dims[from];
-    for (int i = from + 1; i < n_dims; i++) {
-        tot *= dims[i];
-    }
-    return tot;
-}
-
 long
 tensor_n_elements(tensor *me) {
-    return count_elements_from(me->n_dims, me->dims, 0);
+    return tensor_dims_count(me->n_dims, me->dims);
 }
 
 void
 tensor_flatten(tensor *me, int from) {
-    int n_els = count_elements_from(me->n_dims, me->dims, from);
+    int n_els = tensor_dims_count(me->n_dims - from, me->dims + from);
     me->n_dims = from + 1;
     me->dims[from] = n_els;
 }

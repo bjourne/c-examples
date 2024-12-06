@@ -50,59 +50,17 @@ typedef struct {
     tensor_error_type error_code;
 } tensor;
 
-typedef struct {
-    int from;
-} tensor_layer_flatten;
-
-typedef struct {
-    tensor *weight;
-    tensor *bias;
-} tensor_layer_linear;
-
-typedef struct {
-    int kernel_width;
-    int kernel_height;
-    int stride;
-    int padding;
-} tensor_layer_max_pool2d;
-
-typedef struct {
-    tensor *weight;
-    tensor *bias;
-    int stride;
-    int padding;
-} tensor_layer_conv2d;
-
-typedef struct {
-    tensor_layer_type type;
-    union {
-        tensor_layer_linear linear;
-        tensor_layer_conv2d conv2d;
-        tensor_layer_max_pool2d max_pool2d;
-        tensor_layer_flatten flatten;
-    };
-} tensor_layer;
-
-typedef struct {
-    int n_layers;
-    tensor_layer **layers;
-
-    // Need to record input and output dimensions somewhere.
-    int input_n_dims;
-    int input_dims[TENSOR_MAX_N_DIMS];
-
-    int *layers_n_dims;
-    int **layers_dims;
-
-    // Two buffers are needed to propagate the tensors through the
-    // stack since some layers can't process in place.
-    tensor *src_buf;
-    tensor *dst_buf;
-
-} tensor_layer_stack;
+// For dealing with the dimensions
+void tensor_dims_to_string(int n, int *dims, char *buf);
+void tensor_dims_print(int n, int *dims);
+long tensor_dims_count(int n, int *dims);
+void tensor_dims_copy(int src_n, int *src_dims, int *dst_n, int *dst_dims);
+void tensor_dims_clone(int src_n, int *src_dims, int *dst_n, int **dst_dims);
+void tensor_dims_check_equal(int n_dims1, int *dims1,
+                             int n_dims2, int *dims2);
 
 // Init & free
-tensor *tensor_init(int n_dims, int dims[]);
+tensor *tensor_init(int n, int *dims);
 tensor *tensor_init_1d(int x);
 tensor *tensor_init_2d(int x, int y);
 tensor *tensor_init_3d(int x, int y, int z);
@@ -112,7 +70,6 @@ void tensor_free(tensor *t);
 
 // Utility
 long tensor_n_elements(tensor *me);
-long tensor_array_product(int n_dims, int *dims, int from);
 int tensor_padded_strided_dim(int s_dim, int f_dim, int pad, int stride);
 
 // Copy data

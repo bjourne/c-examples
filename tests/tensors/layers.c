@@ -26,8 +26,7 @@ test_layer_stack_apply_lenet() {
         3, (int[]){3, 32, 32}
     );
 
-    tensor *x0 = tensor_init(3, (int[]){3, 32, 32});
-
+    tensor *x0 = tensor_init_3d(3, 32, 32);
     tensor *x1 = tensor_layer_stack_apply_new(stack, x0);
     assert(x1);
 
@@ -49,11 +48,10 @@ test_lenet_layer_stack_apply_relu() {
         1, (int[]){8}
     );
 
-    tensor *x0 = tensor_init_from_data(
-        (float *)(float[8]){
-            -1, 8., 5., 2., 8., -7, 6., 2.
-        }, 1, (int[]){8});
-
+    tensor *x0 = tensor_init_1d(8);
+    tensor_copy_data(x0, (float[8]){
+        -1, 8., 5., 2., 8., -7, 6., 2.
+    });
     tensor *x1 = tensor_layer_stack_apply_new(stack, x0);
 
     tensor *expected = tensor_init_from_data(
