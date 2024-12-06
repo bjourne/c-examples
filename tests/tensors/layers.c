@@ -2,6 +2,7 @@
 #include <assert.h>
 #include "datatypes/common.h"
 #include "linalg/linalg.h"
+#include "tensors/layers.h"
 #include "tensors/tensors.h"
 
 void

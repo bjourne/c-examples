@@ -112,6 +112,7 @@ void tensor_free(tensor *t);
 
 // Utility
 long tensor_n_elements(tensor *me);
+long tensor_array_product(int n_dims, int *dims, int from);
 int tensor_padded_strided_dim(int s_dim, int f_dim, int pad, int stride);
 
 // Copy data
@@ -140,25 +141,6 @@ void tensor_scan(tensor *src, tensor *dst, tensor_binary_op op,
 void tensor_fill_const(tensor *t, float v);
 void tensor_fill_rand_range(tensor *t, float high);
 void tensor_fill_range(tensor *me, float start);
-
-// Conv2d
-void tensor_conv2d(tensor *weight, tensor *bias,
-                   int stride, int padding,
-                   tensor *src, tensor *dst);
-
-tensor *tensor_conv2d_new(tensor *weight, tensor *bias,
-                          int stride, int padding,
-                          tensor *src);
-void
-tensor_im2col(tensor *src, tensor *dst,
-              int stride_y, int stride_x,
-              int pad_y, int pad_x);
-
-tensor *
-tensor_im2col_new(tensor *src,
-                  int fy_dim, int fx_dim,
-                  int stride_y, int stride_x,
-                  int pad_y, int pad_x);
 
 // MaxPool2d
 void tensor_max_pool2d(int kernel_height, int kernel_width,
@@ -190,43 +172,6 @@ bool tensor_write_png(tensor *me, char *filename);
 
 // Shouldn't use this one
 tensor *tensor_init_from_data(float *data, int n_dims, int dims[]);
-
-
-
-
-
-// Layer abstraction
-tensor_layer *tensor_layer_init_linear(int in, int out);
-tensor_layer *tensor_layer_init_relu();
-tensor_layer *tensor_layer_init_flatten(int from);
-tensor_layer *tensor_layer_init_max_pool2d(int kernel_height, int kernel_width,
-                                           int stride, int padding);
-tensor_layer *tensor_layer_init_conv2d(int in_chans, int out_chans,
-                                       int kernel_size,
-                                       int stride,
-                                       int padding);
-tensor_layer *tensor_layer_init_conv2d_from_data(int in_chans, int out_chans,
-                                                 int kernel_size,
-                                                 int stride, int padding,
-                                                 float *weight_data, float *bias_data);
-
-
-void tensor_layer_free(tensor_layer *me);
-
-tensor *tensor_layer_apply_new(tensor_layer *me, tensor *input);
-
-// Stack abstraction
-
-// The stack takes ownership of the layers.
-tensor_layer_stack *
-tensor_layer_stack_init(int n_layers, tensor_layer *layers[],
-                        int input_n_dims,
-                        int *input_dims);
-tensor *tensor_layer_stack_apply_new(tensor_layer_stack *me, tensor *input);
-void tensor_layer_stack_free(tensor_layer_stack *me);
-
-void tensor_layer_stack_print(tensor_layer_stack *me);
-
 
 
 #endif

@@ -4,8 +4,10 @@
 #include <string.h>
 #include "datatypes/common.h"
 #include "linalg/linalg.h"
-#include "tensors/tensors.h"
+#include "tensors/conv2d.h"
 #include "tensors/multiply.h"
+#include "tensors/tensors.h"
+
 
 char *fname = NULL;
 
@@ -793,6 +795,82 @@ perf_im2col() {
     tensor_free(dst);
 }
 
+// Copy of the network from
+// https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html
+void
+test_cifar10() {
+    tensor *conv1 = tensor_init_4d(6, 3, 5, 5);
+    tensor_fill_rand_range(conv1, 10);
+
+    tensor *conv1_bias = tensor_init_1d(6);
+    tensor_fill_const(conv1_bias, 0);
+
+    tensor *conv2 = tensor_init_4d(16, 6, 5, 5);
+    tensor_fill_rand_range(conv2, 10);
+    tensor *conv2_bias = tensor_init_1d(16);
+    tensor_fill_const(conv1_bias, 0);
+
+    tensor *fc1 = tensor_init_2d(120, 400);
+    tensor_fill_rand_range(fc1, 10);
+    tensor *fc1_bias = tensor_init_1d(120);
+
+    tensor *fc2 = tensor_init_2d(84, 120);
+    tensor_fill_rand_range(fc2, 10);
+    tensor *fc2_bias = tensor_init_1d(84);
+
+    tensor *fc3 = tensor_init_2d(10, 84);
+    tensor_fill_rand_range(fc3, 10);
+    tensor *fc3_bias = tensor_init_1d(10);
+
+    tensor *x0 = tensor_init_3d(3, 32, 32);
+    tensor_fill_rand_range(x0, 10);
+
+    tensor *x1 = tensor_conv2d_new(conv1, conv1_bias, 1, 0, x0);
+    tensor_unary(x1, x1, TENSOR_UNARY_OP_MAX, 0);
+    tensor_check_dims(x1, 3, 6, 28, 28);
+
+    tensor *x2 = tensor_max_pool2d_new(2, 2, 2, 0, x1);
+    tensor_check_dims(x2, 3, 6, 14, 14);
+
+    tensor *x3 = tensor_conv2d_new(conv2, conv2_bias, 1, 0, x2);
+    tensor_unary(x3, x3, TENSOR_UNARY_OP_MAX, 0);
+    tensor_check_dims(x3, 3, 16, 10, 10);
+
+    tensor *x4 = tensor_max_pool2d_new(2, 2, 2, 0, x3);
+    tensor_check_dims(x4, 3, 16, 5, 5);
+    tensor_flatten(x4, 0);
+    tensor_check_dims(x4, 1, 400);
+
+    tensor *x5 = tensor_linear_new(fc1, fc1_bias, x4);
+    tensor_unary(x5, x5, TENSOR_UNARY_OP_MAX, 0);
+    tensor_check_dims(x5, 1, 120);
+
+    tensor *x6 = tensor_linear_new(fc2, fc2_bias, x5);
+    tensor_unary(x6, x6, TENSOR_UNARY_OP_MAX, 0);
+    tensor_check_dims(x6, 1, 84);
+
+    tensor *x7 = tensor_linear_new(fc3, fc3_bias, x6);
+    tensor_check_dims(x7, 1, 10);
+
+    tensor_free(conv1);
+    tensor_free(conv1_bias);
+    tensor_free(conv2);
+    tensor_free(conv2_bias);
+    tensor_free(fc1);
+    tensor_free(fc1_bias);
+    tensor_free(fc2);
+    tensor_free(fc2_bias);
+    tensor_free(fc3);
+    tensor_free(fc3_bias);
+    tensor_free(x0);
+    tensor_free(x1);
+    tensor_free(x2);
+    tensor_free(x3);
+    tensor_free(x4);
+    tensor_free(x5);
+    tensor_free(x6);
+    tensor_free(x7);
+}
 
 int
 main(int argc, char *argv[]) {
@@ -817,6 +895,9 @@ main(int argc, char *argv[]) {
     PRINT_RUN(test_im2col_strided);
     PRINT_RUN(test_im2col_padded);
     PRINT_RUN(test_im2col_conv2d);
+
+    // Cifar10
+    PRINT_RUN(test_cifar10);
 
 
     // Strides
