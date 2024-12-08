@@ -164,7 +164,7 @@ typedef struct {
 // Channels
 ////////////////////////////////////////////////////////////////////////
 
-#define CHAN_DEPTH      64
+#define CHAN_DEPTH      256
 
 channel n_vfloat_bool ch_load_a __attribute__((depth(CHAN_DEPTH)));
 channel n_vfloat ch_load_b __attribute__((depth(CHAN_DEPTH)));
@@ -173,7 +173,7 @@ channel cols_floats ch_store_c __attribute__((depth(CHAN_DEPTH)));
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
-loadA(global vfloat* restrict A, uint M, uchar N, uchar K) {
+loadA(global vfloat* restrict A, uint M, uint N, uint K) {
     for (uint n = 0; n < N; n++) {
         for (uint k = 0; k < K; k++) {
             for (uint m = 0; m < M; m++) {
@@ -210,13 +210,14 @@ __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
 loadB(global vfloat* restrict B,
-      uint b_n_vectors_per_col,
-      uint b_n_vectors_tot,
-      uchar N) {
+      uint M, uint N, uint K) {
+
+    uint n_msgs_per_col = M * X_SCALE * X_ILEAVE * PE_X / LVEC;
+    uint n_msgs_tot = n_msgs_per_col * K;
 
     n_vfloat send_buf;
-    for (uint times = 0; times < N; times++) {
-        for (uint i = 0; i < b_n_vectors_tot / LVEC; i++) {
+    for (uint n = 0; n < N; n++) {
+        for (uint i = 0; i < n_msgs_tot; i++) {
 #pragma unroll
             for (uint j = 0; j < LVEC; j++) {
                 send_buf.data[j] = B[LVEC * i + j];
@@ -229,8 +230,7 @@ loadB(global vfloat* restrict B,
     for (uint j = 0; j < LVEC; j++) {
         send_buf.data[j] = VECTOR_ZERO;
     }
-    uint n_pkts_per_col = b_n_vectors_per_col / LVEC;
-    for (uint i = 0; i < n_pkts_per_col; i++) {
+    for (uint i = 0; i < n_msgs_per_col; i++) {
         write_channel_intel(ch_load_b, send_buf);
     }
 }
@@ -483,11 +483,13 @@ kernel monolithic() {
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
-store(global float * restrict C, uint c_n_msgs) {
+store(global float * restrict C, uint N, uint K) {
+
     // We read and discard this many messages
     for (uint i = 0; i < SHIFT_REGS_PER_Y; i++) {
         read_channel_intel(ch_store_c);
     }
+    uint c_n_msgs = K * B_BLOCK_X * N * A_BLOCK_Y / PE_X;
     for (uint i = 0; i < c_n_msgs; i++) {
         cols_floats data = read_channel_intel(ch_store_c);
 #pragma unroll

@@ -40,7 +40,6 @@ main(int argc, char *argv[]) {
 
     // Type sizes
     size_t n_uint = sizeof(cl_uint);
-    size_t n_uchar = sizeof(cl_uchar);
     size_t n_ulong = sizeof(cl_ulong);
     size_t n_mem = sizeof(cl_mem);
     size_t n_float = sizeof(float);
@@ -125,30 +124,24 @@ main(int argc, char *argv[]) {
         OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, bufs[i]));
     }
     OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, BUF_A, a_tiled->data));
-    OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 1, BUF_B, b_transpose_tiled->data));
-
-    // LoadB kernel
-    cl_uint b_n_vectors_per_col = B_Y * B_BLOCK_X / VECTOR_SIZE;
-    cl_uint b_n_vectors_tot = b_n_vectors_per_col * K;
-
-    // Number of messages the store kernel handles.
-    cl_int c_n_msgs = C_X * C_Y / PE_X;
-
+    OCL_CHECK_ERR(ocl_ctx_write_buffer(
+        ctx, 1, BUF_B, b_transpose_tiled->data));
     ocl_ctx_arg kern_a_args[] = {
         {n_mem, &ctx->buffers[BUF_A].ptr},
         {n_uint, &M},
-        {n_uchar, &N},
-        {n_uchar, &K}
+        {n_uint, &N},
+        {n_uint, &K}
     };
     ocl_ctx_arg kern_b_args[] = {
         {n_mem, &ctx->buffers[BUF_B].ptr},
-        {n_uint, &b_n_vectors_per_col},
-        {n_uint, &b_n_vectors_tot},
-        {n_uchar, &N}
+        {n_uint, &M},
+        {n_uint, &N},
+        {n_uint, &K}
     };
     ocl_ctx_arg kern_store_args[] = {
         {n_mem, &ctx->buffers[BUF_C].ptr},
-        {n_uint, &c_n_msgs}
+        {n_uint, &N},
+        {n_uint, &K}
     };
     OCL_CHECK_ERR(ocl_ctx_set_kernels_arguments(
         ctx,
