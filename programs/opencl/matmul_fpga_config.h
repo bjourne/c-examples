@@ -31,6 +31,8 @@
 // | 8     | 16x16 | 16x16 | 2    | 9984 | 16  | (7) | 606  | -     |
 // | 8     | 16x16 | 16x16 | 2    | 9983 | 16  | (8) | 600  | 0.57  |
 // | 8     | 16x16 | 16x16 | 4    | 9983 | 16  |     | 508  | 28.54 |
+// | 8     | 16x16 | 16x16 | 2    | 9983 | 16  | (9) | 538  | 0.61  |
+// | 8     | 16x16 | 16x16 | 2    | 9983 | 16  | (10)| 603  | 0.55  |
 // | 8     | 16x16 | 16x16 | 2    | 9982 | 16  |     | 606  | 0.55  |
 //
 // 1. This refactoring increased the length of the critical chain.
@@ -41,7 +43,9 @@
 // 6. No FPGA_REGx (it broke Quartus)
 // 7. Removed some FPGA_REG2 (causes incorrect results)
 // 8. -cl-fast-relaxed-math -cl-mad-enable
-
+// 9. Channel depth 512
+// 10. Channel depth 256
+//
 // This is important but it is not enforced:
 // PE_X + PE_Y <= Y_INTERLEAVED
 
