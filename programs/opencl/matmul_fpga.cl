@@ -467,12 +467,9 @@ kernel monolithic() {
             #pragma unroll
             for (int y = 0; y < PE_Y - 1; y++) {
                 #pragma unroll
-                for (int i = 0; i < SHIFT_REG_SIZE - 1; i++) {
+                for (int i = 0; i < SHIFT_REG_SIZE; i++) {
                     drain[x][y * SHIFT_REG_SIZE + i] = drain[x][y * SHIFT_REG_SIZE + i + 1];
                 }
-                // use fpga_reg at logical PE boundaries - to capture locality
-                drain[x][y * SHIFT_REG_SIZE + SHIFT_REG_SIZE - 1] =
-                    FPGA_REG2(drain[x][y * SHIFT_REG_SIZE + SHIFT_REG_SIZE]);
             }
         }
         storecount++;

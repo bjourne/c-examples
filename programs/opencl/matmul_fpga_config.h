@@ -34,6 +34,7 @@
 // | 8     | 16x16 | 16x16 | 2    | 9983 | 16  | (9) | 538  | 0.61  |
 // | 8     | 16x16 | 16x16 | 2    | 9983 | 16  | (10)| 603  | 0.55  |
 // | 8     | 16x16 | 16x16 | 2    | 9982 | 16  |     | 606  | 0.55  |
+// | 8     | 16x16 | 16x16 | 2    | 9982 | 16  |     | 600  | 0.55  |
 //
 // 1. This refactoring increased the length of the critical chain.
 // 2. Reverted last changes.
