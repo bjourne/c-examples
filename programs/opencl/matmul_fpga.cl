@@ -107,8 +107,7 @@
 #define A_BLOCK_N_MSGS      (Y_ILEAVE * PE_Y * X_SCALE / LVEC)
 #define N_B_LOADS           (X_ILEAVE * PE_X * X_SCALE / LVEC)
 
-// Vectors per A tile row
-#define X_VECS              X_SCALE
+
 
 #define SWAP_RANGE          (Y_ILEAVE * X_ILEAVE * X_SCALE)
 #define RANGE               (2 * SWAP_RANGE)
@@ -274,7 +273,7 @@ FeederA(n_vfloat_bool new,
 // which may start at some point in the overall counter range (once FeederA is finished loading)
 vfloat
 FeederB(n_vfloat new,
-        vfloat mem_b[2][X_ILEAVE][X_VECS][BANK_X],
+        vfloat mem_b[2][X_ILEAVE][X_SCALE][BANK_X],
         uint load_counter, int col, uint counter) {
 
     bool do_write = ((POW2_REM(load_counter, SWAP_RANGE) * LVEC) / (X_ILEAVE * X_SCALE)) == col;
@@ -346,27 +345,27 @@ kernel monolithic() {
                           bankwidth(32),
                           singlepump,
                           max_replicates(1),
-                          simple_dual_port)) mem_a[2][Y_ILEAVE][X_VECS][BANK_Y];
+                          simple_dual_port)) mem_a[2][Y_ILEAVE][X_SCALE][BANK_Y];
     // internal feeder B storage, banked, 1 bank per feeder
     vfloat __attribute__((memory,
                           numbanks(BANK_X * LVEC),
                           bankwidth(32),
                           singlepump,
                           max_replicates(1),
-                          simple_dual_port)) mem_b[2][X_ILEAVE][X_VECS][BANK_X];
+                          simple_dual_port)) mem_b[2][X_ILEAVE][X_SCALE][BANK_X];
 
 
 #ifdef EMULATE
     for (int i = 0; i < PE_Y; i++) {
         for (int j = 0; j < Y_ILEAVE; j++) {
-            for (int k = 0; k < X_VECS; k++) {
+            for (int k = 0; k < X_SCALE; k++) {
                 mem_a[0][j][k][i] = mem_a[1][j][k][i] = NAN;
             }
         }
     }
     for (int i = 0; i < PE_X; i++) {
         for (int j = 0; j < X_ILEAVE; j++) {
-            for (int k = 0; k < X_VECS; k++) {
+            for (int k = 0; k < X_SCALE; k++) {
                 mem_b[0][j][k][i] = mem_b[1][j][k][i] = -NAN;
             }
         }
@@ -450,12 +449,6 @@ kernel monolithic() {
         #pragma unroll
         for (int i = 0; i < PE_X; i++) {
             results.data[i] = drain[i][0];
-
-            // Is this code really useful?
-            #pragma unroll
-            for (int j = 0; j < PE_X; j++) {
-                results.data[j] = FPGA_REG2(results.data[j]);
-            }
         }
         ASSERT(storecount >= base);
         if (storecount - base < SHIFT_REGS_PER_Y) {
