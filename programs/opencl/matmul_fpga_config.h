@@ -35,6 +35,8 @@
 // | 8     | 16x16 | 16x16 | 2    | 9983 | 16  | (10)| 603  | 0.55  |
 // | 8     | 16x16 | 16x16 | 2    | 9982 | 16  |     | 606  | 0.55  |
 // | 8     | 16x16 | 16x16 | 2    | 9982 | 16  |     | 600  | 0.55  |
+// | 8     | 16x16 | 16x16 | 2    | 9981 | 16  | (11)| 560  | 0.65  |
+// | 8     | 16x16 | 16x16 | 2    | 9981 | 16  | (12)| 592  | 0.46  |
 //
 // 1. This refactoring increased the length of the critical chain.
 // 2. Reverted last changes.
@@ -46,6 +48,8 @@
 // 8. -cl-fast-relaxed-math -cl-mad-enable
 // 9. Channel depth 512
 // 10. Channel depth 256
+// 11. X_SCALE=32
+// 12. X_SCALE=8
 //
 // This is important but it is not enforced:
 // PE_X + PE_Y <= Y_INTERLEAVED
@@ -62,7 +66,7 @@
 #define Y_ILEAVE                16
 #define X_ILEAVE                16
 
-#define X_SCALE                 16
+#define X_SCALE                 8
 
 #define A_BLOCK_X               (X_SCALE * VECTOR_SIZE)
 #define A_BLOCK_Y               (Y_ILEAVE * PE_Y)

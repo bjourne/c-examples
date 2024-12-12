@@ -208,8 +208,7 @@ loadA(global vfloat* restrict A, uint M, uint N, uint K) {
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
-loadB(global vfloat* restrict B,
-      uint M, uint N, uint K) {
+loadB(global vfloat* restrict B, uint M, uint N, uint K) {
 
     uint n_msgs_per_col = M * X_SCALE * X_ILEAVE * PE_X / LVEC;
     uint n_msgs_tot = n_msgs_per_col * K;
@@ -237,12 +236,10 @@ loadB(global vfloat* restrict B,
 vfloat_bool
 FeederA(n_vfloat_bool new,
         vfloat mem_a[2][Y_ILEAVE][X_SCALE][BANK_Y],
-        uint counter, uint y) {
+        uint counter, uint y, bool side) {
 
     uint masked_counter = POW2_REM(counter, SWAP_RANGE);
 
-    bool new_pair = masked_counter < SHIFT_REG_SIZE;
-    bool side = (counter / SWAP_RANGE) & 1;
 
     if (masked_counter * LVEC / (Y_ILEAVE * X_SCALE) == y) {
         uchar vector = POW2_REM(counter * LVEC, X_SCALE);
@@ -262,8 +259,9 @@ FeederA(n_vfloat_bool new,
     for (int i = 0; i < LVEC; i++) {
         choices[i] = mem_a[!side][col][TRUNC(vector, LVEC) + i][y];
     }
+
     val.data = choices[vector % LVEC];
-    val.c = new_pair & new.c;
+    val.c = (masked_counter < SHIFT_REG_SIZE) & new.c;
     return val;
 }
 
@@ -274,12 +272,9 @@ FeederA(n_vfloat_bool new,
 vfloat
 FeederB(n_vfloat new,
         vfloat mem_b[2][X_ILEAVE][X_SCALE][BANK_X],
-        uint load_counter, int col, uint counter) {
+        uint load_counter, int col, uint counter, bool side) {
 
     bool do_write = ((POW2_REM(load_counter, SWAP_RANGE) * LVEC) / (X_ILEAVE * X_SCALE)) == col;
-    // Note: counter is used here because load_counter is not valid if only reading.
-    bool side = (counter / SWAP_RANGE) & 1;
-
     if (do_write) {
         uchar row = POW2_REM(load_counter * LVEC, X_ILEAVE * X_SCALE) / X_SCALE;
         uchar vector = POW2_REM(load_counter * LVEC, X_SCALE) / LVEC;
@@ -296,7 +291,7 @@ FeederB(n_vfloat new,
     vfloat choices[LVEC];
     #pragma unroll
     for (int i = 0; i < LVEC; i++) {
-        choices[i] = mem_b[!side][row][(vector / LVEC) * LVEC + i][col];
+        choices[i] = mem_b[!side][row][TRUNC(vector, LVEC) + i][col];
     }
 
 // Accomodate the floorplanning script
@@ -388,6 +383,9 @@ kernel monolithic() {
 
         n_vfloat_bool valA;
         n_vfloat valB;
+
+
+
         uint masked_counter = POW2_REM(counter, SWAP_RANGE);
         if (masked_counter < A_BLOCK_N_MSGS) {
             valA = read_channel_intel(ch_load_a);
@@ -395,12 +393,16 @@ kernel monolithic() {
             if ((!new_row_col_pair && valA.c) & 0x01) {
                 base = storecount;
             }
-            new_row_col_pair = valA.c;
         }
         // Serialize the two reads to reduce burstiness.
         if (masked_counter >= FIRST_B_LOAD) {
             valB = read_channel_intel(ch_load_b);
         }
+
+        new_row_col_pair = (masked_counter < A_BLOCK_N_MSGS) && valA.c;
+
+        // Side used for storage
+        bool side = (counter / SWAP_RANGE) & 1;
 
         // Privatize counters for feeder fpga_reg.
         uint counterA = counter;
@@ -409,7 +411,7 @@ kernel monolithic() {
         valA.c = new_row_col_pair;
         #pragma unroll
         for (uint y = 0; y < PE_Y; y++) {
-            fedA[y] = FeederA(valA, mem_a, counterA, y);
+            fedA[y] = FeederA(valA, mem_a, counterA, y, side);
             #pragma unroll
             for (int i = 0; i < LVEC; i++) {
                 valA.data[i] = FPGA_REG2(valA.data[i]);
@@ -422,7 +424,7 @@ kernel monolithic() {
         #pragma unroll
         for (int x = 0; x < PE_X; x++) {
             // the indexing matches the serialization of the ch_load_b reads
-            fedB[x] = FeederB(valB, mem_b, counterB - FIRST_B_LOAD, x, counterB);
+            fedB[x] = FeederB(valB, mem_b, counterB - FIRST_B_LOAD, x, counterB, side);
             #pragma unroll
             for (int i = 0; i < LVEC; i++) {
                 valB.data[i] = FPGA_REG2(valB.data[i]);
