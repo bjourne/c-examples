@@ -466,7 +466,7 @@ kernel monolithic() {
             }
         }
         storecount++;
-        counter = POW2_REM(POW2_REM(counter, RANGE) + 1, RANGE);
+        counter = POW2_REM(counter + 1, RANGE);
     }
 }
 
