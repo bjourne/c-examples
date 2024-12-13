@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2023-2024 Björn A. Lindqvist <bjourne@gmail.com>
 // CUDA includes
 #include <assert.h>
 #include <cuda.h>
@@ -16,6 +16,10 @@ cud_core_err_str(cudaError_t st) {
         RETURN_STRING(cudaErrorMemoryAllocation);
         RETURN_STRING(cudaErrorInvalidDevice);
         RETURN_STRING(cudaErrorInitializationError);
+        RETURN_STRING(cudaErrorNotPermitted);
+        RETURN_STRING(cudaErrorNotSupported);
+        RETURN_STRING(cudaErrorSystemNotReady);
+        RETURN_STRING(cudaErrorSystemDriverMismatch);
     default:
         return NULL;
     }
