@@ -107,8 +107,6 @@
 #define A_BLOCK_N_MSGS      (Y_ILEAVE * PE_Y * X_SCALE / LVEC)
 #define N_B_LOADS           (X_ILEAVE * PE_X * X_SCALE / LVEC)
 
-
-
 #define SWAP_RANGE          (Y_ILEAVE * X_ILEAVE * X_SCALE)
 #define RANGE               (2 * SWAP_RANGE)
 
@@ -169,6 +167,8 @@ channel n_vfloat_bool ch_load_a __attribute__((depth(CHAN_DEPTH)));
 channel n_vfloat ch_load_b __attribute__((depth(CHAN_DEPTH)));
 channel cols_floats ch_store_c __attribute__((depth(CHAN_DEPTH)));
 
+// We send every row of A tiles K times. Then a zero row to drain the
+// array.
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
@@ -191,7 +191,6 @@ loadA(global vfloat* restrict A, uint M, uint N, uint K) {
         };
     }
 
-    // This code is weird
     n_vfloat_bool send_buf;
     #pragma unroll
     for (int i = 0; i < LVEC; i++) {
@@ -205,6 +204,8 @@ loadA(global vfloat* restrict A, uint M, uint N, uint K) {
     }
 }
 
+// Send the whole B matrix N times column by column. Then a zero
+// column to drain the array.
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
@@ -223,7 +224,7 @@ loadB(global vfloat* restrict B, uint M, uint N, uint K) {
             write_channel_intel(ch_load_b, send_buf);
         }
     }
-    // done reload and forwarding the matrix data?
+
 #pragma unroll
     for (uint j = 0; j < LVEC; j++) {
         send_buf.data[j] = VECTOR_ZERO;
@@ -303,30 +304,20 @@ FeederB(n_vfloat new,
 }
 
 float
-PE(vfloat_bool valA, vfloat valB, float *accum) {
-    float oldAcc = FPGA_REG1(accum[0]);
+PE(vfloat_bool valA, vfloat valB, float *acc) {
+    float oldAcc = FPGA_REG1(acc[0]);
     float sum = valA.c ? 0.0f : oldAcc;
+
     #pragma unroll
     for (int i = 0; i < VECTOR_SIZE; i++) {
         sum += valA.data[i] * valB[i];
-        // Breaks up dot-8 and larger into dot-4s using fpga_reg.
-        // Not needed if VECTOR_SIZE = 4
-
-        // Need dot4 structures to fit the DSP columns on the device
-        // (which are 36 DSP long). Dot8 would leave 4 unutilized
-        // DSPs.
-        #if (FORCE_DOT_4==1) && (VECTOR_SIZE!=4)
-            if ((i%4) == 3) {
-                sum = FPGA_REG1(sum);
-            }
-        #endif
     }
 
     #pragma unroll
     for (int i = 0; i < SHIFT_REG_SIZE - 1; i++) {
-        accum[i] = accum[i + 1];
+        acc[i] = acc[i + 1];
     }
-    accum[SHIFT_REG_SIZE - 1] = sum;
+    acc[SHIFT_REG_SIZE - 1] = sum;
     return oldAcc;
 }
 
@@ -368,14 +359,13 @@ kernel monolithic() {
 #endif
 
     // internal PE storage for accumulations, PE_Y x PE_X shift registers
-    float accum[PE_Y][PE_X][SHIFT_REG_SIZE];
+    float acc[PE_Y][PE_X][SHIFT_REG_SIZE];
     // shift register for drain, one per column
     float drain[PE_X][SHIFT_REG_SIZE * (PE_Y - 1) + 1];
 
-    uint counter = 0;
     uint storecount = SHIFT_REGS_PER_Y;
     uint base = 0;
-
+    uint counter = 0;
     bool new_row_col_pair = false;
     while (1) {
         vfloat_bool fedA[PE_Y];
@@ -384,16 +374,16 @@ kernel monolithic() {
         n_vfloat_bool valA;
         n_vfloat valB;
 
-
-
         uint masked_counter = POW2_REM(counter, SWAP_RANGE);
         if (masked_counter < A_BLOCK_N_MSGS) {
             valA = read_channel_intel(ch_load_a);
-            // save latests row_col_pair
-            if ((!new_row_col_pair && valA.c) & 0x01) {
-                base = storecount;
-            }
         }
+
+        // save latests row_col_pair
+        if (!new_row_col_pair && valA.c) {
+            base = storecount;
+        }
+
         // Serialize the two reads to reduce burstiness.
         if (masked_counter >= FIRST_B_LOAD) {
             valB = read_channel_intel(ch_load_b);
@@ -409,10 +399,10 @@ kernel monolithic() {
 
         // Recover last known row_col_pair
         valA.c = new_row_col_pair;
-        #pragma unroll
+#pragma unroll
         for (uint y = 0; y < PE_Y; y++) {
             fedA[y] = FeederA(valA, mem_a, counterA, y, side);
-            #pragma unroll
+#pragma unroll
             for (int i = 0; i < LVEC; i++) {
                 valA.data[i] = FPGA_REG2(valA.data[i]);
             }
@@ -421,23 +411,23 @@ kernel monolithic() {
         }
 
         uint counterB = counter;
-        #pragma unroll
+#pragma unroll
         for (int x = 0; x < PE_X; x++) {
             // the indexing matches the serialization of the ch_load_b reads
             fedB[x] = FeederB(valB, mem_b, counterB - FIRST_B_LOAD, x, counterB, side);
-            #pragma unroll
+#pragma unroll
             for (int i = 0; i < LVEC; i++) {
                 valB.data[i] = FPGA_REG2(valB.data[i]);
             }
             counterB = FPGA_REG2(counterB);
         }
 
-        #pragma unroll
+#pragma unroll
         for (int y = 0; y < PE_Y; y++) {
-            #pragma unroll
+#pragma unroll
             for (int x = 0; x < PE_X; x++) {
                 // compute and store outputs in shift register
-                float result = PE(fedA[y], fedB[x], accum[y][x]);
+                float result = PE(fedA[y], fedB[x], acc[y][x]);
                 if (fedA[y].c) {
                     drain[x][y * SHIFT_REG_SIZE] = result;
                 }
@@ -448,25 +438,24 @@ kernel monolithic() {
         }
 
         cols_floats results;
-        #pragma unroll
+#pragma unroll
         for (int i = 0; i < PE_X; i++) {
             results.data[i] = drain[i][0];
         }
+
         ASSERT(storecount >= base);
         if (storecount - base < SHIFT_REGS_PER_Y) {
             write_channel_intel(ch_store_c, results);
         }
 
-        #pragma unroll
-        for (int x = 0; x < PE_X; x++) {
+#pragma unroll
+        for (uint x = 0; x < PE_X; x++) {
             #pragma unroll
-            for (int y = 0; y < PE_Y - 1; y++) {
-                #pragma unroll
-                for (int i = 0; i < SHIFT_REG_SIZE; i++) {
-                    drain[x][y * SHIFT_REG_SIZE + i] = drain[x][y * SHIFT_REG_SIZE + i + 1];
-                }
+            for (uint i = 0; i < SHIFT_REG_SIZE * (PE_Y - 1); i++) {
+                drain[x][i] = drain[x][i + 1];
             }
         }
+
         storecount++;
         counter = POW2_REM(counter + 1, RANGE);
     }
@@ -481,12 +470,12 @@ store(global float * restrict C, uint N, uint K) {
     for (uint i = 0; i < SHIFT_REGS_PER_Y; i++) {
         read_channel_intel(ch_store_c);
     }
-    uint c_n_msgs = K * B_BLOCK_X * N * A_BLOCK_Y / PE_X;
+    uint c_n_msgs = K * X_ILEAVE * N * Y_ILEAVE * PE_Y;
     for (uint i = 0; i < c_n_msgs; i++) {
-        cols_floats data = read_channel_intel(ch_store_c);
+        cols_floats d = read_channel_intel(ch_store_c);
 #pragma unroll
         for (uint j = 0; j < PE_X; j++) {
-            C[PE_X * i + j] = data.data[j];
+            C[PE_X * i + j] = d.data[j];
         }
     }
 }
