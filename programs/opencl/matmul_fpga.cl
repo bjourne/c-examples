@@ -238,25 +238,23 @@ loadB(global vfloat* restrict B, uint M, uint N, uint K) {
     }
 }
 
+// lo_counter: [0, SWAP_RANGE)
 vfloat_bool
 FeederA(n_vfloat_bool new,
         vfloat mem_a[2][Y_ILEAVE][X_SCALE][BANK_Y],
-        uint counter, uint y, bool side) {
+        uint lo_counter, uint y, bool side) {
 
-    uint masked_counter = POW2_REM(counter, SWAP_RANGE);
-
-
-    if (masked_counter * LVEC / (Y_ILEAVE * X_SCALE) == y) {
-        uchar vector = POW2_REM(counter * LVEC, X_SCALE);
-        uchar col = POW2_REM(counter * LVEC, Y_ILEAVE * X_SCALE) / X_SCALE;
+    if (lo_counter * LVEC / (Y_ILEAVE * X_SCALE) == y) {
+        uchar vector = POW2_REM(lo_counter * LVEC, X_SCALE);
+        uchar col = POW2_REM(lo_counter * LVEC, Y_ILEAVE * X_SCALE) / X_SCALE;
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
             mem_a[side][col][TRUNC(vector, LVEC) + i][y] = new.data[i];
         }
     }
 
-    uchar col = POW2_REM(counter, SHIFT_REG_SIZE) / X_ILEAVE;
-    uchar vector = masked_counter / SHIFT_REG_SIZE;
+    uchar col = POW2_REM(lo_counter, SHIFT_REG_SIZE) / X_ILEAVE;
+    uchar vector = lo_counter / SHIFT_REG_SIZE;
 
 
     vfloat choices[LVEC];
@@ -267,7 +265,7 @@ FeederA(n_vfloat_bool new,
 
     vfloat_bool val;
     val.data = choices[vector % LVEC];
-    val.c = (masked_counter < SHIFT_REG_SIZE) & new.c;
+    val.c = (lo_counter < SHIFT_REG_SIZE) & new.c;
     return val;
 }
 
@@ -278,12 +276,13 @@ FeederA(n_vfloat_bool new,
 vfloat
 FeederB(n_vfloat new,
         vfloat mem_b[2][X_ILEAVE][X_SCALE][BANK_X],
-        uint load_counter, uint col, uint counter, bool side) {
+        uint load_lo_counter, uint col, uint lo_counter, bool side) {
 
-    bool do_write = ((POW2_REM(load_counter, SWAP_RANGE) * LVEC) / (X_ILEAVE * X_SCALE)) == col;
+    bool do_write = ((load_lo_counter * LVEC) / (X_ILEAVE * X_SCALE)) == col;
+
     if (do_write) {
-        uchar row = POW2_REM(load_counter * LVEC, X_ILEAVE * X_SCALE) / X_SCALE;
-        uchar vector = POW2_REM(load_counter * LVEC, X_SCALE) / LVEC;
+        uchar row = POW2_REM(load_lo_counter * LVEC, X_ILEAVE * X_SCALE) / X_SCALE;
+        uchar vector = POW2_REM(load_lo_counter * LVEC, X_SCALE) / LVEC;
 
 #pragma unroll
         for (int i = 0; i < LVEC; i++) {
@@ -291,8 +290,8 @@ FeederB(n_vfloat new,
         }
     }
 
-    uchar row = POW2_REM(counter, X_ILEAVE);
-    uchar vector = POW2_REM(counter, SWAP_RANGE) / (Y_ILEAVE * X_ILEAVE);
+    uchar row = POW2_REM(lo_counter, X_ILEAVE);
+    uchar vector = lo_counter / (Y_ILEAVE * X_ILEAVE);
 
     vfloat choices[LVEC];
     #pragma unroll
@@ -334,8 +333,6 @@ __attribute__((max_global_work_dim(0)))
 __attribute__((autorun))
 void
 kernel monolithic() {
-    // Why is bankwidth 32?
-
     // internal feeder A storage, banked, 1 bank per feeder
     vfloat __attribute__((memory,
                           numbanks(BANK_Y * LVEC),
@@ -358,7 +355,6 @@ kernel monolithic() {
     float drain[PE_X][SHIFT_REG_SIZE * (PE_Y - 1) + 1];
 
     uint storecount = SHIFT_REGS_PER_Y;
-    uint base = 0;
     uint counter = 0;
     bool new_row_col_pair = false;
 
@@ -372,7 +368,7 @@ kernel monolithic() {
             valA = read_channel_intel(ch_load_a);
             // save latest row_col_pair
             if ((!new_row_col_pair && valA.c) & 1) {
-                base = storecount;
+                storecount = 0;
             }
             new_row_col_pair = valA.c;
         }
@@ -392,7 +388,7 @@ kernel monolithic() {
 
         // Get feeder A data
         vfloat_bool fedA[PE_Y];
-        uint counterA = counter;
+        uint counterA = masked_counter;
 #pragma unroll
         for (uint y = 0; y < PE_Y; y++) {
             fedA[y] = FeederA(valA, mem_a, counterA, y, side);
@@ -406,7 +402,7 @@ kernel monolithic() {
 
         // Get feeder B data
         vfloat fedB[PE_X];
-        uint counterB = counter;
+        uint counterB = masked_counter;
 #pragma unroll
         for (int x = 0; x < PE_X; x++) {
             // the indexing matches the serialization of the ch_load_b reads
@@ -434,22 +430,18 @@ kernel monolithic() {
         }
 
         cols_floats results;
-#pragma unroll
-        for (uint i = 0; i < PE_X; i++) {
-            results.data[i] = drain[i][0];
-        }
-
-        ASSERT(storecount >= base);
-        if (storecount - base < SHIFT_REGS_PER_Y) {
-            write_channel_intel(ch_store_c, results);
-        }
 
 #pragma unroll
         for (uint x = 0; x < PE_X; x++) {
+            results.data[x] = drain[x][0];
             #pragma unroll
             for (uint i = 0; i < SHIFT_REG_SIZE * (PE_Y - 1); i++) {
                 drain[x][i] = drain[x][i + 1];
             }
+        }
+
+        if (storecount < SHIFT_REGS_PER_Y) {
+            write_channel_intel(ch_store_c, results);
         }
 
         storecount++;
