@@ -109,7 +109,6 @@
 #define N_B_LOADS           (X_ILEAVE * PE_X * X_SCALE / LVEC)
 
 #define SWAP_RANGE          (Y_ILEAVE * X_ILEAVE * X_SCALE)
-#define RANGE               (2 * SWAP_RANGE)
 
 // Try to load B as late as possible, so that if there is enough time
 // and not enough DDR bandwidth, we can load all of A and then load
@@ -242,19 +241,19 @@ loadB(global vfloat* restrict B, uint M, uint N, uint K) {
 vfloat_bool
 FeederA(n_vfloat_bool new,
         vfloat mem_a[2][Y_ILEAVE][X_SCALE][BANK_Y],
-        uint lo_counter, uint y, bool side) {
+        uint counter, uint y, uint side) {
 
-    if (lo_counter * LVEC / (Y_ILEAVE * X_SCALE) == y) {
-        uchar vector = POW2_REM(lo_counter * LVEC, X_SCALE);
-        uchar col = POW2_REM(lo_counter * LVEC, Y_ILEAVE * X_SCALE) / X_SCALE;
+    if (counter * LVEC / (Y_ILEAVE * X_SCALE) == y) {
+        uchar vector = POW2_REM(counter * LVEC, X_SCALE);
+        uchar col = POW2_REM(counter * LVEC, Y_ILEAVE * X_SCALE) / X_SCALE;
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
             mem_a[side][col][TRUNC(vector, LVEC) + i][y] = new.data[i];
         }
     }
 
-    uchar col = POW2_REM(lo_counter, SHIFT_REG_SIZE) / X_ILEAVE;
-    uchar vector = lo_counter / SHIFT_REG_SIZE;
+    uchar col = POW2_REM(counter, SHIFT_REG_SIZE) / X_ILEAVE;
+    uchar vector = counter / SHIFT_REG_SIZE;
 
 
     vfloat choices[LVEC];
@@ -265,7 +264,7 @@ FeederA(n_vfloat_bool new,
 
     vfloat_bool val;
     val.data = choices[vector % LVEC];
-    val.c = (lo_counter < SHIFT_REG_SIZE) & new.c;
+    val.c = (counter < SHIFT_REG_SIZE) & new.c;
     return val;
 }
 
@@ -276,13 +275,13 @@ FeederA(n_vfloat_bool new,
 vfloat
 FeederB(n_vfloat new,
         vfloat mem_b[2][X_ILEAVE][X_SCALE][BANK_X],
-        uint load_lo_counter, uint col, uint lo_counter, bool side) {
+        uint load_counter, uint col, uint counter, uint side) {
 
-    bool do_write = ((load_lo_counter * LVEC) / (X_ILEAVE * X_SCALE)) == col;
+    bool do_write = ((load_counter * LVEC) / (X_ILEAVE * X_SCALE)) == col;
 
     if (do_write) {
-        uchar row = POW2_REM(load_lo_counter * LVEC, X_ILEAVE * X_SCALE) / X_SCALE;
-        uchar vector = POW2_REM(load_lo_counter * LVEC, X_SCALE) / LVEC;
+        uchar row = POW2_REM(load_counter * LVEC, X_ILEAVE * X_SCALE) / X_SCALE;
+        uchar vector = POW2_REM(load_counter * LVEC, X_SCALE) / LVEC;
 
 #pragma unroll
         for (int i = 0; i < LVEC; i++) {
@@ -290,8 +289,8 @@ FeederB(n_vfloat new,
         }
     }
 
-    uchar row = POW2_REM(lo_counter, X_ILEAVE);
-    uchar vector = lo_counter / (Y_ILEAVE * X_ILEAVE);
+    uchar row = POW2_REM(counter, X_ILEAVE);
+    uchar vector = counter / (Y_ILEAVE * X_ILEAVE);
 
     vfloat choices[LVEC];
     #pragma unroll
@@ -355,97 +354,96 @@ kernel monolithic() {
     float drain[PE_X][SHIFT_REG_SIZE * (PE_Y - 1) + 1];
 
     uint storecount = SHIFT_REGS_PER_Y;
-    uint counter = 0;
-    bool new_row_col_pair = false;
+    bool new_c_tile = false;
 
     while (1) {
+        for (uint side = 0; side < 2; side++) {
+            for (uint counter = 0; counter < SWAP_RANGE; counter++) {
+                n_vfloat_bool valA;
+                n_vfloat valB;
 
-        n_vfloat_bool valA;
-        n_vfloat valB;
+                if (counter < A_BLOCK_N_MSGS) {
+                    valA = read_channel_intel(ch_load_a);
+                    // save latest row_col_pair
+                    if ((!new_c_tile && valA.c) & 1) {
+                        storecount = 0;
 
-        uint masked_counter = POW2_REM(counter, SWAP_RANGE);
-        if (masked_counter < A_BLOCK_N_MSGS) {
-            valA = read_channel_intel(ch_load_a);
-            // save latest row_col_pair
-            if ((!new_row_col_pair && valA.c) & 1) {
-                storecount = 0;
-            }
-            new_row_col_pair = valA.c;
-        }
+                    }
+                    new_c_tile = valA.c;
 
-        // Recover last known row_col_pair
-        valA.c = new_row_col_pair;
-
-        // Serialize the two reads to reduce burstiness.
-        if (masked_counter >= FIRST_B_LOAD) {
-            valB = read_channel_intel(ch_load_b);
-        }
-
-        // Side used for storage
-        bool side = (counter / SWAP_RANGE) & 1;
-
-        // Feeders use privatized counters
-
-        // Get feeder A data
-        vfloat_bool fedA[PE_Y];
-        uint counterA = masked_counter;
-#pragma unroll
-        for (uint y = 0; y < PE_Y; y++) {
-            fedA[y] = FeederA(valA, mem_a, counterA, y, side);
-#pragma unroll
-            for (int i = 0; i < LVEC; i++) {
-                valA.data[i] = FPGA_REG2(valA.data[i]);
-            }
-            valA.c = FPGA_REG2(valA.c);
-            counterA = FPGA_REG2(counterA);
-        }
-
-        // Get feeder B data
-        vfloat fedB[PE_X];
-        uint counterB = masked_counter;
-#pragma unroll
-        for (int x = 0; x < PE_X; x++) {
-            // the indexing matches the serialization of the ch_load_b reads
-            fedB[x] = FeederB(valB, mem_b, counterB - FIRST_B_LOAD, x, counterB, side);
-#pragma unroll
-            for (int i = 0; i < LVEC; i++) {
-                valB.data[i] = FPGA_REG2(valB.data[i]);
-            }
-            counterB = FPGA_REG2(counterB);
-        }
-
-#pragma unroll
-        for (uint y = 0; y < PE_Y; y++) {
-#pragma unroll
-            for (uint x = 0; x < PE_X; x++) {
-                // compute and store outputs in shift register
-                float result = PE(fedA[y], fedB[x], acc[y][x]);
-                if (fedA[y].c) {
-                    drain[x][y * SHIFT_REG_SIZE] = result;
                 }
-                fedA[y].data = FPGA_REG2(fedA[y].data);
-                fedA[y].c = FPGA_REG2(fedA[y].c);
-                fedB[x] = FPGA_REG2(fedB[x]);
-            }
-        }
 
-        cols_floats results;
+                // Recover last known row_col_pair
+                valA.c = new_c_tile;
+
+                // Serialize the two reads to reduce burstiness.
+                if (counter >= FIRST_B_LOAD) {
+                    valB = read_channel_intel(ch_load_b);
+                }
+
+                // Feeders use privatized counters
+
+                // Get feeder A data
+                vfloat_bool fedA[PE_Y];
+                uint counterA = counter;
+#pragma unroll
+                for (uint y = 0; y < PE_Y; y++) {
+                    fedA[y] = FeederA(valA, mem_a, counterA, y, side);
+#pragma unroll
+                    for (int i = 0; i < LVEC; i++) {
+                        valA.data[i] = FPGA_REG2(valA.data[i]);
+                    }
+                    valA.c = FPGA_REG2(valA.c);
+                    counterA = FPGA_REG2(counterA);
+                }
+
+                // Get feeder B data
+                vfloat fedB[PE_X];
+                uint counterB = counter;
+#pragma unroll
+                for (int x = 0; x < PE_X; x++) {
+                    // the indexing matches the serialization of the ch_load_b reads
+                    fedB[x] = FeederB(valB, mem_b, counterB - FIRST_B_LOAD, x, counterB, side);
+#pragma unroll
+                    for (int i = 0; i < LVEC; i++) {
+                        valB.data[i] = FPGA_REG2(valB.data[i]);
+                    }
+                    counterB = FPGA_REG2(counterB);
+                }
 
 #pragma unroll
-        for (uint x = 0; x < PE_X; x++) {
-            results.data[x] = drain[x][0];
-            #pragma unroll
-            for (uint i = 0; i < SHIFT_REG_SIZE * (PE_Y - 1); i++) {
-                drain[x][i] = drain[x][i + 1];
+                for (uint y = 0; y < PE_Y; y++) {
+#pragma unroll
+                    for (uint x = 0; x < PE_X; x++) {
+                        // compute and store outputs in shift register
+                        float result = PE(fedA[y], fedB[x], acc[y][x]);
+                        if (fedA[y].c) {
+                            drain[x][y * SHIFT_REG_SIZE] = result;
+                        }
+                        fedA[y].data = FPGA_REG2(fedA[y].data);
+                        fedA[y].c = FPGA_REG2(fedA[y].c);
+                        fedB[x] = FPGA_REG2(fedB[x]);
+                    }
+                }
+
+                cols_floats results;
+
+#pragma unroll
+                for (uint x = 0; x < PE_X; x++) {
+                    results.data[x] = drain[x][0];
+#pragma unroll
+                    for (uint i = 0; i < SHIFT_REG_SIZE * (PE_Y - 1); i++) {
+                        drain[x][i] = drain[x][i + 1];
+                    }
+                }
+
+                if (storecount < SHIFT_REGS_PER_Y) {
+                    write_channel_intel(ch_store_c, results);
+                }
+
+                storecount++;
             }
         }
-
-        if (storecount < SHIFT_REGS_PER_Y) {
-            write_channel_intel(ch_store_c, results);
-        }
-
-        storecount++;
-        counter = POW2_REM(counter + 1, RANGE);
     }
 }
 
