@@ -43,6 +43,7 @@
 #define FPGA_REG1(x)                __fpga_reg((x))
 #define FPGA_REG2(x)                __fpga_reg(__fpga_reg((x)))
 
+#define VECTOR_FLOAT1_ZERO          0.0f
 #define VECTOR_FLOAT2_ZERO          (float2)(0.0f, 0.0f)
 #define VECTOR_FLOAT4_ZERO          (float4)(0.0f, 0.0f, 0.0f, 0.0f)
 #define VECTOR_FLOAT8_ZERO          (float8)(VECTOR_FLOAT4_ZERO,VECTOR_FLOAT4_ZERO)
@@ -118,7 +119,10 @@
 ////////////////////////////////////////////////////////////////////////
 // Types
 ////////////////////////////////////////////////////////////////////////
-#if VECTOR_SIZE==2
+#if VECTOR_SIZE==1
+#define VECTOR_ZERO         VECTOR_FLOAT1_ZERO
+typedef float vfloat;
+#elif VECTOR_SIZE==2
 typedef float2 vfloat;
 #define VECTOR_ZERO         VECTOR_FLOAT2_ZERO
 #elif VECTOR_SIZE==4
@@ -148,7 +152,7 @@ typedef struct {
 typedef struct {
     vfloat data[LVEC];
     // indicates a new row/column pair
-    bool  c;
+    bool c;
 } n_vfloat_bool;
 
 typedef struct {
@@ -176,16 +180,16 @@ loadA(global vfloat* restrict A, uint M, uint N, uint K) {
     for (uint n = 0; n < N; n++) {
         for (uint k = 0; k < K; k++) {
             for (uint m = 0; m < M; m++) {
+                n_vfloat_bool buf;
                 // Only true for the second block
-                n_vfloat_bool send_buf;
-                send_buf.c = m == 1;
+                buf.c = m == 1;
                 for (uint i = 0; i < A_BLOCK_N_MSGS; i++) {
 #pragma unroll
                     for (int j = 0; j < LVEC; j++) {
                         vfloat v = A[LVEC * ((M*n + m) * A_BLOCK_N_MSGS + i) + j];
-                        send_buf.data[j] = v;
+                        buf.data[j] = v;
                     }
-                    write_channel_intel(ch_load_a, send_buf);
+                    write_channel_intel(ch_load_a, buf);
                 }
             }
         };
@@ -251,16 +255,17 @@ FeederA(n_vfloat_bool new,
         }
     }
 
-    uchar col = POW2_REM(counter, Y_ILEAVE * X_ILEAVE) / X_ILEAVE;
+    uchar col = POW2_REM(counter, SHIFT_REG_SIZE) / X_ILEAVE;
     uchar vector = masked_counter / SHIFT_REG_SIZE;
 
-    vfloat_bool val;
+
     vfloat choices[LVEC];
 #pragma unroll
     for (int i = 0; i < LVEC; i++) {
         choices[i] = mem_a[!side][col][TRUNC(vector, LVEC) + i][y];
     }
 
+    vfloat_bool val;
     val.data = choices[vector % LVEC];
     val.c = (masked_counter < SHIFT_REG_SIZE) & new.c;
     return val;
@@ -273,7 +278,7 @@ FeederA(n_vfloat_bool new,
 vfloat
 FeederB(n_vfloat new,
         vfloat mem_b[2][X_ILEAVE][X_SCALE][BANK_X],
-        uint load_counter, int col, uint counter, bool side) {
+        uint load_counter, uint col, uint counter, bool side) {
 
     bool do_write = ((POW2_REM(load_counter, SWAP_RANGE) * LVEC) / (X_ILEAVE * X_SCALE)) == col;
     if (do_write) {
@@ -308,10 +313,14 @@ PE(vfloat_bool valA, vfloat valB, float *acc) {
     float oldAcc = FPGA_REG1(acc[0]);
     float sum = valA.c ? 0.0f : oldAcc;
 
+#if VECTOR_SIZE==1
+    sum += valA.data * valB;
+#else
     #pragma unroll
     for (int i = 0; i < VECTOR_SIZE; i++) {
         sum += valA.data[i] * valB[i];
     }
+#endif
 
     #pragma unroll
     for (int i = 0; i < SHIFT_REG_SIZE - 1; i++) {
@@ -325,6 +334,8 @@ __attribute__((max_global_work_dim(0)))
 __attribute__((autorun))
 void
 kernel monolithic() {
+    // Why is bankwidth 32?
+
     // internal feeder A storage, banked, 1 bank per feeder
     vfloat __attribute__((memory,
                           numbanks(BANK_Y * LVEC),
@@ -341,23 +352,6 @@ kernel monolithic() {
                           simple_dual_port)) mem_b[2][X_ILEAVE][X_SCALE][BANK_X];
 
 
-#ifdef EMULATE
-    for (int i = 0; i < PE_Y; i++) {
-        for (int j = 0; j < Y_ILEAVE; j++) {
-            for (int k = 0; k < X_SCALE; k++) {
-                mem_a[0][j][k][i] = mem_a[1][j][k][i] = NAN;
-            }
-        }
-    }
-    for (int i = 0; i < PE_X; i++) {
-        for (int j = 0; j < X_ILEAVE; j++) {
-            for (int k = 0; k < X_SCALE; k++) {
-                mem_b[0][j][k][i] = mem_b[1][j][k][i] = -NAN;
-            }
-        }
-    }
-#endif
-
     // internal PE storage for accumulations, PE_Y x PE_X shift registers
     float acc[PE_Y][PE_X][SHIFT_REG_SIZE];
     // shift register for drain, one per column
@@ -367,9 +361,8 @@ kernel monolithic() {
     uint base = 0;
     uint counter = 0;
     bool new_row_col_pair = false;
+
     while (1) {
-        vfloat_bool fedA[PE_Y];
-        vfloat fedB[PE_X];
 
         n_vfloat_bool valA;
         n_vfloat valB;
@@ -377,28 +370,29 @@ kernel monolithic() {
         uint masked_counter = POW2_REM(counter, SWAP_RANGE);
         if (masked_counter < A_BLOCK_N_MSGS) {
             valA = read_channel_intel(ch_load_a);
+            // save latest row_col_pair
+            if ((!new_row_col_pair && valA.c) & 1) {
+                base = storecount;
+            }
+            new_row_col_pair = valA.c;
         }
 
-        // save latests row_col_pair
-        if (!new_row_col_pair && valA.c) {
-            base = storecount;
-        }
+        // Recover last known row_col_pair
+        valA.c = new_row_col_pair;
 
         // Serialize the two reads to reduce burstiness.
         if (masked_counter >= FIRST_B_LOAD) {
             valB = read_channel_intel(ch_load_b);
         }
 
-        new_row_col_pair = (masked_counter < A_BLOCK_N_MSGS) && valA.c;
-
         // Side used for storage
         bool side = (counter / SWAP_RANGE) & 1;
 
-        // Privatize counters for feeder fpga_reg.
-        uint counterA = counter;
+        // Feeders use privatized counters
 
-        // Recover last known row_col_pair
-        valA.c = new_row_col_pair;
+        // Get feeder A data
+        vfloat_bool fedA[PE_Y];
+        uint counterA = counter;
 #pragma unroll
         for (uint y = 0; y < PE_Y; y++) {
             fedA[y] = FeederA(valA, mem_a, counterA, y, side);
@@ -410,6 +404,8 @@ kernel monolithic() {
             counterA = FPGA_REG2(counterA);
         }
 
+        // Get feeder B data
+        vfloat fedB[PE_X];
         uint counterB = counter;
 #pragma unroll
         for (int x = 0; x < PE_X; x++) {
@@ -423,9 +419,9 @@ kernel monolithic() {
         }
 
 #pragma unroll
-        for (int y = 0; y < PE_Y; y++) {
+        for (uint y = 0; y < PE_Y; y++) {
 #pragma unroll
-            for (int x = 0; x < PE_X; x++) {
+            for (uint x = 0; x < PE_X; x++) {
                 // compute and store outputs in shift register
                 float result = PE(fedA[y], fedB[x], acc[y][x]);
                 if (fedA[y].c) {
@@ -439,7 +435,7 @@ kernel monolithic() {
 
         cols_floats results;
 #pragma unroll
-        for (int i = 0; i < PE_X; i++) {
+        for (uint i = 0; i < PE_X; i++) {
             results.data[i] = drain[i][0];
         }
 
