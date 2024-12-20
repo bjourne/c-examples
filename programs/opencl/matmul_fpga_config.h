@@ -40,6 +40,7 @@
 // | 8     | 32x16 | 32x16 | 2    | 9981 | 16  | (13)| 605  | -     |
 // | 4     | 16x16 | 16x16 | 2    | 9981 | -   | (14)|      |       |
 // | 8     | 16x16 | 16x16 | 2    | 9979 | 16  |     | 610  | 0.46  |
+// | 8     | 16x16 | 16x16 | 2    | 9979 | 16  | (15 | 608  | 0.45  |
 //
 // 1. This refactoring increased the length of the critical chain.
 // 2. Reverted last changes.
@@ -55,6 +56,7 @@
 // 12. X_SCALE=8
 // 13. Breaks code
 // 14. Breaks Quartus
+// 15. No interleaving
 //
 // This is important but it is not enforced (hmmm):
 // PE_X + PE_Y <= Y_INTERLEAVED

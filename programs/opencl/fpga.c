@@ -15,6 +15,10 @@
 
 #include "matmul_fpga_config.h"
 
+#define CL_CHANNEL_1_INTELFPGA               (1 << 16)
+#define CL_CHANNEL_2_INTELFPGA               (2 << 16)
+#define CL_CHANNEL_3_INTELFPGA               (3 << 16)
+
 typedef enum {
     BUF_A,
     BUF_B,
@@ -115,9 +119,9 @@ main(int argc, char *argv[]) {
     size_t n_bytes_c = C_Y * C_X * n_float;
 
     ocl_ctx_buf bufs[3] = {
-        {0, n_bytes_a, CL_MEM_READ_ONLY},
-        {0, n_bytes_b, CL_MEM_READ_ONLY},
-        {0, n_bytes_c, CL_MEM_WRITE_ONLY}
+        {0, n_bytes_a, CL_MEM_READ_ONLY | CL_CHANNEL_1_INTELFPGA},
+        {0, n_bytes_b, CL_MEM_READ_ONLY | CL_CHANNEL_2_INTELFPGA},
+        {0, n_bytes_c, CL_MEM_WRITE_ONLY | CL_CHANNEL_3_INTELFPGA}
     };
     for (int i = 0; i < 3; i++) {
         OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, bufs[i]));
