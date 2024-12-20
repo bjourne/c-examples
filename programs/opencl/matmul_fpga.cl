@@ -49,54 +49,8 @@
 #define VECTOR_FLOAT8_ZERO          (float8)(VECTOR_FLOAT4_ZERO,VECTOR_FLOAT4_ZERO)
 #define VECTOR_FLOAT16_ZERO         (float16)(VECTOR_FLOAT8_ZERO,VECTOR_FLOAT8_ZERO)
 
-// The number of rows rounded up to the next power of 2
-#if PE_Y <= 1
-#define BANK_Y 1
-#elif PE_Y <= 2
-#define BANK_Y 2
-#elif PE_Y <= 4
-#define BANK_Y 4
-#elif PE_Y <= 8
-#define BANK_Y 8
-#elif PE_Y <= 16
-#define BANK_Y 16
-#elif PE_Y <= 32
-#define BANK_Y 32
-#elif PE_Y <= 64
-#define BANK_Y 64
-#elif PE_Y <= 128
-#define BANK_Y 128
-#elif PE_Y <= 256
-#define BANK_Y 256
-#else
-#error "PE_Y too large, BANK_Y cannot be defined"
-#endif
-
-// The number of columns rounded up to the next power of 2
-#if PE_X <= 1
-#define BANK_X 1
-#elif PE_X <= 2
-#define BANK_X 2
-#elif PE_X <= 4
-#define BANK_X 4
-#elif PE_X <= 8
-#define BANK_X 8
-#elif PE_X <= 16
-#define BANK_X 16
-#elif PE_X <= 32
-#define BANK_X 32
-#elif PE_X <= 64
-#define BANK_X 64
-#elif PE_X <= 128
-#define BANK_X 128
-#elif PE_X <= 256
-#define BANK_X 256
-#else
-#error "PE_X too large, BANK_X cannot be defined"
-#endif
-
 // Shift register size
-#define SHIFT_REG_SIZE      (Y_ILEAVE * X_ILEAVE)
+#define SHIFT_REG_SIZE      (PE_Y * PE_X)
 
 // One store per row in the systolic array
 #define SHIFT_REGS_PER_Y    (SHIFT_REG_SIZE * PE_Y)
@@ -105,10 +59,10 @@
 #define LVEC 2
 
 // Number of messages per block of A
-#define A_BLOCK_N_MSGS      (Y_ILEAVE * PE_Y * X_SCALE / LVEC)
-#define N_B_LOADS           (X_ILEAVE * PE_X * X_SCALE / LVEC)
+#define A_BLOCK_N_MSGS      (PE_Y * PE_Y * X_SCALE / LVEC)
+#define N_B_LOADS           (PE_X * PE_X * X_SCALE / LVEC)
 
-#define SWAP_RANGE          (Y_ILEAVE * X_ILEAVE * X_SCALE)
+#define SWAP_RANGE          (PE_Y * PE_X * X_SCALE)
 
 // Try to load B as late as possible, so that if there is enough time
 // and not enough DDR bandwidth, we can load all of A and then load
@@ -214,7 +168,7 @@ __attribute__((uses_global_work_offset(0)))
 kernel void
 loadB(global vfloat* restrict B, uint M, uint N, uint K) {
 
-    uint n_msgs_per_col = M * X_SCALE * X_ILEAVE * PE_X / LVEC;
+    uint n_msgs_per_col = M * X_SCALE * PE_X * PE_X / LVEC;
     uint n_msgs_tot = n_msgs_per_col * K;
 
     n_vfloat send_buf;
@@ -240,7 +194,7 @@ loadB(global vfloat* restrict B, uint M, uint N, uint K) {
 // lo_counter: [0, SWAP_RANGE)
 vfloat_bool
 FeederA(n_vfloat_bool new,
-        vfloat mem_a[2][Y_ILEAVE][X_SCALE][BANK_Y],
+        vfloat mem_a[2][Y_ILEAVE][X_SCALE][PE_Y],
         uint counter, uint y, uint side) {
 
     if (counter * LVEC / (Y_ILEAVE * X_SCALE) == y) {
@@ -274,7 +228,7 @@ FeederA(n_vfloat_bool new,
 // which may start at some point in the overall counter range (once FeederA is finished loading)
 vfloat
 FeederB(n_vfloat new,
-        vfloat mem_b[2][X_ILEAVE][X_SCALE][BANK_X],
+        vfloat mem_b[2][X_ILEAVE][X_SCALE][PE_X],
         uint load_counter, uint col, uint counter, uint side) {
 
     bool do_write = ((load_counter * LVEC) / (X_ILEAVE * X_SCALE)) == col;
@@ -308,7 +262,8 @@ FeederB(n_vfloat new,
 
 float
 PE(vfloat_bool valA, vfloat valB, float *acc) {
-    float oldAcc = FPGA_REG1(acc[0]);
+    float oldAcc = __fpga_reg(__fpga_reg(acc[0]));
+    //float oldAcc = FPGA_REG1(acc[0]);
     float sum = valA.c ? 0.0f : oldAcc;
 
 #if VECTOR_SIZE==1
@@ -334,18 +289,18 @@ void
 kernel monolithic() {
     // internal feeder A storage, banked, 1 bank per feeder
     vfloat __attribute__((memory,
-                          numbanks(BANK_Y * LVEC),
+                          numbanks(PE_Y * LVEC),
                           bankwidth(32),
                           singlepump,
                           max_replicates(1),
-                          simple_dual_port)) mem_a[2][Y_ILEAVE][X_SCALE][BANK_Y];
+                          simple_dual_port)) mem_a[2][Y_ILEAVE][X_SCALE][PE_Y];
     // internal feeder B storage, banked, 1 bank per feeder
     vfloat __attribute__((memory,
-                          numbanks(BANK_X * LVEC),
+                          numbanks(PE_X * LVEC),
                           bankwidth(32),
                           singlepump,
                           max_replicates(1),
-                          simple_dual_port)) mem_b[2][X_ILEAVE][X_SCALE][BANK_X];
+                          simple_dual_port)) mem_b[2][X_ILEAVE][X_SCALE][PE_X];
 
 
     // internal PE storage for accumulations, PE_Y x PE_X shift registers
@@ -427,7 +382,6 @@ kernel monolithic() {
                 }
 
                 cols_floats results;
-
 #pragma unroll
                 for (uint x = 0; x < PE_X; x++) {
                     results.data[x] = drain[x][0];
@@ -456,7 +410,7 @@ store(global float * restrict C, uint N, uint K) {
     for (uint i = 0; i < SHIFT_REGS_PER_Y; i++) {
         read_channel_intel(ch_store_c);
     }
-    uint c_n_msgs = K * X_ILEAVE * N * Y_ILEAVE * PE_Y;
+    uint c_n_msgs = K * PE_X * N * PE_Y * PE_Y;
     for (uint i = 0; i < c_n_msgs; i++) {
         cols_floats d = read_channel_intel(ch_store_c);
 #pragma unroll

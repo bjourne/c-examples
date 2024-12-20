@@ -37,42 +37,43 @@
 // | 8     | 16x16 | 16x16 | 2    | 9982 | 16  |     | 600  | 0.55  |
 // | 8     | 16x16 | 16x16 | 2    | 9981 | 16  | (11)| 560  | 0.65  |
 // | 8     | 16x16 | 16x16 | 2    | 9981 | 16  | (12)| 592  | 0.46  |
+// | 8     | 32x16 | 32x16 | 2    | 9981 | 16  | (13)| 605  | -     |
+// | 4     | 16x16 | 16x16 | 2    | 9981 | -   | (14)|      |       |
+// | 8     | 16x16 | 16x16 | 2    | 9979 | 16  |     | 610  | 0.46  |
 //
 // 1. This refactoring increased the length of the critical chain.
 // 2. Reverted last changes.
 // 3. No volatile store
 // 4. Simpler store kernel
 // 5. No volatile
-// 6. No FPGA_REGx (it broke Quartus)
+// 6. No FPGA_REGx (breaks Quartus)
 // 7. Removed some FPGA_REG2 (causes incorrect results)
 // 8. -cl-fast-relaxed-math -cl-mad-enable
 // 9. Channel depth 512
 // 10. Channel depth 256
 // 11. X_SCALE=32
 // 12. X_SCALE=8
+// 13. Breaks code
+// 14. Breaks Quartus
 //
-// This is important but it is not enforced:
+// This is important but it is not enforced (hmmm):
 // PE_X + PE_Y <= Y_INTERLEAVED
 
 // design space exploration of three vector sizes: float4, float8 and float16
 #define VECTOR_SIZE             8
 
-#define FORCE_DOT_4             0
-
+// Should be powers of two for now.
 #define PE_Y                    16
 #define PE_X                    16
 
-// Interleaving. Must be powers of two
-#define Y_ILEAVE                16
-#define X_ILEAVE                16
-
+// M must be greater than 128
 #define X_SCALE                 8
 
 #define A_BLOCK_X               (X_SCALE * VECTOR_SIZE)
-#define A_BLOCK_Y               (Y_ILEAVE * PE_Y)
+#define A_BLOCK_Y               (PE_Y * PE_Y)
 
 #define B_BLOCK_Y               A_BLOCK_X
-#define B_BLOCK_X               (X_ILEAVE * PE_X)
+#define B_BLOCK_X               (PE_X * PE_X)
 
 #define C_BLOCK_Y               A_BLOCK_Y
 #define C_BLOCK_X               B_BLOCK_X
