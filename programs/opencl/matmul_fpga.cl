@@ -194,19 +194,19 @@ loadB(global vfloat* restrict B, uint M, uint N, uint K) {
 // lo_counter: [0, SWAP_RANGE)
 vfloat_bool
 FeederA(n_vfloat_bool new,
-        vfloat mem_a[2][Y_ILEAVE][X_SCALE][PE_Y],
+        vfloat mem_a[2][PE_Y][X_SCALE][PE_Y],
         uint counter, uint y, uint side) {
 
-    if (counter * LVEC / (Y_ILEAVE * X_SCALE) == y) {
+    if (counter * LVEC / (PE_Y * X_SCALE) == y) {
         uchar vector = POW2_REM(counter * LVEC, X_SCALE);
-        uchar col = POW2_REM(counter * LVEC, Y_ILEAVE * X_SCALE) / X_SCALE;
+        uchar col = POW2_REM(counter * LVEC, PE_Y * X_SCALE) / X_SCALE;
         #pragma unroll
         for (int i = 0; i < LVEC; i++) {
             mem_a[side][col][TRUNC(vector, LVEC) + i][y] = new.data[i];
         }
     }
 
-    uchar col = POW2_REM(counter, SHIFT_REG_SIZE) / X_ILEAVE;
+    uchar col = POW2_REM(counter, SHIFT_REG_SIZE) / PE_X;
     uchar vector = counter / SHIFT_REG_SIZE;
 
 
@@ -228,13 +228,13 @@ FeederA(n_vfloat_bool new,
 // which may start at some point in the overall counter range (once FeederA is finished loading)
 vfloat
 FeederB(n_vfloat new,
-        vfloat mem_b[2][X_ILEAVE][X_SCALE][PE_X],
+        vfloat mem_b[2][PE_X][X_SCALE][PE_X],
         uint load_counter, uint col, uint counter, uint side) {
 
-    bool do_write = ((load_counter * LVEC) / (X_ILEAVE * X_SCALE)) == col;
+    bool do_write = ((load_counter * LVEC) / (PE_X * X_SCALE)) == col;
 
     if (do_write) {
-        uchar row = POW2_REM(load_counter * LVEC, X_ILEAVE * X_SCALE) / X_SCALE;
+        uchar row = POW2_REM(load_counter * LVEC, PE_X * X_SCALE) / X_SCALE;
         uchar vector = POW2_REM(load_counter * LVEC, X_SCALE) / LVEC;
 
 #pragma unroll
@@ -243,8 +243,8 @@ FeederB(n_vfloat new,
         }
     }
 
-    uchar row = POW2_REM(counter, X_ILEAVE);
-    uchar vector = counter / (Y_ILEAVE * X_ILEAVE);
+    uchar row = POW2_REM(counter, PE_X);
+    uchar vector = counter / (PE_Y * PE_X);
 
     vfloat choices[LVEC];
     #pragma unroll
@@ -293,14 +293,14 @@ kernel monolithic() {
                           bankwidth(32),
                           singlepump,
                           max_replicates(1),
-                          simple_dual_port)) mem_a[2][Y_ILEAVE][X_SCALE][PE_Y];
+                          simple_dual_port)) mem_a[2][PE_Y][X_SCALE][PE_Y];
     // internal feeder B storage, banked, 1 bank per feeder
     vfloat __attribute__((memory,
                           numbanks(PE_X * LVEC),
                           bankwidth(32),
                           singlepump,
                           max_replicates(1),
-                          simple_dual_port)) mem_b[2][X_ILEAVE][X_SCALE][PE_X];
+                          simple_dual_port)) mem_b[2][PE_X][X_SCALE][PE_X];
 
 
     // internal PE storage for accumulations, PE_Y x PE_X shift registers
