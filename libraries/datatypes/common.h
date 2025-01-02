@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020, 2022-2024 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2019-2020, 2022-2025 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef DATATYPES_COMMON_H
 #define DATATYPES_COMMON_H
 
@@ -23,10 +23,10 @@ void error(char *fmt, ...);
 #define AT(p) (*(ptr *)(p))
 
 // Basic logic
-#define MAX(a, b) ((a > b) ? (a) : (b))
-#define MIN(a, b) ((a > b) ? (b) : (a))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define MIN(a, b) (((a) > (b)) ? (b) : (a))
 
-#define CLAMP(a, lo, hi) MIN(MAX(a, lo), hi)
+#define CLAMP(a, lo, hi) MIN(MAX((a), (lo)), (hi))
 
 // Utility
 #define ARRAY_SIZE(a)       (sizeof((a))/sizeof((a)[0]))
