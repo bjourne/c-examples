@@ -1,4 +1,4 @@
-# Copyright (C) 2019-2020, 2022-2024 Björn A. Lindqvist <bjourne@gmail.com>
+# Copyright (C) 2019-2020, 2022-2025 Björn A. Lindqvist <bjourne@gmail.com>
 from os.path import splitext
 from pathlib import Path
 from subprocess import PIPE, Popen
@@ -11,7 +11,7 @@ def configure(ctx):
     for tool in {'compiler_c', 'compiler_cxx', 'pkgconfig'}:
         ctx.load_tool(tool)
     ctx.define('_GNU_SOURCE', 1)
-    if ctx.env.CC_NAME == 'msvc':
+    if ctx.env["CC_NAME"] == 'msvc':
         base_c_flags = [
             '/WX', '/W3', '/O2', '/EHsc',
             # Without these flags, msvc generates a billion bullshit
@@ -28,8 +28,6 @@ def configure(ctx):
             # Do I want -fPIC? I don't know.
             '-std=gnu11',
             '-Wsign-compare',
-            # IDK what this warning means
-            '-Wno-compound-token-split-by-macro',
             '-march=native', '-mtune=native',
         ]
         base_cxx_flags = [
@@ -38,6 +36,11 @@ def configure(ctx):
         ]
         speed_flags = ['-O3', '-fomit-frame-pointer']
         debug_flags = ['-O2', '-g']
+
+    if ctx.env["CC_NAME"] == "clang":
+        # clang doesn't like some macros
+        base_c_flags.append('-Wno-compound-token-split-by-macro')
+
     extra_flags = speed_flags
     ctx.env.append_unique('CFLAGS', base_c_flags + extra_flags)
     ctx.env.append_unique('CXXFLAGS', base_cxx_flags + extra_flags)
