@@ -53,14 +53,11 @@
 #define SHIFT_REG_SIZE              (PE_Y * PE_X)
 
 // One store per row in the systolic array
-#define SHIFT_REGS_PER_Y            (SHIFT_REG_SIZE * PE_Y)
-
-// Defines the width of channels in number of vectors.
-#define LVEC 2
+#define SHIFT_REGS_PER_Y            (PE_Y * PE_X * PE_Y)
 
 // Number of messages per block of A
-#define A_BLOCK_N_MSGS      (PE_Y * PE_Y * X_SCALE / LVEC)
-#define N_B_LOADS           (PE_X * PE_X * X_SCALE / LVEC)
+#define A_BLOCK_N_MSGS      (PE_Y * PE_Y * X_SCALE)
+#define N_B_LOADS           (PE_X * PE_X * X_SCALE)
 
 #define SWAP_RANGE          (PE_Y * PE_X * X_SCALE)
 
@@ -99,16 +96,6 @@ typedef struct {
 } cols_floats;
 
 typedef struct {
-    vfloat data[LVEC];
-} n_vfloat;
-
-typedef struct {
-    vfloat data[LVEC];
-    // indicates a new row/column pair
-    bool c;
-} n_vfloat_bool;
-
-typedef struct {
     vfloat data;
     // indicates a new row/column pair
     bool c;
@@ -117,11 +104,10 @@ typedef struct {
 ////////////////////////////////////////////////////////////////////////
 // Channels
 ////////////////////////////////////////////////////////////////////////
-
 #define CHAN_DEPTH      256
 
-channel n_vfloat_bool ch_load_a __attribute__((depth(CHAN_DEPTH)));
-channel n_vfloat ch_load_b __attribute__((depth(CHAN_DEPTH)));
+channel vfloat_bool ch_load_a __attribute__((depth(CHAN_DEPTH)));
+channel vfloat ch_load_b __attribute__((depth(CHAN_DEPTH)));
 channel cols_floats ch_store_c __attribute__((depth(CHAN_DEPTH)));
 
 // We send every row of A tiles K times. Then a zero row to drain the
@@ -133,26 +119,21 @@ loadA(global vfloat* restrict A, uint M, uint N, uint K) {
     for (uint n = 0; n < N; n++) {
         for (uint k = 0; k < K; k++) {
             for (uint m = 0; m < M; m++) {
-                n_vfloat_bool buf;
+                vfloat_bool buf;
                 // Only true for the second block
                 buf.c = m == 1;
                 for (uint i = 0; i < A_BLOCK_N_MSGS; i++) {
-#pragma unroll
-                    for (int j = 0; j < LVEC; j++) {
-                        vfloat v = A[LVEC * ((M*n + m) * A_BLOCK_N_MSGS + i) + j];
-                        buf.data[j] = v;
-                    }
+
+                    vfloat v = A[(M*n + m) * A_BLOCK_N_MSGS + i];
+                    buf.data = v;
                     write_channel_intel(ch_load_a, buf);
                 }
             }
         };
     }
 
-    n_vfloat_bool buf;
-    #pragma unroll
-    for (int i = 0; i < LVEC; i++) {
-        buf.data[i] = VECTOR_ZERO;
-    }
+    vfloat_bool buf;
+    buf.data = VECTOR_ZERO;
     for (uint i = 0; i < M; i++) {
         buf.c = i == 1;
         for (uint j = 0; j < A_BLOCK_N_MSGS; j++) {
@@ -168,56 +149,42 @@ __attribute__((uses_global_work_offset(0)))
 kernel void
 loadB(global vfloat* restrict B, uint M, uint N, uint K) {
 
-    uint n_msgs_per_col = M * X_SCALE * PE_X * PE_X / LVEC;
+    uint n_msgs_per_col = M * X_SCALE * PE_X * PE_X;
     uint n_msgs_tot = n_msgs_per_col * K;
 
-    n_vfloat send_buf;
+    vfloat buf;
     for (uint n = 0; n < N; n++) {
         for (uint i = 0; i < n_msgs_tot; i++) {
-#pragma unroll
-            for (uint j = 0; j < LVEC; j++) {
-                send_buf.data[j] = B[LVEC * i + j];
-            }
-            write_channel_intel(ch_load_b, send_buf);
+            buf = B[i];
+            write_channel_intel(ch_load_b, buf);
         }
     }
 
-#pragma unroll
-    for (uint j = 0; j < LVEC; j++) {
-        send_buf.data[j] = VECTOR_ZERO;
-    }
+    buf = VECTOR_ZERO;
     for (uint i = 0; i < n_msgs_per_col; i++) {
-        write_channel_intel(ch_load_b, send_buf);
+        write_channel_intel(ch_load_b, buf);
     }
 }
 
 // lo_counter: [0, SWAP_RANGE)
 vfloat_bool
-FeederA(n_vfloat_bool new,
+FeederA(vfloat_bool new,
         vfloat mem_a[2][PE_Y][X_SCALE][PE_Y],
         uint counter, uint y, uint side) {
 
-    if (counter * LVEC / (PE_Y * X_SCALE) == y) {
-        uchar vector = POW2_REM(counter * LVEC, X_SCALE);
-        uchar col = POW2_REM(counter * LVEC, PE_Y * X_SCALE) / X_SCALE;
-        #pragma unroll
-        for (int i = 0; i < LVEC; i++) {
-            mem_a[side][col][TRUNC(vector, LVEC) + i][y] = new.data[i];
-        }
+    if (counter / (PE_Y * X_SCALE) == y) {
+        uchar vector = POW2_REM(counter, X_SCALE);
+        uchar col = POW2_REM(counter, PE_Y * X_SCALE) / X_SCALE;
+
+        mem_a[side][col][TRUNC(vector, 1)][y] = new.data;
     }
 
     uchar col = POW2_REM(counter, SHIFT_REG_SIZE) / PE_X;
     uchar vector = counter / SHIFT_REG_SIZE;
 
 
-    vfloat __attribute__((register)) choices[LVEC];
-#pragma unroll
-    for (int i = 0; i < LVEC; i++) {
-        choices[i] = mem_a[!side][col][TRUNC(vector, LVEC) + i][y];
-    }
-
     vfloat_bool val;
-    val.data = choices[vector % LVEC];
+    val.data = mem_a[!side][col][TRUNC(vector, 1) ][y];
     val.c = (counter < SHIFT_REG_SIZE) & new.c;
     return val;
 }
@@ -227,37 +194,23 @@ FeederA(n_vfloat_bool new,
 // load_counter is the counter for writing into the feeders,
 // which may start at some point in the overall counter range (once FeederA is finished loading)
 vfloat
-FeederB(n_vfloat new,
+FeederB(vfloat new,
         vfloat mem_b[2][PE_X][X_SCALE][PE_X],
         uint load_counter, uint col, uint counter, uint side) {
 
-    bool do_write = (load_counter * LVEC) / (PE_X * X_SCALE) == col;
+    bool do_write = load_counter / (PE_X * X_SCALE) == col;
 
     if (do_write) {
-        uchar row = POW2_REM(load_counter * LVEC, PE_X * X_SCALE) / X_SCALE;
-        uchar vector = POW2_REM(load_counter * LVEC, X_SCALE) / LVEC;
+        uchar row = POW2_REM(load_counter, PE_X * X_SCALE) / X_SCALE;
+        uchar vector = POW2_REM(load_counter, X_SCALE);
 
-#pragma unroll
-        for (uint i = 0; i < LVEC; i++) {
-            mem_b[side][row][vector * LVEC + i][col] = new.data[i];
-        }
+        mem_b[side][row][vector][col] = new;
     }
 
     uchar row = POW2_REM(counter, PE_X);
     uchar vector = counter / (PE_Y * PE_X);
 
-    vfloat __attribute__((register)) choices[LVEC];
-    #pragma unroll
-    for (uint i = 0; i < LVEC; i++) {
-        choices[i] = mem_b[!side][row][TRUNC(vector, LVEC) + i][col];
-    }
-
-// Accomodate the floorplanning script
-#if LVEC > 1
-    return FPGA_REG1(choices[vector % LVEC]);
-#else
-    return choices[vector % LVEC];
-#endif
+    return mem_b[!side][row][TRUNC(vector, 1)][col];
 }
 
 float
@@ -274,7 +227,7 @@ PE(vfloat_bool valA, vfloat valB, float *acc) {
     }
 #endif
 
-    #pragma unroll
+#pragma unroll
     for (int i = 0; i < SHIFT_REG_SIZE - 1; i++) {
         acc[i] = acc[i + 1];
     }
@@ -286,17 +239,16 @@ __attribute__((max_global_work_dim(0)))
 __attribute__((autorun))
 void
 kernel monolithic() {
-    // internal feeder A storage, banked, 1 bank per feeder
+    // internal feeder A and B storage, banked, 1 bank per feeder
     vfloat __attribute__((memory,
-                          numbanks(PE_Y * LVEC),
-                          bankwidth(32),
+                          numbanks(PE_Y),
+                          bankwidth(sizeof(vfloat)),
                           singlepump,
                           max_replicates(1),
                           simple_dual_port)) mem_a[2][PE_Y][X_SCALE][PE_Y];
-    // internal feeder B storage, banked, 1 bank per feeder
     vfloat __attribute__((memory,
-                          numbanks(PE_X * LVEC),
-                          bankwidth(32),
+                          numbanks(PE_X),
+                          bankwidth(sizeof(vfloat)),
                           singlepump,
                           max_replicates(1),
                           simple_dual_port)) mem_b[2][PE_X][X_SCALE][PE_X];
@@ -313,8 +265,8 @@ kernel monolithic() {
     while (1) {
         for (uint side = 0; side < 2; side++) {
             for (uint counter = 0; counter < SWAP_RANGE; counter++) {
-                n_vfloat_bool valA;
-                n_vfloat valB;
+                vfloat_bool valA;
+                vfloat valB;
 
                 if (counter < A_BLOCK_N_MSGS) {
                     valA = read_channel_intel(ch_load_a);
@@ -342,10 +294,7 @@ kernel monolithic() {
 #pragma unroll
                 for (uint y = 0; y < PE_Y; y++) {
                     fedA[y] = FeederA(valA, mem_a, counterA, y, side);
-#pragma unroll
-                    for (int i = 0; i < LVEC; i++) {
-                        valA.data[i] = FPGA_REG2(valA.data[i]);
-                    }
+                    valA.data = FPGA_REG2(valA.data);
                     valA.c = FPGA_REG2(valA.c);
                     counterA = FPGA_REG2(counterA);
                 }
@@ -357,10 +306,7 @@ kernel monolithic() {
                 for (int x = 0; x < PE_X; x++) {
                     // the indexing matches the serialization of the ch_load_b reads
                     fedB[x] = FeederB(valB, mem_b, counterB - FIRST_B_LOAD, x, counterB, side);
-#pragma unroll
-                    for (int i = 0; i < LVEC; i++) {
-                        valB.data[i] = FPGA_REG2(valB.data[i]);
-                    }
+                    valB = FPGA_REG2(valB);
                     counterB = FPGA_REG2(counterB);
                 }
 
@@ -406,7 +352,7 @@ store(global float * restrict C, uint N, uint K) {
     for (uint i = 0; i < SHIFT_REGS_PER_Y; i++) {
         read_channel_intel(ch_store_c);
     }
-    uint c_n_msgs = K * PE_X * N * PE_Y * PE_Y;
+    uint c_n_msgs = K * N * PE_X * PE_Y * PE_Y;
     for (uint i = 0; i < c_n_msgs; i++) {
         cols_floats d = read_channel_intel(ch_store_c);
 #pragma unroll
