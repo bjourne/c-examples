@@ -1,4 +1,4 @@
-// Copyright (C) 2024 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2024-2025 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef PE_SYSTOLIC_ARRAY_H
 #define PE_SYSTOLIC_ARRAY_H
 
@@ -40,7 +40,10 @@
 // | 8     | 32x16 | 32x16 | 2    | 9981 | 16  | (13)| 605  | -     |
 // | 4     | 16x16 | 16x16 | 2    | 9981 | -   | (14)|      |       |
 // | 8     | 16x16 | 16x16 | 2    | 9979 | 16  |     | 610  | 0.46  |
-// | 8     | 16x16 | 16x16 | 2    | 9979 | 16  | (15 | 608  | 0.45  |
+// | 8     | 16x16 | 16x16 | 2    | 9979 | 16  | (15)| 608  | 0.45  |
+// | 8     | 16x16 | 16x16 | 4    | 9978 | 16  |     | 567  | 0.47  |
+// | 8     | 16x16 | 16x16 | 1    | 9978 | 16  |     | 600  | 0.47  |
+// | 4     | 16x16 | 16x16 | 1    | 9977 | 16  | (16)| 608  | 0.93  |
 //
 // 1. This refactoring increased the length of the critical chain.
 // 2. Reverted last changes.
