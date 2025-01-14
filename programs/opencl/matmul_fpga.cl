@@ -31,8 +31,6 @@
 ////////////////////////////////////////////////////////////////////////
 #define POW2_REM(i, v)              ((i) & ((v) - 1))
 
-#define TRUNC(i, v)                 (((i) / (v)) * (v))
-
 #define DEBUG 0
 #if DEBUG==1
 #define ASSERT(cond)                if (!(cond)) { printf("Cond: %s failed!\n", #cond); }
@@ -60,11 +58,6 @@
 #define N_B_LOADS           (PE_X * PE_X * X_SCALE)
 
 #define SWAP_RANGE          (PE_Y * PE_X * X_SCALE)
-
-// Try to load B as late as possible, so that if there is enough time
-// and not enough DDR bandwidth, we can load all of A and then load
-// all of B
-#define FIRST_B_LOAD        (SWAP_RANGE - N_B_LOADS)
 
 ////////////////////////////////////////////////////////////////////////
 // Types
@@ -176,7 +169,7 @@ FeederA(vfloat_bool new,
         uchar vector = POW2_REM(counter, X_SCALE);
         uchar col = POW2_REM(counter, PE_Y * X_SCALE) / X_SCALE;
 
-        mem_a[side][col][TRUNC(vector, 1)][y] = new.data;
+        mem_a[side][col][vector][y] = new.data;
     }
 
     uchar col = POW2_REM(counter, SHIFT_REG_SIZE) / PE_X;
@@ -184,25 +177,23 @@ FeederA(vfloat_bool new,
 
 
     vfloat_bool val;
-    val.data = mem_a[!side][col][TRUNC(vector, 1) ][y];
+    val.data = mem_a[!side][col][vector][y];
     val.c = (counter < SHIFT_REG_SIZE) & new.c;
     return val;
 }
 
 
 // counter is the global counter, which should align with FeederA's counter.
-// load_counter is the counter for writing into the feeders,
-// which may start at some point in the overall counter range (once FeederA is finished loading)
 vfloat
 FeederB(vfloat new,
         vfloat mem_b[2][PE_X][X_SCALE][PE_X],
-        uint load_counter, uint col, uint counter, uint side) {
+        uint counter, uint col, uint side) {
 
-    bool do_write = load_counter / (PE_X * X_SCALE) == col;
+    bool do_write = counter / (PE_X * X_SCALE) == col;
 
     if (do_write) {
-        uchar row = POW2_REM(load_counter, PE_X * X_SCALE) / X_SCALE;
-        uchar vector = POW2_REM(load_counter, X_SCALE);
+        uchar row = POW2_REM(counter, PE_X * X_SCALE) / X_SCALE;
+        uchar vector = POW2_REM(counter, X_SCALE);
 
         mem_b[side][row][vector][col] = new;
     }
@@ -210,7 +201,7 @@ FeederB(vfloat new,
     uchar row = POW2_REM(counter, PE_X);
     uchar vector = counter / (PE_Y * PE_X);
 
-    return mem_b[!side][row][TRUNC(vector, 1)][col];
+    return mem_b[!side][row][vector][col];
 }
 
 float
@@ -268,23 +259,19 @@ kernel monolithic() {
                 vfloat_bool valA;
                 vfloat valB;
 
-                if (counter < A_BLOCK_N_MSGS) {
-                    valA = read_channel_intel(ch_load_a);
+                //if (counter < A_BLOCK_N_MSGS) {
+                valA = read_channel_intel(ch_load_a);
 
-                    // save latest row_col_pair
-                    if ((!new_c_tile && valA.c) & 1) {
-                        storecount = 0;
-                    }
-                    new_c_tile = valA.c;
+                // save latest row_col_pair
+                if ((!new_c_tile && valA.c) & 1) {
+                    storecount = 0;
                 }
+                new_c_tile = valA.c;
 
                 // Recover last known row_col_pair
                 valA.c = new_c_tile;
 
-                // Serialize the two reads to reduce burstiness.
-                if (counter >= FIRST_B_LOAD) {
-                    valB = read_channel_intel(ch_load_b);
-                }
+                valB = read_channel_intel(ch_load_b);
 
                 // Feeders use privatized counters
 
@@ -305,7 +292,7 @@ kernel monolithic() {
 #pragma unroll
                 for (int x = 0; x < PE_X; x++) {
                     // the indexing matches the serialization of the ch_load_b reads
-                    fedB[x] = FeederB(valB, mem_b, counterB - FIRST_B_LOAD, x, counterB, side);
+                    fedB[x] = FeederB(valB, mem_b, counterB, x, side);
                     valB = FPGA_REG2(valB);
                     counterB = FPGA_REG2(counterB);
                 }
