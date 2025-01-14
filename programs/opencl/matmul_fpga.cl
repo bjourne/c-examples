@@ -50,10 +50,10 @@
 #define VECTOR_FLOAT16_ZERO         (float16)(VECTOR_FLOAT8_ZERO,VECTOR_FLOAT8_ZERO)
 
 // Shift register size
-#define SHIFT_REG_SIZE      (PE_Y * PE_X)
+#define SHIFT_REG_SIZE              (PE_Y * PE_X)
 
 // One store per row in the systolic array
-#define SHIFT_REGS_PER_Y    (SHIFT_REG_SIZE * PE_Y)
+#define SHIFT_REGS_PER_Y            (SHIFT_REG_SIZE * PE_Y)
 
 // Defines the width of channels in number of vectors.
 #define LVEC 2
@@ -148,15 +148,15 @@ loadA(global vfloat* restrict A, uint M, uint N, uint K) {
         };
     }
 
-    n_vfloat_bool send_buf;
+    n_vfloat_bool buf;
     #pragma unroll
     for (int i = 0; i < LVEC; i++) {
-        send_buf.data[i] = VECTOR_ZERO;
+        buf.data[i] = VECTOR_ZERO;
     }
     for (uint i = 0; i < M; i++) {
-        send_buf.c = i == 1;
+        buf.c = i == 1;
         for (uint j = 0; j < A_BLOCK_N_MSGS; j++) {
-            write_channel_intel(ch_load_a, send_buf);
+            write_channel_intel(ch_load_a, buf);
         }
     }
 }
@@ -210,7 +210,7 @@ FeederA(n_vfloat_bool new,
     uchar vector = counter / SHIFT_REG_SIZE;
 
 
-    vfloat choices[LVEC];
+    vfloat __attribute__((register)) choices[LVEC];
 #pragma unroll
     for (int i = 0; i < LVEC; i++) {
         choices[i] = mem_a[!side][col][TRUNC(vector, LVEC) + i][y];
@@ -231,14 +231,14 @@ FeederB(n_vfloat new,
         vfloat mem_b[2][PE_X][X_SCALE][PE_X],
         uint load_counter, uint col, uint counter, uint side) {
 
-    bool do_write = ((load_counter * LVEC) / (PE_X * X_SCALE)) == col;
+    bool do_write = (load_counter * LVEC) / (PE_X * X_SCALE) == col;
 
     if (do_write) {
         uchar row = POW2_REM(load_counter * LVEC, PE_X * X_SCALE) / X_SCALE;
         uchar vector = POW2_REM(load_counter * LVEC, X_SCALE) / LVEC;
 
 #pragma unroll
-        for (int i = 0; i < LVEC; i++) {
+        for (uint i = 0; i < LVEC; i++) {
             mem_b[side][row][vector * LVEC + i][col] = new.data[i];
         }
     }
@@ -246,9 +246,9 @@ FeederB(n_vfloat new,
     uchar row = POW2_REM(counter, PE_X);
     uchar vector = counter / (PE_Y * PE_X);
 
-    vfloat choices[LVEC];
+    vfloat __attribute__((register)) choices[LVEC];
     #pragma unroll
-    for (int i = 0; i < LVEC; i++) {
+    for (uint i = 0; i < LVEC; i++) {
         choices[i] = mem_b[!side][row][TRUNC(vector, LVEC) + i][col];
     }
 
@@ -262,14 +262,13 @@ FeederB(n_vfloat new,
 
 float
 PE(vfloat_bool valA, vfloat valB, float *acc) {
-    float oldAcc = __fpga_reg(__fpga_reg(acc[0]));
-    //float oldAcc = FPGA_REG1(acc[0]);
+    float oldAcc = FPGA_REG1(acc[0]);
     float sum = valA.c ? 0.0f : oldAcc;
 
 #if VECTOR_SIZE==1
     sum += valA.data * valB;
 #else
-    #pragma unroll
+#pragma unroll
     for (int i = 0; i < VECTOR_SIZE; i++) {
         sum += valA.data[i] * valB[i];
     }
@@ -319,13 +318,12 @@ kernel monolithic() {
 
                 if (counter < A_BLOCK_N_MSGS) {
                     valA = read_channel_intel(ch_load_a);
+
                     // save latest row_col_pair
                     if ((!new_c_tile && valA.c) & 1) {
                         storecount = 0;
-
                     }
                     new_c_tile = valA.c;
-
                 }
 
                 // Recover last known row_col_pair
@@ -390,11 +388,9 @@ kernel monolithic() {
                         drain[x][i] = drain[x][i + 1];
                     }
                 }
-
                 if (storecount < SHIFT_REGS_PER_Y) {
                     write_channel_intel(ch_store_c, results);
                 }
-
                 storecount++;
             }
         }
