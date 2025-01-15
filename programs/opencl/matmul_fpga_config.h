@@ -45,8 +45,11 @@
 // | 8     | 16x16 | 16x16 | 1    | 9978 | 16  |     |      | 600  | 0.47  |
 // | 4     | 16x16 | 16x16 | 1    | 9977 | 16  |     |      | 608  | 0.93  |
 // | 8     | 16x16 | 16x16 | -    | 9999 | 16  | 89  | (16) | 563  | 0.50  |
+// | 8     | 16    | -     | -    | 9970 | 16  | 89  | (17) | 575  | 0.49  |
+// | 8     | 16    | -     | -    | 9969 | 16  | 89  | (18) | 588  | 0.48  |
 //
 // LAT = Latency of innermost loop
+// SW = I forgot
 //
 // 1. This refactoring increased the length of the critical chain.
 // 2. Reverted last changes.
@@ -64,6 +67,8 @@
 // 14. Breaks Quartus
 // 15. No interleaving
 // 16. No LVEC
+// 17. Square SAs
+// 18. Simplier counter mgmt
 //
 // This is important but it is not enforced (hmmm):
 // PE_X + PE_Y <= Y_INTERLEAVED

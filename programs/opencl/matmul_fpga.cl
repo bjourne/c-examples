@@ -58,8 +58,6 @@
 #define A_BLOCK_N_MSGS      (PE_S * PE_S * X_SCALE)
 #define N_B_LOADS           (PE_S * PE_S * X_SCALE)
 
-#define SWAP_RANGE          (PE_S * PE_S * X_SCALE)
-
 ////////////////////////////////////////////////////////////////////////
 // Types
 ////////////////////////////////////////////////////////////////////////
@@ -158,7 +156,6 @@ loadB(global vfloat* restrict B, uint M, uint N, uint K) {
     }
 }
 
-// lo_counter: [0, SWAP_RANGE)
 vfloat_bool
 FeederA(vfloat_bool new,
         vfloat mem_a[2][PE_S][X_SCALE][PE_S],
@@ -203,16 +200,16 @@ FeederB(vfloat new,
 }
 
 float
-PE(vfloat_bool valA, vfloat valB, float *acc) {
+PE(bool clear, vfloat valA, vfloat valB, float *acc) {
     float oldAcc = FPGA_REG1(acc[0]);
-    float sum = valA.c ? 0.0f : oldAcc;
+    float sum = clear ? 0.0f : oldAcc;
 
 #if VECTOR_SIZE==1
-    sum += valA.data * valB;
+    sum += valA * valB;
 #else
 #pragma unroll
     for (int i = 0; i < VECTOR_SIZE; i++) {
-        sum += valA.data[i] * valB[i];
+        sum += valA[i] * valB[i];
     }
 #endif
 
@@ -243,7 +240,7 @@ kernel monolithic() {
                           simple_dual_port)) mem_b[2][PE_S][X_SCALE][PE_S];
 
 
-    // internal PE storage for accumulations, PE_S x PE_S shift registers
+    // internal PE storage for accumulations, PE_S * PE_S shift registers
     float acc[PE_S][PE_S][SHIFT_REG_SIZE];
     // shift register for drain, one per column
     float drain[PE_S][SHIFT_REG_SIZE * (PE_S - 1) + 1];
@@ -253,11 +250,9 @@ kernel monolithic() {
 
     while (1) {
         for (uint side = 0; side < 2; side++) {
-            for (uint counter = 0; counter < SWAP_RANGE; counter++) {
-                vfloat_bool valA;
-                vfloat valB;
+            for (uint counter = 0; counter < PE_S * PE_S * X_SCALE; counter++) {
 
-                valA = read_channel_intel(ch_load_a);
+                vfloat_bool valA = read_channel_intel(ch_load_a);
 
                 // save latest row_col_pair
                 if ((!new_c_tile && valA.c) & 1) {
@@ -265,28 +260,26 @@ kernel monolithic() {
                 }
                 new_c_tile = valA.c;
 
-                // Recover last known row_col_pair
-                valA.c = new_c_tile;
+                vfloat valB = read_channel_intel(ch_load_b);
 
-                valB = read_channel_intel(ch_load_b);
-
-                // Feeders use privatized counters
                 vfloat_bool fedA[PE_S];
-                uint counterA = counter;
-
                 vfloat fedB[PE_S];
-                uint counterB = counter;
+
+                // Feeders use privatized counters. Also rename
+                // counter to break dependency to the loop index.
+                uint counter2 = counter;
 #pragma unroll
                 for (uint e = 0; e < PE_S; e++) {
-                    fedA[e] = FeederA(valA, mem_a, counterA, e, side);
-                    valA.data = FPGA_REG2(valA.data);
-                    valA.c = FPGA_REG2(valA.c);
-                    counterA = FPGA_REG2(counterA);
+                    fedA[e] = FeederA(valA, mem_a, counter2, e, side);
 
                     // the indexing matches the serialization of the ch_load_b reads
-                    fedB[e] = FeederB(valB, mem_b, counterB, e, side);
+                    fedB[e] = FeederB(valB, mem_b, counter2, e, side);
+
                     valB = FPGA_REG2(valB);
-                    counterB = FPGA_REG2(counterB);
+
+                    valA.data = FPGA_REG2(valA.data);
+                    valA.c = FPGA_REG2(valA.c);
+                    counter2 = FPGA_REG2(counter2);
                 }
 
 #pragma unroll
@@ -294,7 +287,7 @@ kernel monolithic() {
 #pragma unroll
                     for (uint x = 0; x < PE_S; x++) {
                         // compute and store outputs in shift register
-                        float result = PE(fedA[y], fedB[x], acc[y][x]);
+                        float result = PE(fedA[y].c, fedA[y].data, fedB[x], acc[y][x]);
                         if (fedA[y].c) {
                             drain[x][y * SHIFT_REG_SIZE] = result;
                         }
