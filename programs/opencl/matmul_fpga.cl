@@ -161,12 +161,12 @@ FeederA(vfloat_bool new,
         vfloat mem_a[2][PE_S][X_SCALE][PE_S],
         uint counter, uint y, uint side) {
 
-    uchar col = POW2_REM(counter, SHIFT_REG_SIZE) / PE_S;
-    uchar vector = counter / SHIFT_REG_SIZE;
+    uchar col = POW2_REM(counter, PE_S * PE_S) / PE_S;
+    uchar vector = counter / (PE_S * PE_S);
 
     vfloat_bool val;
     val.data = mem_a[!side][col][vector][y];
-    val.c = (counter < SHIFT_REG_SIZE) & new.c;
+    val.c = (counter < (PE_S * PE_S)) & new.c;
     return val;
 }
 
@@ -249,8 +249,8 @@ kernel monolithic() {
                 vfloat_bool fedA[PE_S];
                 vfloat fedB[PE_S];
 
-                // Feeders use privatized counters. Also rename
-                // counter to break dependency to the loop index.
+                // Rename counter to break dependency to the loop
+                // index.
                 uint counter2 = counter;
 #pragma unroll
                 for (uint e = 0; e < PE_S; e++) {
@@ -264,12 +264,6 @@ kernel monolithic() {
 
                     fedA[e] = FeederA(valA, mem_a, counter2, e, side);
                     fedB[e] = FeederB(valB, mem_b, counter2, e, side);
-
-                    valB = FPGA_REG2(valB);
-
-                    valA.data = FPGA_REG2(valA.data);
-                    valA.c = FPGA_REG2(valA.c);
-                    counter2 = FPGA_REG2(counter2);
                 }
 
 #pragma unroll
