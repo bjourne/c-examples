@@ -156,33 +156,6 @@ loadB(global vfloat* restrict B, uint M, uint N, uint K) {
     }
 }
 
-vfloat_bool
-FeederA(vfloat_bool new,
-        vfloat mem_a[2][PE_S][X_SCALE][PE_S],
-        uint counter, uint y, uint side) {
-
-    uchar col = POW2_REM(counter, PE_S * PE_S) / PE_S;
-    uchar vector = counter / (PE_S * PE_S);
-
-    vfloat_bool val;
-    val.data = mem_a[!side][col][vector][y];
-    val.c = (counter < (PE_S * PE_S)) & new.c;
-    return val;
-}
-
-
-// counter is the global counter, which should align with FeederA's counter.
-vfloat
-FeederB(vfloat new,
-        vfloat mem_b[2][PE_S][X_SCALE][PE_S],
-        uint counter, uint col, uint side) {
-
-    uchar row = POW2_REM(counter, PE_S);
-    uchar vector = counter / (PE_S * PE_S);
-
-    return mem_b[!side][row][vector][col];
-}
-
 float
 PE(bool clear, vfloat valA, vfloat valB, float *acc) {
     float oldAcc = FPGA_REG1(acc[0]);
@@ -254,16 +227,20 @@ kernel monolithic() {
                 uint counter2 = counter;
 #pragma unroll
                 for (uint e = 0; e < PE_S; e++) {
-
                     if (counter2 / (PE_S * X_SCALE) == e) {
-                        uchar vector = POW2_REM(counter2, X_SCALE);
-                        uchar addr = POW2_REM(counter2, PE_S * X_SCALE) / X_SCALE;
-                        mem_a[side][addr][vector][e] = valA.data;
-                        mem_b[side][addr][vector][e] = valB;
+                        uchar w_vec = POW2_REM(counter2, X_SCALE);
+                        uchar w_addr = POW2_REM(counter2, PE_S * X_SCALE) / X_SCALE;
+                        mem_a[side][w_addr][w_vec][e] = valA.data;
+                        mem_b[side][w_addr][w_vec][e] = valB;
                     }
 
-                    fedA[e] = FeederA(valA, mem_a, counter2, e, side);
-                    fedB[e] = FeederB(valB, mem_b, counter2, e, side);
+                    uchar r_vec = counter2 / (PE_S * PE_S);
+                    uchar r_addr_a = POW2_REM(counter2, PE_S * PE_S) / PE_S;
+                    uchar r_addr_b = POW2_REM(counter2, PE_S);
+
+                    fedA[e].data = mem_a[!side][r_addr_a][r_vec][e];
+                    fedA[e].c = (counter2 < (PE_S * PE_S)) & valA.c;
+                    fedB[e] = mem_b[!side][r_addr_b][r_vec][e];
                 }
 
 #pragma unroll
