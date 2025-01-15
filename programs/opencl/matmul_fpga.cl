@@ -1,27 +1,28 @@
-/* Copyright (C) 2013-2019 Altera Corporation, San Jose, California, USA. All rights reserved. */
-/* Permission is hereby granted, free of charge, to any person obtaining a copy of this */
-/* software and associated documentation files (the "Software"), to deal in the Software */
-/* without restriction, including without limitation the rights to use, copy, modify, merge, */
-/* publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to */
-/* whom the Software is furnished to do so, subject to the following conditions: */
-/* The above copyright notice and this permission notice shall be included in all copies or */
-/* substantial portions of the Software. */
-
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, */
-/* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES */
-/* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND */
-/* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT */
-/* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, */
-/* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING */
-/* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR */
-/* OTHER DEALINGS IN THE SOFTWARE. */
-
-/* This agreement shall be governed in all respects by the laws of the State of California and */
-/* by the laws of the United States of America. */
-/* This kernel computes C = A * B, where */
-/*     A is a N x K matrix */
-/*     B is a K x M matrix */
-/*     C is a N x M matrix */
+// Copyright (C) 2025 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2013-2019 Altera Corporation, San Jose, California, USA. All rights reserved.
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this
+// software and associated documentation files (the "Software"), to deal in the Software
+// without restriction, including without limitation the rights to use, copy, modify, merge,
+// publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to
+// whom the Software is furnished to do so, subject to the following conditions:
+// The above copyright notice and this permission notice shall be included in all copies or
+// substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+// HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+// WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+// OTHER DEALINGS IN THE SOFTWARE.
+//
+// This agreement shall be governed in all respects by the laws of the State of California and
+// by the laws of the United States of America.
+// This kernel computes C = A * B, where
+//     A is a N x K matrix
+//     B is a K x M matrix
+//     C is a N x M matrix
 #include "programs/opencl/matmul_fpga_config.h"
 
 #pragma OPENCL EXTENSION cl_intel_channels : enable
@@ -48,16 +49,16 @@
 #define VECTOR_FLOAT16_ZERO         (float16)(VECTOR_FLOAT8_ZERO,VECTOR_FLOAT8_ZERO)
 
 // Shift register size
-#define SHIFT_REG_SIZE              (PE_Y * PE_X)
+#define SHIFT_REG_SIZE              (PE_S * PE_S)
 
 // One store per row in the systolic array
-#define SHIFT_REGS_PER_Y            (PE_Y * PE_X * PE_Y)
+#define SHIFT_REGS_PER_Y            (PE_S * PE_S * PE_S)
 
 // Number of messages per block of A
-#define A_BLOCK_N_MSGS      (PE_Y * PE_Y * X_SCALE)
-#define N_B_LOADS           (PE_X * PE_X * X_SCALE)
+#define A_BLOCK_N_MSGS      (PE_S * PE_S * X_SCALE)
+#define N_B_LOADS           (PE_S * PE_S * X_SCALE)
 
-#define SWAP_RANGE          (PE_Y * PE_X * X_SCALE)
+#define SWAP_RANGE          (PE_S * PE_S * X_SCALE)
 
 ////////////////////////////////////////////////////////////////////////
 // Types
@@ -85,7 +86,7 @@ typedef float16 vfloat;
 // Structs
 ////////////////////////////////////////////////////////////////////////
 typedef struct {
-    float data[PE_X];
+    float data[PE_S];
 } cols_floats;
 
 typedef struct {
@@ -140,7 +141,7 @@ __attribute__((uses_global_work_offset(0)))
 kernel void
 loadB(global vfloat* restrict B, uint M, uint N, uint K) {
 
-    uint n_msgs_per_col = M * X_SCALE * PE_X * PE_X;
+    uint n_msgs_per_col = M * X_SCALE * PE_S * PE_S;
     uint n_msgs_tot = n_msgs_per_col * K;
 
     vfloat buf;
@@ -160,17 +161,17 @@ loadB(global vfloat* restrict B, uint M, uint N, uint K) {
 // lo_counter: [0, SWAP_RANGE)
 vfloat_bool
 FeederA(vfloat_bool new,
-        vfloat mem_a[2][PE_Y][X_SCALE][PE_Y],
+        vfloat mem_a[2][PE_S][X_SCALE][PE_S],
         uint counter, uint y, uint side) {
 
-    if (counter / (PE_Y * X_SCALE) == y) {
+    if (counter / (PE_S * X_SCALE) == y) {
         uchar vector = POW2_REM(counter, X_SCALE);
-        uchar col = POW2_REM(counter, PE_Y * X_SCALE) / X_SCALE;
+        uchar col = POW2_REM(counter, PE_S * X_SCALE) / X_SCALE;
 
         mem_a[side][col][vector][y] = new.data;
     }
 
-    uchar col = POW2_REM(counter, SHIFT_REG_SIZE) / PE_X;
+    uchar col = POW2_REM(counter, SHIFT_REG_SIZE) / PE_S;
     uchar vector = counter / SHIFT_REG_SIZE;
 
 
@@ -184,20 +185,19 @@ FeederA(vfloat_bool new,
 // counter is the global counter, which should align with FeederA's counter.
 vfloat
 FeederB(vfloat new,
-        vfloat mem_b[2][PE_X][X_SCALE][PE_X],
+        vfloat mem_b[2][PE_S][X_SCALE][PE_S],
         uint counter, uint col, uint side) {
 
-    bool do_write = counter / (PE_X * X_SCALE) == col;
-
+    bool do_write = counter / (PE_S * X_SCALE) == col;
     if (do_write) {
-        uchar row = POW2_REM(counter, PE_X * X_SCALE) / X_SCALE;
+        uchar row = POW2_REM(counter, PE_S * X_SCALE) / X_SCALE;
         uchar vector = POW2_REM(counter, X_SCALE);
 
         mem_b[side][row][vector][col] = new;
     }
 
-    uchar row = POW2_REM(counter, PE_X);
-    uchar vector = counter / (PE_Y * PE_X);
+    uchar row = POW2_REM(counter, PE_S);
+    uchar vector = counter / (PE_S * PE_S);
 
     return mem_b[!side][row][vector][col];
 }
@@ -230,23 +230,23 @@ void
 kernel monolithic() {
     // internal feeder A and B storage, banked, 1 bank per feeder
     vfloat __attribute__((memory,
-                          numbanks(PE_Y),
+                          numbanks(PE_S),
                           bankwidth(sizeof(vfloat)),
                           singlepump,
                           max_replicates(1),
-                          simple_dual_port)) mem_a[2][PE_Y][X_SCALE][PE_Y];
+                          simple_dual_port)) mem_a[2][PE_S][X_SCALE][PE_S];
     vfloat __attribute__((memory,
-                          numbanks(PE_X),
+                          numbanks(PE_S),
                           bankwidth(sizeof(vfloat)),
                           singlepump,
                           max_replicates(1),
-                          simple_dual_port)) mem_b[2][PE_X][X_SCALE][PE_X];
+                          simple_dual_port)) mem_b[2][PE_S][X_SCALE][PE_S];
 
 
-    // internal PE storage for accumulations, PE_Y x PE_X shift registers
-    float acc[PE_Y][PE_X][SHIFT_REG_SIZE];
+    // internal PE storage for accumulations, PE_S x PE_S shift registers
+    float acc[PE_S][PE_S][SHIFT_REG_SIZE];
     // shift register for drain, one per column
-    float drain[PE_X][SHIFT_REG_SIZE * (PE_Y - 1) + 1];
+    float drain[PE_S][SHIFT_REG_SIZE * (PE_S - 1) + 1];
 
     uint storecount = SHIFT_REGS_PER_Y;
     bool new_c_tile = false;
@@ -257,7 +257,6 @@ kernel monolithic() {
                 vfloat_bool valA;
                 vfloat valB;
 
-                //if (counter < A_BLOCK_N_MSGS) {
                 valA = read_channel_intel(ch_load_a);
 
                 // save latest row_col_pair
@@ -272,33 +271,28 @@ kernel monolithic() {
                 valB = read_channel_intel(ch_load_b);
 
                 // Feeders use privatized counters
-
-                // Get feeder A data
-                vfloat_bool fedA[PE_Y];
+                vfloat_bool fedA[PE_S];
                 uint counterA = counter;
+
+                vfloat fedB[PE_S];
+                uint counterB = counter;
 #pragma unroll
-                for (uint y = 0; y < PE_Y; y++) {
-                    fedA[y] = FeederA(valA, mem_a, counterA, y, side);
+                for (uint e = 0; e < PE_S; e++) {
+                    fedA[e] = FeederA(valA, mem_a, counterA, e, side);
                     valA.data = FPGA_REG2(valA.data);
                     valA.c = FPGA_REG2(valA.c);
                     counterA = FPGA_REG2(counterA);
-                }
 
-                // Get feeder B data
-                vfloat fedB[PE_X];
-                uint counterB = counter;
-#pragma unroll
-                for (int x = 0; x < PE_X; x++) {
                     // the indexing matches the serialization of the ch_load_b reads
-                    fedB[x] = FeederB(valB, mem_b, counterB, x, side);
+                    fedB[e] = FeederB(valB, mem_b, counterB, e, side);
                     valB = FPGA_REG2(valB);
                     counterB = FPGA_REG2(counterB);
                 }
 
 #pragma unroll
-                for (uint y = 0; y < PE_Y; y++) {
+                for (uint y = 0; y < PE_S; y++) {
 #pragma unroll
-                    for (uint x = 0; x < PE_X; x++) {
+                    for (uint x = 0; x < PE_S; x++) {
                         // compute and store outputs in shift register
                         float result = PE(fedA[y], fedB[x], acc[y][x]);
                         if (fedA[y].c) {
@@ -312,10 +306,10 @@ kernel monolithic() {
 
                 cols_floats results;
 #pragma unroll
-                for (uint x = 0; x < PE_X; x++) {
+                for (uint x = 0; x < PE_S; x++) {
                     results.data[x] = drain[x][0];
 #pragma unroll
-                    for (uint i = 0; i < SHIFT_REG_SIZE * (PE_Y - 1); i++) {
+                    for (uint i = 0; i < SHIFT_REG_SIZE * (PE_S - 1); i++) {
                         drain[x][i] = drain[x][i + 1];
                     }
                 }
@@ -337,12 +331,12 @@ store(global float * restrict C, uint N, uint K) {
     for (uint i = 0; i < SHIFT_REGS_PER_Y; i++) {
         read_channel_intel(ch_store_c);
     }
-    uint c_n_msgs = K * N * PE_X * PE_Y * PE_Y;
+    uint c_n_msgs = K * N * PE_S * PE_S * PE_S;
     for (uint i = 0; i < c_n_msgs; i++) {
         cols_floats d = read_channel_intel(ch_store_c);
 #pragma unroll
-        for (uint j = 0; j < PE_X; j++) {
-            C[PE_X * i + j] = d.data[j];
+        for (uint j = 0; j < PE_S; j++) {
+            C[PE_S * i + j] = d.data[j];
         }
     }
 }

@@ -59,7 +59,7 @@ main(int argc, char *argv[]) {
     printf("\n");
     printf("** Kernel setup **\n");
     printf("  %-10s %4d\n", "X scale", X_SCALE);
-    printf("  %-10s %4d %4d\n", "PE dims", PE_Y, PE_X);
+    printf("  %-10s %4d %4d\n", "PE dims", PE_S, PE_S);
     printf("  %-10s %4d %4d\n", "Block A", A_BLOCK_Y, A_BLOCK_X);
     printf("  %-10s %4d %4d\n", "Block B", B_BLOCK_Y, B_BLOCK_X);
     printf("  %-10s %4d %4d\n", "Block C", C_BLOCK_Y, C_BLOCK_X);
@@ -81,9 +81,9 @@ main(int argc, char *argv[]) {
 
     int n_tiles = N * K * A_BLOCK_Y;
 
-    tensor *c_ref_tiled_transposed = tensor_init_3d(n_tiles, PE_X, PE_X);
+    tensor *c_ref_tiled_transposed = tensor_init_3d(n_tiles, PE_S, PE_S);
 
-    tensor_set_dims(c_ref_tiled, 3, (int[]){n_tiles, PE_X, PE_X});
+    tensor_set_dims(c_ref_tiled, 3, (int[]){n_tiles, PE_S, PE_S});
 
     tensor_transpose_tiled(c_ref_tiled, c_ref_tiled_transposed);
 
@@ -99,7 +99,7 @@ main(int argc, char *argv[]) {
     printf("** Setting up OpenCL **\n");
 
     int plat_idx = atoi(argv[1]);
-    ocl_ctx *ctx = ocl_ctx_init(plat_idx, 0, true);
+    ocl_ctx *ctx = ocl_ctx_init(plat_idx, 0, false);
 
     OCL_CHECK_ERR(ocl_ctx_load_kernels(
         ctx,
@@ -183,7 +183,7 @@ main(int argc, char *argv[]) {
 
     // We use the fourth queue to read data back.
     OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, 3, BUF_C, c->data));
-    tensor_check_equal_contents(c, c_ref_tiled_transposed, 1.0);
+    tensor_check_equal_contents(c, c_ref_tiled_transposed, 0.1);
 
     ocl_ctx_free(ctx);
 

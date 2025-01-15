@@ -71,18 +71,17 @@
 // design space exploration of three vector sizes: float4, float8 and float16
 #define VECTOR_SIZE             8
 
-// Should be powers of two for now.
-#define PE_Y                    16
-#define PE_X                    16
+// Side length of the square systolic array
+#define PE_S                    16
 
 // M must be greater than 128
 #define X_SCALE                 8
 
 #define A_BLOCK_X               (X_SCALE * VECTOR_SIZE)
-#define A_BLOCK_Y               (PE_Y * PE_Y)
+#define A_BLOCK_Y               (PE_S * PE_S)
 
 #define B_BLOCK_Y               A_BLOCK_X
-#define B_BLOCK_X               (PE_X * PE_X)
+#define B_BLOCK_X               (PE_S * PE_S)
 
 #define C_BLOCK_Y               A_BLOCK_Y
 #define C_BLOCK_X               B_BLOCK_X
