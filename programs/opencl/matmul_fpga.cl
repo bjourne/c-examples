@@ -161,16 +161,8 @@ FeederA(vfloat_bool new,
         vfloat mem_a[2][PE_S][X_SCALE][PE_S],
         uint counter, uint y, uint side) {
 
-    if (counter / (PE_S * X_SCALE) == y) {
-        uchar vector = POW2_REM(counter, X_SCALE);
-        uchar col = POW2_REM(counter, PE_S * X_SCALE) / X_SCALE;
-
-        mem_a[side][col][vector][y] = new.data;
-    }
-
     uchar col = POW2_REM(counter, SHIFT_REG_SIZE) / PE_S;
     uchar vector = counter / SHIFT_REG_SIZE;
-
 
     vfloat_bool val;
     val.data = mem_a[!side][col][vector][y];
@@ -184,14 +176,6 @@ vfloat
 FeederB(vfloat new,
         vfloat mem_b[2][PE_S][X_SCALE][PE_S],
         uint counter, uint col, uint side) {
-
-    bool do_write = counter / (PE_S * X_SCALE) == col;
-    if (do_write) {
-        uchar row = POW2_REM(counter, PE_S * X_SCALE) / X_SCALE;
-        uchar vector = POW2_REM(counter, X_SCALE);
-
-        mem_b[side][row][vector][col] = new;
-    }
 
     uchar row = POW2_REM(counter, PE_S);
     uchar vector = counter / (PE_S * PE_S);
@@ -270,9 +254,15 @@ kernel monolithic() {
                 uint counter2 = counter;
 #pragma unroll
                 for (uint e = 0; e < PE_S; e++) {
-                    fedA[e] = FeederA(valA, mem_a, counter2, e, side);
 
-                    // the indexing matches the serialization of the ch_load_b reads
+                    if (counter2 / (PE_S * X_SCALE) == e) {
+                        uchar vector = POW2_REM(counter2, X_SCALE);
+                        uchar addr = POW2_REM(counter2, PE_S * X_SCALE) / X_SCALE;
+                        mem_a[side][addr][vector][e] = valA.data;
+                        mem_b[side][addr][vector][e] = valB;
+                    }
+
+                    fedA[e] = FeederA(valA, mem_a, counter2, e, side);
                     fedB[e] = FeederB(valB, mem_b, counter2, e, side);
 
                     valB = FPGA_REG2(valB);
