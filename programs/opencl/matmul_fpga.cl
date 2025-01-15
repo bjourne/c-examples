@@ -116,9 +116,7 @@ loadA(global vfloat* restrict A, uint M, uint N, uint K) {
                 // Only true for the second block
                 buf.c = m == 1;
                 for (uint i = 0; i < A_BLOCK_N_MSGS; i++) {
-
-                    vfloat v = A[(M*n + m) * A_BLOCK_N_MSGS + i];
-                    buf.data = v;
+                    buf.data = A[(M*n + m) * A_BLOCK_N_MSGS + i];
                     write_channel_intel(ch_load_a, buf);
                 }
             }
