@@ -219,10 +219,8 @@ kernel monolithic() {
 
                 vfloat valB = read_channel_intel(ch_load_b);
 
-                vfloat_bool fedA[PE_S];
+                vfloat fedA[PE_S];
                 vfloat fedB[PE_S];
-
-
 
                 // Rename counter to break dependency to the loop
                 // index.
@@ -241,7 +239,7 @@ kernel monolithic() {
                     uchar r_addr_a = POW2_REM(counter2, PE_S * PE_S) / PE_S;
                     uchar r_addr_b = POW2_REM(counter2, PE_S);
 
-                    fedA[e].data = mem_a[!side][r_addr_a][r_vec][e];
+                    fedA[e] = mem_a[!side][r_addr_a][r_vec][e];
                     fedB[e] = mem_b[!side][r_addr_b][r_vec][e];
                 }
 
@@ -250,12 +248,13 @@ kernel monolithic() {
 #pragma unroll
                     for (uint x = 0; x < PE_S; x++) {
                         // compute and store outputs in shift register
-                        float result = PE(clear, fedA[y].data, fedB[x], acc[y][x]);
+                        float result = PE(clear, fedA[y], fedB[x], acc[y][x]);
                         if (clear) {
                             drain[x][y * SHIFT_REG_SIZE] = result;
                         }
-                        fedA[y].data = FPGA_REG2(fedA[y].data);
+                        fedA[y] = FPGA_REG2(fedA[y]);
                         fedB[x] = FPGA_REG2(fedB[x]);
+                        clear = FPGA_REG2(clear);
                     }
                 }
 
