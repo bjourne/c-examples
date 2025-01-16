@@ -48,6 +48,8 @@
 // | 8     | 16    | -     | -    | 9970 | 16  | 89  | (17) | 575  | 0.49  |
 // | 8     | 16    | -     | -    | 9969 | 16  | 89  | (18) | 588  | 0.48  |
 // | 8     | 16    | -     | -    | 9968 | 16  | 89  |      | 585  | 0.48  |
+// | 8     | 16    | -     | -    | 9968 | 16  | 89  |      | 585  | 0.48  |
+// | 8     | 16    | -     | -    | 9963 | 16  | 88  | (19) | 600  | 0.47  |
 //
 // LAT = Latency of innermost loop
 // SW = I forgot
@@ -69,7 +71,8 @@
 // 15. No interleaving
 // 16. No LVEC
 // 17. Square SAs
-// 18. Simplier counter mgmt
+// 18. Simpler counter mgmt
+// 19. Simpler handling of the clear signal
 //
 // This is important but it is not enforced (hmmm):
 // PE_X + PE_Y <= Y_INTERLEAVED
