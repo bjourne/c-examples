@@ -51,12 +51,9 @@
 // Shift register size
 #define SHIFT_REG_SIZE              (PE_S * PE_S)
 
-// One store per row in the systolic array
-#define SHIFT_REGS_PER_Y            (PE_S * PE_S * PE_S)
-
-// Number of messages per block of A
-#define A_BLOCK_N_MSGS      (PE_S * PE_S * X_SCALE)
-#define N_B_LOADS           (PE_S * PE_S * X_SCALE)
+// Number of messages per block of A, B, or C
+#define N_AB_BLOCK_MSGS             (PE_S * PE_S * X_SCALE)
+#define N_C_BLOCK_MSGS              (PE_S * PE_S * PE_S)
 
 ////////////////////////////////////////////////////////////////////////
 // Types
@@ -114,8 +111,8 @@ loadA(global vfloat* restrict A, uint M, uint N, uint K) {
                 vfloat_bool buf;
                 // Only true for the second block
                 buf.c = m == 1;
-                for (uint i = 0; i < A_BLOCK_N_MSGS; i++) {
-                    buf.data = A[(M*n + m) * A_BLOCK_N_MSGS + i];
+                for (uint i = 0; i < N_AB_BLOCK_MSGS; i++) {
+                    buf.data = A[(M * n + m) * N_AB_BLOCK_MSGS + i];
                     write_channel_intel(ch_load_a, buf);
                 }
             }
@@ -124,9 +121,9 @@ loadA(global vfloat* restrict A, uint M, uint N, uint K) {
 
     vfloat_bool buf;
     buf.data = VECTOR_ZERO;
-    for (uint i = 0; i < M; i++) {
-        buf.c = i == 1;
-        for (uint j = 0; j < A_BLOCK_N_MSGS; j++) {
+    for (uint m = 0; m < M; m++) {
+        buf.c = m == 1;
+        for (uint i = 0; i < N_AB_BLOCK_MSGS; i++) {
             write_channel_intel(ch_load_a, buf);
         }
     }
@@ -139,20 +136,15 @@ __attribute__((uses_global_work_offset(0)))
 kernel void
 loadB(global vfloat* restrict B, uint M, uint N, uint K) {
 
-    uint n_msgs_per_col = M * X_SCALE * PE_S * PE_S;
-    uint n_msgs_tot = n_msgs_per_col * K;
-
     vfloat buf;
     for (uint n = 0; n < N; n++) {
-        for (uint i = 0; i < n_msgs_tot; i++) {
+        for (uint i = 0; i < K * M * N_AB_BLOCK_MSGS; i++) {
             buf = B[i];
             write_channel_intel(ch_load_b, buf);
         }
     }
-
-    buf = VECTOR_ZERO;
-    for (uint i = 0; i < n_msgs_per_col; i++) {
-        write_channel_intel(ch_load_b, buf);
+    for (uint i = 0; i < M * N_AB_BLOCK_MSGS; i++) {
+        write_channel_intel(ch_load_b, VECTOR_ZERO);
     }
 }
 
@@ -196,18 +188,17 @@ kernel monolithic() {
                           max_replicates(1),
                           simple_dual_port)) mem_b[2][PE_S][X_SCALE][PE_S];
 
-
     // internal PE storage for accumulations, PE_S * PE_S shift registers
     float acc[PE_S][PE_S][SHIFT_REG_SIZE];
     // shift register for drain, one per column
     float drain[PE_S][SHIFT_REG_SIZE * (PE_S - 1) + 1];
 
-    uint storecount = SHIFT_REGS_PER_Y;
+    uint storecount = N_C_BLOCK_MSGS;
     bool new_c_tile = false;
 
     while (1) {
         for (uint side = 0; side < 2; side++) {
-            for (uint counter = 0; counter < PE_S * PE_S * X_SCALE; counter++) {
+            for (uint counter = 0; counter < N_AB_BLOCK_MSGS; counter++) {
 
                 vfloat_bool valA = read_channel_intel(ch_load_a);
 
@@ -254,8 +245,9 @@ kernel monolithic() {
                         }
                         fedA[y] = FPGA_REG2(fedA[y]);
                         fedB[x] = FPGA_REG2(fedB[x]);
-                        clear = FPGA_REG2(clear);
                     }
+                    //Unclear whether this is needed or not.
+                    //clear = FPGA_REG2(clear);
                 }
 
                 cols_floats results;
@@ -267,7 +259,7 @@ kernel monolithic() {
                         drain[x][i] = drain[x][i + 1];
                     }
                 }
-                if (storecount < SHIFT_REGS_PER_Y) {
+                if (storecount < N_C_BLOCK_MSGS) {
                     write_channel_intel(ch_store_c, results);
                 }
                 storecount++;
@@ -282,10 +274,10 @@ kernel void
 store(global float * restrict C, uint N, uint K) {
 
     // We read and discard this many messages
-    for (uint i = 0; i < SHIFT_REGS_PER_Y; i++) {
+    for (uint i = 0; i < N_C_BLOCK_MSGS; i++) {
         read_channel_intel(ch_store_c);
     }
-    uint c_n_msgs = K * N * PE_S * PE_S * PE_S;
+    uint c_n_msgs = K * N * N_C_BLOCK_MSGS;
     for (uint i = 0; i < c_n_msgs; i++) {
         cols_floats d = read_channel_intel(ch_store_c);
 #pragma unroll
