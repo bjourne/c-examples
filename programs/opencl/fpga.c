@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2025 Björn A. Lindqvist <bjourne@gmail.com>
 //
 // Demonstrates how to run an AOT-compiled kernel on an FPGA.
 #include <assert.h>
@@ -148,6 +148,7 @@ main(int argc, char *argv[]) {
     };
     ocl_ctx_arg kern_store_args[] = {
         {n_mem, &ctx->buffers[BUF_C].ptr},
+        {n_uint, &M},
         {n_uint, &N},
         {n_uint, &K}
     };

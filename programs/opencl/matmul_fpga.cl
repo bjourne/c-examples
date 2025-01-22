@@ -58,23 +58,23 @@
 ////////////////////////////////////////////////////////////////////////
 // Types
 ////////////////////////////////////////////////////////////////////////
-#if VECTOR_SIZE==1
+#if V_SIZE==1
 #define VECTOR_ZERO         VECTOR_FLOAT1_ZERO
 typedef float vfloat;
-#elif VECTOR_SIZE==2
+#elif V_SIZE==2
 typedef float2 vfloat;
 #define VECTOR_ZERO         VECTOR_FLOAT2_ZERO
-#elif VECTOR_SIZE==4
+#elif V_SIZE==4
 typedef float4 vfloat;
 #define VECTOR_ZERO         VECTOR_FLOAT4_ZERO
-#elif VECTOR_SIZE==8
+#elif V_SIZE==8
 typedef float8 vfloat;
 #define VECTOR_ZERO         VECTOR_FLOAT8_ZERO
-#elif VECTOR_SIZE==16
+#elif V_SIZE==16
 typedef float16 vfloat;
 #define VECTOR_ZERO         VECTOR_FLOAT16_ZERO
 #else
-#error Unsupported VECTOR_SIZE
+#error Unsupported V_SIZE
 #endif
 
 ////////////////////////////////////////////////////////////////////////
@@ -136,11 +136,9 @@ __attribute__((uses_global_work_offset(0)))
 kernel void
 loadB(global vfloat* restrict B, uint M, uint N, uint K) {
 
-    vfloat buf;
     for (uint n = 0; n < N; n++) {
         for (uint i = 0; i < K * M * N_AB_BLOCK_MSGS; i++) {
-            buf = B[i];
-            write_channel_intel(ch_load_b, buf);
+            write_channel_intel(ch_load_b, B[i]);
         }
     }
     for (uint i = 0; i < M * N_AB_BLOCK_MSGS; i++) {
@@ -153,11 +151,11 @@ PE(bool clear, vfloat valA, vfloat valB, float *acc) {
     float oldAcc = FPGA_REG1(acc[0]);
     float sum = clear ? 0.0f : oldAcc;
 
-#if VECTOR_SIZE==1
+#if V_SIZE==1
     sum += valA * valB;
 #else
 #pragma unroll
-    for (int i = 0; i < VECTOR_SIZE; i++) {
+    for (int i = 0; i < V_SIZE; i++) {
         sum += valA[i] * valB[i];
     }
 #endif
@@ -246,7 +244,7 @@ kernel monolithic() {
                         fedA[y] = FPGA_REG2(fedA[y]);
                         fedB[x] = FPGA_REG2(fedB[x]);
                     }
-                    //Unclear whether this is needed or not.
+                    //Unclear whether this is needed.
                     //clear = FPGA_REG2(clear);
                 }
 
@@ -271,7 +269,7 @@ kernel monolithic() {
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
-store(global float * restrict C, uint N, uint K) {
+store(global float * restrict C, uint M, uint N, uint K) {
 
     // We read and discard this many messages
     for (uint i = 0; i < N_C_BLOCK_MSGS; i++) {

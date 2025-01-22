@@ -78,7 +78,7 @@
 // PE_X + PE_Y <= Y_INTERLEAVED
 
 // design space exploration of three vector sizes: float4, float8 and float16
-#define VECTOR_SIZE             8
+#define V_SIZE                  8
 
 // Side length of the square systolic array
 #define PE_S                    16
@@ -86,7 +86,7 @@
 // M must be greater than 128
 #define X_SCALE                 8
 
-#define A_BLOCK_X               (X_SCALE * VECTOR_SIZE)
+#define A_BLOCK_X               (X_SCALE * V_SIZE)
 #define A_BLOCK_Y               (PE_S * PE_S)
 
 #define B_BLOCK_Y               A_BLOCK_X
