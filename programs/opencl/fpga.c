@@ -101,10 +101,12 @@ main(int argc, char *argv[]) {
     int plat_idx = atoi(argv[1]);
     ocl_ctx *ctx = ocl_ctx_init(plat_idx, 0, false);
 
+    char *kernels[] = {"loadA", "loadB", "store"};
+    int n_kernels = ARRAY_SIZE(kernels);
     OCL_CHECK_ERR(ocl_ctx_load_kernels(
         ctx,
         argv[2], "-cl-std=CL2.0 -Werror",
-        3, (char *[]){"loadA", "loadB", "store"}
+        n_kernels, kernels
     ));
 
     cl_queue_properties props[] = {
@@ -126,9 +128,12 @@ main(int argc, char *argv[]) {
     for (int i = 0; i < 3; i++) {
         OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, bufs[i]));
     }
-    OCL_CHECK_ERR(ocl_ctx_write_buffer(ctx, 0, BUF_A, a_tiled->data));
     OCL_CHECK_ERR(ocl_ctx_write_buffer(
-        ctx, 1, BUF_B, b_transpose_tiled->data));
+        ctx, 0, BUF_A, a_tiled->data
+    ));
+    OCL_CHECK_ERR(ocl_ctx_write_buffer(
+        ctx, 0, BUF_B, b_transpose_tiled->data
+    ));
     ocl_ctx_arg kern_a_args[] = {
         {n_mem, &ctx->buffers[BUF_A].ptr},
         {n_uint, &M},
@@ -156,8 +161,8 @@ main(int argc, char *argv[]) {
     // Queue kernels
     size_t local[] = {1};
     size_t global[] = {1};
-    cl_event events[3];
-    for (int i = 0; i < 3; i++) {
+    cl_event events[n_kernels];
+    for (int i = 0; i < n_kernels; i++) {
         OCL_CHECK_ERR(clEnqueueNDRangeKernel(
             ctx->queues[i], ctx->kernels[i],
             1, NULL, global, local,
@@ -165,24 +170,24 @@ main(int argc, char *argv[]) {
             &events[i]
         ));
     }
-    for(int i = 0; i < 3; i++) {
+    for(int i = 0; i < n_kernels; i++) {
         OCL_CHECK_ERR(clFlush(ctx->queues[i]));
         OCL_CHECK_ERR(clFinish(ctx->queues[i]));
     }
 
     // Compute execution time
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < n_kernels; i++) {
         cl_ulong start, end;
         OCL_CHECK_ERR(clGetEventProfilingInfo(events[i], CL_PROFILING_COMMAND_END,
                                               n_ulong, &end, NULL));
         OCL_CHECK_ERR(clGetEventProfilingInfo(events[i], CL_PROFILING_COMMAND_START,
                                               n_ulong, &start, NULL));
         double time = 1.0e-9 * (end - start);
-        printf("%.6f\n", time);
+        printf("%-15s: %.4f s\n", kernels[i], time);
     }
 
     // We use the fourth queue to read data back.
-    OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, 3, BUF_C, c->data));
+    OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, n_kernels, BUF_C, c->data));
     tensor_check_equal_contents(c, c_ref_tiled_transposed, 0.1);
 
     ocl_ctx_free(ctx);
