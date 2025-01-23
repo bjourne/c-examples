@@ -23,8 +23,6 @@
 //     A is a N x K matrix
 //     B is a K x M matrix
 //     C is a N x M matrix
-#include "programs/opencl/matmul_fpga_config.h"
-
 #pragma OPENCL EXTENSION cl_intel_channels : enable
 
 ////////////////////////////////////////////////////////////////////////
@@ -135,7 +133,6 @@ __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
 loadB(global vfloat* restrict B, uint M, uint N, uint K) {
-
     for (uint n = 0; n < N; n++) {
         for (uint i = 0; i < K * M * N_AB_BLOCK_MSGS; i++) {
             write_channel_intel(ch_load_b, B[i]);
@@ -245,7 +242,7 @@ kernel monolithic() {
                         fedB[x] = FPGA_REG2(fedB[x]);
                     }
                     //Unclear whether this is needed.
-                    //clear = FPGA_REG2(clear);
+                    clear = FPGA_REG2(clear);
                 }
 
                 cols_floats results;
