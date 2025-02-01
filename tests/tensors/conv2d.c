@@ -1,4 +1,4 @@
-// Copyright (C) 2024 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2024-2025 Björn A. Lindqvist <bjourne@gmail.com>
 #include <assert.h>
 #include <math.h>
 #include <string.h>
@@ -652,6 +652,7 @@ test_im2col() {
 
     // 3x3 kernel
     dst = tensor_im2col_new(src, 3, 3, 1, 1, 0, 0);
+    tensor_check_dims(dst, 5, 3, 3, 3, 3, 1);
     assert(simple_checksum(dst) == 12);
     tensor_free(dst);
 
@@ -898,7 +899,6 @@ main(int argc, char *argv[]) {
 
     // Cifar10
     PRINT_RUN(test_cifar10);
-
 
     // Strides
     PRINT_RUN(test_strides);
