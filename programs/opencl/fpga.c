@@ -89,9 +89,10 @@
 #include "tensors/multiply.h"
 #include "tensors/tiling.h"
 
-#define CL_CHANNEL_1_INTELFPGA               (1 << 16)
-#define CL_CHANNEL_2_INTELFPGA               (2 << 16)
-#define CL_CHANNEL_3_INTELFPGA               (3 << 16)
+#define CL_CHANNEL_1_INTELFPGA              (1 << 16)
+#define CL_CHANNEL_2_INTELFPGA              (2 << 16)
+#define CL_CHANNEL_3_INTELFPGA              (3 << 16)
+#define N_KERNELS                           3
 
 typedef enum {
     BUF_A,
@@ -213,17 +214,16 @@ main(int argc, char *argv[]) {
     );
 
     char *kernels[] = {"load_a", "load_b", "store"};
-    int n_kernels = ARRAY_SIZE(kernels);
     OCL_CHECK_ERR(ocl_ctx_load_kernels(
         ctx,
         argv[2], opts,
-        n_kernels, kernels
+        N_KERNELS, kernels
     ));
 
     cl_queue_properties props[] = {
         CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0
     };
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < N_KERNELS; i++) {
         OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, props));
     }
 
@@ -273,8 +273,8 @@ main(int argc, char *argv[]) {
     // Queue kernels
     size_t local[] = {1};
     size_t global[] = {1};
-    cl_event events[n_kernels];
-    for (int i = 0; i < n_kernels; i++) {
+    cl_event events[N_KERNELS];
+    for (int i = 0; i < N_KERNELS; i++) {
         OCL_CHECK_ERR(clEnqueueNDRangeKernel(
             ctx->queues[i], ctx->kernels[i],
             1, NULL, global, local,
@@ -282,13 +282,13 @@ main(int argc, char *argv[]) {
             &events[i]
         ));
     }
-    for(int i = 0; i < n_kernels; i++) {
+    for(int i = 0; i < N_KERNELS; i++) {
         OCL_CHECK_ERR(clFlush(ctx->queues[i]));
         OCL_CHECK_ERR(clFinish(ctx->queues[i]));
     }
 
     // Compute execution time
-    for (int i = 0; i < n_kernels; i++) {
+    for (int i = 0; i < N_KERNELS; i++) {
         cl_ulong start, end;
         OCL_CHECK_ERR(clGetEventProfilingInfo(events[i], CL_PROFILING_COMMAND_END,
                                               n_ulong, &end, NULL));
@@ -298,8 +298,8 @@ main(int argc, char *argv[]) {
         printf("%-15s: %.4f s\n", kernels[i], time);
     }
 
-    // We use the fourth queue to read data back.
-    OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, n_kernels, BUF_C, c->data));
+    // Use first queue to read data back.
+    OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, 0, BUF_C, c->data));
     tensor_check_equal_contents(c, c_ref_tiled_transposed, 0.1);
 
     ocl_ctx_free(ctx);
