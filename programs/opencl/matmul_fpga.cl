@@ -102,7 +102,7 @@ channel cols_floats ch_store_c __attribute__((depth(CHAN_DEPTH)));
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
-loadA(global vfloat* restrict A, uint M, uint N, uint K) {
+load_a(global const vfloat* restrict A, uint N, uint M, uint K) {
     for (uint n = 0; n < N; n++) {
         for (uint k = 0; k < K; k++) {
             for (uint m = 0; m < M; m++) {
@@ -132,7 +132,7 @@ loadA(global vfloat* restrict A, uint M, uint N, uint K) {
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
-loadB(global vfloat* restrict B, uint M, uint N, uint K) {
+load_b(global const vfloat* restrict B, uint N, uint M, uint K) {
     for (uint n = 0; n < N; n++) {
         for (uint i = 0; i < K * M * N_AB_BLOCK_MSGS; i++) {
             write_channel_intel(ch_load_b, B[i]);
@@ -266,7 +266,7 @@ kernel monolithic() {
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
-store(global float * restrict C, uint M, uint N, uint K) {
+store(global float * restrict C, uint N, uint M, uint K) {
 
     // We read and discard this many messages
     for (uint i = 0; i < N_C_BLOCK_MSGS; i++) {

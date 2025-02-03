@@ -212,7 +212,7 @@ main(int argc, char *argv[]) {
         PE_S, V_SIZE, X_SCALE
     );
 
-    char *kernels[] = {"loadA", "loadB", "store"};
+    char *kernels[] = {"load_a", "load_b", "store"};
     int n_kernels = ARRAY_SIZE(kernels);
     OCL_CHECK_ERR(ocl_ctx_load_kernels(
         ctx,
@@ -247,20 +247,20 @@ main(int argc, char *argv[]) {
     ));
     ocl_ctx_arg kern_a_args[] = {
         {n_mem, &ctx->buffers[BUF_A].ptr},
-        {n_uint, &M},
         {n_uint, &N},
+        {n_uint, &M},
         {n_uint, &K}
     };
     ocl_ctx_arg kern_b_args[] = {
         {n_mem, &ctx->buffers[BUF_B].ptr},
-        {n_uint, &M},
         {n_uint, &N},
+        {n_uint, &M},
         {n_uint, &K}
     };
     ocl_ctx_arg kern_store_args[] = {
         {n_mem, &ctx->buffers[BUF_C].ptr},
-        {n_uint, &M},
         {n_uint, &N},
+        {n_uint, &M},
         {n_uint, &K}
     };
     OCL_CHECK_ERR(ocl_ctx_set_kernels_arguments(
