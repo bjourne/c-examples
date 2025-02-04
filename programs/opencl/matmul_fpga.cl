@@ -66,11 +66,20 @@
 
 typedef long type;
 
-#if V_SIZE==8
+#if V_SIZE==4
+
+#define VECTOR_ZERO         VECTOR_LONG4_ZERO
+typedef long4 vtype;
+
+#elif V_SIZE==8
+
 #define VECTOR_ZERO         VECTOR_LONG8_ZERO
 typedef long8 vtype;
+
 #else
+
 #error Unsupported V_SIZE
+
 #endif
 
 #elif TYPE_SEL==2
@@ -101,13 +110,21 @@ typedef float16 vtype;
 
 typedef int type;
 
-#if V_SIZE==8
+#if V_SIZE==4
+
+#define VECTOR_ZERO         VECTOR_INT4_ZERO
+typedef int4 vtype;
+
+#elif V_SIZE==8
+
 #define VECTOR_ZERO         VECTOR_INT8_ZERO
 typedef int8 vtype;
-#else
-#error Unsupported V_SIZE
-#endif
 
+#else
+
+#error Unsupported V_SIZE
+
+#endif
 
 #else
 
@@ -321,3 +338,119 @@ store(global type * restrict C, uint N, uint M, uint K) {
         }
     }
 }
+
+#if INCLUDE_PP==1
+
+////////////////////////////////////////////////////////////////////////
+// Code for efficient pre- and post-processing
+////////////////////////////////////////////////////////////////////////
+
+#define     BLOCK_N     (PE_S * PE_S)
+#define     BLOCK_M     (X_SCALE * V_SIZE)
+#define     BLOCK_K     (PE_S * PE_S)
+
+#define IDX2D(ad, bd, a, b) ((a) * (bd) + (b))
+
+#define IDX3D(ad, bd, cd, a, b, c) ((a) * (bd) * (cd) + (b) * (cd) + (c))
+
+#define IDX4D(ad, bd, cd, dd, a, b, c, d) \
+    ((a) * (bd) * (cd) * (dd) + (b) * (cd) * (dd) + (c) * (dd) + (d))
+
+#define IDX5D(ad, bd, cd, dd, ed, a, b, c, d, e)    \
+    ((a) * (bd) * (cd) * (dd) * (ed) +              \
+     (b) * (cd) * (dd) * (ed) +                     \
+     (c) * (dd) * (ed) +                            \
+     (d) * (ed) +                                   \
+     (e))
+
+__attribute__((max_global_work_dim(0)))
+__attribute__((uses_global_work_offset(0)))
+kernel void
+preproc_a(
+    global const type* restrict A,
+    global type* restrict Ap,
+    uint size_n, uint size_m,
+    uint N, uint M
+) {
+    // Pad and tile the A matrix.
+    for (uint n0 = 0; n0 < N; n0++) {
+        for (uint m0 = 0; m0 < M; m0++) {
+            for (int n1 = 0; n1 < BLOCK_N; n1++) {
+                for (uint m1 = 0; m1 < BLOCK_M; m1++) {
+                    uint n = n0 * BLOCK_N + n1;
+                    uint m = m0 * BLOCK_M + m1;
+                    type v = 0;
+                    if (n < size_n && m < size_m) {
+                        uint src = IDX2D(size_n, size_m, n, m);
+                        v = A[src];
+                    }
+                    uint dst = IDX4D(N, M, BLOCK_N, BLOCK_M, n0, m0, n1, m1);
+                    Ap[dst] = v;
+                }
+            }
+        }
+    }
+}
+
+__attribute__((max_global_work_dim(0)))
+__attribute__((uses_global_work_offset(0)))
+kernel void
+preproc_b(
+    global const type* restrict B,
+    global type* restrict Bp,
+    uint size_m, uint size_k,
+    uint M, uint K
+) {
+    for (uint k0 = 0; k0 < K; k0++) {
+        for (uint m0 = 0; m0 < M; m0++) {
+            for (uint k1 = 0; k1 < BLOCK_K; k1++) {
+                for (uint m1 = 0; m1 < BLOCK_M; m1++) {
+                    uint m = m0 * BLOCK_M + m1;
+                    uint k = k0 * BLOCK_K + k1;
+                    type v = 0;
+                    if (m < size_m && k < size_k) {
+                        uint src = IDX2D(size_m, size_k, m, k);
+                        v = B[src];
+                    }
+                    uint dst = IDX4D(K, M, BLOCK_K, BLOCK_M, k0, m0, k1, m1);
+                    Bp[dst] = v;
+                }
+            }
+        }
+    }
+}
+
+// Cp:  (N, K, BLOCK_N, PE_S, PE_S)
+// C:   (N, K)
+//
+// Untiles and unpads the C matrix.
+__attribute__((max_global_work_dim(0)))
+__attribute__((uses_global_work_offset(0)))
+kernel void
+postproc_c(
+    global type* restrict Cp,
+    global type* restrict C,
+    uint size_n, uint size_k,
+    uint N, uint K
+) {
+    for (uint n0 = 0; n0 < N; n0++) {
+        for (uint k0 = 0; k0 < K; k0++) {
+            for (uint n1 = 0; n1 < BLOCK_N; n1++) {
+                for (uint k1 = 0; k1 < PE_S; k1++) {
+                    for (uint k2 = 0; k2 < PE_S; k2++) {
+                        uint src = IDX5D(N, K, BLOCK_N, PE_S, PE_S,
+                                         n0, k0, n1, k1, k2);
+                        uint dst_n = BLOCK_N * n0 + n1;
+                        uint dst_k = BLOCK_K * k0 + k2 * PE_S + k1;
+                        if (dst_n < size_n && dst_k < size_k) {
+                            uint dst = IDX2D(size_n, size_k, dst_n, dst_k);
+                            C[dst] = Cp[src];
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#endif
