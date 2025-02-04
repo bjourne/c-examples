@@ -46,6 +46,9 @@
 #define VECTOR_FLOAT8_ZERO          (float8)(VECTOR_FLOAT4_ZERO,VECTOR_FLOAT4_ZERO)
 #define VECTOR_FLOAT16_ZERO         (float16)(VECTOR_FLOAT8_ZERO,VECTOR_FLOAT8_ZERO)
 
+#define VECTOR_INT4_ZERO            (int4)(0, 0, 0, 0)
+#define VECTOR_INT8_ZERO            (int8)(VECTOR_INT4_ZERO, VECTOR_INT4_ZERO)
+
 #define VECTOR_LONG4_ZERO           (long4)(0, 0, 0, 0)
 #define VECTOR_LONG8_ZERO           (long8)(VECTOR_LONG4_ZERO, VECTOR_LONG4_ZERO)
 
@@ -93,6 +96,18 @@ typedef float16 vtype;
 #else
 #error Unsupported V_SIZE
 #endif
+
+#elif TYPE_SEL==3
+
+typedef int type;
+
+#if V_SIZE==8
+#define VECTOR_ZERO         VECTOR_INT8_ZERO
+typedef int8 vtype;
+#else
+#error Unsupported V_SIZE
+#endif
+
 
 #else
 
