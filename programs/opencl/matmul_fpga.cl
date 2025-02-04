@@ -46,6 +46,9 @@
 #define VECTOR_FLOAT8_ZERO          (float8)(VECTOR_FLOAT4_ZERO,VECTOR_FLOAT4_ZERO)
 #define VECTOR_FLOAT16_ZERO         (float16)(VECTOR_FLOAT8_ZERO,VECTOR_FLOAT8_ZERO)
 
+#define VECTOR_LONG4_ZERO           (long4)(0, 0, 0, 0)
+#define VECTOR_LONG8_ZERO           (long8)(VECTOR_LONG4_ZERO, VECTOR_LONG4_ZERO)
+
 // Shift register size
 #define SHIFT_REG_SIZE              (PE_S * PE_S)
 
@@ -56,57 +59,79 @@
 ////////////////////////////////////////////////////////////////////////
 // Types
 ////////////////////////////////////////////////////////////////////////
+#if TYPE_SEL==1
+
+typedef long type;
+
+#if V_SIZE==8
+#define VECTOR_ZERO         VECTOR_LONG8_ZERO
+typedef long8 vtype;
+#else
+#error Unsupported V_SIZE
+#endif
+
+#elif TYPE_SEL==2
+
+typedef float type;
+
 #if V_SIZE==1
 #define VECTOR_ZERO         VECTOR_FLOAT1_ZERO
-typedef float vfloat;
+typedef float vtype;
 #elif V_SIZE==2
-typedef float2 vfloat;
+typedef float2 vtype;
 #define VECTOR_ZERO         VECTOR_FLOAT2_ZERO
+#define VECTOR_FMT          "v2hlf"
 #elif V_SIZE==4
-typedef float4 vfloat;
+typedef float4 vtype;
 #define VECTOR_ZERO         VECTOR_FLOAT4_ZERO
 #elif V_SIZE==8
-typedef float8 vfloat;
+typedef float8 vtype;
 #define VECTOR_ZERO         VECTOR_FLOAT8_ZERO
 #elif V_SIZE==16
-typedef float16 vfloat;
+typedef float16 vtype;
 #define VECTOR_ZERO         VECTOR_FLOAT16_ZERO
 #else
 #error Unsupported V_SIZE
+#endif
+
+#else
+
+#error Unsupported TYPE_SEL
+
 #endif
 
 ////////////////////////////////////////////////////////////////////////
 // Structs
 ////////////////////////////////////////////////////////////////////////
 typedef struct {
-    float data[PE_S];
-} cols_floats;
+    type data[PE_S];
+} cols_data;
 
 typedef struct {
-    vfloat data;
+    vtype data;
     // indicates a new row/column pair
     bool c;
-} vfloat_bool;
+} vtype_bool;
 
 ////////////////////////////////////////////////////////////////////////
 // Channels
 ////////////////////////////////////////////////////////////////////////
 #define CHAN_DEPTH      256
 
-channel vfloat_bool ch_load_a __attribute__((depth(CHAN_DEPTH)));
-channel vfloat ch_load_b __attribute__((depth(CHAN_DEPTH)));
-channel cols_floats ch_store_c __attribute__((depth(CHAN_DEPTH)));
+channel vtype_bool ch_load_a __attribute__((depth(CHAN_DEPTH)));
+channel vtype ch_load_b __attribute__((depth(CHAN_DEPTH)));
+channel cols_data ch_store_c __attribute__((depth(CHAN_DEPTH)));
 
 // We send every row of A tiles K times. Then a zero row to drain the
 // array.
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
-load_a(global const vfloat* restrict A, uint N, uint M, uint K) {
+load_a(global const vtype* restrict A, uint N, uint M, uint K) {
     for (uint n = 0; n < N; n++) {
         for (uint k = 0; k < K; k++) {
             for (uint m = 0; m < M; m++) {
-                vfloat_bool buf;
+                vtype_bool buf;
                 // Only true for the second block
                 buf.c = m == 1;
                 for (uint i = 0; i < N_AB_BLOCK_MSGS; i++) {
@@ -117,7 +142,7 @@ load_a(global const vfloat* restrict A, uint N, uint M, uint K) {
         };
     }
 
-    vfloat_bool buf;
+    vtype_bool buf;
     buf.data = VECTOR_ZERO;
     for (uint m = 0; m < M; m++) {
         buf.c = m == 1;
@@ -132,7 +157,7 @@ load_a(global const vfloat* restrict A, uint N, uint M, uint K) {
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
-load_b(global const vfloat* restrict B, uint N, uint M, uint K) {
+load_b(global const vtype* restrict B, uint N, uint M, uint K) {
     for (uint n = 0; n < N; n++) {
         for (uint i = 0; i < K * M * N_AB_BLOCK_MSGS; i++) {
             write_channel_intel(ch_load_b, B[i]);
@@ -143,10 +168,10 @@ load_b(global const vfloat* restrict B, uint N, uint M, uint K) {
     }
 }
 
-float
-PE(bool clear, vfloat valA, vfloat valB, float *acc) {
-    float oldAcc = FPGA_REG1(acc[0]);
-    float sum = clear ? 0.0f : oldAcc;
+type
+PE(bool clear, vtype valA, vtype valB, type *acc) {
+    type oldAcc = FPGA_REG1(acc[0]);
+    type sum = clear ? 0 : oldAcc;
 
 #if V_SIZE==1
     sum += valA * valB;
@@ -170,23 +195,23 @@ __attribute__((autorun))
 void
 kernel monolithic() {
     // internal feeder A and B storage, banked, 1 bank per feeder
-    vfloat __attribute__((memory,
+    vtype __attribute__((memory,
                           numbanks(PE_S),
-                          bankwidth(sizeof(vfloat)),
+                          bankwidth(sizeof(vtype)),
                           singlepump,
                           max_replicates(1),
                           simple_dual_port)) mem_a[2][PE_S][X_SCALE][PE_S];
-    vfloat __attribute__((memory,
+    vtype __attribute__((memory,
                           numbanks(PE_S),
-                          bankwidth(sizeof(vfloat)),
+                          bankwidth(sizeof(vtype)),
                           singlepump,
                           max_replicates(1),
                           simple_dual_port)) mem_b[2][PE_S][X_SCALE][PE_S];
 
     // internal PE storage for accumulations, PE_S * PE_S shift registers
-    float acc[PE_S][PE_S][SHIFT_REG_SIZE];
+    type acc[PE_S][PE_S][SHIFT_REG_SIZE];
     // shift register for drain, one per column
-    float drain[PE_S][SHIFT_REG_SIZE * (PE_S - 1) + 1];
+    type drain[PE_S][SHIFT_REG_SIZE * (PE_S - 1) + 1];
 
     uint storecount = N_C_BLOCK_MSGS;
     bool new_c_tile = false;
@@ -195,7 +220,7 @@ kernel monolithic() {
         for (uint side = 0; side < 2; side++) {
             for (uint counter = 0; counter < N_AB_BLOCK_MSGS; counter++) {
 
-                vfloat_bool valA = read_channel_intel(ch_load_a);
+                vtype_bool valA = read_channel_intel(ch_load_a);
 
                 // save latest row_col_pair
                 if ((!new_c_tile && valA.c) & 1) {
@@ -203,10 +228,10 @@ kernel monolithic() {
                 }
                 new_c_tile = valA.c;
 
-                vfloat valB = read_channel_intel(ch_load_b);
+                vtype valB = read_channel_intel(ch_load_b);
 
-                vfloat fedA[PE_S];
-                vfloat fedB[PE_S];
+                vtype fedA[PE_S];
+                vtype fedB[PE_S];
 
                 // Rename counter to break dependency to the loop
                 // index.
@@ -234,7 +259,7 @@ kernel monolithic() {
 #pragma unroll
                     for (uint x = 0; x < PE_S; x++) {
                         // compute and store outputs in shift register
-                        float result = PE(clear, fedA[y], fedB[x], acc[y][x]);
+                        type result = PE(clear, fedA[y], fedB[x], acc[y][x]);
                         if (clear) {
                             drain[x][y * SHIFT_REG_SIZE] = result;
                         }
@@ -245,7 +270,7 @@ kernel monolithic() {
                     clear = FPGA_REG2(clear);
                 }
 
-                cols_floats results;
+                cols_data results;
 #pragma unroll
                 for (uint x = 0; x < PE_S; x++) {
                     results.data[x] = drain[x][0];
@@ -266,7 +291,7 @@ kernel monolithic() {
 __attribute__((max_global_work_dim(0)))
 __attribute__((uses_global_work_offset(0)))
 kernel void
-store(global float * restrict C, uint N, uint M, uint K) {
+store(global type * restrict C, uint N, uint M, uint K) {
 
     // We read and discard this many messages
     for (uint i = 0; i < N_C_BLOCK_MSGS; i++) {
@@ -274,7 +299,7 @@ store(global float * restrict C, uint N, uint M, uint K) {
     }
     uint c_n_msgs = K * N * N_C_BLOCK_MSGS;
     for (uint i = 0; i < c_n_msgs; i++) {
-        cols_floats d = read_channel_intel(ch_store_c);
+        cols_data d = read_channel_intel(ch_store_c);
 #pragma unroll
         for (uint j = 0; j < PE_S; j++) {
             C[PE_S * i + j] = d.data[j];

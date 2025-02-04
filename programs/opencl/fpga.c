@@ -50,6 +50,7 @@
 // | 8     | 16    | -     | -    | 9968 | 16  | 89  |      | 585  | 0.48  |
 // | 8     | 16    | -     | -    | 9968 | 16  | 89  |      | 585  | 0.48  |
 // | 8     | 16    | -     | -    | 9963 | 16  | 88  | (19) | 600  | 0.47  |
+// | 8     | 16    | -     | -    | 9960 | 16  | 94  |      | 601  | 0.47  |
 //
 // LAT = Latency of innermost loop
 // SW = I forgot
@@ -209,7 +210,12 @@ main(int argc, char *argv[]) {
     char opts[256];
     sprintf(
         opts,
-        "-cl-std=CL2.0 -Werror -D PE_S=%d -D V_SIZE=%d -D X_SCALE=%d",
+        "-cl-std=CL2.0 "
+        "-Werror "
+        "-D PE_S=%d "
+        "-D V_SIZE=%d "
+        "-D X_SCALE=%d "
+        "-D TYPE_SEL=2",
         PE_S, V_SIZE, X_SCALE
     );
 
