@@ -85,7 +85,7 @@ def configure(ctx):
         ctx.check(lib = 'pthread', mandatory = False, uselib_store = 'PTHREAD')
         ctx.check(
             header_name = 'CL/cl.h',
-            mandatory = True,
+            mandatory = False,
             lib = 'OpenCL',
             uselib_store = 'OPENCL'
         )
@@ -196,8 +196,10 @@ def build_aoc(ctx, src, deps):
 
 def cc_native_family(cc):
     cmd = [cc, '-march=native', '-E', '-v', '-']
-    proc = Popen(cmd,
-                 stdin = PIPE, stdout = PIPE, stderr = PIPE, text = True)
+    proc = Popen(
+        cmd,
+        stdin = PIPE, stdout = PIPE, stderr = PIPE, text = True
+    )
     _, stderr = proc.communicate(input = '')
 
     cc_name = Path(cc).stem
@@ -239,12 +241,6 @@ def build(ctx):
         'isect' : ('ISECT_OBJS', {}, []),
         'linalg' : ('LINALG_OBJS', {}, []),
         'ieee754' : ('IEEE754_OBJS', {}, []),
-        # When not using aocl, AOCL will be empty and -lOpenCL will be
-        # found by other means.
-        'opencl' : ('OPENCL_OBJS', {
-            'AOCL', 'DT_OBJS', 'FILES_OBJS', 'OPENCL',
-            'PATHS_OBJS', 'PRETTY_OBJS'
-        }, []),
         'paths' : ('PATHS_OBJS', {}, []),
         'pretty' : ('PRETTY_OBJS', {'M'}, []),
         'quickfit' : ('QF_OBJS', {'DT_OBJS'}, []),
@@ -269,15 +265,6 @@ def build(ctx):
         'isect' : {'LINALG_OBJS', 'DT_OBJS', 'M', 'ISECT_OBJS'},
         'linalg' : {'LINALG_OBJS', 'DT_OBJS', 'M', 'RANDOM_OBJS'},
         'npy' : ['DT_OBJS', 'NPY_OBJS'],
-        'opencl' : {
-            'DT_OBJS',
-            'M',
-            'OPENCL',
-            'OPENCL_OBJS',
-            'PATHS_OBJS',
-            'PNG',
-            'TENSORS_OBJS'
-        },
         'paths' : {'PATHS_OBJS', 'DT_OBJS'},
         'pretty' : {'DT_OBJS', 'PRETTY_OBJS'},
         'quickfit' : ['DT_OBJS', 'QF_OBJS'],
@@ -285,16 +272,9 @@ def build(ctx):
         'tensors' : {'TENSORS_OBJS', 'DT_OBJS', 'PNG', 'M'},
         'threads' : {'DT_OBJS', 'RANDOM_OBJS', 'THREADS_OBJS'}
     }
-    if ctx.env['LIB_CUDA']:
+    if ctx.env['HAVE_CUDA']:
         libs['cud'] = ('CUD_OBJS', {"CUDA", "PRETTY_OBJS"}, [])
         tests['cud'] = {'CUD_OBJS', 'DT_OBJS', 'CUDA'}
-
-
-    for lib, (sym, deps, defs) in libs.items():
-        build_library(ctx, lib, sym, deps, defs)
-
-    for lib, deps in tests.items():
-        build_tests(ctx, lib, deps)
 
     progs = [
         (['cpu.c'], {'DT_OBJS'}),
@@ -315,27 +295,8 @@ def build(ctx):
         (['yahtzee.c'], ['DT_OBJS', 'THREADS_OBJS', 'PTHREAD']),
     ]
 
-
-    linux_progs = [
-        (['opencl/comm.c'], {'OPENCL', 'OPENCL_OBJS', 'RANDOM_OBJS'}),
-        (['opencl/dct.c'], [
-            'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS',
-            'TENSORS_OBJS', 'PNG', 'M',
-            'DT_OBJS'
-        ]),
-        (['opencl/fpga.c'], {
-            'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS',
-            'TENSORS_OBJS', 'PNG', 'M', 'DT_OBJS'
-        }),
-        (['opencl/list.c'], {'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS'}),
-        (['opencl/pipes.c'], {'OPENCL', 'OPENCL_OBJS'}),
-        (['sigsegv.c'], {})
-    ]
-
-
-
     if ctx.env.DEST_OS == 'linux':
-        progs.extend(linux_progs)
+        progs.append((['sigsegv.c'], {}))
 
     not_win32_progs = [
         (['capstack.c'], {'DT_OBJS', 'GC_OBJS', 'QF_OBJS'})
@@ -377,6 +338,42 @@ def build(ctx):
     if ctx.env['LIB_GL'] and ctx.env['LIB_X11']:
         progs.append((['gl-fbconfigs.c'], {'GL', 'X11'}))
 
+    if ctx.env["HAVE_OPENCL"]:
+        libs["opencl"] = ('OPENCL_OBJS', {
+            'AOCL', 'DT_OBJS', 'FILES_OBJS', 'OPENCL',
+            'PATHS_OBJS', 'PRETTY_OBJS'
+        }, [])
+        tests["opencl"] = {
+            'DT_OBJS',
+            'M',
+            'OPENCL',
+            'OPENCL_OBJS',
+            'PATHS_OBJS',
+            'PNG',
+            'TENSORS_OBJS'
+        }
+        opencl_progs = [
+            (['opencl/comm.c'], {'OPENCL', 'OPENCL_OBJS', 'RANDOM_OBJS'}),
+            (['opencl/dct.c'], [
+                'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS',
+                'TENSORS_OBJS', 'PNG', 'M',
+                'DT_OBJS'
+            ]),
+            (['opencl/fpga.c'], {
+                'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS',
+                'TENSORS_OBJS', 'PNG', 'M', 'DT_OBJS'
+            }),
+            (['opencl/list.c'], {'OPENCL', 'OPENCL_OBJS', 'PATHS_OBJS'}),
+            (['opencl/pipes.c'], {'OPENCL', 'OPENCL_OBJS'})
+        ]
+        progs.extend(opencl_progs)
+
+    for lib, (sym, deps, defs) in libs.items():
+        build_library(ctx, lib, sym, deps, defs)
+
+    for lib, deps in tests.items():
+        build_tests(ctx, lib, deps)
+
     progs = [([Path(s) for s in source], deps)
              for (source, deps) in progs]
     for files, deps in progs:
@@ -385,7 +382,7 @@ def build(ctx):
     if ctx.env['AOC']:
         kernels = [
             ('dct8x8.cl', []),
-            ('matmul_fpga.cl', ['matmul_fpga_config.h']),
+            ('matmul_fpga.cl', []),
             ('pipes.cl', [])
         ]
         base = Path('programs/opencl')
