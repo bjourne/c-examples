@@ -83,6 +83,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include "datatypes/bits.h"
 #include "datatypes/common.h"
 #include "files/files.h"
 #include "linalg/linalg.h"
@@ -96,6 +97,39 @@
 #define CL_CHANNEL_3_INTELFPGA              (3 << 16)
 #define N_KERNELS                           3
 
+cl_half
+float_to_half(float f) {
+    uint32_t bits = BW_FLOAT_TO_UINT(f);
+
+    uint32_t sign = (bits >> 16) & 0x8000;
+    int32_t exponent = ((bits >> 23) & 0xFF) - 127 + 15;
+    uint32_t mantissa = (bits & 0x007FFFFF) >> 13;
+
+    if (exponent <= 0) {
+        return sign;
+    } else if (exponent >= 31) {
+        return sign | 0x7C00;
+    }
+    return (cl_half)(sign | (exponent << 10) | mantissa);
+}
+
+float
+half_to_float(cl_half h) {
+    uint32_t sign = (h & 0x8000) << 16;
+    uint32_t exponent = (h & 0x7C00) >> 10;
+    uint32_t mantissa = (h & 0x03FF) << 13;
+
+    if (exponent == 0) {
+        return 0.0f;
+    } else if (exponent == 31) {
+        return BW_UINT_TO_FLOAT(sign | 0x7F800000 | mantissa);
+    }
+
+    exponent = (exponent - 15 + 127) << 23;
+    uint32_t result = sign | exponent | mantissa;
+    return BW_UINT_TO_FLOAT(result);
+}
+
 typedef enum {
     BUF_A,
     BUF_B,
@@ -105,6 +139,7 @@ typedef enum {
 #define V_TYPE_LONG     1
 #define V_TYPE_FLOAT    2
 #define V_TYPE_INT      3
+#define V_TYPE_HALF     4
 
 static int
 scalar_size(int v_type) {
@@ -114,6 +149,8 @@ scalar_size(int v_type) {
         return sizeof(int);
     } else if (v_type == V_TYPE_FLOAT) {
         return sizeof(float);
+    } else if (v_type == V_TYPE_HALF) {
+        return sizeof(cl_half);
     } else {
         assert(false);
     }
@@ -128,6 +165,9 @@ scalar_copy_cast(void *dst, int dt, void *src, int st, int idx)   {
         v = ((float *)src)[idx];
     } else if (st == V_TYPE_INT) {
         v = ((int *)src)[idx];
+    } else if (st == V_TYPE_HALF) {
+        cl_half t = ((cl_half *)src)[idx];
+        v = (double)half_to_float(t);
     } else {
         assert(false);
     }
@@ -137,6 +177,9 @@ scalar_copy_cast(void *dst, int dt, void *src, int st, int idx)   {
         ((float *)dst)[idx] = v;
     } else if (dt == V_TYPE_INT) {
         ((int *)dst)[idx] = v;
+    } else if (dt == V_TYPE_HALF) {
+        cl_half t = float_to_half(v);
+        ((cl_half *)dst)[idx] = t;
     } else {
         assert(false);
     }
@@ -232,7 +275,10 @@ main(int argc, char *argv[]) {
     tensor_unary(a, a, TENSOR_UNARY_OP_ADD, -10.0);
     tensor_unary(b, b, TENSOR_UNARY_OP_ADD, -10.0);
 
-    if (v_type == V_TYPE_LONG || v_type == V_TYPE_INT) {
+    // Could do this better
+    if (v_type == V_TYPE_LONG ||
+        v_type == V_TYPE_INT ||
+        v_type == V_TYPE_HALF) {
         tensor_unary(a, a, TENSOR_UNARY_OP_TRUNC, 0.0);
         tensor_unary(b, b, TENSOR_UNARY_OP_TRUNC, 0.0);
     }
@@ -292,7 +338,7 @@ main(int argc, char *argv[]) {
         OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, props));
     }
 
-    int size = scalar_size(v_type)
+    int size = scalar_size(v_type);
     size_t n_bytes_a = n_els_a * size;
     size_t n_bytes_b = n_els_b * size;
     size_t n_bytes_c = n_els_c * size;

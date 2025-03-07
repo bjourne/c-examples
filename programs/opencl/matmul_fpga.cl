@@ -25,6 +25,7 @@
 //     C is a N x M matrix
 #pragma OPENCL EXTENSION cl_intel_channels : enable
 
+
 ////////////////////////////////////////////////////////////////////////
 // Macro utility
 ////////////////////////////////////////////////////////////////////////
@@ -53,6 +54,7 @@
 #define V_TYPE_LONG     1
 #define V_TYPE_FLOAT    2
 #define V_TYPE_INT      3
+#define V_TYPE_HALF     4
 
 
 #if V_TYPE==V_TYPE_LONG
@@ -91,13 +93,29 @@ typedef float16 vtype;
 
 typedef int type;
 #if V_SIZE==2
+#define     VECTOR_FMT  "v2d"
 typedef int2 vtype;
 #elif V_SIZE==4
 typedef int4 vtype;
 #elif V_SIZE==8
+#define     VECTOR_FMT  "v8d"
 typedef int8 vtype;
 #elif V_SIZE==16
 typedef int16 vtype;
+#else
+#error Unsupported V_SIZE
+#endif
+
+#elif V_TYPE==V_TYPE_HALF
+
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+typedef half type;
+#if V_SIZE==2
+typedef half2 vtype;
+#elif V_SIZE==8
+typedef half8 vtype;
+#elif V_SIZE==16
+typedef half16 vtype;
 #else
 #error Unsupported V_SIZE
 #endif
