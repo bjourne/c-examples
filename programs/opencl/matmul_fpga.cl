@@ -40,18 +40,6 @@
 #define FPGA_REG1(x)                __fpga_reg((x))
 #define FPGA_REG2(x)                __fpga_reg(__fpga_reg((x)))
 
-#define VECTOR_FLOAT1_ZERO          0.0f
-#define VECTOR_FLOAT2_ZERO          (float2)(0.0f, 0.0f)
-#define VECTOR_FLOAT4_ZERO          (float4)(0.0f, 0.0f, 0.0f, 0.0f)
-#define VECTOR_FLOAT8_ZERO          (float8)(VECTOR_FLOAT4_ZERO,VECTOR_FLOAT4_ZERO)
-#define VECTOR_FLOAT16_ZERO         (float16)(VECTOR_FLOAT8_ZERO,VECTOR_FLOAT8_ZERO)
-
-#define VECTOR_INT4_ZERO            (int4)(0, 0, 0, 0)
-#define VECTOR_INT8_ZERO            (int8)(VECTOR_INT4_ZERO, VECTOR_INT4_ZERO)
-
-#define VECTOR_LONG4_ZERO           (long4)(0, 0, 0, 0)
-#define VECTOR_LONG8_ZERO           (long8)(VECTOR_LONG4_ZERO, VECTOR_LONG4_ZERO)
-
 // Shift register size
 #define SHIFT_REG_SIZE              (PE_S * PE_S)
 
@@ -62,73 +50,61 @@
 ////////////////////////////////////////////////////////////////////////
 // Types
 ////////////////////////////////////////////////////////////////////////
-#if TYPE_SEL==1
+#define V_TYPE_LONG     1
+#define V_TYPE_FLOAT    2
+#define V_TYPE_INT      3
+
+
+#if V_TYPE==V_TYPE_LONG
 
 typedef long type;
-
-#if V_SIZE==4
-
-#define VECTOR_ZERO         VECTOR_LONG4_ZERO
+#if V_SIZE==1
+typedef long vtype;
+#elif V_SIZE==2
+typedef long2 vtype;
+#elif V_SIZE==4
 typedef long4 vtype;
-
 #elif V_SIZE==8
-
-#define VECTOR_ZERO         VECTOR_LONG8_ZERO
 typedef long8 vtype;
-
 #else
-
 #error Unsupported V_SIZE
-
 #endif
 
-#elif TYPE_SEL==2
+#elif V_TYPE==V_TYPE_FLOAT
 
 typedef float type;
-
 #if V_SIZE==1
-#define VECTOR_ZERO         VECTOR_FLOAT1_ZERO
 typedef float vtype;
 #elif V_SIZE==2
 typedef float2 vtype;
-#define VECTOR_ZERO         VECTOR_FLOAT2_ZERO
-#define VECTOR_FMT          "v2hlf"
 #elif V_SIZE==4
 typedef float4 vtype;
-#define VECTOR_ZERO         VECTOR_FLOAT4_ZERO
 #elif V_SIZE==8
 typedef float8 vtype;
-#define VECTOR_ZERO         VECTOR_FLOAT8_ZERO
 #elif V_SIZE==16
 typedef float16 vtype;
-#define VECTOR_ZERO         VECTOR_FLOAT16_ZERO
 #else
 #error Unsupported V_SIZE
 #endif
 
-#elif TYPE_SEL==3
+#elif V_TYPE==V_TYPE_INT
 
 typedef int type;
-
-#if V_SIZE==4
-
-#define VECTOR_ZERO         VECTOR_INT4_ZERO
+#if V_SIZE==2
+typedef int2 vtype;
+#elif V_SIZE==4
 typedef int4 vtype;
-
 #elif V_SIZE==8
-
-#define VECTOR_ZERO         VECTOR_INT8_ZERO
 typedef int8 vtype;
-
+#elif V_SIZE==16
+typedef int16 vtype;
 #else
-
 #error Unsupported V_SIZE
-
 #endif
 
 #else
 
-#error Unsupported TYPE_SEL
+#error Unsupported V_TYPE
 
 #endif
 
@@ -175,7 +151,7 @@ load_a(global const vtype* restrict A, uint N, uint M, uint K) {
     }
 
     vtype_bool buf;
-    buf.data = VECTOR_ZERO;
+    buf.data = 0;
     for (uint m = 0; m < M; m++) {
         buf.c = m == 1;
         for (uint i = 0; i < N_AB_BLOCK_MSGS; i++) {
@@ -196,7 +172,7 @@ load_b(global const vtype* restrict B, uint N, uint M, uint K) {
         }
     }
     for (uint i = 0; i < M * N_AB_BLOCK_MSGS; i++) {
-        write_channel_intel(ch_load_b, VECTOR_ZERO);
+        write_channel_intel(ch_load_b, 0);
     }
 }
 
@@ -342,7 +318,7 @@ store(global type * restrict C, uint N, uint M, uint K) {
 #if INCLUDE_PP==1
 
 ////////////////////////////////////////////////////////////////////////
-// Code for efficient pre- and post-processing
+// Code for efficient (?) pre- and post-processing
 ////////////////////////////////////////////////////////////////////////
 
 #define     BLOCK_N     (PE_S * PE_S)

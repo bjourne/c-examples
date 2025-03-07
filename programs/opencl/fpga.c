@@ -51,6 +51,7 @@
 // | 8     | 16    | -     | -    | 9968 | 16  | 89  |      | 585  | 0.48  |
 // | 8     | 16    | -     | -    | 9963 | 16  | 88  | (19) | 600  | 0.47  |
 // | 8     | 16    | -     | -    | 9960 | 16  | 94  |      | 601  | 0.47  |
+// | 8     | 16    | -     | -    | 9960 | 16  | 94  |      | 608  | 0.46  |
 //
 // LAT = Latency of innermost loop
 // SW = I forgot
@@ -101,15 +102,63 @@ typedef enum {
     BUF_C
 } buf_type;
 
+#define V_TYPE_LONG     1
+#define V_TYPE_FLOAT    2
+#define V_TYPE_INT      3
+
+static int
+scalar_size(int v_type) {
+    if (v_type == V_TYPE_LONG) {
+        return sizeof(long);
+    } else if (v_type == V_TYPE_INT) {
+        return sizeof(int);
+    } else if (v_type == V_TYPE_FLOAT) {
+        return sizeof(float);
+    } else {
+        assert(false);
+    }
+}
+
+static void
+scalar_copy_cast(void *dst, int dt, void *src, int st, int idx)   {
+    double v;
+    if (st == V_TYPE_LONG) {
+        v = ((long *)src)[idx];
+    } else if (st == V_TYPE_FLOAT) {
+        v = ((float *)src)[idx];
+    } else if (st == V_TYPE_INT) {
+        v = ((int *)src)[idx];
+    } else {
+        assert(false);
+    }
+    if (dt == V_TYPE_LONG) {
+        ((long *)dst)[idx] = v;
+    } else if (dt == V_TYPE_FLOAT) {
+        ((float *)dst)[idx] = v;
+    } else if (dt == V_TYPE_INT) {
+        ((int *)dst)[idx] = v;
+    } else {
+        assert(false);
+    }
+}
+
+static void
+buffer_copy_cast(void *dst, int dt, void *src, int st, int n) {
+    for (int i = 0; i < n; i++) {
+        scalar_copy_cast(dst, dt, src, st, i);
+    }
+}
+
 static void
 usage(char *bin) {
     printf(
         "Usage: %s "
         "platform-index kernel-path "
-        "V_SIZE PE_S X_SCALE "
+        "V_TYPE V_SIZE PE_S X_SCALE "
         "N M K\n\n",
         bin
     );
+    printf("    V_TYPE      SIMD vector type (int, long, float, double)\n");
     printf("    V_SIZE      SIMD vector size (1, 2, 4, 8, or 16)\n");
     printf("    PE_S        Side length of the square systolic array\n");
     printf("    X_SCALE     Scaling factor\n");
@@ -120,27 +169,28 @@ usage(char *bin) {
 
 int
 main(int argc, char *argv[]) {
-    if (argc != 9) {
+    if (argc != 10) {
         usage(argv[0]);
     }
     // Systolic array setup
-    cl_uint V_SIZE = atoi(argv[3]);
-    cl_uint PE_S = atoi(argv[4]);
-    cl_uint X_SCALE = atoi(argv[5]);
+    int v_type = atoi(argv[3]);
+    int v_size = atoi(argv[4]);
+    int pe_s = atoi(argv[5]);
+    int x_scale = atoi(argv[6]);
 
     // Matrix dimensions in blocks
-    cl_uint N = atoi(argv[6]);
-    cl_uint M = atoi(argv[7]);
-    cl_uint K = atoi(argv[8]);
+    int N = atoi(argv[7]);
+    int M = atoi(argv[8]);
+    int K = atoi(argv[9]);
 
-    cl_uint A_BLOCK_Y = PE_S * PE_S;
-    cl_uint A_BLOCK_X = X_SCALE * V_SIZE;
+    int A_BLOCK_Y = pe_s * pe_s;
+    int A_BLOCK_X = x_scale * v_size;
 
-    cl_uint B_BLOCK_Y = A_BLOCK_X;
-    cl_uint B_BLOCK_X = A_BLOCK_Y;
+    int B_BLOCK_Y = A_BLOCK_X;
+    int B_BLOCK_X = A_BLOCK_Y;
 
-    cl_uint C_BLOCK_Y = A_BLOCK_Y;
-    cl_uint C_BLOCK_X = B_BLOCK_X;
+    int C_BLOCK_Y = A_BLOCK_Y;
+    int C_BLOCK_X = B_BLOCK_X;
 
     int A_Y = N * A_BLOCK_Y;
     int A_X = M * A_BLOCK_X;
@@ -149,11 +199,14 @@ main(int argc, char *argv[]) {
     int C_Y = A_Y;
     int C_X = B_X;
 
+    int n_els_a = A_Y * A_X;
+    int n_els_b = B_Y * B_X;
+    int n_els_c = C_Y * C_X;
+
     // Type sizes
     size_t n_uint = sizeof(cl_uint);
     size_t n_ulong = sizeof(cl_ulong);
     size_t n_mem = sizeof(cl_mem);
-    size_t n_float = sizeof(float);
 
     tensor *a = tensor_init_2d(A_Y, A_X);
     tensor *b = tensor_init_2d(B_Y, B_X);
@@ -165,8 +218,9 @@ main(int argc, char *argv[]) {
     printf("  %-10s %6d %6d\n", "c", C_Y, C_X);
     printf("\n");
     printf("** Kernel setup **\n");
-    printf("  %-10s %4d\n", "X scale", X_SCALE);
-    printf("  %-10s %4d %4d\n", "PE dims", PE_S, PE_S);
+    printf("  %-10s %4d\n", "V size", v_size);
+    printf("  %-10s %4d\n", "X scale", x_scale);
+    printf("  %-10s %4d %4d\n", "PE dims", pe_s, pe_s);
     printf("  %-10s %4d %4d\n", "Block A", A_BLOCK_Y, A_BLOCK_X);
     printf("  %-10s %4d %4d\n", "Block B", B_BLOCK_Y, B_BLOCK_X);
     printf("  %-10s %4d %4d\n", "Block C", C_BLOCK_Y, C_BLOCK_X);
@@ -178,6 +232,11 @@ main(int argc, char *argv[]) {
     tensor_unary(a, a, TENSOR_UNARY_OP_ADD, -10.0);
     tensor_unary(b, b, TENSOR_UNARY_OP_ADD, -10.0);
 
+    if (v_type == V_TYPE_LONG || v_type == V_TYPE_INT) {
+        tensor_unary(a, a, TENSOR_UNARY_OP_TRUNC, 0.0);
+        tensor_unary(b, b, TENSOR_UNARY_OP_TRUNC, 0.0);
+    }
+
     printf("** Multiplying on CPU **\n");
     tensor *c_ref = tensor_multiply_new(a, b);
 
@@ -188,9 +247,9 @@ main(int argc, char *argv[]) {
 
     int n_tiles = N * K * A_BLOCK_Y;
 
-    tensor *c_ref_tiled_transposed = tensor_init_3d(n_tiles, PE_S, PE_S);
+    tensor *c_ref_tiled_transposed = tensor_init_3d(n_tiles, pe_s, pe_s);
 
-    tensor_set_dims(c_ref_tiled, 3, (int[]){n_tiles, PE_S, PE_S});
+    tensor_set_dims(c_ref_tiled, 3, (int[]){n_tiles, pe_s, pe_s});
 
     tensor_transpose_tiled(c_ref_tiled, c_ref_tiled_transposed);
 
@@ -213,10 +272,10 @@ main(int argc, char *argv[]) {
         "-cl-std=CL2.0 "
         "-Werror "
         "-D PE_S=%d "
+        "-D V_TYPE=%d "
         "-D V_SIZE=%d "
-        "-D X_SCALE=%d "
-        "-D TYPE_SEL=2",
-        PE_S, V_SIZE, X_SCALE
+        "-D X_SCALE=%d ",
+        pe_s, v_type, v_size, x_scale
     );
 
     char *kernels[] = {"load_a", "load_b", "store"};
@@ -233,9 +292,10 @@ main(int argc, char *argv[]) {
         OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, props));
     }
 
-    size_t n_bytes_a = A_Y * A_X * n_float;
-    size_t n_bytes_b = B_Y * B_X * n_float;
-    size_t n_bytes_c = C_Y * C_X * n_float;
+    int size = scalar_size(v_type)
+    size_t n_bytes_a = n_els_a * size;
+    size_t n_bytes_b = n_els_b * size;
+    size_t n_bytes_c = n_els_c * size;
 
     ocl_ctx_buf bufs[3] = {
         {0, n_bytes_a, CL_MEM_READ_ONLY | CL_CHANNEL_1_INTELFPGA},
@@ -245,11 +305,28 @@ main(int argc, char *argv[]) {
     for (int i = 0; i < 3; i++) {
         OCL_CHECK_ERR(ocl_ctx_add_buffer(ctx, bufs[i]));
     }
+
+    // Extra buffers for casts
+    void *dev_buf_a = malloc(n_bytes_a);
+    void *dev_buf_b = malloc(n_bytes_b);
+    void *dev_buf_c = malloc(n_bytes_c);
+
+    buffer_copy_cast(
+        dev_buf_a, v_type,
+        a_tiled->data, V_TYPE_FLOAT,
+        n_els_a
+    );
+    buffer_copy_cast(
+        dev_buf_b, v_type,
+        b_transpose_tiled->data, V_TYPE_FLOAT,
+        n_els_b
+    );
+
     OCL_CHECK_ERR(ocl_ctx_write_buffer(
-        ctx, 0, BUF_A, a_tiled->data
+        ctx, 0, BUF_A, dev_buf_a
     ));
     OCL_CHECK_ERR(ocl_ctx_write_buffer(
-        ctx, 0, BUF_B, b_transpose_tiled->data
+        ctx, 0, BUF_B, dev_buf_b
     ));
     ocl_ctx_arg kern_a_args[] = {
         {n_mem, &ctx->buffers[BUF_A].ptr},
@@ -305,10 +382,21 @@ main(int argc, char *argv[]) {
     }
 
     // Use first queue to read data back.
-    OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, 0, BUF_C, c->data));
+    OCL_CHECK_ERR(ocl_ctx_read_buffer(ctx, 0, BUF_C, dev_buf_c));
+
+    buffer_copy_cast(
+        c->data, V_TYPE_FLOAT,
+        dev_buf_c, v_type,
+        n_els_c
+    );
+
     tensor_check_equal_contents(c, c_ref_tiled_transposed, 0.1);
 
     ocl_ctx_free(ctx);
+
+    free(dev_buf_a);
+    free(dev_buf_b);
+    free(dev_buf_c);
 
     // Free tensors
     tensor_free(a);
