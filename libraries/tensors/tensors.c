@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2025 Björn A. Lindqvist <bjourne@gmail.com>
 //
 // Conventions:
 //
@@ -330,6 +330,10 @@ tensor_unary(tensor *src, tensor *dst,
     } else if (op == TENSOR_UNARY_OP_ADD) {
         for (int i = 0; i < n; i++) {
             dst->data[i] = src->data[i] + scalar;
+        }
+    } else if (op == TENSOR_UNARY_OP_TRUNC) {
+        for (int i = 0; i < n; i++) {
+            dst->data[i] = truncf(src->data[i]);
         }
     } else {
         assert(false);
