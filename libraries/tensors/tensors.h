@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2022-2025 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef TENSOR_H
 #define TENSOR_H
 
@@ -9,7 +9,7 @@
 #define TENSOR_MAX_N_DIMS   10
 
 // Address alignment for data buffers. Since tensors are supposed to
-// be pretty big, wasting a few bytes shouldn't matter much.
+// be pretty big, wasting a few bytes doesn't matter.
 #define TENSOR_ADDRESS_ALIGNMENT    64
 
 typedef enum {
@@ -21,14 +21,6 @@ typedef enum {
     TENSOR_ERR_WRONG_DIMENSIONALITY,
     TENSOR_ERR_TOO_BIG
 } tensor_error_type;
-
-typedef enum {
-    TENSOR_LAYER_LINEAR = 0,
-    TENSOR_LAYER_CONV2D,
-    TENSOR_LAYER_MAX_POOL2D,
-    TENSOR_LAYER_RELU,
-    TENSOR_LAYER_FLATTEN
-} tensor_layer_type;
 
 typedef enum {
     TENSOR_UNARY_OP_SOFTMAX = 0,

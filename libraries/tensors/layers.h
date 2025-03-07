@@ -1,8 +1,16 @@
-// Copyright (C) 2024 Björn A. Lindqvist <bjourne@gmail.com>
+// Copyright (C) 2024-2025 Björn A. Lindqvist <bjourne@gmail.com>
 #ifndef TENSORS_LAYERS_H
 #define TENSORS_LAYERS_H
 
 #include "tensors.h"
+
+typedef enum {
+    TENSOR_LAYER_LINEAR = 0,
+    TENSOR_LAYER_CONV2D,
+    TENSOR_LAYER_MAX_POOL2D,
+    TENSOR_LAYER_RELU,
+    TENSOR_LAYER_FLATTEN
+} tensor_layer_type;
 
 typedef struct {
     int from;
