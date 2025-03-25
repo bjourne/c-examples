@@ -17,8 +17,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 //
-// This agreement shall be governed in all respects by the laws of the State of California and
-// by the laws of the United States of America.
+// This agreement shall be governed in all respects by the laws of the
+// State of California and by the laws of the United States of
+// America.
+//
 // This kernel computes C = A * B, where
 //     A is a N x K matrix
 //     B is a K x M matrix
@@ -68,6 +70,8 @@ typedef long2 vtype;
 typedef long4 vtype;
 #elif V_SIZE==8
 typedef long8 vtype;
+#elif V_SIZE==16
+typedef long16 vtype;
 #else
 #error Unsupported V_SIZE
 #endif
@@ -92,10 +96,14 @@ typedef float16 vtype;
 #elif V_TYPE==V_TYPE_INT
 
 typedef int type;
-#if V_SIZE==2
+#if V_SIZE==1
+#define     VECTOR_FMT  "d"
+typedef int vtype;
+#elif V_SIZE==2
 #define     VECTOR_FMT  "v2d"
 typedef int2 vtype;
 #elif V_SIZE==4
+#define     VECTOR_FMT  "v4d"
 typedef int4 vtype;
 #elif V_SIZE==8
 #define     VECTOR_FMT  "v8d"
@@ -218,21 +226,21 @@ PE(bool clear, vtype valA, vtype valB, type *acc) {
 
 __attribute__((max_global_work_dim(0)))
 __attribute__((autorun))
-void
-kernel monolithic() {
+void kernel
+monolithic() {
     // internal feeder A and B storage, banked, 1 bank per feeder
     vtype __attribute__((memory,
-                          numbanks(PE_S),
-                          bankwidth(sizeof(vtype)),
-                          singlepump,
-                          max_replicates(1),
-                          simple_dual_port)) mem_a[2][PE_S][X_SCALE][PE_S];
+                         numbanks(PE_S),
+                         bankwidth(sizeof(vtype)),
+                         singlepump,
+                         max_replicates(1),
+                         simple_dual_port)) mem_a[2][PE_S][X_SCALE][PE_S];
     vtype __attribute__((memory,
-                          numbanks(PE_S),
-                          bankwidth(sizeof(vtype)),
-                          singlepump,
-                          max_replicates(1),
-                          simple_dual_port)) mem_b[2][PE_S][X_SCALE][PE_S];
+                         numbanks(PE_S),
+                         bankwidth(sizeof(vtype)),
+                         singlepump,
+                         max_replicates(1),
+                         simple_dual_port)) mem_b[2][PE_S][X_SCALE][PE_S];
 
     // internal PE storage for accumulations, PE_S * PE_S shift registers
     type acc[PE_S][PE_S][SHIFT_REG_SIZE];
@@ -295,7 +303,6 @@ kernel monolithic() {
                     //Unclear whether this is needed.
                     clear = FPGA_REG2(clear);
                 }
-
                 cols_data results;
 #pragma unroll
                 for (uint x = 0; x < PE_S; x++) {
@@ -367,9 +374,13 @@ preproc_a(
     uint N, uint M
 ) {
     // Pad and tile the A matrix.
+#pragma ivdep
     for (uint n0 = 0; n0 < N; n0++) {
+#pragma ivdep
         for (uint m0 = 0; m0 < M; m0++) {
+#pragma ivdep
             for (int n1 = 0; n1 < BLOCK_N; n1++) {
+#pragma ivdep
                 for (uint m1 = 0; m1 < BLOCK_M; m1++) {
                     uint n = n0 * BLOCK_N + n1;
                     uint m = m0 * BLOCK_M + m1;
