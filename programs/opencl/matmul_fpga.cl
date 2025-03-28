@@ -299,17 +299,24 @@ monolithic() {
                         }
                         fedA[y] = FPGA_REG2(fedA[y]);
                         fedB[x] = FPGA_REG2(fedB[x]);
+                        clear = FPGA_REG2(clear);
                     }
-                    //Unclear whether this is needed.
-                    clear = FPGA_REG2(clear);
+
                 }
                 cols_data results;
 #pragma unroll
                 for (uint x = 0; x < PE_S; x++) {
                     results.data[x] = drain[x][0];
+
 #pragma unroll
-                    for (uint i = 0; i < SHIFT_REG_SIZE * (PE_S - 1); i++) {
-                        drain[x][i] = drain[x][i + 1];
+                    for (int y = 0; y < PE_S - 1; y++) {
+#pragma unroll
+                        for (int i = 0; i < SHIFT_REG_SIZE - 1; i++) {
+                            drain[x][y * SHIFT_REG_SIZE + i] = drain[x][y * SHIFT_REG_SIZE + i + 1];
+                        }
+                        // use fpga_reg at logical PE boundaries - to capture locality
+                        drain[x][y * SHIFT_REG_SIZE + SHIFT_REG_SIZE - 1] =
+                            FPGA_REG2(drain[x][y * SHIFT_REG_SIZE + SHIFT_REG_SIZE]);
                     }
                 }
                 if (storecount < N_C_BLOCK_MSGS) {
