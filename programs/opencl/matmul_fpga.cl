@@ -44,7 +44,7 @@
 #define FPGA_REG2(x)                __fpga_reg(__fpga_reg((x)))
 
 // Shift register size
-#define SHIFT_REG_SIZE              (PE_S * PE_S)
+#define SR_SIZE              (PE_S * PE_S)
 
 // Number of messages per block of A, B, or C
 #define N_AB_BLOCK_MSGS             (PE_S * PE_S * X_SCALE)
@@ -156,6 +156,8 @@ channel vtype_bool ch_load_a __attribute__((depth(CHAN_DEPTH)));
 channel vtype ch_load_b __attribute__((depth(CHAN_DEPTH)));
 channel cols_data ch_store_c __attribute__((depth(CHAN_DEPTH)));
 
+channel cols_data ch_sys_output __attribute__((depth(CHAN_DEPTH)));
+
 // We send every row of A tiles K times. Then a zero row to drain the
 // array.
 __attribute__((max_global_work_dim(0)))
@@ -217,10 +219,10 @@ PE(bool clear, vtype valA, vtype valB, type *acc) {
 #endif
 
 #pragma unroll
-    for (int i = 0; i < SHIFT_REG_SIZE - 1; i++) {
+    for (int i = 0; i < SR_SIZE - 1; i++) {
         acc[i] = acc[i + 1];
     }
-    acc[SHIFT_REG_SIZE - 1] = sum;
+    acc[SR_SIZE - 1] = sum;
     return oldAcc;
 }
 
@@ -243,9 +245,9 @@ monolithic() {
                          simple_dual_port)) mem_b[2][PE_S][X_SCALE][PE_S];
 
     // internal PE storage for accumulations, PE_S * PE_S shift registers
-    type acc[PE_S][PE_S][SHIFT_REG_SIZE];
+    type acc[PE_S][PE_S][SR_SIZE];
     // shift register for drain, one per column
-    type drain[PE_S][SHIFT_REG_SIZE * (PE_S - 1) + 1];
+    type drain[PE_S][SR_SIZE * (PE_S - 1) + 1];
 
     uint storecount = N_C_BLOCK_MSGS;
     bool new_c_tile = false;
@@ -295,7 +297,7 @@ monolithic() {
                         // compute and store outputs in shift register
                         type result = PE(clear, fedA[y], fedB[x], acc[y][x]);
                         if (clear) {
-                            drain[x][y * SHIFT_REG_SIZE] = result;
+                            drain[x][y * SR_SIZE] = result;
                         }
                         fedA[y] = FPGA_REG2(fedA[y]);
                         fedB[x] = FPGA_REG2(fedB[x]);
@@ -303,24 +305,24 @@ monolithic() {
                     }
 
                 }
-                cols_data results;
+                cols_data col;
 #pragma unroll
                 for (uint x = 0; x < PE_S; x++) {
-                    results.data[x] = drain[x][0];
+                    col.data[x] = drain[x][0];
 
 #pragma unroll
                     for (int y = 0; y < PE_S - 1; y++) {
 #pragma unroll
-                        for (int i = 0; i < SHIFT_REG_SIZE - 1; i++) {
-                            drain[x][y * SHIFT_REG_SIZE + i] = drain[x][y * SHIFT_REG_SIZE + i + 1];
+                        for (int i = 0; i < SR_SIZE - 1; i++) {
+                            drain[x][y * SR_SIZE + i] = drain[x][y * SR_SIZE + i + 1];
                         }
                         // use fpga_reg at logical PE boundaries - to capture locality
-                        drain[x][y * SHIFT_REG_SIZE + SHIFT_REG_SIZE - 1] =
-                            FPGA_REG2(drain[x][y * SHIFT_REG_SIZE + SHIFT_REG_SIZE]);
+                        drain[x][y * SR_SIZE + SR_SIZE - 1] =
+                            FPGA_REG2(drain[x][y * SR_SIZE + SR_SIZE]);
                     }
                 }
                 if (storecount < N_C_BLOCK_MSGS) {
-                    write_channel_intel(ch_store_c, results);
+                    write_channel_intel(ch_store_c, col);
                 }
                 storecount++;
             }
