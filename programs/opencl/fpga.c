@@ -3,7 +3,7 @@
 // Demonstrates how to run an AOT-compiled kernel on an FPGA.
 //
 // Here are performance figures for the Agilex 7 FPGA I'm working
-// with. For N=M=K=8192 matrices:
+// with. For N=M=K=8192 float matrices:
 //
 // | VSIZE | PE    | ILEAV | LVEC | SEED | SW  | LAT | FN   | FMAX | TIME  |
 // |-------|-------|-------|------|------|-----|-----|------|------|-------|
@@ -52,9 +52,17 @@
 // | 8     | 16    | -     | -    | 9963 | 16  | 88  | (19) | 600  | 0.47  |
 // | 8     | 16    | -     | -    | 9960 | 16  | 94  |      | 601  | 0.47  |
 // | 8     | 16    | -     | -    | 9960 | 16  | 94  |      | 608  | 0.46  |
+// | 8     | 16    | -     | -    | 9959 | 16  | 530 |      | 608  | 0.46  |
+//
+// For M=N=K=8192 char matrices:
+//
+//
+// | VSIZE | PE    | ILEAV | LVEC | SEED | LAT | FN | FMAX | TIME |
+// |-------|-------|-------|------|------|-----|----|------|------|
+// | 16    | 16x16 | 16x16 | -    | 9959 | 519 |    | 600  | 0.23 |
+//
 //
 // LAT = Latency of innermost loop
-// SW = I forgot
 //
 // 1. This refactoring increased the length of the critical chain.
 // 2. Reverted last changes.
@@ -68,16 +76,12 @@
 // 10. Channel depth 256
 // 11. X_SCALE=32
 // 12. X_SCALE=8
-// 13. Breaks code
-// 14. Breaks Quartus
+// 13-14. Breaks Quartus
 // 15. No interleaving
 // 16. No LVEC
 // 17. Square SAs
 // 18. Simpler counter mgmt
 // 19. Simpler handling of the clear signal
-//
-// This is important but it is not enforced (hmmm):
-// PE_X + PE_Y <= Y_INTERLEAVED
 
 #include <assert.h>
 #include <stdbool.h>
@@ -136,28 +140,48 @@ typedef enum {
     BUF_C
 } buf_type;
 
-#define V_TYPE_LONG     1
-#define V_TYPE_FLOAT    2
-#define V_TYPE_INT      3
-#define V_TYPE_HALF     4
+typedef enum {
+    V_TYPE_LONG = 1,
+    V_TYPE_FLOAT,
+    V_TYPE_INT,
+    V_TYPE_HALF,
+    V_TYPE_CHAR,
+    V_TYPE_LAST
+} v_type;
 
 static int
-scalar_size(int v_type) {
-    if (v_type == V_TYPE_LONG) {
-        return sizeof(long);
-    } else if (v_type == V_TYPE_INT) {
-        return sizeof(int);
-    } else if (v_type == V_TYPE_FLOAT) {
-        return sizeof(float);
-    } else if (v_type == V_TYPE_HALF) {
-        return sizeof(cl_half);
-    } else {
-        assert(false);
-    }
-}
+V_TYPE_SIZE[V_TYPE_LAST] = {
+    [V_TYPE_LONG] = sizeof(cl_long),
+    [V_TYPE_FLOAT] = sizeof(cl_float),
+    [V_TYPE_INT] = sizeof(cl_int),
+    [V_TYPE_HALF] = sizeof(cl_half),
+    [V_TYPE_CHAR] = sizeof(cl_char)
+};
+
+static bool
+V_TYPE_IS_INTEGRAL[V_TYPE_LAST] = {
+    [V_TYPE_LONG] = true,
+    [V_TYPE_FLOAT] = false,
+    [V_TYPE_INT] = true,
+    [V_TYPE_HALF] = false,
+    [V_TYPE_CHAR] = true
+};
 
 static void
-scalar_copy_cast(void *dst, int dt, void *src, int st, int idx)   {
+matrix_init(tensor *t, v_type tp) {
+    tensor_fill_rand_range(t, 20);
+    tensor_unary(t, t, TENSOR_UNARY_OP_ADD, -10.0);
+    if (V_TYPE_IS_INTEGRAL[tp]) {
+
+    }
+    tensor_unary(t, t, TENSOR_UNARY_OP_TRUNC, 0.0);
+}
+
+
+
+
+static void
+scalar_copy_cast(void *dst, v_type dt, void *src, v_type st, int idx)   {
     double v;
     if (st == V_TYPE_LONG) {
         v = ((long *)src)[idx];
@@ -168,6 +192,8 @@ scalar_copy_cast(void *dst, int dt, void *src, int st, int idx)   {
     } else if (st == V_TYPE_HALF) {
         cl_half t = ((cl_half *)src)[idx];
         v = (double)half_to_float(t);
+    } else if (st == V_TYPE_CHAR) {
+        v = ((char *)src)[idx];
     } else {
         assert(false);
     }
@@ -180,13 +206,15 @@ scalar_copy_cast(void *dst, int dt, void *src, int st, int idx)   {
     } else if (dt == V_TYPE_HALF) {
         cl_half t = float_to_half(v);
         ((cl_half *)dst)[idx] = t;
+    } else if (dt == V_TYPE_CHAR) {
+        ((char *)dst)[idx] = v;
     } else {
         assert(false);
     }
 }
 
 static void
-buffer_copy_cast(void *dst, int dt, void *src, int st, int n) {
+buffer_copy_cast(void *dst, v_type dt, void *src, v_type st, int n) {
     for (int i = 0; i < n; i++) {
         scalar_copy_cast(dst, dt, src, st, i);
     }
@@ -201,7 +229,12 @@ usage(char *bin) {
         "N M K\n\n",
         bin
     );
-    printf("    V_TYPE      SIMD vector type (int, long, float, double)\n");
+    printf("    V_TYPE      SIMD vector type:\n");
+    printf("                    1 for long\n");
+    printf("                    2 for float\n");
+    printf("                    3 for int\n");
+    printf("                    4 for half\n");
+    printf("                    5 for char\n");
     printf("    V_SIZE      SIMD vector size (1, 2, 4, 8, or 16)\n");
     printf("    PE_S        Side length of the square systolic array\n");
     printf("    X_SCALE     Scaling factor\n");
@@ -216,7 +249,7 @@ main(int argc, char *argv[]) {
         usage(argv[0]);
     }
     // Systolic array setup
-    int v_type = atoi(argv[3]);
+    v_type v_type = atoi(argv[3]);
     int v_size = atoi(argv[4]);
     int pe_s = atoi(argv[5]);
     int x_scale = atoi(argv[6]);
@@ -270,18 +303,8 @@ main(int argc, char *argv[]) {
     printf("\n");
 
     printf("** Initializing input matrices **\n");
-    tensor_fill_rand_range(a, 20);
-    tensor_fill_rand_range(b, 20);
-    tensor_unary(a, a, TENSOR_UNARY_OP_ADD, -10.0);
-    tensor_unary(b, b, TENSOR_UNARY_OP_ADD, -10.0);
-
-    // Could do this better
-    if (v_type == V_TYPE_LONG ||
-        v_type == V_TYPE_INT ||
-        v_type == V_TYPE_HALF) {
-        tensor_unary(a, a, TENSOR_UNARY_OP_TRUNC, 0.0);
-        tensor_unary(b, b, TENSOR_UNARY_OP_TRUNC, 0.0);
-    }
+    matrix_init(a, v_type);
+    matrix_init(b, v_type);
 
     printf("** Multiplying on CPU **\n");
     tensor *c_ref = tensor_multiply_new(a, b);
@@ -290,14 +313,13 @@ main(int argc, char *argv[]) {
     tensor *c_ref_tiled = tensor_tile_2d_new(
         c_ref, A_BLOCK_Y, B_BLOCK_X, 0, 0
     );
-
     int n_tiles = N * K * A_BLOCK_Y;
-
-    tensor *c_ref_tiled_transposed = tensor_init_3d(n_tiles, pe_s, pe_s);
-
     tensor_set_dims(c_ref_tiled, 3, (int[]){n_tiles, pe_s, pe_s});
 
+
+    tensor *c_ref_tiled_transposed = tensor_init_3d(n_tiles, pe_s, pe_s);
     tensor_transpose_tiled(c_ref_tiled, c_ref_tiled_transposed);
+    tensor_set_dims(c_ref_tiled_transposed, 2, (int[]){C_Y, C_X});
 
     tensor *a_tiled = tensor_tile_2d_new(
         a, A_BLOCK_Y, A_BLOCK_X, 0, 0
@@ -338,7 +360,7 @@ main(int argc, char *argv[]) {
         OCL_CHECK_ERR(ocl_ctx_add_queue(ctx, props));
     }
 
-    int size = scalar_size(v_type);
+    int size = V_TYPE_SIZE[v_type];
     size_t n_bytes_a = n_els_a * size;
     size_t n_bytes_b = n_els_b * size;
     size_t n_bytes_c = n_els_c * size;
@@ -368,6 +390,7 @@ main(int argc, char *argv[]) {
         n_els_b
     );
 
+    printf("** Writing buffers **\n");
     OCL_CHECK_ERR(ocl_ctx_write_buffer(
         ctx, 0, BUF_A, dev_buf_a
     ));
@@ -400,6 +423,7 @@ main(int argc, char *argv[]) {
     ));
 
     // Queue kernels
+    printf("** Running kernel **\n");
     size_t local[] = {1};
     size_t global[] = {1};
     cl_event events[N_KERNELS];
@@ -435,7 +459,20 @@ main(int argc, char *argv[]) {
         dev_buf_c, v_type,
         n_els_c
     );
-
+    //printf("Expected:\n");
+    //tensor_print(c_ref_tiled_transposed, true, 2, 160, " ");
+    if (v_type == V_TYPE_CHAR) {
+        // Simulate wrap-around arithmetic of low-precision ints.
+        tensor *t = c_ref_tiled_transposed;
+        tensor_unary(t, t, TENSOR_UNARY_OP_REMAINDER, 256);
+        for (int i = 0; i < tensor_n_elements(t); i++) {
+            float v = t->data[i];
+            if (v >= 128) {
+                v -= 256;
+            }
+            t->data[i] = v;
+        }
+    }
     tensor_check_equal_contents(c, c_ref_tiled_transposed, 0.1);
 
     ocl_ctx_free(ctx);

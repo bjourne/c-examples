@@ -53,10 +53,12 @@
 ////////////////////////////////////////////////////////////////////////
 // Types
 ////////////////////////////////////////////////////////////////////////
+
 #define V_TYPE_LONG     1
 #define V_TYPE_FLOAT    2
 #define V_TYPE_INT      3
 #define V_TYPE_HALF     4
+#define V_TYPE_CHAR     5
 
 
 #if V_TYPE==V_TYPE_LONG
@@ -118,7 +120,9 @@ typedef int16 vtype;
 
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 typedef half type;
-#if V_SIZE==2
+#if V_SIZE==1
+typedef half vtype;
+#elif V_SIZE==2
 typedef half2 vtype;
 #elif V_SIZE==8
 typedef half8 vtype;
@@ -127,6 +131,23 @@ typedef half16 vtype;
 #else
 #error Unsupported V_SIZE
 #endif
+
+#elif V_TYPE==V_TYPE_CHAR
+typedef char type;
+#if V_SIZE==1
+typedef char vtype;
+#elif V_SIZE==2
+typedef char2 vtype;
+#elif V_SIZE==4
+typedef char4 vtype;
+#elif V_SIZE==8
+typedef char8 vtype;
+#elif V_SIZE==16
+typedef char16 vtype;
+#else
+#error Unsupported V_SIZE
+#endif
+
 
 #else
 
@@ -253,6 +274,8 @@ monolithic() {
     bool new_c_tile = false;
 
     while (1) {
+#pragma ii 1
+#pragma loop_coalesce
         for (uint side = 0; side < 2; side++) {
             for (uint counter = 0; counter < N_AB_BLOCK_MSGS; counter++) {
 
@@ -309,7 +332,6 @@ monolithic() {
 #pragma unroll
                 for (uint x = 0; x < PE_S; x++) {
                     col.data[x] = drain[x][0];
-
 #pragma unroll
                     for (int y = 0; y < PE_S - 1; y++) {
 #pragma unroll
