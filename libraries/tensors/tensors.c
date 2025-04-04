@@ -335,6 +335,10 @@ tensor_unary(tensor *src, tensor *dst,
         for (int i = 0; i < n; i++) {
             dst->data[i] = truncf(src->data[i]);
         }
+    } else if (op == TENSOR_UNARY_OP_MOD) {
+        for (int i = 0; i < n; i++) {
+            dst->data[i] = fmodf(src->data[i], scalar);
+        }
     } else {
         assert(false);
     }

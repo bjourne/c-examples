@@ -28,7 +28,8 @@ typedef enum {
     TENSOR_UNARY_OP_ADD,
     TENSOR_UNARY_OP_DIV,
     TENSOR_UNARY_OP_MAX,
-    TENSOR_UNARY_OP_TRUNC
+    TENSOR_UNARY_OP_TRUNC,
+    TENSOR_UNARY_OP_MOD
 } tensor_unary_op;
 
 typedef enum {
