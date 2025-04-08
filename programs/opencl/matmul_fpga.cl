@@ -44,7 +44,7 @@
 #define FPGA_REG2(x)                __fpga_reg(__fpga_reg((x)))
 
 // Shift register size
-#define SR_SIZE              (PE_S * PE_S)
+#define SR_SIZE                     (PE_S * PE_S)
 
 // Number of messages per block of A, B, or C
 #define N_AB_BLOCK_MSGS             (PE_S * PE_S * X_SCALE)
@@ -60,7 +60,8 @@
 #define V_TYPE_HALF     4
 #define V_TYPE_CHAR     5
 
-
+// While using scalar types would be functionally equivalent, we have
+// to use SIMD types to get aoc to compile the code.
 #if V_TYPE==V_TYPE_LONG
 
 typedef long type;
@@ -154,6 +155,7 @@ typedef char16 vtype;
 #error Unsupported V_TYPE
 
 #endif
+
 
 ////////////////////////////////////////////////////////////////////////
 // Structs
@@ -273,82 +275,88 @@ monolithic() {
     uint storecount = N_C_BLOCK_MSGS;
     bool new_c_tile = false;
 
+    // This counter is used for address generation and drain
+    // control. It works like nested for-loops but is easier for
+    // Quartus to synthesize.
+    uint gcount = 0;
+
     while (1) {
-#pragma ii 1
-#pragma loop_coalesce
-        for (uint side = 0; side < 2; side++) {
-            for (uint counter = 0; counter < N_AB_BLOCK_MSGS; counter++) {
+        vtype_bool valA = read_channel_intel(ch_load_a);
 
-                vtype_bool valA = read_channel_intel(ch_load_a);
+        // save latest row_col_pair
+        if ((!new_c_tile && valA.c) & 1) {
+            storecount = 0;
+        }
+        new_c_tile = valA.c;
 
-                // save latest row_col_pair
-                if ((!new_c_tile && valA.c) & 1) {
-                    storecount = 0;
+        vtype valB = read_channel_intel(ch_load_b);
+
+        // Rename counter to break dependency to the loop
+        // index.
+        uint cycle = gcount % N_AB_BLOCK_MSGS;
+        uchar side = (gcount / N_AB_BLOCK_MSGS) % 2;
+
+        // Write addresses
+        uchar w_vec = POW2_REM(cycle, X_SCALE);
+        uchar w_addr = POW2_REM(cycle, PE_S * X_SCALE) / X_SCALE;
+        uchar w_el = cycle / (PE_S * X_SCALE);
+
+        // Read addresses
+        uchar r_vec = cycle / (PE_S * PE_S);
+        uchar r_addr_a = POW2_REM(cycle, PE_S * PE_S) / PE_S;
+        uchar r_addr_b = POW2_REM(cycle, PE_S);
+
+        // Data to feed the SA
+        bool clear[PE_S];
+        vtype fedA[PE_S];
+        vtype fedB[PE_S];
+
+#pragma unroll
+        for (uint e = 0; e < PE_S; e++) {
+            if (w_el == e) {
+                mem_a[side][w_addr][w_vec][e] = valA.data;
+                mem_b[side][w_addr][w_vec][e] = valB;
+            }
+            fedA[e] = mem_a[!side][r_addr_a][r_vec][e];
+            fedB[e] = mem_b[!side][r_addr_b][r_vec][e];
+            clear[e] = (cycle < (PE_S * PE_S)) & valA.c;
+        }
+
+
+#pragma unroll
+        for (uint y = 0; y < PE_S; y++) {
+#pragma unroll
+            for (uint x = 0; x < PE_S; x++) {
+                // compute and store outputs in shift register
+                type result = PE(clear[y], fedA[y], fedB[x], acc[y][x]);
+                if (clear[y]) {
+                    drain[x][y * SR_SIZE] = result;
                 }
-                new_c_tile = valA.c;
-
-                vtype valB = read_channel_intel(ch_load_b);
-
-                vtype fedA[PE_S];
-                vtype fedB[PE_S];
-
-                // Rename counter to break dependency to the loop
-                // index.
-                uint counter2 = counter;
-                bool clear = (counter2 < (PE_S * PE_S)) & valA.c;
-#pragma unroll
-                for (uint e = 0; e < PE_S; e++) {
-                    if (counter2 / (PE_S * X_SCALE) == e) {
-                        uchar w_vec = POW2_REM(counter2, X_SCALE);
-                        uchar w_addr = POW2_REM(counter2, PE_S * X_SCALE) / X_SCALE;
-                        mem_a[side][w_addr][w_vec][e] = valA.data;
-                        mem_b[side][w_addr][w_vec][e] = valB;
-                    }
-
-                    uchar r_vec = counter2 / (PE_S * PE_S);
-                    uchar r_addr_a = POW2_REM(counter2, PE_S * PE_S) / PE_S;
-                    uchar r_addr_b = POW2_REM(counter2, PE_S);
-
-                    fedA[e] = mem_a[!side][r_addr_a][r_vec][e];
-                    fedB[e] = mem_b[!side][r_addr_b][r_vec][e];
-                }
-
-#pragma unroll
-                for (uint y = 0; y < PE_S; y++) {
-#pragma unroll
-                    for (uint x = 0; x < PE_S; x++) {
-                        // compute and store outputs in shift register
-                        type result = PE(clear, fedA[y], fedB[x], acc[y][x]);
-                        if (clear) {
-                            drain[x][y * SR_SIZE] = result;
-                        }
-                        fedA[y] = FPGA_REG2(fedA[y]);
-                        fedB[x] = FPGA_REG2(fedB[x]);
-                        clear = FPGA_REG2(clear);
-                    }
-
-                }
-                cols_data col;
-#pragma unroll
-                for (uint x = 0; x < PE_S; x++) {
-                    col.data[x] = drain[x][0];
-#pragma unroll
-                    for (int y = 0; y < PE_S - 1; y++) {
-#pragma unroll
-                        for (int i = 0; i < SR_SIZE - 1; i++) {
-                            drain[x][y * SR_SIZE + i] = drain[x][y * SR_SIZE + i + 1];
-                        }
-                        // use fpga_reg at logical PE boundaries - to capture locality
-                        drain[x][y * SR_SIZE + SR_SIZE - 1] =
-                            FPGA_REG2(drain[x][y * SR_SIZE + SR_SIZE]);
-                    }
-                }
-                if (storecount < N_C_BLOCK_MSGS) {
-                    write_channel_intel(ch_store_c, col);
-                }
-                storecount++;
+                fedA[y] = FPGA_REG2(fedA[y]);
+                clear[y] = FPGA_REG2(clear[y]);
+                fedB[x] = FPGA_REG2(fedB[x]);
             }
         }
+        cols_data col;
+#pragma unroll
+        for (uint x = 0; x < PE_S; x++) {
+            col.data[x] = drain[x][0];
+#pragma unroll
+            for (int y = 0; y < PE_S - 1; y++) {
+#pragma unroll
+                for (int i = 0; i < SR_SIZE - 1; i++) {
+                    drain[x][y * SR_SIZE + i] = drain[x][y * SR_SIZE + i + 1];
+                }
+                // use fpga_reg at logical PE boundaries - to capture locality
+                drain[x][y * SR_SIZE + SR_SIZE - 1] =
+                    FPGA_REG2(drain[x][y * SR_SIZE + SR_SIZE]);
+            }
+        }
+        if (storecount < N_C_BLOCK_MSGS) {
+            write_channel_intel(ch_store_c, col);
+        }
+        storecount++;
+        gcount++;
     }
 }
 
